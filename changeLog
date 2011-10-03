@@ -1,0 +1,59 @@
+CHANGES IN VERSION 1.3.1
+- modelSelection now returns the estimated regression coefficients for the most probable model
+
+CHANGES IN VERSION 1.3.0
+- Added pmomPM function
+- Added pmomLM function
+
+CHANGES IN VERSION 1.2.1
+- Added dmom prior for unspecified tau. Added parameters a.tau and b.tau to dmom.
+
+CHANGES IN VERSION 1.2
+- Added demom and pemom functions.
+
+CHANGES IN VERSION 1.1.3
+- Improved vignette model selection section
+- Implemented new Laplace approximation for product iMOM marginals which is much more efficient computationally than the previous one
+
+CHANGES IN VERSION 1.1.2
+- Removed makefile from inst/doc
+- Added hierarchical Beta-Binomial prior for model space indicator in modelSelection
+
+CHANGES IN VERSION 1.1.1
+- Fixed some C warnings due to uninitialized variables
+
+CHANGES IN VERSION 1.1.0
+- Product MOM and iMOM priors now implemented
+- Linear model variable selection for MOM and iMOM priors implemented
+
+CHANGES IN VERSION 1.0.5
+- Implemented product iMOM prior density in dpimom. Renamed quadratic iMOM density from dimom to dqimom. Added wrapper dimom to access either dpimom or dqimom.
+
+CHANGES IN VERSION 1.0.4
+- Implemented tMom Bayes factors as an option to mombf, mode2g and g2mode.
+- Implemented tMom prior density as an option to dmom
+
+CHANGES IN VERSION 1.0.3
+- A couple minor changes in documentation files .Rd to avoid warnings
+
+CHANGES IN VERSION 1.0.2
+- Fixed bug in the multivariate calculation of MOM Bayes Factors (affects mombf, momknown)
+
+CHANGES IN VERSION 1.0.1
+- Fixed bug in the multivariate calculation of dmom
+
+CHANGES IN VERSION 1.0.0
+- Added option 'method' to functions 'imombf', 'momknown' and 'imomunknown' to allow users to choose integration method. Default integration method changed from Monte Carlo to integration based on routine 'integrate' from package 'stats'.
+- Functions 'imombf', 'imomknown' and 'imomunknown' now accept parameter 'g' to be a vector instead of a single value.
+- Added pmom and pimom functions
+- Removed g2mode.univ and mode2g.univ functions. The same results can now be obtained via g2mode and mode2g.
+- Corrected error in dimom evaluation
+- Corrected error in zbfknown evaluation
+- Changed order of dmom and dimom arguments: theta0 is not 1st argument anymore
+- Added contents to vignette illustrating the new functions, and changed the name of the vignette from "mombf_manual" to "mombf"
+
+CHANGES IN VERSION 0.0.1
+- Changed word "library" in Vignette title to "package"
+- Indicated GPL(>=2) in the DESCRIPTION file 
+
+

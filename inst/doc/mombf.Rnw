@@ -1,0 +1,576 @@
+\documentclass[a4paper,12pt]{article}
+%\VignetteIndexEntry{Manual for the mombf library}
+%\VignettePackage{mombf}
+
+\usepackage{Sweave}
+\usepackage{amsmath}    % need for subequations
+\usepackage{amssymb}    %useful mathematical symbols
+\usepackage{bm}         %needed for bold greek letters and math symbols
+\usepackage{graphicx}   % need for PS figures
+\usepackage{verbatim}   % useful for program listings
+%\usepackage{color}      % use if color is used in text
+\usepackage{hyperref}   % use for hypertext links, including those to external documents and URLs
+\usepackage{natbib}    %number and author-year style referencing
+\usepackage{epsf} 
+\usepackage{lscape} 
+\bibpunct{(}{)}{;}{a}{,}{,}
+
+%Theorem environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newenvironment{proof}[1][Proof]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{definition}[1][Definition]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{example}[1][Example]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{remark}[1][Remark]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newcommand{\qed}{\nobreak \ifvmode \relax \else
+      \ifdim\lastskip<1.5em \hskip-\lastskip
+      \hskip1.5em plus0em minus0.5em \fi \nobreak
+      \vrule height0.75em width0.5em depth0.25em\fi}
+
+\pagestyle{empty} % use if page numbers not wanted
+
+\begin{document}
+
+\title{mombf package vignette}
+\author{David Rossell \\
+\small{Department of Biostatistics and Bioinformatics} \\
+\small{Institute for Research in Biomedicine, Barcelona, Spain} \\
+\small{david.rossell@irbbarcelona.org}}
+\date{}  %comment to include current date
+\maketitle
+
+This manual shows how to use the \texttt{mombf} library to compute
+Moment (MOM) and inverse Moment (iMOM) Bayes factors
+and to perform Bayesian model selection using non-local priors.
+See \cite{johnson:2010} for an introduction to non-local priors.
+
+The intuitive appeal of MOM and iMOM priors is that they represent prior beliefs under the alternative hypothesis
+which are fundamentally different from those under the null hypothesis.
+Mathematically, when the null hypothesis is true
+they present better convergence rates than BF resulting from most standard procedures.
+When the alternative hypothesis is true, they present the same convergence rates
+as most standard procedures.
+Additionally, in some high dimensional setups the posterior probability assigned to the correct model when using
+local priors is guaranteed to converge to 0, whereas for non-local priors it converges to 1.
+
+The routines implement a Gibbs sampling scheme to perform Bayesian model selection in linear model setups.
+Also, we provide routines to compute both exact and approximate BF and marginal densities for linear regression models,
+and approximate BF for generalized linear models.
+Approximate BF can also be obtained in other situations where the
+regression coefficients are asymptotically normally distributed and sufficient.
+Finally, the library also contains routines to evaluate the prior density and
+to elicit the prior parameters by specifying the mode {\it a priori} of the standardized
+regression coefficients.
+
+In Section \ref{sec:priors} we briefly review the definition of the MOM and iMOM priors,
+and we present routines to evaluate them.
+In Section \ref{sec:bflm} we analyze Hald's data with linear models and compute Bayes factors
+to assess whether some predictors can be dropped from the model.
+Section \ref{sec:bfglm} shows the analysis of some simulated logistic regression data.
+
+
+\section{Mom and iMom priors}
+\label{sec:priors}
+
+We implement both product and quadratic non-local priors.
+Quadratic non-local priors are historically the first form of non-local priors that were introduced,
+and are primarily targeted to the comparison of only two hypotheses.
+Instead, product priors focus on the more general variable selection problem,
+where one wants de determine which coefficients are zero within a vector of $p$ coefficients.
+
+Let $\bm{\theta}'=(\bm{\theta}_1',\bm{\theta}_2')$ be the vector of regression coefficients,
+$\phi$ be a dispersion parameter ({\it i.e.} the residual variance in a linear regression setup)
+
+\subsection{Product non-local priors}
+\label{ssec:prodpriors}
+
+The product non-local prior for
+$\bm{\theta}=(\theta_1,\ldots,\theta_p)$ is simply defined as the product of the univariate non-local priors, i.e.
+$\pi(\bm{\theta})= \prod_{i=1}^p \pi(\theta_i)$,
+where $\pi(\cdot)$ is a non-local prior density.
+
+The {\it product normal MOM prior} of order $r$ is defined as $\pi(\bm{\theta}|\phi)=$
+\begin{align}
+\left( \prod_{i=1}^{p} \frac{\theta_{1i}^{2r}}{(\tau \phi)^r (2r-1)!!} \right)
+N(\bm{\theta}; {\bf 0}, \tau \phi I),
+\label{eq:pMOM}
+\end{align}
+where $I$ is the $p\times p$ identity matrix and $\tau$ is a prior dispersion parameter.
+
+The {\it product normal MOM prior} of order $r$ is defined as $\pi(\bm{\theta}|\phi)=$
+\begin{align}
+\left( \prod_{i=1}^{p} \frac{\theta_{1i}^{2r}}{(\tau \phi)^r (2r-1)!!} \right)
+N(\bm{\theta}; {\bf 0}, \tau \phi I),
+\label{eq:pMOM}
+\end{align}
+where $I$ is the $p\times p$ identity matrix and $\tau$ is a prior dispersion parameter
+and $!!$ denotes the double factorial.
+
+\subsection{Quadratic non-local priors}
+\label{ssec:quadpriors}
+
+Suppose that the goal is to test $H_0: \bm{\theta}_1=\bm{\theta}_0$ versus $H_1=\bm{\theta}_1 \neq \bm{\theta}_0$.
+Consider the quadratic distance
+$Q(\bm{\theta}_1) = (\bm{\theta}_1-\bm{\theta}_0)^T V_1^{-1} (\bm{\theta}_1-\bm{\theta}_0)/(n \tau \phi)$,
+where $\bm{\theta}_1$ is a $p_1\times 1$ dimensional real vector, 
+$V_1$ is a $p_1\times p_1$ positive definite matrix and $\tau>0$ is a scalar.
+We set $V_1$ to be proportional to the asymptotic covariance matrix of the maximum 
+likelihood estimate $\hat{\bm{\theta}}_1$.
+For instance, in a linear regression setup with design matrix $X$ we set $V_1=(X'X)^{-1}$.
+
+We define an improper prior density on $\theta_2$ proportional to 1,
+and in the situation where $\phi$ is unknown we specify
+an independent improper prior on $\phi$ proportional to $1/\sqrt{\phi}$.
+
+
+\subsubsection{Mom prior}
+\label{ssec:momprior}
+
+Let $\pi_Z(\bm{\theta}_1)$ be a prior density for $\bm{\theta}_1$
+for which $E_{\pi_Z}[Q(\bm{\theta}_1)^k]$ is finite.
+We define the quadratic MOM prior as
+\begin{equation}
+\pi_M(\bm{\theta}_1)= \frac{Q(\bm{\theta}_1)^k}{E_{\pi_Z}[Q(\bm{\theta}_1)^k]}  \pi_Z(\bm{\theta}_1).
+\label{multimoment}
+\end{equation}
+The package currently implements normal MOM priors
+(where $\pi_Z$ is the g-prior of \cite{zellner:1980},
+{\it i.e.} $\pi_Z(\bm{\theta}_1)=N(\bm{\theta}_0,n \tau \phi V_1)$)
+and T MOM priors
+(where $\pi_Z$ is a multivariate T with $\nu \geq 3$ degrees of freedom).
+Both for normal and T MOM priors only the case $k=1$ is currently implemented.
+For the normal MOM prior the normalization constant is
+$E_{\pi_Z}(Q(\bm{\theta})^k)= \prod_{i=0}^{k-1} (p_1+2i)$, i.e. the $k^{th}$ 
+raw moment of a chi-square distribution with $p_1$ degrees of freedom.
+For $k=1$ this simplifies to $E_{\pi_Z}(Q(\bm{\theta})^k)=1$.
+For the T MOM prior and $k=1$ the normalization constant is 
+$E_{\pi_Z}(Q(\bm{\theta})^k)= d \frac{\nu}{\nu-2}$.
+
+
+\subsubsection{iMom prior}
+\label{ssec:imomprior}
+
+The quadratic iMom prior on $\bm{\theta}_1$ is
+\begin{equation}\label{eq:napd}
+\pi_I(\bm{\theta}_1) = c_I \ Q(\bm{\theta}_1)^{-\frac{\nu+p_1}{2}} \exp\left[ Q(\bm{\theta}_1)^{-k} \right],
+\end{equation}
+where 
+\begin{equation}
+c_I = \left| \frac{V_1^{-1}}{n \tau \phi} \right|^{1/2} \frac{k}{\Gamma(\nu/2k)} \frac{\Gamma(p_1/2)}{\pi^{p_1/2}}.
+\end{equation}
+As $Q(\bm{\theta}_1)$ increases, the influence of the 
+exponential term in (\ref{eq:napd}) disappears
+and the tails of $\pi_I$ are of the same order as those of a multivariate
+$T$ with $\nu$ degrees of freedom.
+Several authors have found appealing to set $\nu=1$ \citep{bayarri:2007},
+which is the default value in our routines.
+Currently the library only implements the case $k=1$.
+
+\subsection{Evaluating the Mom and iMom priors}
+
+The functions \texttt{dmom} and \texttt{dimom} evaluate the Mom and iMom priors,
+respectively.
+Set the argument \texttt{penalty=='product'} for the product priors and
+\texttt{penalty=='quadratic'} for the quadratic priors.
+Setting the argument \texttt{baseDensity='normal'} in \texttt{dmom} (the default) returns
+the normal MOM density, \texttt{baseDensity='t'} returns the t MOM density.
+The functions \texttt{pmom} and \texttt{pimom} evaluate the distribution functions,
+and \texttt{qmom} and \texttt{qimom} return quantiles.
+Currently \texttt{pmom} and \texttt{qmom} are only implemented for the normal MOM.
+Let's set the prior parameter $tau=1$ and plot the Mom and iMom priors in a univariate setting
+for $\theta_1 \in (-3,3)$.
+Notice that in the univariate case the product and quadratic priors are equivalent.
+
+\setkeys{Gin}{width=0.5\textwidth} 
+<<label=fig1plot,include=FALSE>>=
+ library(mombf)
+ tau <- 1
+ thseq <- seq(-3,3,length=1000)
+ plot(thseq,dmom(thseq,tau=tau),type='l',ylab='Prior density')
+ lines(thseq,dmom(thseq,tau=tau,baseDensity='t',penalty='quadratic',nu=3),lty=2,col=2)
+ lines(thseq,dimom(thseq,tau=tau),lty=3,col=3)
+@
+
+\begin{figure}
+\begin{center}
+<<label=fig1,fig=TRUE,echo=FALSE>>=
+<<fig1plot>>
+@
+\end{center}
+\caption{Moment and inverse Moment priors for $tau=1$}
+\label{fig:priorplot}
+\end{figure}
+
+The iMOM prior assigns the lowest density for $\theta_1$ in a neighborhood of 0,
+whereas the normal MOM prior assigns the largest density.
+We can also plot the corresponding distribution functions.
+
+
+\setkeys{Gin}{width=0.5\textwidth} 
+<<label=fig1bplot,include=FALSE>>=
+ library(mombf)
+ plot(thseq,pmom(thseq,tau=tau),type='l',ylab='Prior cdf')
+ lines(thseq,pimom(thseq,tau=tau),lty=3,col=3)
+@
+
+\begin{figure}
+\begin{center}
+<<label=fig1b,fig=TRUE,echo=FALSE>>=
+<<fig1bplot>>
+@
+\end{center}
+\caption{Moment and inverse Moment cdf for $tau=1$}
+\label{fig:cdfplot}
+\end{figure}
+
+
+\section{Bayes factors for linear regression models}
+\label{sec:bflm}
+
+This section focuses on computing Bayes factors to compare two models.
+The examples use quadratic non-local priors.
+For examples using product non-local priors see Section \ref{sec:varsellm}.
+
+\subsection{Linear model fit and prior elicitation}
+\label{ssec:lmfitandprior}
+
+The Hald data contains 13 observations, a continuous response variable and
+4 predictors. We start by loading the data and fitting a linear regression model.
+
+<<one>>=
+data(hald)
+dim(hald)
+lm1 <- lm(hald[,1] ~ hald[,2] + hald[,3] + hald[,4] + hald[,5])
+summary(lm1)
+@
+
+The goal is to obtain Bayes factors to assess whether any one predictor
+can be dropped from the model.
+First, we specify the prior parameter $\tau$ based on considerations
+about the standardized regression coefficient $(\theta_1^2/\phi$.
+Notice that $\theta_1/\sqrt{\phi}$ is the signal-to-noise ratio
+or standardized effect size.
+To find the $g$ value that gives a prior mode at $\pm .2$,
+we use the function \texttt{mode2g}.
+For instance, for the regression coefficient associated to \texttt{hald[,2]}
+we would do as follows.
+
+<<two>>=
+prior.mode <- .2^2
+V <- summary(lm1)$cov.unscaled
+diag(V)
+taumom <- mode2g(prior.mode,prior='normalMom')
+tautmom <- mode2g(prior.mode,prior='tMom',nu=3)
+tauimom <- mode2g(prior.mode,prior='iMom')
+taumom
+tautmom
+tauimom
+@
+
+We can check the obtained $\tau$ values by plotting the prior density.
+
+\setkeys{Gin}{width=0.5\textwidth} 
+<<label=fig2plot,include=FALSE>>=
+thseq <- seq(-1,1,length=1000)
+plot(thseq,dmom(thseq,V1=nrow(hald)*V[2,2],tau=taumom),type='l',xlab='theta/sigma',ylab='Prior density')
+lines(thseq,dmom(thseq,V1=nrow(hald)*V[2,2],tau=tautmom,baseDensity='t',nu=3,penalty='quadratic'),lty=2,col=2)
+lines(thseq,dimom(thseq,V1=nrow(hald)*V[2,2],tau=tauimom),lty=3,col=3)
+abline(v=.2,lty=2,col='gray')
+@
+
+\begin{figure}
+\begin{center}
+<<label=fig2,fig=TRUE,echo=FALSE>>=
+<<fig2plot>>
+@
+\end{center}
+\caption{Hald data. Mom and iMom priors for a regression coefficient.
+The prior mode for $\theta_1/\sigma$ is set at $\pm 0.2$}
+\label{fig:priorhald}
+\end{figure}
+
+Another way to specify $g$ is by finding the value that assigns a desired
+prior probability to a certain interval.
+This can be achieved with the function \texttt{priorp2g}.
+For instance, to find the $g$ value that gives 5\% probability to the interval
+(-0.2,0.2) we use the following code.
+
+
+<<twobis>>=
+a <- .2; priorp <- .05
+taumom2 <- priorp2g(priorp=priorp,q=a,prior='normalMom')
+tauimom2 <- priorp2g(priorp=priorp,q=-a,prior='iMom')
+taumom2
+tauimom2
+@
+
+\subsection{Bayes factor computation}
+\label{ssec:bflmcomput}
+
+Bayes factors can be easily computed using the functions
+\texttt{mombf} and \texttt{imombf}.
+The normal Mom BF can be computed in explicit form, 
+the T MOM BF require computing a one dimensional integral and
+the iMom BF a two dimensional integral (regardless of the dimensionality of $\bm{\theta}_1$).
+The numerical integration can be achieved either via
+adaptive quadratures (as implemented in the routines \texttt{integrate})
+by setting \texttt{method='adapt'},
+or via Monte Carlo simulation by setting \texttt{method='MC'}.
+When $\phi$ is unknown, \texttt{method=='adapt'} combines
+\texttt{integrate} with the quantile method of \cite{johnson:1992}.
+The parameter \texttt{nquant} determines the number of quantiles
+of the posterior distribution of $\phi$ at which to evaluate
+the integral. The default \texttt{nquant=100} usually gives a fairly
+good approximation.
+For Monte Carlo integration, the argument \texttt{B} specifies the 
+number of Monte Carlo samples.
+
+In our example, for computational speed we use \texttt{B=100000}, even
+though in real examples a higher value can be used
+to ensure proper accuracy.
+For comparison, we also compute the Bayes factors that
+would be obtained under Zellner's g-prior
+with the default value $g=1$.
+which can be achieved with the function \texttt{zellnerbf}.
+Notice that $g$ corresponds to $\tau$ in our notation.
+For reproducibility, we set the random number generator seed
+to the date this code was written.
+
+<<three>>=
+set.seed(4*2*2008)
+mombf(lm1,coef=2,g=taumom)
+mombf(lm1,coef=2,g=tautmom,baseDensity='t')
+imombf(lm1,coef=2,g=tauimom,method='adapt')
+imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
+zellnerbf(lm1,coef=2,g=1)
+@
+
+We assess the Monte Carlo error by re-computing the iMom BF
+with a different set of Monte Carlo samples.
+We find the error to be acceptable.
+
+<<four>>=
+imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
+@
+
+We now assess the sensitivity to the prior mode specification.
+For illustration purposes, we exclude the T MOM and iMom BF as these take longer to compute.
+The estimated standardized regression coefficient is
+
+<<five>>=
+sr <- sqrt(sum(lm1$residuals^2)/(nrow(hald)-5))
+thest <- coef(lm1)[2]/sr
+thest
+@
+
+We define a sequence of prior modes, find the corresponding $g$ values 
+and compute Bayes factors.
+Note that \texttt{mombf}, \texttt{imombf} and \texttt{zellnerbf} accept $g$ to be a vector
+instead of a single value.
+For large $g$ vectors setting the option \texttt{method='MC'} in \texttt{imombf} can
+save considerable computing time, as the Monte Carlo samples need only be generated
+once for all $g$ values.
+
+
+\setkeys{Gin}{width=0.5\textwidth} 
+<<label=fig3plot,include=FALSE>>=
+prior.mode <- seq(.01,1,length=100)^2
+taumom <- mode2g(prior.mode,prior='normalMom')
+bf1 <- mombf(lm1,coef=2,g=taumom)
+bf2 <- zellnerbf(lm1,coef=2,g=taumom)
+plot(prior.mode,bf1,type='l',ylab='BF')
+lines(prior.mode,bf2,lty=2,col=2)
+abline(v=thest,lty=2)
+@
+
+\begin{figure}
+\begin{center}
+<<label=fig3,fig=TRUE,echo=FALSE>>=
+<<fig3plot>>
+@
+\end{center}
+\caption{Hald data. BF obtained for Mom and Zellner's g-prior for several prior mode specifications.}
+\label{fig:}
+\end{figure}
+The highest possible BF are observed when the prior mode is slightly smaller than the estimated
+0.634.
+As the mode converges to zero both priors converge to a point
+mass at zero, and hence the BF converges to 1.
+As the mode goes to infinity the BF goes to 0, as predicted by Lindley's paradox \citep{lindley:1957}.
+Although the Mom and Zellner BF show some sensitivity to the
+prior specification, any prior mode between 0 and 1 results in
+evidence in favor of including the variable in the model.
+
+\section{Bayes factors for generalized linear regression models}
+\label{sec:bfglm}
+
+This section focuses on obtaining Bayes factors to compare two models.
+In the examples we use quadratic non-local priors.
+For examples using product non-local priors see Section \ref{sec:varsellm}.
+
+As an illustration, we simulate data with 50 observations from a probit regression model.
+We simulate two correlated predictors
+with coefficients equal to \texttt{log(2)} and \texttt{0}
+({\it i.e.} the second variable is not actually in the model).
+The predictors are stored in the matrix \texttt{x}, the success
+probabilities in the vector \texttt{p} and the observed responses 
+in the vector \texttt{y}.
+As in Section \ref{ssec:bflmcomput}, for reproducibility purposes
+we set the random number generator seed to the date this code was written.
+
+<<six>>=
+set.seed(4*2*2008)
+n <- 50; theta <- c(log(2),0)
+x <- matrix(NA,nrow=n,ncol=2)
+x[,1] <- rnorm(n,0,1); x[,2] <- rnorm(n,.5*x[,1],1)
+p <- pnorm(x %*% matrix(theta,ncol=1))
+y <- rbinom(n,1,p)
+@
+
+Before computing Bayes factors, we fit a probit regression model with the function \texttt{glm}.
+The maximum likelihood estimates are stored in \texttt{thetahat} and
+the asymptotic covariance matrix in \texttt{V}.
+
+<<seven>>=
+glm1 <- glm(y~x[,1]+x[,2],family=binomial(link = "probit"))
+thetahat <- coef(glm1)
+V <- summary(glm1)$cov.scaled
+@
+
+To compute Bayes factors we use the functions \texttt{momknown}
+and \texttt{imomknown}.
+These functions take as primary arguments a vector of regression coefficients
+and their covariance matrix, and hence they 
+can be used in any setting where one has a statistic that
+is asymptotically sufficient and normally distributed.
+The resulting Bayes factors are approximate.
+The functions also allow for the presence of a dispersion parameter \texttt{sigma},
+{\it i.e.} the covariance of the regression coefficients is \texttt{sigma*V},
+but they assume that \texttt{sigma} is known.
+The probit regression model that we simulated has no over-dispersion and hence
+it corresponds to \texttt{sigma=1}.
+We first compare the full model with the model resulting from excluding the second covariate,
+setting $g=0.5$ for illustration
+(note that \texttt{thetahat[1]} contains the intercept).
+
+<<eight>>=
+g <- .5
+bfmom.1 <- momknown(thetahat[2],V[2,2],n=n,g=g,sigma=1)
+bfimom.1 <- imomknown(thetahat[2],V[2,2],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.1
+bfimom.1
+@
+Both priors result in evidence for including the first covariate.
+We now check whether the second covariate can be dropped.
+
+<<nine>>=
+bfmom.2 <- momknown(thetahat[3],V[3,3],n=n,g=g,sigma=1)
+bfimom.2 <- imomknown(thetahat[3],V[3,3],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.2
+bfimom.2
+@
+Both Mom and iMom BF provide strong evidence in favor of the simpler model,
+{\it i.e.} excluding \texttt{x[,2]}.
+To compare the full model with the model that has no covariates
+({\it i.e.} only the constant term remains) we use the same
+routines, passing a vector as the first argument 
+and a matrix as the second argument.
+
+<<ten>>=
+bfmom.0 <- momknown(thetahat[2:3],V[2:3,2:3],n=n,g=g,sigma=1)
+bfimom.0 <- imomknown(thetahat[2:3],V[2:3,2:3],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.0
+bfimom.0
+@
+Based on the resulting BF being close to 1, it is not clear whether the full
+model is preferable to the model with no covariates.
+
+The BF can be used to easily compute posterior probabilities for each
+of the four considered models: no covariates, only \texttt{x[,1]}, only \texttt{x[,2]}
+and both \texttt{x[,1]} and \texttt{x[,2]}.
+We assume equal probabilities {\it a priori}.
+
+<<eleven>>=
+prior.prob <- rep(1/4,4)
+bf <- c(bfmom.0,bfmom.1,bfmom.2,1)
+pos.prob <- prior.prob*bf/sum(prior.prob*bf)
+pos.prob
+@
+The model with the highest posterior probability is the one including only \texttt{x[,1]},
+{\it i.e.} the correct model,
+and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
+
+
+\section{Variable selection for linear models}
+\label{sec:varsellm}
+
+We illustrate how to perform variable selection with a simple simualted dataset.
+We generate 100 observations for the response variable and 3 covariates.
+The regression coefficient for the third covariate is 0.
+
+<<varsel1>>= 
+set.seed(2011*01*18)
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x %*% theta + rnorm(100)
+@
+
+First we need to specify the prior distribution for the regression coefficients,
+the model space and the residual variance.
+We specify a (product) iMOM prior on the coefficients with prior variance parameter \texttt{tau=.131},
+which targets the detection of standardized effect sizes above 0.2.
+Regarding the model space, we use a Beta-binomial prior (binomial prior on the number of included variables
+with a beta hyper-prior on the Binomial success probability)
+as then posterior probabilities automatically adjust for multiple comparisons \citep{scott:2010}.
+Finally, for the residual variance we set a fairly non-informative inverse gamma prior.
+
+<<varsel2>>=
+priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='piMOM',priorPars=c(tau=.131))
+priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=1,beta.p=1))
+priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
+@
+
+The routine \texttt{modelSelection} implements a Gibbs sampling scheme which
+returns a posterior sample for the variable inclusion indicators in the slot \texttt{postSample},
+the visited model with highest posterior probability 
+and the marginal posterior probabilities of inclusion for each covariate.
+The marginal posterior probabilities are estimated via Rao-Blackwellization,
+i.e. averaging the posterior probability for inclusion in each Gibbs iteration,
+as this estimate is more precise than simply taking \texttt{colMeans} on the slot \texttt{postSample}.
+
+<<varsel3>>=
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, 
+method='Laplace')
+fit1$postMode
+fit1$margpp
+@
+
+We see that the posterior mode chooses the correct model,
+and that the marginal probabilities clearly indicate
+that covariates 1 and 2 should be included and covariate 3 should be excluded.
+This illustrates an important issue: 
+non-local priors result in a procedure which assigns high posterior probability
+to the true model (or the model under consideration
+with smallest Kullback-Leibler distance to the true model).
+This remains true even in high dimensions, whereas local priors
+typically assign negligible mass to any single model.
+We can see this by checking the proportion of posterior samples in which
+the correct model has been visited: 90 out of 90.
+
+<<varsel4>>=
+correct <- t(fit1$postSample)==c(TRUE,TRUE,FALSE)
+table(colSums(correct)==3)
+@
+
+
+\bibliographystyle{plainnat}
+\bibliography{references} 
+
+\end{document}

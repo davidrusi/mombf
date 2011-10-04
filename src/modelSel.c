@@ -1,9 +1,9 @@
+#include <stdlib.h>
+#include <math.h>
 #include <R.h>
 #include <Rinternals.h>
 #include "cstat.h"
 #include "modelSel.h"
-#include <stdlib.h>
-#include <math.h>
 
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;
@@ -1733,3 +1733,4 @@ double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   return 0.0;
 }
+

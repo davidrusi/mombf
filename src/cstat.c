@@ -10,10 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-#include "R.h"
-#include "Rinternals.h"
-
+#include <R.h>
+#include <Rinternals.h>
 #include "cstat.h"
 
 static const char interface_c_sccs_id[] = "%W%";
@@ -22,6 +20,7 @@ static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
 static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-08-23$";
+
 static long is1=123456789, is2=981963; 
 static int set=0;
 

@@ -1,11 +1,13 @@
 Package: mombf
-Version: 1.3.1
-Date: 2011-09-01
+Version: 1.3.2
+Date: 2011-10-03
 Title: Moment and Inverse Moment Bayes factors
 Author: David Rossell <rosselldavid@gmail.com>, John D. Cook <jdcook@mdanderson.org>.
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.11.0), methods, mvtnorm, ncvreg, actuar 
 Description: This package performs model selection based on non-local priors, including MOM, eMOM and iMOM priors. Routines are provided to compute Bayes factors, marginal densities and to perform variable selection in regression setups. Routines to evaluate prior densities, distribution functions, quantiles and modes are included.
 License: GPL (>= 2)
+URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: ClassDefinitions.r imombf.r mode2g.r pimom.r zellnerbf.knownsig.r imomknown.r modelSelection.r pmom.r zellnerbf.lm.r dimom.r imomunknown.r priorp2g.r zellnerbf.r margpimom.r mombf.lm.r qimom.r emom.r zellnerbf.unknownsig.r dmom.r mombf.r qmom.r g2mode.r margpmom.r momknown.r zbfknown.r imombf.lm.r momunknown.r zbfunknown.r pmomLM.r pmomPM.r emomLM.r postMode.r
+Collate: AllClasses.R imombf.R mode2g.R pimom.R zellnerbf.knownsig.R imomknown.R modelSelection.R pmom.R zellnerbf.lm.R dimom.R imomunknown.R priorp2g.R zellnerbf.R margpimom.R mombf.lm.R qimom.R emom.R zellnerbf.unknownsig.R dmom.R mombf.R qmom.R g2mode.R margpmom.R momknown.R zbfknown.R imombf.lm.R momunknown.R zbfunknown.R pmomLM.R pmomPM.R emomLM.R postMode.R
+

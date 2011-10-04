@@ -1,5 +1,9 @@
+#ifndef MODELSEL_H
+#define MODELSEL_H 1
+
 #include <R.h>
 #include <Rinternals.h>
+
 
 //Define structures
 struct marginalPars {
@@ -173,3 +177,6 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+#endif /* MODELSEL_H */
+

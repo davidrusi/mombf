@@ -1,15 +1,15 @@
 /***********************************************************
  Basic statistical, input-output and matrix manipulation
 
- Authors. Peter Mueller, Stephen Morris, David Rossell
- Last modified. 12 2007
+ Authors: Peter Mueller, Stephen Morris, David Rossell
 ***********************************************************/
 
-#if !defined(STAT_H_INCLUDED)
-#define STAT_H_INCLUDED
+#ifndef CSTAT_H
+#define CSTAT_H 1
 
 #include <math.h>
 #include <stdio.h>
+
 
 #if !defined(M_PI)
 #define M_PI (3.1415926535897932385)
@@ -340,4 +340,5 @@ void minimize(double th[],double **dirini,int n,double ftol,int *iter,double *fr
 void dirmin(double p[], double xi[], int n, double *fret, double (*func)(double []), int itmax, double dirminEPS); //minim in 1 direction
 void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc,double (*func)(double)); //find bracketing triplets
 
-#endif
+#endif /* CSTAT_H */
+

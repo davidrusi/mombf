@@ -9,6 +9,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 
 #if !defined(M_PI)
@@ -39,9 +40,9 @@ double meani(int *x, int lim);
 double wmeani(int *x, int lim, double *w);
 double meanx(double *x, int lim); //mean of x[0..lim]
 double wmeanx(double *x, int lim, double *w);
-double vari(int *x, int lim, int unb);
+double vari(int *x, int lim, bool unb);
 double wvari(int *x, int lim, double *w);
-double varx(double *x, int lim, int unb);
+double varx(double *x, int lim, bool unb);
 double wvarx(double *x, int lim, double *w);
 double cv(double *x, int ini, int fi); //coefficient of variation i.e. SD/mean
 double cvinv(double *x, int ini, int fi); //coefficient of variation of 1/x

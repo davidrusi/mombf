@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 #include <R.h>
@@ -24,7 +25,7 @@ static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-0
 static long is1=123456789, is2=981963; 
 static int set=0;
 
-FILE	*ifile, *ofile;
+FILE *ifile, *ofile;
 int nv = 0;
 
 long Xm1,Xm2,Xa1,Xa2,Xcg1[32],Xcg2[32],Xa1w,Xa2w,Xig1[32],Xig2[32],Xlg1[32],
@@ -73,82 +74,149 @@ static void _cstaterror(const char *proc,
 /* Sample mean of elements 0 through lim of vector x */
 double meani(int *x, int lim) 
 {
-    int i;
-    double value;
-    for(i=0,value=0; i<=lim; i++) { value += x[i]; }
-    value *= 1.0/(lim+1.0);
+    register int i;
+    double value = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+
+    for (i = 0; i <= lim; i++) {
+        value += x[i];
+    }
+    value *= 1.0 / (lim+1.0);
     return value;
 }
 
+
 double wmeani(int *x, int lim, double *w)
 {
-    int i;
-    double value, wtot;
-    for(i=0,value=0,wtot=0; i<=lim; i++) { value += w[i]*x[i]; wtot += w[i]; }
-    value *= 1.0/wtot;
+    register int i;
+    double value = 0.0;
+    double wtot = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? */
+    assert(w != NULL);
+
+    for (i = 0; i <= lim; i++) {
+        value += w[i] * x[i];
+        wtot += w[i];
+    }
+    value *= 1.0 / wtot;
     return value;
 }
+
 
 /* Sample mean of elements 0 through lim (both included) of vector x */
 double meanx(double *x, int lim) 
 {
-    int i;
-    double value;
-    for(i=0,value=0; i<=lim; i++) value += x[i];
-    value *= 1.0/(lim+1.0);
+    register int i;
+    double value = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+
+    for (i = 0; i <= lim; i++) {
+        value += x[i];
+    }
+    value *= 1.0 / (lim+1.0);
     return value;
 }
 
+
 double wmeanx(double *x, int lim, double *w)
 {
-    int i;
-    double value, wtot;
-    for(i=0,value=0,wtot=0; i<=lim; i++) {
-        value += w[i]*x[i]; wtot += w[i];
+    register int i;
+    double value = 0.0;
+    double wtot = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? */
+    assert(w != NULL);
+
+    for (i = 0; i <= lim; i++) {
+        value += w[i] * x[i];
+        wtot += w[i];
     }
-    value *= 1.0/wtot;
+    value *= 1.0 / wtot;
     return value;
 }
 
 
 /* Sample variance of elements 0 through lim of vector x, unb=1 returns unbiased version */
-double vari(int *x, int lim, int unb) 
+double vari(int *x, int lim, bool unb) 
 {
-    int i;
-    double value;
-    for(i=0,value=0; i<=lim; i++) { value += pow(x[i],2) / (1.0+lim); }
-    value -= pow(meani(x,lim),2);
-    if (unb==1 && lim>0) value *= (1.0+lim)/(0.0+lim);
+    register int i;
+    double value = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(unb == false || unb == true);
+
+    for (i = 0; i <= lim; i++) {
+        value += pow(x[i], 2) / (1.0+lim);
+    }
+    value -= pow(meani(x, lim), 2);
+    if (unb==1 && lim>0) {
+        value *= (1.0+lim) / (0.0+lim);
+    }
     return value;
 }
 
 double wvari(int *x, int lim, double *w) 
 {
-    int i;
-    double value, wtot;
-    for(i=0,value=0,wtot=0; i<=lim; i++) { value += w[i]*pow(x[i],2); wtot += w[i]; }
-    value = value/wtot - pow(wmeani(x,lim,w),2);
+    register int i;
+    double value = 0.0;
+    double wtot = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? */
+    assert(w != NULL);
+
+    for (i = 0; i <= lim; i++) {
+        value += w[i] * pow(x[i], 2);
+        wtot += w[i];
+    }
+    value = value/wtot - pow(wmeani(x, lim, w), 2);
     return value;
 }
 
 
 /* Sample variance of elements 0 through lim of vector x, unb=1 returns unbiased version */
-double varx(double *x, int lim, int unb) 
+double varx(double *x, int lim, bool unb) 
 {
-    int i;
-    double value;
-    for(i=0,value=0; i<=lim; i++) { value += pow(x[i],2) / (1.0+lim); }
-    value -= pow(meanx(x,lim),2);
-    if (unb==1 && lim>0) value *= (1.0+lim)/(lim+0.0);
+    register int i;
+    double value = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(unb == false || unb == true);
+
+    for (i = 0; i <= lim; i++) {
+        value += pow(x[i], 2) / (1.0+lim);
+    }
+    value -= pow(meanx(x, lim), 2);
+    if (unb==1 && lim>0) {
+        value *= (1.0+lim) / (lim+0.0);
+    }
     return value;
 }
 
 double wvarx(double *x, int lim, double *w) 
 {
-    int i;
-    double value, wtot;
-    for(i=0,value=0,wtot=0; i<=lim; i++) { value += w[i]*pow(x[i],2); wtot += w[i]; }
-    value = value/wtot - pow(wmeanx(x,lim,w),2);
+    register int i;
+    double value = 0.0;
+    double wtot = 0.0;
+
+    assert(x != NULL);
+    /* :TBD: negative values allowed for 'lim'? */
+    assert(w != NULL);
+
+    for (i = 0; i <= lim; i++) {
+        value += w[i] * pow(x[i], 2);
+        wtot += w[i];
+    }
+    value = value/wtot - pow(wmeanx(x, lim, w), 2);
     return value;
 }
 
@@ -2336,9 +2404,9 @@ double bbPrior(int k, int p, double alpha, double beta, int logscale) {
 // Draw from univariate Normal(mu,s^2)
 double rnormC(double mu, double s) {
 
-static int iset=0;
-static double gset;
-double fac,rsq,v1,v2;
+  static bool iset=false;
+  static double gset;
+  double fac,rsq,v1,v2;
 
   if (iset == 0) { //We don't have an extra deviate handy, so
     do {
@@ -2350,10 +2418,10 @@ double fac,rsq,v1,v2;
     //Now make the Box-Muller transformation to get two normal deviates. Return one and
     //save the other for next time.
     gset=v1*fac;
-    iset=1; //Set flag.
+    iset=true; //Set flag.
     return v2*fac*s + mu;
   } else { //We have an extra deviate handy,
-    iset=0; //so unset the flag, and return it.
+    iset=false; //so unset the flag, and return it.
     return gset*s + mu; 
   }
 }

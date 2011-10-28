@@ -1,21 +1,51 @@
-emomLM <- function(y, x, xadj, phi, tau=1, tau.adj=10^6, alpha.phi=.01, lambda.phi=.01, niter=10^3, modelPrior, initSearch='SCAD', verbose=TRUE) {
-#Fit linear model with emom prior on regression coefficients
-# Input
-# - y: vector with response variable
-# - x: design matrix with covariates to be selected
-# - xadj: design matrix with ajustment covariates for which no selection process is to be performed (i.e. always included in the model). xadj should include a column of 1's to account for the intercept term. By default xadj is set to matrix(1,ncol=1,nrow=length(y))
-# - phi: residual variance. If unknown leave phi missing, a prior phi ~ Inverse Gamma (alpha.phi,lambda.phi) is used.
-# - tau: prior dispersion for eMOM prior on the coefficients associated to x
-# - tau.adj: prior dispersion for multivariate normal prior on the coefficients associated to xadj
-# - niter: number of Gibbs sampling iterations
-# - modelPrior: function to compute the model log-prior probability
-# Output: list with 2 elements
-# - postSample: posterior samples
-# - margpp: marginal posterior probability for inclusion of each covariate (approx by averaging marginal post prob for inclusion in each Gibbs iteration. This approx is more accurate than simply taking colMeans(postSample)).
+emomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE) {
+
 require(mvtnorm)
-if (missing(phi)) { unknownPhi <- TRUE } else { unknownPhi <- FALSE }
+unknownPhi <- TRUE; phi <- 0
+#if (missing(phi)) { unknownPhi <- TRUE } else { unknownPhi <- FALSE }
 if (is.vector(y)) y <- matrix(y,ncol=1)
-if (missing(xadj)) xadj <- matrix(1,nrow=nrow(y),ncol=1)
+y <- scale(y,center=center,scale=scale)
+if (!is.matrix(x)) x <- as.matrix(x)
+ct <- (colMeans(x^2)-colMeans(x)^2)==0; x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
+if (missing(xadj)) {
+  xadj <- matrix(1,nrow=nrow(y),ncol=1)
+} else {
+  if (!is.matrix(xadj)) xadj <- as.matrix(xadj)
+  ctadj <- (colMeans(xadj^2)-colMeans(xadj)^2)==0; xadj[,!ctadj] <- scale(xadj[,!ctadj],center=center,scale=scale)
+  if (nrow(xadj)!=length(y)) stop('nrow(xadj) must be equal to length(y)')
+}
+
+#Set prior parameters
+if (missing(priorCoef)) { priorCoef=new("msPriorSpec",priorType='coefficients',priorDistr='peMOM',priorPars=c(tau=0.048)) }
+if (missing(priorDelta)) { priorDelta=new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
+if (missing(priorVar)) { priorVar=new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
+
+if (priorCoef@priorDistr=='peMOM') {
+  if (all(c('a.tau','b.tau') %in% names(priorCoef@priorPars))) {
+    warning('peMOM prior with hyper-prior on tau not implemented. Hence a.tau and b.tau not used')
+  } else {
+    if ('tau' %in% names(priorCoef@priorPars)) {
+      tau <- as.double(priorCoef@priorPars['tau'])
+    } else {
+      stop('tau must be specified for peMOM prior')
+    }
+  }
+  if (is.na(priorCoef@priorPars['tau.adj'])) tau.adj <- as.double(10^6) else tau.adj <- priorCoef@priorPars['tau.adj']
+} else {
+  stop("When calling emomLM priorCoef@priorDistr must be equal to 'peMOM'")
+}
+alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda']) 
+
+if (priorDelta@priorDistr=='uniform') {
+  modelPrior <- unifPrior
+} else if (priorDelta@priorDistr=='binomial') {
+  if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
+    modelPrior <- function(z, logscale) bbPrior(z, alpha=priorDelta@priorPars['alpha.p'], beta=priorDelta@priorPars['beta.p'], logscale=TRUE)
+  } else if ('p' %in% names(priorDelta@priorPars)) {
+    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars['p'], logscale=TRUE)
+  }
+}
+
 #Pre-compute useful quantities
 n <- nrow(y); p1 <- ncol(x); p2 <- ncol(xadj)
 XtX <- t(x) %*% x
@@ -42,6 +72,7 @@ linpred2 <- xadj %*% t(postTheta2[1,,drop=FALSE])
 e <- y-linpred2
 postPhi[1] <- ifelse(unknownPhi, var(e), phi)
 #Iterate
+if (verbose) cat('Running MCMC')
 for (i in 2:niter) {
   #Sample delta1, theta1
   curDelta <- postDelta[i-1,]; curTheta1 <- postTheta1[i-1,]
@@ -62,29 +93,62 @@ for (i in 2:niter) {
   if (verbose & ((i %% (niter/10))==0)) cat('.')
 }
 if (verbose) cat('\n')
-ans <- cbind(postDelta,postTheta1,postTheta2,postPhi)
-colnames(ans) <- c(paste('delta',1:ncol(postDelta),sep=''),paste('theta',1:ncol(postTheta1),sep=''),paste('thetaAdj',1:ncol(postTheta2),sep=''),'postPhi')
+
+ans <- list(postModel=postDelta,postCoef1=postTheta1,postCoef2=postTheta2,postPhi=matrix(postPhi,ncol=1),postOther=NULL)
+if (burnin>0) {
+  ans$postModel <- ans$postModel[-1:-burnin,,drop=FALSE]
+  ans$postCoef1 <- ans$postCoef1[-1:-burnin,,drop=FALSE]
+  ans$postCoef2 <- ans$postCoef2[-1:-burnin,,drop=FALSE]
+  ans$postPhi <- ans$postPhi[-1:-burnin,,drop=FALSE]
+}
+if (thinning>1) {
+  sel <- seq(1,nrow(ans$postModel),by=thinning)
+  ans$postModel <- ans$postModel[sel,,drop=FALSE]
+  ans$postCoef1 <- ans$postCoef1[sel,,drop=FALSE]
+  ans$postCoef2 <- ans$postCoef2[sel,,drop=FALSE]
+  ans$postPhi <- ans$postPhi[sel,,drop=FALSE]
+}
+ans$margpp <- colMeans(ans$postModel)
 return(ans)
 }
 
-
-emomPM <- function(y, x, xadj, tau=1, tau.adj=10^6, niter=10^3, modelPrior, initSearch="SCAD", verbose=TRUE) {
-#Fit probit model with emom prior on regression coefficients
-# Input
-# - y: vector with response variable (must be a factor with 2 levels or a character which can be converted to factor with 2 levels)
-# - x: design matrix with covariates to be selected
-# - xadj: design matrix with ajustment covariates for which no selection process is to be performed (i.e. always included in the model). xadj should include a column of 1's to account for the intercept term. By default xadj is set to matrix(1,ncol=1,nrow=length(y))
-# - tau: prior dispersion for eMOM prior on the coefficients associated to x
-# - tau.adj: prior dispersion for multivariate normal prior on the coefficients associated to xadj
-# - niter: number of Gibbs sampling iterations
-# - modelPrior: function to compute the model log-prior probability
-# Output: list with 2 elements
-# - postSample: posterior samples
-# - margpp: marginal posterior probability for inclusion of each covariate (approx by averaging marginal post prob for inclusion in each Gibbs iteration. This approx is more accurate than simply taking colMeans(postSample)).
+emomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='none', verbose=TRUE) {
 require(mvtnorm)
 if (is.character(y)) { y <- as.numeric(factor(y))-1 } else if (is.factor(y)) { y <- as.numeric(y)-1 }
 if (length(unique(y))>2) stop('y has more than 2 levels')
 if (missing(xadj)) xadj <- matrix(1,nrow=nrow(y),ncol=1)
+
+#Set prior parameters
+if (missing(priorCoef)) { priorCoef=new("msPriorSpec",priorType='coefficients',priorDistr='peMOM',priorPars=c(tau=0.048)) }
+if (missing(priorDelta)) { priorDelta=new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
+if (missing(priorVar)) { priorVar=new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
+
+if (priorCoef@priorDistr=='peMOM') {
+  if (all(c('a.tau','b.tau') %in% names(priorCoef@priorPars))) {
+    warning('peMOM prior with hyper-prior on tau not implemented. Hence a.tau and b.tau not used')
+  } else {
+    if ('tau' %in% names(priorCoef@priorPars)) {
+      tau <- as.double(priorCoef@priorPars['tau'])
+    } else {
+      stop('tau must be specified for peMOM prior')
+    }
+  }
+  if (is.na(priorCoef@priorPars['tau.adj'])) tau.adj <- as.double(10^6) else tau.adj <- priorCoef@priorPars['tau.adj']
+} else {
+  stop("When calling emomLM priorCoef@priorDistr must be equal to 'peMOM'")
+}
+alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda']) 
+
+if (priorDelta@priorDistr=='uniform') {
+  modelPrior <- unifPrior
+} else if (priorDelta@priorDistr=='binomial') {
+  if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
+    modelPrior <- function(z, logscale) bbPrior(z, alpha=priorDelta@priorPars['alpha.p'], beta=priorDelta@priorPars['beta.p'], logscale=TRUE)
+  } else if ('p' %in% names(priorDelta@priorPars)) {
+    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars['p'], logscale=TRUE)
+  }
+}
+
 #Pre-compute useful quantities
 n <- length(y); p1 <- ncol(x); p2 <- ncol(xadj)
 XtX <- t(x) %*% x
@@ -95,6 +159,7 @@ cholS2inv <- cholS2inv[,order(attr(cholS2inv, "pivot"))]
 #Initialize
 postDelta <- postTheta1 <- matrix(NA,nrow=niter,ncol=p1)
 postTheta2 <- matrix(NA,nrow=niter,ncol=p2)
+if (verbose) cat('Initializing...')
 if (initSearch=='none') {
   sel <- rep(FALSE,p1)
   postDelta[1,] <- sel
@@ -103,11 +168,16 @@ if (initSearch=='none') {
   cvscad <- cv.ncvreg(X=x,y=y,family="binomial",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
   postTheta1[1,] <- ncvreg(X=x,y=y,penalty="SCAD",dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1, 1]
   postDelta[1,] <- postTheta1[1,]!=0
+} else {
+  stop('The specified initSearch is not implemented')
 }
+if (verbose) cat('\n')
 postTheta2[1,] <- coef(glm(factor(y) ~ -1 + xadj, family=binomial(link='probit')))
 linpred1 <- x %*% t(postTheta1[1,,drop=FALSE])
 linpred2 <- xadj %*% t(postTheta2[1,,drop=FALSE])
+
 #Iterate
+if (verbose) cat('Running MCMC')
 for (i in 2:niter) {
   #Sample latent variables z
   linpred <- linpred1+linpred2; plinpred <- pnorm(-linpred)
@@ -132,8 +202,20 @@ for (i in 2:niter) {
   if (verbose & ((i %% (niter/10))==0)) cat('.')
 }
 if (verbose) cat('\n')
-ans <- cbind(postDelta,postTheta1,postTheta2)
-colnames(ans) <- c(paste('delta',1:ncol(postDelta),sep=''),paste('theta',1:ncol(postTheta1),sep=''),paste('thetaAdj',1:ncol(postTheta2),sep=''))
+
+ans <- list(postModel=postDelta,postCoef1=postTheta1,postCoef2=postTheta2,postOther=NULL)
+if (burnin>0) {
+  ans$postModel <- ans$postModel[-1:-burnin,,drop=FALSE]
+  ans$postCoef1 <- ans$postCoef1[-1:-burnin,,drop=FALSE]
+  ans$postCoef2 <- ans$postCoef2[-1:-burnin,,drop=FALSE]
+}
+if (thinning>1) {
+  sel <- seq(1,nrow(ans$postModel),by=thinning)
+  ans$postModel <- ans$postModel[sel,,drop=FALSE]
+  ans$postCoef1 <- ans$postCoef1[sel,,drop=FALSE]
+  ans$postCoef2 <- ans$postCoef2[sel,,drop=FALSE]
+}
+ans$margpp <- colMeans(ans$postModel)
 return(ans)
 }
 

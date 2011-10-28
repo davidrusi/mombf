@@ -1,4 +1,4 @@
-pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE) {
+pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='none', verbose=TRUE) {
   #Check input
   if (is.logical(y) | is.numeric(y)) {
     y <- as.integer(y)
@@ -23,6 +23,7 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
   } else {
     p2 <- as.integer(0); xadj <- double(1)
   }
+  if (p1>1000) warning('ncol(x)>1000 may require substantial memory and computation time. If you experience problems, specify a smaller number of covariates.')
   
   #Format arguments for .Call
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning)
@@ -189,5 +190,37 @@ for (i in 2:niter) {
 if (verbose) cat('\n')
 ans <- cbind(postDelta,postTheta1,postTheta2,postTau)
 colnames(ans) <- c(paste('delta',1:ncol(postDelta),sep=''),paste('theta',1:ncol(postTheta1),sep=''),paste('thetaAdj',1:ncol(postTheta2),sep=''),'tau')
+return(ans)
+}
+
+
+pplPM <- function(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1) {
+if (priorCoef@priorDistr=='pMOM') {
+  if (missing(priorDelta)) { priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
+  if (missing(priorVar)) { priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
+  nlpfit <- function(tau) {
+    pr <- priorCoef; pr@priorPars['tau'] <- tau
+    fit1 <- pmomPM(y=y,x=x,xadj=xadj,niter=niter,thinning=thinning,burnin=burnin,priorCoef=pr,priorDelta=priorDelta,priorVar=priorVar,initSearch=initSearch,verbose=FALSE)
+    p1 <- pplProbit(fit1,x=x,xadj=xadj,y=y,kPen=kPen);
+    return(list(fit1=fit1,ppl=c(p1$d,p1$p,p1$g,p1$msize)))
+  }
+} else if (priorCoef@priorDistr=='peMOM') {
+  stop('peMOM prior not implemented yet')
+}
+#
+if (mc.cores>1) {
+  if ('multicore' %in% loadedNamespaces()) {
+    nlpseq <- multicore::mclapply(as.list(tauseq), nlpfit, mc.cores=mc.cores, mc.preschedule=FALSE)
+  } else stop('multicore library has not been loaded!')
+} else {
+  nlpseq <- lapply(as.list(tauseq), nlpfit)
+}
+PPL <- data.frame(tauseq,do.call(rbind,lapply(nlpseq,'[[','ppl')))
+colnames(PPL) <- c('tau','PPL','G','P','msize')
+require(mgcv)
+gam1 <- gam(PPL ~ s(tau,k=min(10,length(tauseq))), family = Gamma(link = "log"), data=PPL, sp= -1)
+PPL$sPPL <- exp(predict(gam1))
+ans <- list(nlpseq[[which.min(PPL$sPPL)]]$fit1,PPL,PPL$tau[which.min(PPL$PPL)])
+names(ans) <- c('optfit','PPL','tauopt')
 return(ans)
 }

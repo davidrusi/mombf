@@ -941,18 +941,21 @@ void fserror(const char *proc, const char *act, const char *what)
     /*NOTREACHED*/
 }
 
-void nrerror(const char *proc, const char *act, const char *what) 
+
+void nrerror(const char *proc, const char *act, const char *what)
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
 } 
 
-void errorC(const char *module, const char *mess, int nr)              
+
+void errorC(const char *module, const char *msg, int nr)
 {
-    REprintf("\n *** ERROR # %d in %s***\n %s\n", nr, module, mess);
+    REprintf("\n *** ERROR # %d in %s***\n %s\n", nr, module, msg);
     _cstatfatal();
     /*NOTREACHED*/
 }
+
 
 void err_msg(const char *fct, const char *txt, int n1, int n2, int n3)
 {

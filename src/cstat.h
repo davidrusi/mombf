@@ -112,7 +112,7 @@ void writeArray(float *, int, int);
 /* Debug messages etc. (mess)                                 */
 /**************************************************************/
 
-void errorC(const char *, const char *, int);
+void errorC(const char *module, const char *msg, int nr);
 void err_msg(const char *fct, const char *txt, int n1, int n2, int n3);
 void fserror(const char *proc, const char *act, const char *what);
 void nrerror(const char *proc, const char *act, const char *what);

@@ -579,7 +579,7 @@ void lmbayes_knownvar (double *bpost, double *b, double **Vb, double **XtX, doub
 ************************************************************************/
 
 /* open file for input */
-FILE *openIn(char *name)
+FILE *openIn(const char *name)
 {
   assert(name != NULL);
   if ((ifile = fopen(name, "r")) == NULL) {
@@ -589,8 +589,7 @@ FILE *openIn(char *name)
 }
 
 /* open file for output */
-
-FILE *openOut(char *name)
+FILE *openOut(const char *name)
 {
   assert(name != NULL);
   if ((ofile = fopen(name, "w")) == NULL) {
@@ -936,26 +935,29 @@ void writeArray(float *x,int rows,int cols)
                                        ERROR HANDLING     
 ******************************************************************************/
 
-void fserror(char *proc, char *act, char *what)
+void fserror(const char *proc, const char *act, const char *what)
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
 }
 
-void nrerror(char *proc, char *act, char *what) 
+
+void nrerror(const char *proc, const char *act, const char *what) 
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
-} 
+}
 
-void errorC(char *module, char *mess, int nr)              
+
+void errorC(const char *module, const char *mess, int nr)              
 {
     REprintf("\n *** ERROR # %d in %s***\n %s\n", nr, module, mess);
     _cstatfatal();
     /*NOTREACHED*/
 }
 
-void err_msg(char *fct, char *txt, int n1, int n2, int n3)
+
+void err_msg(const char *fct, const char *txt, int n1, int n2, int n3)
 {
     REprintf("\n\n *** Error in %s \n", fct);
     REprintf(txt, n1, n2, n3); /* n1,n2 allows to include numbers in txt */

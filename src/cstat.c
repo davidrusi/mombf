@@ -170,6 +170,7 @@ double vari(const int *x, int lim, bool unbiased)
     return value;
 }
 
+
 double wvari(const int *x, int lim, const double *w) 
 {
     register int i;
@@ -209,6 +210,7 @@ double varx(const double *x, int lim, bool unbiased)
     return value;
 }
 
+
 double wvarx(const double *x, int lim, const double *w) 
 {
     register int i;
@@ -246,7 +248,7 @@ double cv(const double *x, int ini, int fi)
         s += value * value;
     }
     m = m / (1.0+fi-ini); 
-    s = s / (.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
+    s = s / (0.0+fi-ini) - m*m*(1.0+fi-ini)/(0.0+fi-ini);
     ans = sqrt(s) / m;
     return(ans);
 }
@@ -270,7 +272,7 @@ double cvinv(const double *x, int ini, int fi)
         s += 1.0 / (value * value);
     }
     m = m / (1.0+fi-ini); 
-    s = s / (.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
+    s = s / (0.0+fi-ini) - m*m*(1.0+fi-ini)/(0.0+fi-ini);
     ans = sqrt(s) / m;
     return(ans);
 }
@@ -328,10 +330,10 @@ void colVar(double *v, const double *x, int nrow, int ncol)
     }
     for (j = 0; j < ncol; j++) {
         m[j] = m[j] / (0.0+nrow);    /* :TBD: unnecessary addition - change to cast? */
-        v[j] = m2[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+        v[j] = m2[j] / (nrow-1.0) - m[j]*m[j]*(nrow+0.0)/(nrow-1.0);
     }
 
-    free_dvector(m, 0, ncol-1);
+    free_dvector(m,  0, ncol-1);
     free_dvector(m2, 0, ncol-1);
 }
 
@@ -363,8 +365,8 @@ void colCV(double *cv, const double *x, int nrow, int ncol)
         }
     }
     for (j = 0; j < ncol; j++) {
-        m[j] = m[j] / (nrow+.0); 
-        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+        m[j] = m[j] / (nrow+0.0); 
+        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+0.0)/(nrow-1.0);
         cv[j] = sqrt(s[j]) / m[j];
     }
 
@@ -400,8 +402,8 @@ void colCVinv(double *cv, const double *x, int nrow, int ncol)
         }
     }
     for (j = 0; j < ncol; j++) { 
-        m[j] = m[j] / (nrow+.0); 
-        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+        m[j] = m[j] / (nrow+0.0); 
+        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+0.0)/(nrow-1.0);
         cv[j] = sqrt(s[j]) / m[j];
     }
 
@@ -488,7 +490,7 @@ double nn_integral(double *x, double *rx, double **Vxinv, double *detVx, double 
   rAx_plus_sBy(1.0/(*rx),Vxinv,x,1.0/(*rpr),Vprinv,mpr,m,1,*p,1,*p);
   ans= xtAy(m,Vsum,m,1,*p) - xtAy(x,Vxinv,x,1,*p) - xtAy(mpr,Vprinv,mpr,1,*p);
 
-  ans= .5*ans - 0.5*((*p+.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
+  ans= .5*ans - 0.5*((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
   if (*logscale != 0) ans= exp(ans);
 
   free_dvector(m,1,*p); 
@@ -660,21 +662,21 @@ void lmbayes_knownvar (double *bpost, double *b, double **Vb, double **XtX, doub
 /* open file for input */
 FILE *openIn(const char *name)
 {
-  assert(name != NULL);
-  if ((ifile = fopen(name, "r")) == NULL) {
-    fserror("openIn", "open file for read", name);
-  }
-  return(ifile);
+    assert(name != NULL);
+    if ((ifile = fopen(name, "r")) == NULL) {
+        fserror("openIn", "open file for read", name);
+    }
+    return(ifile);
 }
 
 /* open file for output */
 FILE *openOut(const char *name)
 {
-  assert(name != NULL);
-  if ((ofile = fopen(name, "w")) == NULL) {
-    fserror("openOut", "open file for write", name);
-  }
-  return ofile;
+    assert(name != NULL);
+    if ((ofile = fopen(name, "w")) == NULL) {
+        fserror("openOut", "open file for write", name);
+    }
+    return ofile;
 }
 
 
@@ -1445,7 +1447,7 @@ double trigamma(double x) {
 if (x>1.0e-5) {                         //fast approx to trigamma
   return(1/(x*x) + 1/((x+1)*(x+1)) + 1/((x+2)*(x+2)) + 1/(x+3) + .5/((x+3)*(x+3)) + 1/(6.0*pow(x+3,3)));
 } else {
-  return(polygamma(x,1,.0001,100,5,1)); //slower computation
+  return(polygamma(x,1,0.0001,100,5,1)); //slower computation
 }
  
 } 
@@ -2444,7 +2446,7 @@ int rbinomial(int n, double p)
 
 double dbinomial(int x, int n, double p, int logscale) {
   double ans;
-  ans= lnchoose(n,x) + (x+.0)*log(p) + (n-x+.0)*log(1-p);
+  ans= lnchoose(n,x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
   if (logscale==1) return(ans); else return(exp(ans));
 }
 
@@ -2527,7 +2529,7 @@ double rnorm_trunc(double ltrunc, double rtrunc, double m, double s) {
 /* Draw from a univariate truncated Normal giving truncation probabilities */
 double rnorm_trunc_prob(double lprob, double rprob, double m, double s) {
   // lprob, rprob: prob to the left of the truncation points; m: mean; s: SD
-  //e.g. lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+  //e.g. lprob=0.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
   double u;
   if (lprob>=rprob) nrerror("rnorm_trunc_prob","left truncation probability is larger than right truncation probability","");
   u= lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
@@ -2579,7 +2581,7 @@ double dtC(double y, double mu, double s, int nu) {
   double normk, t1, t2;
   t2= .5*nu; t1= t2 + .5;
   normk= exp(gamln(&t1)-gamln(&t2))/(sqrt(nu*M_PI)*s);
-  return(normk*pow(1+(y-mu)*(y-mu)/(s*s*(nu+.0)),-t1));
+  return(normk*pow(1+(y-mu)*(y-mu)/(s*s*(nu+0.0)),-t1));
 
 }
 
@@ -2609,11 +2611,11 @@ double dmvtC(double *y, int n, double *mu, double **cholsinv, double det, int nu
   for (res=0, i=1; i<=n; i++) { res += z2[i]*z2[i]; }
   free_dvector(z,1,n); free_dvector(z2,1,n);
 
-  t2= .5*nu; t1= t2+.5*(n+.0);
-  normk= gamln(&t1)-gamln(&t2)-.5*(n+.0)*(log(nu+.0)+log(M_PI))+.5*log(det);
+  t2= .5*nu; t1= t2+.5*(n+0.0);
+  normk= gamln(&t1)-gamln(&t2)-.5*(n+0.0)*(log(nu+0.0)+log(M_PI))+.5*log(det);
 
-  if (logscale==1) return(normk -t1*log(1+res/(nu+.0)));
-  else return(exp(normk) * pow(1+res/(nu+.0),-t1));
+  if (logscale==1) return(normk -t1*log(1+res/(nu+0.0)));
+  else return(exp(normk) * pow(1+res/(nu+0.0),-t1));
 
 }
 
@@ -2646,7 +2648,7 @@ double rt_trunc(int nu, double ltrunc, double rtrunc) {
 /* Draw from a univariate truncated t with nu degrees of freedom giving truncation probabilities */
 double rt_trunc_prob(int nu, double lprob, double rprob) {
   //nu: degrees of freedom; lprob, rprob: prob to the left of the truncation points
-  //e.g. lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+  //e.g. lprob=0.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
   double u;
   if (lprob>=rprob) {
     nrerror("rt_trunc_prob",

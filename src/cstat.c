@@ -2187,10 +2187,11 @@ double pbetaC(double x, double a, double b) {
   else return(1.0-bt*betacf(b,a,1.0-x)/b); //Use continued fraction after symmetry transformation.
 }
 
+/*
+ * Draws from Dirichlet with parameter alpha. 
+ * The value is saved in w, and p is the dimensionality of the parameter 
+ */ 
 void rdirichlet(double *w, double *alpha, int *p) 
-/* Draws from Dirichlet with parameter alpha. 
-   The value is saved in w, and p is the dimensionality of the parameter 
-*/ 
 { 
   double s, a,b, W; 
   int j; 
@@ -2204,7 +2205,7 @@ void rdirichlet(double *w, double *alpha, int *p)
   } 
   w[*p-1] = W; 
   if (W < 0) {
-    REprintf("RDIRICHLET: negative W generated\n");
+    REprintf("rdirichlet: negative W generated\n");
     /* :TBD: - Should this be considered fatal? */
   }
 } 
@@ -3846,7 +3847,7 @@ double genunf(double low, double high)
 static double genunf;
 
     if (!(low > high)) goto S10;
-    REprintf("GENUNF: low > high: low=%16.6E, high=%16.6E\n", low, high);
+    REprintf("genunf: low > high: low=%16.6E, high=%16.6E\n", low, high);
     _cstatfatal();
     /*NOTREACHED*/
 S10:
@@ -4331,7 +4332,7 @@ static long mltmod,a0,a1,k,p,q,qh,rh;
       machine. On a different machine recompute H
 */
     if(!(a <= 0 || a >= m || s <= 0 || s >= m)) goto S10;
-    REprintf("MLTMOD: requires (0 < a < m); (0 < s < m): ");
+    REprintf("mltmod: requires (0 < a < m); (0 < s < m): ");
     REprintf("a = %12ld, s = %12ld, m = %12ld\n", a, s, m);
     _cstatfatal();
     /*NOTREACHED*/
@@ -4447,7 +4448,7 @@ static long curntg = 1;
     if(getset == 0) *g = curntg;
     else  {
         if(*g < 0 || *g > numg) {
-            REprintf("GSCGN: generator number out of range\n");
+            REprintf("gscgn: generator number out of range\n");
             _cstatfatal();
             /*NOTREACHED*/
         }
@@ -4575,7 +4576,7 @@ static long qrgnin;
 */
     gsrgs(0L,&qrgnin);
     if (qrgnin) goto S10;
-        REprintf("INITGN: random number generator not initialized\n");
+        REprintf("initgn: random number generator not initialized\n");
         _cstatfatal();
         /*NOTREACHED*/
 S10:
@@ -4596,7 +4597,7 @@ S30:
     *(Xlg2+g-1) = mltmod(Xa2w,*(Xlg2+g-1),Xm2);
     goto S50;
 S40:
-    REprintf("INITGN: isdtyp not in range\n");
+    REprintf("initgn: isdtyp not in range\n");
     _cstatfatal();
     /*NOTREACHED*/
 S50:
@@ -4897,7 +4898,7 @@ void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
    */
   int i,j;
   if (*nknots<(*degree+2)) {
-    REprintf("BSPLINE: number of knots must be >= degree+2\n");
+    REprintf("bspline: number of knots must be >= degree+2\n");
     /* :TBD: - Should this be fatal? */ 
   } else {
     for (i=0; i<(*nx); i++) {
@@ -4923,7 +4924,7 @@ void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
   //M-spline basis eval at vector of values x. Normalized to integrate to 1 wrt x
   int i,j;
   if (*nknots<(*degree+2)) {
-    REprintf("MSPLINE: number of knots must be >= degree+2\n");
+    REprintf("mspline: number of knots must be >= degree+2\n");
     /* :TBD: - Should this be fatal? */ 
   } else {
     for (i=0; i<(*nx); i++) {

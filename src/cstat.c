@@ -50,13 +50,20 @@ static void _cstaterror(const char *proc,
                         const char *act,
                         const char *what)
 {
+    assert(proc != NULL);
+    assert(act != NULL);
+    assert(what != NULL);
+
     REprintf("\n ** Error ");
-    if (proc[0]!='\0') /* not empty */
+    if (proc[0] != '\0') {
         REprintf("in function '%s', ", proc);
-    if (act[0]!='\0') /* not empty */
+    }
+    if (act[0] != '\0') {
         REprintf("trying to %s ", act);
-    if (what[0]!='\0') /* not empty */
+    }
+    if (what[0] != '\0') {
         REprintf("'%s'", what);
+    }
     REprintf("\n ** (from a function in 'cstat.c').\n");
     _cstatfatal();
     /*NOTREACHED*/

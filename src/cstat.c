@@ -85,7 +85,7 @@ double meani(int *x, int lim)
     double value = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
 
     for (i = 0; i <= lim; i++) {
         value += x[i];
@@ -102,7 +102,7 @@ double wmeani(int *x, int lim, double *w)
     double wtot = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
@@ -121,7 +121,7 @@ double meanx(double *x, int lim)
     double value = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
 
     for (i = 0; i <= lim; i++) {
         value += x[i];
@@ -138,7 +138,7 @@ double wmeanx(double *x, int lim, double *w)
     double wtot = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
@@ -157,7 +157,7 @@ double vari(int *x, int lim, bool unb)
     double value = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(unb == false || unb == true);
 
     for (i = 0; i <= lim; i++) {
@@ -177,7 +177,7 @@ double wvari(int *x, int lim, double *w)
     double wtot = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
@@ -196,7 +196,7 @@ double varx(double *x, int lim, bool unb)
     double value = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? lim=-1 == DIVBYZERO */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(unb == false || unb == true);
 
     for (i = 0; i <= lim; i++) {
@@ -216,7 +216,7 @@ double wvarx(double *x, int lim, double *w)
     double wtot = 0.0;
 
     assert(x != NULL);
-    /* :TBD: negative values allowed for 'lim'? */
+    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
     assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
@@ -941,13 +941,11 @@ void fserror(const char *proc, const char *act, const char *what)
     /*NOTREACHED*/
 }
 
-
 void nrerror(const char *proc, const char *act, const char *what) 
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
-}
-
+} 
 
 void errorC(const char *module, const char *mess, int nr)              
 {
@@ -955,7 +953,6 @@ void errorC(const char *module, const char *mess, int nr)
     _cstatfatal();
     /*NOTREACHED*/
 }
-
 
 void err_msg(const char *fct, const char *txt, int n1, int n2, int n3)
 {

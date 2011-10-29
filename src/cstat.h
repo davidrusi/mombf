@@ -36,21 +36,21 @@
 /* Functions to compute means & variances                     */
 /**************************************************************/
 
-double meani(int *x, int lim);
-double wmeani(int *x, int lim, double *w);
-double meanx(double *x, int lim); //mean of x[0..lim]
-double wmeanx(double *x, int lim, double *w);
-double vari(int *x, int lim, bool unb);
-double wvari(int *x, int lim, double *w);
-double varx(double *x, int lim, bool unb);
-double wvarx(double *x, int lim, double *w);
-double cv(double *x, int ini, int fi); //coefficient of variation i.e. SD/mean
-double cvinv(double *x, int ini, int fi); //coefficient of variation of 1/x
+double meani(const int *x, int lim);
+double wmeani(const int *x, int lim, const double *w);
+double meanx(const double *x, int lim); //mean of x[0..lim]
+double wmeanx(const double *x, int lim, const double *w);
+double vari(const int *x, int lim, bool unbiased);
+double wvari(const int *x, int lim, const double *w);
+double varx(const double *x, int lim, bool unbiased);
+double wvarx(const double *x, int lim, const double *w);
+double cv(const double *x, int ini, int fi); //coefficient of variation i.e. SD/mean
+double cvinv(const double *x, int ini, int fi); //coefficient of variation of 1/x
 
-void colMeans(double *m, double *x, int nrow, int ncol);
-void colVar(double *m, double *x, int nrow, int ncol);
-void colCV(double *cv, double *x, int nrow, int ncol);
-void colCVinv(double *cv, double *x, int nrow, int ncol); //CV of 1/x
+void colMeans(double *m, const double *x, int nrow, int ncol);
+void colVar(double *m, const double *x, int nrow, int ncol);
+void colCV(double *cv, const double *x, int nrow, int ncol);
+void colCVinv(double *cv, const double *x, int nrow, int ncol); //CV of 1/x
 
 
 /************************************************************************

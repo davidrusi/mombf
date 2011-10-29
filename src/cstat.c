@@ -79,7 +79,7 @@ static void _cstaterror(const char *proc,
 ************************************************************************/
 
 /* Sample mean of elements 0 through lim of vector x */
-double meani(int *x, int lim) 
+double meani(const int *x, int lim)
 {
     register int i;
     double value = 0.0;
@@ -95,7 +95,7 @@ double meani(int *x, int lim)
 }
 
 
-double wmeani(int *x, int lim, double *w)
+double wmeani(const int *x, int lim, const double *w)
 {
     register int i;
     double value = 0.0;
@@ -115,7 +115,7 @@ double wmeani(int *x, int lim, double *w)
 
 
 /* Sample mean of elements 0 through lim (both included) of vector x */
-double meanx(double *x, int lim) 
+double meanx(const double *x, int lim) 
 {
     register int i;
     double value = 0.0;
@@ -131,7 +131,7 @@ double meanx(double *x, int lim)
 }
 
 
-double wmeanx(double *x, int lim, double *w)
+double wmeanx(const double *x, int lim, const double *w)
 {
     register int i;
     double value = 0.0;
@@ -150,27 +150,27 @@ double wmeanx(double *x, int lim, double *w)
 }
 
 
-/* Sample variance of elements 0 through lim of vector x, unb=1 returns unbiased version */
-double vari(int *x, int lim, bool unb) 
+/* Sample variance of elements 0 through lim of vector x */
+double vari(const int *x, int lim, bool unbiased) 
 {
     register int i;
     double value = 0.0;
 
     assert(x != NULL);
     assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(unb == false || unb == true);
+    assert(unbiased == false || unbiased == true);
 
     for (i = 0; i <= lim; i++) {
         value += pow(x[i], 2) / (1.0+lim);
     }
     value -= pow(meani(x, lim), 2);
-    if (unb==1 && lim>0) {
+    if (unbiased && lim>0) {
         value *= (1.0+lim) / (0.0+lim);
     }
     return value;
 }
 
-double wvari(int *x, int lim, double *w) 
+double wvari(const int *x, int lim, const double *w) 
 {
     register int i;
     double value = 0.0;
@@ -189,27 +189,27 @@ double wvari(int *x, int lim, double *w)
 }
 
 
-/* Sample variance of elements 0 through lim of vector x, unb=1 returns unbiased version */
-double varx(double *x, int lim, bool unb) 
+/* Sample variance of elements 0 through lim of vector x */
+double varx(const double *x, int lim, bool unbiased) 
 {
     register int i;
     double value = 0.0;
 
     assert(x != NULL);
     assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(unb == false || unb == true);
+    assert(unbiased == false || unbiased == true);
 
     for (i = 0; i <= lim; i++) {
         value += pow(x[i], 2) / (1.0+lim);
     }
     value -= pow(meanx(x, lim), 2);
-    if (unb==1 && lim>0) {
+    if (unbiased && lim>0) {
         value *= (1.0+lim) / (lim+0.0);
     }
     return value;
 }
 
-double wvarx(double *x, int lim, double *w) 
+double wvarx(const double *x, int lim, const double *w) 
 {
     register int i;
     double value = 0.0;
@@ -229,106 +229,185 @@ double wvarx(double *x, int lim, double *w)
 
 
 /* Compute coefficient of variation of x[ini..fi] */
-double cv(double *x, int ini, int fi) {
-  int i; double m, s, ans;
+double cv(const double *x, int ini, int fi)
+{
+    register int i;
+    double m = 0.0;
+    double s = 0.0;
+    double ans;
 
-  for (i=ini, m=s=0; i<=fi; i++) {
-    m+= x[i];
-    s+= x[i]*x[i];
-  }
-  m= m/(1.0+fi-ini); 
-  s= s/(.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
-  ans= sqrt(s)/m;
-  return(ans);
+    assert(x != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        double value;
+
+        value = x[i];
+        m += value;
+        s += value * value;
+    }
+    m = m / (1.0+fi-ini); 
+    s = s / (.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
+    ans = sqrt(s) / m;
+    return(ans);
 }
 
 
 /* Compute inverse coefficient of variation of x[ini..fi] */
-double cvinv(double *x, int ini, int fi) {
-  int i; double m, s, ans;
+double cvinv(const double *x, int ini, int fi)
+{
+    register int i;
+    double m = 0.0;
+    double s = 0.0;
+    double ans;
 
-  for (i=ini, m=s=0; i<=fi; i++) {
-    m+= 1.0/x[i];
-    s+= 1.0/(x[i]*x[i]);
-  }
-  m= m/(1.0+fi-ini); 
-  s= s/(.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
-  ans= sqrt(s)/m;
-  return(ans);
+    assert(x != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        double value;
+
+        value = x[i];
+        m += 1.0 / value;
+        s += 1.0 / (value * value);
+    }
+    m = m / (1.0+fi-ini); 
+    s = s / (.0+fi-ini) - m*m*(1.0+fi-ini)/(.0+fi-ini);
+    ans = sqrt(s) / m;
+    return(ans);
 }
 
 
 /* Column means */
-void colMeans(double *m, double *x, int nrow, int ncol) {
-  //x is assumed to be in row order, that is x[0], x[1] ... x[ncol-1] are elem in 1st row
-  int i,j;
-  for (j=0; j<ncol; j++) { m[j]= 0; }
-  for (i=0; i<nrow; i++) {
-    for (j=0; j<ncol; j++) {
-      m[j] += x[i*ncol+j];
+/* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
+void colMeans(double *m, const double *x, int nrow, int ncol)
+{
+    register int i;
+    register int j;
+
+    assert(m != NULL);
+    assert(x != NULL);
+
+    for (j = 0; j < ncol; j++) {
+        m[j] = 0.0;
     }
-  }
-  for (j=0; j<ncol; j++) { m[j]= m[j]/(nrow+.0); }
-}
-
-void colVar(double *v, double *x, int nrow, int ncol) {
-  //x is assumed to be in row order, that is x[0], x[1] ... x[ncol-1] are elem in 1st row
-  int i,j; double *m, *m2;
-
-  m= dvector(0,ncol-1); m2= dvector(0,ncol-1);
-  for (j=0; j<ncol; j++) { m[j]= m2[j]= 0; }
-  for (i=0; i<nrow; i++) {
-    for (j=0; j<ncol; j++) {
-      m[j]+= x[i*ncol+j];
-      m2[j] += x[i*ncol+j]*x[i*ncol+j];
+    for (i = 0; i < nrow; i++) {
+        for (j = 0; j < ncol; j++) {
+            m[j] += x[i*ncol+j];
+        }
     }
-  }
-  for (j=0; j<ncol; j++) { m[j]= m[j]/(.0+nrow); v[j]= m2[j]/(nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0); }
-  free_dvector(m,0,ncol-1); free_dvector(m2,0,ncol-1);
-
+    for (j = 0; j < ncol; j++) {
+        m[j] = m[j] / (nrow+0.0);
+    }
 }
 
 
-void colCV(double *cv, double *x, int nrow, int ncol) {
-  //x is assumed to be in row order, that is x[0], x[1] ... x[ncol-1] are elem in 1st row
-  int i,j; double *m, *s;
-  m= dvector(0,ncol); s= dvector(0,ncol);
-  for (j=0; j<ncol; j++) { m[j]= s[j]= 0; }
-  for (i=0; i<nrow; i++) {
-    for (j=0; j<ncol; j++) {
-      m[j] += x[i*ncol+j];
-      s[j] += x[i*ncol+j]*x[i*ncol+j];
+/* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
+void colVar(double *v, const double *x, int nrow, int ncol)
+{
+    register int i;
+    register int j;
+    double *m;
+    double *m2;
+
+    assert(v != NULL);
+    assert(x != NULL);
+
+    m  = dvector(0, ncol-1);
+    m2 = dvector(0, ncol-1);
+
+    for (j = 0; j < ncol; j++) {
+        m[j] = m2[j] = 0.0;
     }
-  }
-  for (j=0; j<ncol; j++) { 
-    m[j]= m[j]/(nrow+.0); 
-    s[j]= s[j]/(nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
-    cv[j]= sqrt(s[j])/m[j];
-  }
-  free_dvector(m,0,ncol); free_dvector(s,0,ncol);
+    for (i = 0; i < nrow; i++) {
+        for (j = 0; j < ncol; j++) {
+            double value;
+
+            value = x[i*ncol+j];
+            m[j]  += value;
+            m2[j] += value * value;
+        }
+    }
+    for (j = 0; j < ncol; j++) {
+        m[j] = m[j] / (0.0+nrow);    /* :TBD: unnecessary addition - change to cast? */
+        v[j] = m2[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+    }
+
+    free_dvector(m, 0, ncol-1);
+    free_dvector(m2, 0, ncol-1);
 }
 
 
-void colCVinv(double *cv, double *x, int nrow, int ncol) {
-  //x is assumed to be in row order, that is x[0], x[1] ... x[ncol-1] are elem in 1st row
-  int i,j; double *m, *s;
-  m= dvector(0,ncol); s= dvector(0,ncol);
-  for (j=0; j<ncol; j++) { m[j]= s[j]= 0; }
-  for (i=0; i<nrow; i++) {
-    for (j=0; j<ncol; j++) {
-      m[j] += 1.0/x[i*ncol+j];
-      s[j] += 1.0/(x[i*ncol+j]*x[i*ncol+j]);
+/* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
+void colCV(double *cv, const double *x, int nrow, int ncol)
+{
+    register int i;
+    register int j;
+    double *m;
+    double *s;
+
+    assert(cv != NULL);
+    assert(x != NULL);
+
+    m = dvector(0, ncol);
+    s = dvector(0, ncol);
+
+    for (j = 0; j < ncol; j++) {
+        m[j] = s[j] = 0.0;
     }
-  }
-  for (j=0; j<ncol; j++) { 
-    m[j]= m[j]/(nrow+.0); 
-    s[j]= s[j]/(nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
-    cv[j]= sqrt(s[j])/m[j];
-  }
-  free_dvector(m,0,ncol); free_dvector(s,0,ncol);
+    for (i = 0; i < nrow; i++) {
+        for (j = 0; j < ncol; j++) {
+            double value;
+
+            value = x[i*ncol+j];
+            m[j] += value;
+            s[j] += value * value;
+        }
+    }
+    for (j = 0; j < ncol; j++) {
+        m[j] = m[j] / (nrow+.0); 
+        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+        cv[j] = sqrt(s[j]) / m[j];
+    }
+
+    free_dvector(m, 0, ncol);
+    free_dvector(s, 0, ncol);
 }
 
 
+/* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
+void colCVinv(double *cv, const double *x, int nrow, int ncol)
+{
+    register int i;
+    register int j;
+    double *m;
+    double *s;
+
+    assert(cv != NULL);
+    assert(x != NULL);
+
+    m = dvector(0, ncol);
+    s = dvector(0, ncol);
+
+    for (j = 0; j < ncol; j++) {
+        m[j] = s[j] = 0.0;
+    }
+    for (i = 0; i < nrow; i++) {
+        for (j = 0; j < ncol; j++) {
+            double value;
+
+            value = x[i*ncol+j];
+            m[j] += 1.0 / value;
+            s[j] += 1.0 / (value * value);
+        }
+    }
+    for (j = 0; j < ncol; j++) { 
+        m[j] = m[j] / (nrow+.0); 
+        s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+.0)/(nrow-1.0);
+        cv[j] = sqrt(s[j]) / m[j];
+    }
+
+    free_dvector(m, 0, ncol);
+    free_dvector(s, 0, ncol);
+}
 
 
 /************************************************************************
@@ -946,7 +1025,7 @@ void nrerror(const char *proc, const char *act, const char *what)
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
-} 
+}
 
 
 void errorC(const char *module, const char *msg, int nr)
@@ -5301,3 +5380,4 @@ double ulim,u,r,q,fu,dum;
    SHFT(*fa,*fb,*fc,fu);
  }
 }
+

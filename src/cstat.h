@@ -61,33 +61,33 @@ void nn_bayes(double *mpo, double **Spo, double **Spo_inv, int p, double r1, dou
 void nn_bayes_rand(double *theta, int p, double r1, double **Spr_inv, double *mpr, double r2, double **Slik_inv, double *y); //Single draw from posterior of multiv normal mean with normal prior
 double nn_integral(double *x, double *rx, double **Vxinv, double *detVx, double *mpr, double *rpr, double **Vprinv, double *detVpr, int *p, int *logscale); //Normal-Normal integral (useful to compute Bayes factors etc.)
 
-void lm (double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, double *y, double **X, int *n, int *p, int *useXtX); //classical multiple linear regression
-void lmbayes (double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0); //Bayesian multiple linear regression
-void lmbayes_knownvar (double *bpost, double *b, double **Vb, double **XtX, double **invXtX, double *Xty, double *sigma, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior); //same as lmbayes with known variance sigma^2
+void lm(double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, double *y, double **X, int *n, int *p, int *useXtX); //classical multiple linear regression
+void lmbayes(double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0); //Bayesian multiple linear regression
+void lmbayes_knownvar(double *bpost, double *b, double **Vb, double **XtX, double **invXtX, double *Xty, double *sigma, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior); //same as lmbayes with known variance sigma^2
 
 
 /**************************************************************/
 /* Input/output functions (interface)                         */
 /**************************************************************/
 
-FILE *openIn(char *);
-FILE *openOut(char *);
+FILE *openIn(const char *);
+FILE *openOut(const char *);
 //void scanFloat(char *, float *);
 //void scanDouble(char *, double *);
 //void scanInt(char *, int *);
-//void fscanDouble(FILE *,char *, double *);
-//void fscanInt(FILE *,char *, int *);
+//void fscanDouble(FILE *, char *, double *);
+//void fscanInt(FILE *, char *, int *);
 //void scanLong(char *, long *);
 // 
-//void scanFloatArray(char *,float *, int);
-//void scanArray(char *,float *, int);
-//void scanDoubleArray(char *,double *, int);
+//void scanFloatArray(char *, float *, int);
+//void scanArray(char *, float *, int);
+//void scanDoubleArray(char *, double *, int);
 //void scanString(char *txt, char *s, int n);
-//void fscanString(FILE *,char *txt, char *s, int n);
-//void fscanDoubleArray(FILE *,double *, int);
+//void fscanString(FILE *, char *txt, char *s, int n);
+//void fscanDoubleArray(FILE *, double *, int);
 //void scanDoubleMatrix(char *, double **, int, int);
-//void fscanDoubleMatrix(FILE *ifile, double **x,int r,int c);
-//void scanIntArray(char *,int *, int);
+//void fscanDoubleMatrix(FILE *ifile, double **x, int r, int c);
+//void scanIntArray(char *, int *, int);
 //void fscanIntArray(FILE *ifile, int *x, int n);
 
 void writeInt(int);
@@ -95,52 +95,51 @@ void writeLong(long i);
 void writeFloat(float);
 void writeDouble(double);
 
-void writeIntArray(int *,int, int);
-void fwriteIntArray(FILE *, int *,int, int);
+void writeIntArray(int *, int, int);
+void fwriteIntArray(FILE *, int *, int, int);
 void fwriteIntMatrix(FILE *f, int **x, int rows, int cols);
 void writeIntMatrix(int **x, int rows, int cols);
-void writeDoubleArray(double *,int, int);
+void writeDoubleArray(double *, int, int);
 void writeDoubleMatrix2(double **, int , int);
-void fwriteDoubleArray(FILE *, double *,int, int);
+void fwriteDoubleArray(FILE *, double *, int, int);
 void fwriteDoubleMatrix2(FILE *, double **, int , int);
 void writeDoubleMatrix(double **, int, int);
 void writeFloatArray(float *, int, int);
 void writeArray(float *, int, int); 
 
-void fserror(char *proc, char *act, char *what);
 
 /**************************************************************/
 /* Debug messages etc. (mess)                                 */
 /**************************************************************/
 
-void errorC(char *,char *, int);
-void err_msg(char *fct, char *txt, int n1, int n2, int n3);
+void errorC(const char *, const char *, int);
+void err_msg(const char *fct, const char *txt, int n1, int n2, int n3);
+void fserror(const char *proc, const char *act, const char *what);
+void nrerror(const char *proc, const char *act, const char *what);
 
 /**************************************************************/
 /* Memory allocation                                          */
 /**************************************************************/
 
-float   *vector(int,int);
-double  *dvector(int,int);
-double  **dmatrix(int,int,int,int);
+float   *vector(int, int);
+double  *dvector(int, int);
+double  **dmatrix(int, int, int, int);
 //double  ***darray_3(int, int);
 //double ***darray3(int n, int p, int q);
-double ***darray3(int n1,int n2,int n3);   //allocate 3-way double array [0..n1-1][0..n2-1][0..n3-1]
-int     *ivector(int,int);
-int     **imatrix(int,int,int,int);
+double ***darray3(int n1, int n2, int n3);   //allocate 3-way double array [0..n1-1][0..n2-1][0..n3-1]
+int     *ivector(int, int);
+int     **imatrix(int, int, int, int);
 //int ***iarray_3(int lo, int hi);
 //int ***iarray3(int p1, int p2, int p3);
-int ***iarray3(int n1,int n2,int n3);   //allocate 3-way int array [0..n1-1][0..n2-1][0..n3-1]
+int ***iarray3(int n1, int n2, int n3);   //allocate 3-way int array [0..n1-1][0..n2-1][0..n3-1]
 
-void free_vector(float  *,int,int);
-void free_dvector(double  *,int,int);
-void free_ivector(int  *,int,int);
-void free_dmatrix(double  **,int,int,int,int);
-void free_imatrix(int  **,int,int,int,int);
+void free_vector(float *, int, int);
+void free_dvector(double *, int, int);
+void free_ivector(int *, int, int);
+void free_dmatrix(double **, int, int, int, int);
+void free_imatrix(int **, int, int, int, int);
 void free_darray3(double ***a, int n1, int n2, int n3);
 void free_iarray3(int ***a, int n1, int n2, int n3);
-
-void nrerror(char *proc, char *act, char *what);
 
 /**************************************************************/
 /* Mathematical functions                                     */
@@ -167,24 +166,24 @@ double isign(int x); //returns 1.0 if x>0, 0 if x==0, -1.0 if x<0
 /* Vector algebra (vector)                                    */
 /**************************************************************/
 
-void grid (double x0, double xn, int n, double *x);
-void rA(double r,double **A, double **B, int rowini, int rowfi, int colini, int colfi);  //matrix*scalar
+void grid(double x0, double xn, int n, double *x);
+void rA(double r, double **A, double **B, int rowini, int rowfi, int colini, int colfi);  //matrix*scalar
 void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix + matrix
-void rA_plus_sB(double r,double **A,double s,double **B,double **C,int rowini,int rowfi,int colini,int colfi); //matrix*scalar + matrix*scalar
+void rA_plus_sB(double r, double **A, double s, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix*scalar + matrix*scalar
 void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi); //scalar*matrix*vector + scalar*matrix*vector
 void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi); //matrix*vector+vector
-void xA(double *x,double **A,double *z, int ini, int fi);  //Multiply vector * matrix
-void Ax(double **A,double *x,double *z,int rowini,int rowfi,int colini,int colfi);  //matrix * vector
+void xA(double *x, double **A, double *z, int ini, int fi);  //Multiply vector * matrix
+void Ax(double **A, double *x, double *z, int rowini, int rowfi, int colini, int colfi);  //matrix * vector
 void Avecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same but A is in vector format
 void Atvecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same for A' (row/col indexes refer to A')
 double xtAy(double *x, double **A, double *y, int ini, int fi); //t(vector)*matrix*vector
 
 double quadratic_xtAx(double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
-double quadratic_xseltAselxsel(double *x, double *A, int *ncol, int *nsel, int *sel); // same but A is formatted as vector & only a subset of x,A is to be used
+double quadratic_xseltAselxsel(double *x, double *A, int *ncol, int *nsel, int *sel); // same but A is formatted as vector & only a subset of x, A is to be used
 double quadratic_xtAselx(double *x, double *A, int *ncolA, int *nsel, int *sel); //same but subset is only for A
 double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel); //same but subset is only for x
 
-void Atx(double **A,double *x,double *z,int rowini,int rowfi,int colini,int colfi); //t(matrix)*vector
+void Atx(double **A, double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
 void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
 void a_plus_b(double *a, double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
 void a_prod_b(double *a, double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
@@ -234,7 +233,7 @@ void sampled_wr(double *x, int popsize, int n); //same for vector of doubles
 // Several
 void setseed(long, long);
 int rdisc(double *probs, int nvals);
-double gamdev(double );
+double gamdev(double);
 int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);
 void rmultinomial(int, int, double *, int *);
@@ -287,25 +286,25 @@ double dmomNorm(double y, double m, double tau, double phi, int r, int logscale)
 
 /* More random variate stuff (dcdflib, from CMU statlib "www.stat.cmu.edu") */
 double fifdint(double);
-void cdfnor(int*,double*,double*,double*,double*,double*,int*,double*);
+void cdfnor(int*, double*, double*, double*, double*, double*, int*, double*);
 double spmpar(int*);
-void cumnor(double*,double*,double*);
-double dinvnr(double *p,double *q);
+void cumnor(double*, double*, double*);
+double dinvnr(double *p, double *q);
 double stvaln(double*);
-double devlpl(double [],int*,double*);
+double devlpl(double [], int*, double*);
 extern int ipmpar(int*);                      /* code in ipmpar.c */
 
 /*even more stuff (ranlib) */
-extern double genunf(double low,double high);
-extern double gengam(double a,double r);
+extern double genunf(double low, double high);
+extern double gengam(double a, double r);
 extern double sgamma(double a);
 extern double snorm(void);
-double fsign( double num, double sign );
+double fsign( double num, double sign);
 extern double sexpo(void);
-extern long mltmod(long a,long s,long m);
+extern long mltmod(long a, long s, long m);
 extern double ranf(void);
-extern void gscgn(long getset,long *g);
-extern void setall(long iseed1,long iseed2);   /* code in com.c */
+extern void gscgn(long getset, long *g);
+extern void setall(long iseed1, long iseed2);  /* code in com.c */
 extern void initgn(long isdtyp);               /* code in com.c */
 extern long ignlgi(void);                      /* code in com.c */
 extern void inrgcm(void);                      /* code in com.c */
@@ -323,7 +322,7 @@ double qromo(double (*func)(double), double a, double b, double (*choose)(double
 /* Interpolation, extrapolation and splines                   */
 /**************************************************************/
 
-void polint (double xa[], double ya[], int n, double x, double *y, double *dy); //interpolates via polynomials
+void polint(double xa[], double ya[], int n, double x, double *y, double *dy); //interpolates via polynomials
 double bspline_singlex(double x, int j, int degree, double *knots); //jth B-spline basis eval at single value x
 void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots); //B-spline basis eval at vector of values x
 void bspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots); //same as bspline but returns a vector, so that it can be called from R
@@ -335,11 +334,11 @@ void mspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int 
 /* Function optimization                                      */
 /**************************************************************/
 
-double univmin(double ax,double bx,double cx,double (*f)(double),double tol,double *xmin,int itmax); //univariate minim
-double dunivmin(double ax,double bx,double cx,double (*f)(double),double (*df)(double),double tol,double *xmin,int itmax);
-void minimize(double th[],double **dirini,int n,double ftol,int *iter,double *fret,double (*f)(double []),int itmax);//multivar minim
+double univmin(double ax, double bx, double cx, double (*f)(double), double tol, double *xmin, int itmax); //univariate minim
+double dunivmin(double ax, double bx, double cx, double (*f)(double), double (*df)(double), double tol, double *xmin, int itmax);
+void minimize(double th[], double **dirini, int n, double ftol, int *iter, double *fret, double (*f)(double []), int itmax);//multivar minim
 void dirmin(double p[], double xi[], int n, double *fret, double (*func)(double []), int itmax, double dirminEPS); //minim in 1 direction
-void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc,double (*func)(double)); //find bracketing triplets
+void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc, double (*func)(double)); //find bracketing triplets
 
 #endif /* CSTAT_H */
 

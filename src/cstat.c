@@ -5206,41 +5206,60 @@ double midinf(double (*funk)(double), double aa, double bb, int n)
 
 }
 
-double qromo(double (*func)(double), double a, double b, double (*choose)(double(*)(double), double, double, int)) {
-/* Romberg integration on an open interval. Returns the integral of the function func from a to b,
-   using any specified integrating function choose and Romberg's method. Normally choose will be an
-   open formula like midpnt or midinf, not evaluating the function at the endpoints. It is assumed that choose
-   triples the number of steps on each call, and that its error series contains only even powers of
-   the number of steps.
-   Integration is performed by Romberg's method of order 2K (K=2 is Simpson's rule)
 
-   USAGE EXAMPLES
-   answer= qromo(f,0.0,2.0,midpnt); //integrate f from 0 to 2
-   answer= qromo(f,0.0,2.0,midpnt) + qromo(f,2.0,1.0e30,midinf) //integrate f from 0 to 1.0e30 (cutpoint should be chosen in the tail of fx)
-
+/*
+ * Romberg integration on an open interval. Returns the integral of the
+ * function func from a to b, using any specified integrating function choose
+ * and Romberg's method. Normally choose will be an open formula like midpnt
+ * or midinf, not evaluating the function at the endpoints. It is assumed that
+ * choose triples the number of steps on each call, and that its error series
+ * contains only even powers of the number of steps. Integration is performed
+ * by Romberg's method of order 2K (K=2 is Simpson's rule)
+ *
+ * USAGE EXAMPLES
+ *
+ * Integrate f from 0 to 2
+ * answer = qromo(f, 0.0, 2.0, midpnt);
+ *
+ * Integrate f from 0 to 1.0e30 (cutpoint should be chosen in the tail of fx)
+ * answer = qromo(f, 0.0, 2.0, midpnt) + qromo(f, 2.0, 1.0e30, midinf)
+ *
  */
+double qromo(double (*func)(double),
+             double a,
+             double b,
+             double (*choose)(double(*)(double), double, double, int))
+{
 
 #define EPS 1.0e-6
 #define JMAX 14
 #define JMAXP (JMAX+1)
 #define K 5
 
-  void polint(double xa[], double ya[], int n, double x, double *y, double *dy);
-  int j;
-  double ss, dss, h[JMAXP+1], s[JMAXP];
+    register int j;
+    double ss;
+    double dss;
+    double h[JMAXP+1];
+    double s[JMAXP];
 
-  h[1]= 1.0;
-  for (j=1;j<=JMAX;j++) {
-    s[j]=(*choose)(func,a,b,j);
-    if (j >= K) {
-      polint(&h[j-K],&s[j-K],K,0.0,&ss,&dss);
-      if (fabs(dss) <= EPS*fabs(ss)) return ss;
+    assert(func != NULL);
+    assert(choose != NULL);
+
+    h[1] = 1.0;
+    for (j = 1; j <= JMAX; j++) {
+        s[j] = (*choose)(func, a, b, j);
+        if (j >= K) {
+            polint(&h[j-K], &s[j-K], K, 0.0, &ss, &dss);
+            if (fabs(dss) <= EPS*fabs(ss)) {
+                return ss;
+            }
+        }
+        /* Assumes step tripling and even error series */
+        h[j+1] = h[j] / 9.0;
     }
-    h[j+1]= h[j]/9.0;  //this is where the assumption of step tripling and even error series is used
-  }
-  nrerror("qromo","integrate a function","");
-  /*NOTREACHED*/
-  return(0.0);    /* make compiler happy */
+    nrerror("qromo", "integrate a function", "");
+    /*NOTREACHED*/
+    return(0.0);    /* make compiler happy */
 }
 
 

@@ -1811,14 +1811,20 @@ static double bernou[30] = {
 };
 
 
-double trigamma(double x) { 
-
-if (x>1.0e-5) {                         //fast approx to trigamma
-  return(1/(x*x) + 1/((x+1)*(x+1)) + 1/((x+2)*(x+2)) + 1/(x+3) + .5/((x+3)*(x+3)) + 1/(6.0*pow(x+3,3)));
-} else {
-  return(polygamma(x,1,0.0001,100,5,1)); //slower computation
-}
- 
+double trigamma(double x)
+{
+    if (x > 1.0e-5) {
+        /* fast approx to trigamma */
+        return(1 / (x * x) +
+               1 / ((x+1) * (x+1)) +
+               1 / ((x+2) * (x+2)) +
+               1 / (x+3) +
+               0.5 / ((x+3) * (x+3)) +
+               1 / (6.0 * pow(x+3, 3)));
+    } else {
+        /* slower computation */
+        return(polygamma(x, 1, 0.0001, 100, 5, 1));
+    }
 } 
 
 

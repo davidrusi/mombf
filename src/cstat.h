@@ -184,7 +184,7 @@ double quadratic_xtAselx(double *x, double *A, int *ncolA, int *nsel, int *sel);
 double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel); //same but subset is only for x
 
 void Atx(const double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
-void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
+void AtB(const double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, const double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
 void a_plus_b(double *a, double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
 void a_prod_b(double *a, double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
 void a_prod_b_sel(double *a, double *b, double *c, int *lengtha, int *nsel, int *sel); //same but only using indexes in sel

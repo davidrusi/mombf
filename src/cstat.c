@@ -2181,14 +2181,40 @@ void Atx(const double **A,
 } 
 
 
-void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C) { 
-  int _i, _j, _k;
-  if ((rowfiA-rowiniA) != (rowfiB-rowiniB)) errorC("AtB", "dimensions don't match", 1); 
-  for(_i=coliniA;_i<=colfiA;_i++)			 
-    for(_j=coliniB;_j<=colfiB;_j++)			 
-      for(C[_i][_j]=0,_k=rowiniA;_k<=rowfiA;_k++)	 
-	C[_i][_j]+=A[_k][_i]*B[_k][_j]; 
-} 
+void AtB(const double **A,
+         int rowiniA,
+         int rowfiA,
+         int coliniA,
+         int colfiA,
+         const double **B,
+         int rowiniB,
+         int rowfiB,
+         int coliniB,
+         int colfiB,
+         double **C)
+{
+    register int i;
+    register int j;
+    register int k;
+
+    assert(A != NULL);
+    assert(B != NULL);
+    assert(C != NULL);
+
+    if ((rowfiA-rowiniA) != (rowfiB-rowiniB)) {
+        errorC("AtB", "dimensions don't match", 1);
+        /*NOTREACHED*/
+    }
+    for (i = coliniA; i <= colfiA; i++) {
+        for (j = coliniB; j <= colfiB; j++) {
+            C[i][j] = 0.0;
+            for (k = rowiniA; k <= rowfiA; k++) {
+                C[i][j] += A[k][i] * B[k][j]; 
+            }
+        }
+    }
+}
+
 
 void a_plus_b(double *a, double *b, double *c, int ini, int fi) {
   int _i;

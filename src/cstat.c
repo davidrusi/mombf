@@ -633,67 +633,134 @@ void lm(double *b,
 }
 
 
-void lmbayes (double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0) {
- //Bayesian conjugate multiple linear regression
-   // y ~ N(X'beta,sigma^2)
-   // beta ~ N(mpr,sigma^2*Spr) (if tauprior<=0)
-   // beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0) 
-   //        e.g. tauprior==n gives unit information prior
-   // sigma^2 ~ IG(.5*nu0,.5*s0)  (nu0: prior sample size; s0: prior sum of squares)
- /* Input
-      - B: number of posterior samples to draw (can be 0)
-      - y: response variable y[1..n]
-      - X: design matrix X[1..n][1..p]
-      - n: number of observations
-      - p: number of covariates
-      - useXtX: if set to 0 the inverse of X'X is computed, otherwise the supplied value is used
-      - mpr, Spr_inv, tauprior: prior parameters for beta
-      - nu0, s0: prior for sigma^2 is IG(.5*nu0,.5*s0)
-    Ouput
-      - bpost: matrix (B rows, p cols) with samples from the posterior of beta. Starts at bpost[1].
-      - spost: vector (B rows) with samples from the posterior of sigma^2. Starts at spost[1].
-      - b, Vb: posterior for regression coef is N(b,sigma^2*Vb)
-      - a_s, b_s: posterior for sigma^2 is IG(a_s,b_s)
-      - XtX, invXtX: X'X and its inverse (if useXtX==0 they're ouput param, otherwise they're input)
-      - Xty: vector X'y (if useXtX==0 it's an output param, otherwise it's input)
+/*
+ * Bayesian conjugate multiple linear regression
+ *    y ~ N(X'beta,sigma^2)
+ *    beta ~ N(mpr,sigma^2*Spr) (if tauprior<=0)
+ *    beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0) 
+ *           e.g. tauprior==n gives unit information prior
+ *    sigma^2 ~ IG(0.5*nu0,0.5*s0)  (nu0: prior sample size; s0: prior sum of squares)
+ * Input
+ *      B -  number of posterior samples to draw (can be 0)
+ *      y -  response variable y[1..n]
+ *      X -  design matrix X[1..n][1..p]
+ *      n -  number of observations
+ *      p -  number of covariates
+ *      useXtX -  if set to 0 the inverse of X'X is computed,
+ *                otherwise the supplied value is used
+ *      mpr, Spr_inv, tauprior -  prior parameters for beta
+ *      nu0, s0 -  prior for sigma^2 is IG(0.5*nu0,0.5*s0)
+ *  Ouput
+ *      bpost -  matrix (B rows, p cols) with samples from the posterior
+ *               of beta. Starts at bpost[1].
+ *      spost -  vector (B rows) with samples from the posterior of sigma^2.
+ *               Starts at spost[1].
+ *      b, Vb -  posterior for regression coef is N(b,sigma^2*Vb)
+ *      a_s, b_s -  posterior for sigma^2 is IG(a_s,b_s)
+ *      XtX, invXtX -  X'X and its inverse (if useXtX==0 they're ouput param,
+ *                                          otherwise they're input)
+ *      Xty -  vector X'y (if useXtX==0 it's an output param, otherwise it's input)
  */
-  int i, j, one=1;
-  double *b_ls, s_ls, *ypred, **Vb_inv, *zeroes, **cholVb;
+void lmbayes(double *bpost,
+             double *spost,
+             double *b,
+             double **Vb,
+             double *a_s,
+             double *b_s,
+             double **XtX,
+             double **invXtX,
+             double *Xty,
+             int *B,
+             double *y,
+             double **X,
+             int *n,
+             int *p,
+             int *useXtX,
+             double *mpr,
+             double **Spr_inv,
+             double *tauprior,
+             double *nu0,
+             double *s0)
+{
+    double *b_ls;
+    double s_ls;
+    double **Vb_inv;
 
-  if (*useXtX==0) {
-    AtB(X,1,*n,1,*p,X,1,*n,1,*p,XtX);
-    inv_posdef(XtX,*p,invXtX);
-    Atx(X,y,Xty,1,*n,1,*p); //X'y
-  }
+    assert(bpost != NULL);
+    assert(spost != NULL);
+    assert(b != NULL);
+    assert(Vb != NULL);
+    assert(a_s != NULL);
+    assert(b_s != NULL);
+    assert(XtX != NULL);
+    assert(invXtX != NULL);
+    assert(Xty != NULL);
+    assert(B != NULL);
+    assert(y != NULL);
+    assert(X != NULL);
+    assert(n != NULL);
+    assert(p != NULL);
+    assert(useXtX != NULL);
+    assert(mpr != NULL);
+    assert(Spr_inv != NULL);
+    assert(tauprior != NULL);
+    assert(nu0 != NULL);
+    assert(s0 != NULL);
 
-  b_ls= dvector(1,*p); ypred= dvector(1,*n);
-  lm(b_ls,XtX,invXtX,Xty,&s_ls,ypred,y,X,n,p,&one);  //least-squares fit
-
-  *a_s= .5*(*nu0 + *n); *b_s= .5*(*s0 + (*n- *p)*s_ls); //posterior for sigma^2
-
-  Vb_inv= dmatrix(1,*p,1,*p);   //posterior for beta
-  if (*tauprior > 0) {
-    nn_bayes(b,Vb,Vb_inv,*p,*tauprior,mpr,XtX,1.0,b_ls,XtX);
-  } else {
-    nn_bayes(b,Vb,Vb_inv,*p,1.0,mpr,Spr_inv,1.0,b_ls,XtX);
-  }
-
-  if (*B>0) {             //posterior samples
-    cholVb= dmatrix(1,*p,1,*p);
-    choldc(Vb,*p,cholVb); //cholesky decomp of posterior covar for beta
-    zeroes= dvector(1,*p);
-    for (i=1; i<=(*p); i++) { zeroes[i]= 0; }
-    for (i=1; i<=(*B); i++) {
-      spost[i]= 1.0/rgammaC(*a_s,*b_s);
-      rmvnormC(bpost+(i-1)*(*p),*p,zeroes,cholVb);
-      for (j=1; j<=(*p); j++) { bpost[(i-1)*(*p)+j]= bpost[(i-1)*(*p)+j]*sqrt(spost[i])+b[j]; }
+    if (*useXtX == 0) {
+        AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
+        inv_posdef(XtX, *p, invXtX);
+        Atx(X, y, Xty, 1, *n, 1, *p); //X'y
     }
-    free_dvector(zeroes,1,*p);
-    free_dmatrix(cholVb,1,*p,1,*p);
-  }
 
-  free_dvector(b_ls,1,*p); free_dvector(ypred,1,*n); free_dmatrix(Vb_inv,1,*p,1,*p);
+    b_ls = dvector(1, *p);
 
+    {
+        /*const*/ int one = 1;
+        double *ypred;
+
+        ypred = dvector(1, *n);
+        lm(b_ls, XtX, invXtX, Xty, &s_ls, ypred, y, X, n, p, &one);  //least-squares fit
+        free_dvector(ypred, 1, *n);
+    }
+
+    /* Posterior for sigma^2 */
+    *a_s = 0.5 * (*nu0 + *n);
+    *b_s = 0.5 * (*s0 + (*n - *p)*s_ls);
+
+    /* Posterior for beta */
+    Vb_inv = dmatrix(1, *p, 1, *p);
+    if (*tauprior > 0) {
+        nn_bayes(b, Vb, Vb_inv, *p, *tauprior, mpr, XtX, 1.0, b_ls, XtX);
+    } else {
+        nn_bayes(b, Vb, Vb_inv, *p, 1.0, mpr, Spr_inv, 1.0, b_ls, XtX);
+    }
+
+    if (*B > 0) {             //posterior samples
+        double *zeroes;
+        double **cholVb;
+        register int i;
+        register int j;
+
+        cholVb = dmatrix(1, *p, 1, *p);
+        choldc(Vb, *p, cholVb); //cholesky decomp of posterior covar for beta
+        zeroes = dvector(1, *p);
+        for (i = 1; i <= (*p); i++) {
+            zeroes[i] = 0.0;
+        }
+        for (i = 1; i <= (*B); i++) {
+            spost[i] = 1.0 / rgammaC(*a_s, *b_s);
+            rmvnormC(bpost+(i-1)*(*p), *p, zeroes, cholVb);
+            for (j = 1; j <= (*p); j++) {
+                bpost[(i-1)*(*p)+j] = bpost[(i-1)*(*p)+j]*sqrt(spost[i])+b[j];
+            }
+        }
+        free_dvector(zeroes, 1, *p);
+        free_dmatrix(cholVb, 1, *p, 1, *p);
+    }
+
+    free_dvector(b_ls, 1, *p);
+    free_dmatrix(Vb_inv, 1, *p, 1, *p);
 }
 
 

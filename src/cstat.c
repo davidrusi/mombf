@@ -419,26 +419,46 @@ void colCVinv(double *cv, const double *x, int nrow, int ncol)
 /********************************************
  *         normal_normal
  ********************************************/
-void nn_bayes(double *mpo, double **Spo, double **Spo_inv, int p, double r1, double *mpr, double **Spr_inv, double r2, double *y, double **Slik_inv)
-/* prior: N(x; mpr, r1*Spr)
-   likl:  N(y; x, r2*Slik)
-   p: dimensionality
-   returns:  post N(x; mpo,Spo)
-   Spo = (1/r1*Spr_inv + 1/r2*Slik_inv)^-1
-   mpo = Spo*(1/r1*Spr*mpr + 1/r2*Slik*y)
-   NOTE: input vectors and matrices must start at position 1, not 0
-*/
-{ double *z;
+/*
+ * prior: N(x; mpr, r1*Spr)
+ * likl:  N(y; x, r2*Slik)
+ * p: dimensionality
+ * returns:  post N(x; mpo,Spo)
+ * Spo = (1/r1*Spr_inv + 1/r2*Slik_inv)^-1
+ * mpo = Spo*(1/r1*Spr*mpr + 1/r2*Slik*y)
+ * NOTE: input vectors and matrices must start at position 1, not 0
+ */
+void nn_bayes(double *mpo,
+              double **Spo,
+              double **Spo_inv,
+              int p,
+              double r1,
+              double *mpr,
+              double **Spr_inv,
+              double r2,
+              double *y,
+              double **Slik_inv)
+{
+    double *z;
 
-  z = dvector(1,p);
+    assert(mpo != NULL);
+    assert(mpr != NULL);
+    assert(Spo != NULL);
+    assert(y != NULL);
+    assert(Spo_inv != NULL);
+    assert(Spr_inv != NULL);
+    assert(Slik_inv != NULL);
 
-  rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, Spo_inv,1,p,1,p);
-  inv_posdef(Spo_inv,p,Spo); 
-  rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z,1,p,1,p);
-  Ax(Spo,z,mpo,1,p,1,p);
+    z = dvector(1, p);
+
+    rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, Spo_inv, 1, p, 1, p);
+    inv_posdef(Spo_inv, p, Spo); 
+    rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
+    Ax(Spo, z, mpo, 1, p, 1, p);
   
-  free_dvector(z,1,p);
+    free_dvector(z, 1, p);
 }
+
 
 void nn_bayes_rand(double *theta, int p, double r1, double **Spr_inv, double *mpr, double r2, double **Slik_inv, double *y) {
 /* same as nn_bayes, but returns a draw only 

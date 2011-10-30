@@ -2157,13 +2157,29 @@ double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel)
 }
 
 
-void Atx(double **A,double *x,double *z, int rowini, int rowfi, int colini, int colfi) {
-  int _i, _j; 
-  for(_i=colini;_i<=colfi;_i++){				 
-    for(z[_i]=0,_j=rowini; _j<=rowfi; _j++)		 
-      z[_i]+=A[_j][_i]*x[_j];	 
-  } 
+void Atx(const double **A,
+         const double *x,
+         double *z,
+         int rowini,
+         int rowfi,
+         int colini,
+         int colfi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(x != NULL);
+    assert(z != NULL);
+
+    for (i = colini; i <= colfi; i++) {
+        z[i] = 0.0;
+        for (j = rowini; j <= rowfi; j++) {
+            z[i] += A[j][i] * x[j];
+        }
+    } 
 } 
+
 
 void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C) { 
   int _i, _j, _k;

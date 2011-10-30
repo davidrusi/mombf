@@ -1883,41 +1883,78 @@ double lnbeta(double a, double b)
 }
 
 
-double betacf(double a, double b, double x) {
-//Used by pbetaC: Evaluates continued fraction for incomplete beta function by modified Lentz's
-//method (x5.2).
-  int m,m2, MAXIT=100;
-  double aa,c,d,del,h,qab,qam,qap, EPS=3.0e-7, FPMIN=1.0e-30;
-  qab=a+b; //These q's will be used in factors that occur in the coe cients (6.4.6).
-  qap=a+1.0; 
-  qam=a-1.0;
-  c=1.0; //First step of Lentz's method.
-  d=1.0-qab*x/qap;
-  if (fabs(d) < FPMIN) d=FPMIN;
-  d=1.0/d;
-  h=d;
-  for (m=1;m<=MAXIT;m++) {
-    m2=2*m;
-    aa=m*(b-m)*x/((qam+m2)*(a+m2));
-    d=1.0+aa*d; //One step (the even one) of the recurrence.
-    if (fabs(d) < FPMIN) d=FPMIN;
-    c=1.0+aa/c;
-    if (fabs(c) < FPMIN) c=FPMIN;
-    d=1.0/d;
-    h *= d*c;
-    aa = -(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
-    d=1.0+aa*d; //Next step of the recurrence (the odd one).
-    if (fabs(d) < FPMIN) d=FPMIN;
-    c=1.0+aa/c;
-    if (fabs(c) < FPMIN) c=FPMIN;
-    d=1.0/d;
-    del=d*c;
-    h *= del;
-    if (fabs(del-1.0) < EPS) break; //Are we done?
-  }
-  if (m > MAXIT) nrerror("a or b too big, or MAXIT too small in betacf","","");
-  return(h);
+/*
+ * Used by pbetaC: Evaluates continued fraction for incomplete beta function
+ * by modified Lentz's method (x5.2).
+ */
+double betacf(double a, double b, double x)
+{
+    double aa;
+    double c;
+    double d;
+    double del;
+    double h;
+    double qab;
+    double qam;
+    double qap;
+    const double EPS = 3.0e-7;
+    const double FPMIN = 1.0e-30;
+    const int MAXIT = 100;
+    int m;
+    int m2;
+
+    /* These q's will be used in factors that occur in coe cients (6.4.6). */
+    qab = a + b;
+    qap = a + 1.0; 
+    qam = a - 1.0;
+
+    /* First step of Lentz's method */
+    c = 1.0;
+    d = 1.0 - qab * x / qap;
+    if (fabs(d) < FPMIN) {
+        d = FPMIN;
+    }
+    d = 1.0 / d;
+    h = d;
+    for (m = 1; m <= MAXIT; m++) {
+        m2 = 2 * m;
+        aa = m * (b-m) * x / ((qam+m2) * (a+m2));
+        /* One step (the even one) of the recurrence */
+        d = 1.0 + aa * d;
+        if (fabs(d) < FPMIN) {
+            d = FPMIN;
+        }
+        c = 1.0 + aa / c;
+        if (fabs(c) < FPMIN) {
+            c = FPMIN;
+        }
+        d = 1.0 / d;
+        h *= d * c;
+        aa = -(a+m) * (qab+m) * x / ((a+m2) * (qap+m2));
+        /* Next step of the recurrence (the odd one) */
+        d = 1.0 + aa * d;
+        if (fabs(d) < FPMIN) {
+            d = FPMIN;
+        }
+        c = 1.0 + aa / c;
+        if (fabs(c) < FPMIN) {
+            c = FPMIN;
+        }
+        d = 1.0 / d;
+        del = d * c;
+        h *= del;
+        /* Are we done? */
+        if (fabs(del-1.0) < EPS) {
+            break;
+        }
+    }
+    if (m > MAXIT) {
+        nrerror("betacf", "", "a or b too big, or MAXIT too small");
+        /*NOTREACHED*/
+    }
+    return(h);
 }
+
 
 double lnchoose(int n, int k) {
   double a= 1.0+n-k, b= 1.0+k;

@@ -2157,7 +2157,7 @@ double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel)
 }
 
 
-void Atx(const double **A,
+void Atx(double **A,
          const double *x,
          double *z,
          int rowini,
@@ -2181,12 +2181,12 @@ void Atx(const double **A,
 } 
 
 
-void AtB(const double **A,
+void AtB(double **A,
          int rowiniA,
          int rowfiA,
          int coliniA,
          int colfiA,
-         const double **B,
+         double **B,
          int rowiniB,
          int rowfiB,
          int coliniB,
@@ -2389,8 +2389,8 @@ void maxvec(const double *x,
     register int i;
 
     assert(x != NULL);
-    assert(xmin != NULL);
-    assert(minpos != NULL);
+    assert(xmax != NULL);
+    assert(maxpos != NULL);
 
     *xmax = x[ini];
     *maxpos = ini;

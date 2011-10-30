@@ -1956,39 +1956,46 @@ double betacf(double a, double b, double x)
 }
 
 
-double lnchoose(int n, int k) {
-  double a= 1.0+n-k, b= 1.0+k;
-  return lnbeta(a,b) - log(1.0+n);
+double lnchoose(int n, int k)
+{
+    double a = 1.0 + n - k;
+    double b = 1.0 + k;
+    return lnbeta(a, b) - log(1.0+n);
 }
 
-double choose(int n, int k) { return exp(lnchoose(n,k)); }
 
-double logit(double x) { return(log(x/(1-x))); }
-
-double ilogit(double x) { return(1.0/(1.0+exp(-x))); }
-
-double dsign(double x) {
-//Returns 1.0 if x>=0, -1.0 if x<0
-  double ans;
-  if (x>=0) { 
-    ans= 1.0;
-  } else {
-    ans= -1.0;
-  }
-  return ans;
+double choose(int n, int k)
+{
+    return exp(lnchoose(n, k));
 }
 
-double isign(int x) {
-//Returns 1.0 if x>0, 0 if x==0, -1.0 if x<0
-  double ans;
-  if (x==0) {
-    ans= 0.0;
-  } else if (x>0) {
-    ans= 1.0;
-  } else {
-    ans= -1.0;
-  }
-  return ans;
+
+double logit(double x)
+{
+    return(log(x / (1-x)));
+}
+
+
+double ilogit(double x)
+{
+    return(1.0 / (1.0 + exp(-x)));
+}
+
+
+/* Returns 1.0 if x>=0, -1.0 if x<0 */
+double dsign(double x)
+{
+    return (x >= 0) ? 1.0 : -1.0;
+}
+
+
+/* Returns 1.0 if x>0, 0 if x==0, -1.0 if x<0 */
+double isign(int x)
+{
+    if (x == 0) {
+        return 0.0;
+    }
+    return (x > 0) ? 1.0 : -1.0;
 }
 
 

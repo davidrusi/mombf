@@ -2216,45 +2216,114 @@ void AtB(const double **A,
 }
 
 
-void a_plus_b(double *a, double *b, double *c, int ini, int fi) {
-  int _i;
-  for (_i=ini;_i<=fi;_i++) { c[_i]= a[_i]+b[_i]; }
-}
-
-void a_prod_b(double *a, double *b, double *c, int ini, int fi) {
-  int _i;
-  for (_i=ini;_i<=fi;_i++) { c[_i]= a[_i]*b[_i]; }
-}
-
-void a_prod_b_sel(double *a, double *b, double *c, int *lengtha, int *nsel, int *sel) {
-  int _i;
-  for (_i=0;_i<=(*nsel-1);_i++) { c[sel[_i]]= a[sel[_i]]*b[sel[_i]]; }
-}
-
-void a_zero(double *a, int p) {
-  int _i;
-  for (_i=0;_i<p;_i++) a[_i]= 0.0;
-}
-
-void R_zero(double **A, int p,int q) 
+void a_plus_b(const double *a,
+              const double *b,
+              double *c,
+              int ini,
+              int fi)
 {
-  int _i, _j;
-  for(_i=0;_i<p;_i++) 
-    for(_j=0;_j<q;_j++) 
-      A[_i][_j] = 0.0; 
-} 
+    register int i;
 
-void ddiag(double **A, int ini, int fi) {
-//Diagonal matrix
-  int _i, _j;
-  for (_i=ini; _i<= fi; _i++) {
-    for (_j=ini; _j<= fi; _j++) {
-      if (_i==_j) A[_i][_j]= 1; else A[_i][_j]= 0;
+    assert(a != NULL);
+    assert(b != NULL);
+    assert(c != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        c[i] = a[i] + b[i]; 
     }
-  }
 }
 
-int iabs(int x) {
+
+void a_prod_b(const double *a,
+              const double *b,
+              double *c,
+              int ini,
+              int fi)
+{
+    register int i;
+
+    assert(a != NULL);
+    assert(b != NULL);
+    assert(c != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        c[i] = a[i] * b[i];
+    }
+}
+
+
+void a_prod_b_sel(const double *a,
+                  const double *b,
+                  double *c,
+                  const int *lengtha,        /* :TBD: unused? */
+                  const int *nsel,
+                  const int *sel)
+{
+    register int i;
+
+    assert(a != NULL);
+    assert(b != NULL);
+    assert(c != NULL);
+
+    for (i = 0; i <= (*nsel-1); i++) {
+        int idx;
+
+        idx = sel[i];
+        c[idx] = a[idx] * b[idx];
+    }
+}
+
+
+void a_zero(double *a,
+            int p)
+{
+    register int i;
+
+    assert(a != NULL);
+
+    for (i = 0; i < p; i++) {
+        a[i] = 0.0;
+    }
+}
+
+
+void R_zero(double **A,
+            int p,
+            int q) 
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+
+    for (i = 0; i < p; i++) {
+        for (j = 0; j < q; j++) {
+            A[i][j] = 0.0;
+        }
+    }
+}
+
+
+/* Diagonal matrix */
+void ddiag(double **A,
+           int ini,
+           int fi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        for (j = ini; j <= fi; j++) {
+            A[i][j] = (i == j) ? 1 : 0;
+        }
+    }
+}
+
+
+int iabs(int x)
+{
   return (x>0) ? x : -x;
 }
 

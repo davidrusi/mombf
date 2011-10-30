@@ -509,34 +509,58 @@ void nn_bayes_rand(double *theta,
 }
 
 
-double nn_integral(double *x, double *rx, double **Vxinv, double *detVx, double *mpr, double *rpr, double **Vprinv, double *detVpr, int *p, int *logscale) {
-  // Compute normal-normal integral
-  //   N(x;beta,rx*Vx) * N(beta;mpr,rpr*Vpr) with respect to beta
-  //
-  // - Vxinv, detVx: inverse and determinant of Vx
-  // - Vprinv, detVpr: inverse and determinant of Vpr
-  // - p: dimensionality
-  // - logscale: if not 0, result is returned in log scale
+/*
+ * Compute normal-normal integral
+ *   N(x;beta,rx*Vx) * N(beta;mpr,rpr*Vpr) with respect to beta
+ *
+ *    Vxinv, detVx   - inverse and determinant of Vx
+ *    Vprinv, detVpr - inverse and determinant of Vpr
+ *    p              - dimensionality
+ *    logscale       - if not 0, result is returned in log scale
+ */
+double nn_integral(double *x,
+                   double *rx,
+                   double **Vxinv,
+                   double *detVx,
+                   double *mpr,
+                   double *rpr,
+                   double **Vprinv,
+                   double *detVpr,
+                   int *p,
+                   int *logscale)
+{
+    double detsum;
+    double **Vsum;
+    double **Vsuminv;
+    double **cholVsum;
+    double *m;
+    double ans;
 
-  double ans, detsum, **Vsum, **Vsuminv, **cholVsum, *m;
+    m = dvector(1, *p);
+    Vsum = dmatrix(1, *p, 1, *p);
+    Vsuminv = dmatrix(1, *p, 1, *p);
+    cholVsum = dmatrix(1, *p, 1, *p);
 
-  m= dvector(1,*p);
-  Vsum= dmatrix(1,*p,1,*p); Vsuminv= dmatrix(1,*p,1,*p); cholVsum= dmatrix(1,*p,1,*p);
+    rA_plus_sB(1.0/(*rx), Vxinv, 1.0/(*rpr), Vprinv, Vsuminv, 1, *p, 1, *p);
+    choldc_inv(Vsuminv, *p, cholVsum);
+    detsum = choldc_det(cholVsum, *p);
+    inv_posdef_chol(cholVsum, *p, Vsum);
+    rAx_plus_sBy(1.0/(*rx), Vxinv, x, 1.0/(*rpr), Vprinv, mpr, m, 1, *p, 1, *p);
+    ans = xtAy(m, Vsum, m, 1, *p) -
+          xtAy(x, Vxinv, x, 1, *p) -
+          xtAy(mpr, Vprinv, mpr, 1, *p);
 
-  rA_plus_sB(1.0/(*rx),Vxinv,1.0/(*rpr),Vprinv,Vsuminv,1,*p,1,*p);
-  choldc_inv(Vsuminv,*p,cholVsum);
-  detsum= choldc_det(cholVsum,*p);
-  inv_posdef_chol(cholVsum,*p,Vsum);
-  rAx_plus_sBy(1.0/(*rx),Vxinv,x,1.0/(*rpr),Vprinv,mpr,m,1,*p,1,*p);
-  ans= xtAy(m,Vsum,m,1,*p) - xtAy(x,Vxinv,x,1,*p) - xtAy(mpr,Vprinv,mpr,1,*p);
+    ans = 0.5*ans - 0.5*((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
+    if (*logscale != 0) {
+        ans = exp(ans);
+    }
 
-  ans= .5*ans - 0.5*((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
-  if (*logscale != 0) ans= exp(ans);
+    free_dvector(m, 1, *p); 
+    free_dmatrix(Vsum, 1, *p, 1, *p);
+    free_dmatrix(Vsuminv, 1, *p, 1, *p);
+    free_dmatrix(cholVsum, 1, *p, 1, *p);
 
-  free_dvector(m,1,*p); 
-  free_dmatrix(Vsum,1,*p,1,*p); free_dmatrix(Vsuminv,1,*p,1,*p); free_dmatrix(cholVsum,1,*p,1,*p);
-
-  return(ans);
+    return(ans);
 }
 
 

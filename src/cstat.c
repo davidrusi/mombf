@@ -2497,43 +2497,77 @@ void choldc_inv(double **a,
 }
 
 
-double choldc_det(double **chols, int n) {
-  //Find determinant of the matrix having chols as its Cholesky decomposition
-  //Example of usage
-  //  choldc(S,n,cholS);
-  //  det= choldc_det(cholS,n);
-  //
-  //Another example
-  //  choldc_inv(S,n,cholSinv);
-  //  det= 1.0/choldc_det(cholSinv,n);
-  int i; double det;
-  for (det=1,i=1; i<=n; i++) { det *= chols[i][i]*chols[i][i]; }
-  return(det);
-}
+/*
+ * Find determinant of the matrix having chols as its Cholesky decomposition.
+ *
+ * Example of usage
+ *   choldc(S, n, cholS);
+ *   det = choldc_det(cholS, n);
+ *
+ * Another example
+ *   choldc_inv(S, n, cholSinv);
+ *   det = 1.0 / choldc_det(cholSinv, n);
+ */
+double choldc_det(double **chols,
+                  int n)
+{
+    double det = 1.0;
+    register int i;
 
+    assert(chols != NULL);
 
-void inv_posdef(double **a, int n, double **aout) {
-  /* Inverse of a symmetric, positive definite matrix a[1..n][1..n] using Cholesky decomposition
-     Result is returned in aout */
-  int i,j,k;
-  double **b, sum;
+    for (i = 1; i <= n; i++) {
+        double value;
 
-  b= dmatrix(1,n,1,n);
-  choldc_inv(a,n,b);
-  for (i=1; i<=n; i++) {
-    for (j=i; j<=n; j++) {
-      for (k=1,sum=0;k<=n;k++) { sum+= b[k][i]*b[k][j]; }
-      aout[i][j]= sum;
+        value = chols[i][i];
+        det *= value * value;
     }
-  }
-  for (i=2; i<=n; i++) { for (j=1;j<i;j++) { aout[i][j]= aout[j][i]; }}
-  free_dmatrix(b,1,n,1,n);
-
+    return(det);
 }
+
+
+/*
+ * Inverse of a symmetric, positive definite matrix a[1..n][1..n] using
+ * Cholesky decomposition. Result is returned in aout.
+ */
+void inv_posdef(double **a,
+                int n,
+                double **aout)
+{
+    register int i;
+    register int j;
+    double **b;
+
+    assert(a != NULL);
+    assert(aout != NULL);
+
+    b = dmatrix(1, n, 1, n);
+    choldc_inv(a, n, b);
+    for (i = 1; i <= n; i++) {
+        for (j = i; j <= n; j++) {
+            register int k;
+            double sum;
+
+            sum = 0.0;
+            for (k = 1; k <= n; k++) {
+                sum += b[k][i] * b[k][j];
+            }
+            aout[i][j] = sum;
+        }
+    }
+    free_dmatrix(b, 1, n, 1, n);
+
+    for (i = 2; i <= n; i++) {
+        for (j = 1; j < i; j++) {
+            aout[i][j] = aout[j][i];
+        }
+    }
+}
+
 
 void inv_posdef_upper(double **a, int n, double **aout) {
   /* Inverse of a symmetric, positive definite matrix a[1..n][1..n] using Cholesky decomposition
-     Result is returned in aout 
+     Result is returned in aout
      Function does the same as inv_posdef, except that here only upper triangular elements are returned*/
   int i,j,k;
   double **b, sum;

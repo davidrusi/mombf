@@ -886,6 +886,7 @@ FILE *openIn(const char *name)
     assert(name != NULL);
     if ((ifile = fopen(name, "r")) == NULL) {
         fserror("openIn", "open file for read", name);
+        /*NOTREACHED*/
     }
     return(ifile);
 }
@@ -896,6 +897,7 @@ FILE *openOut(const char *name)
     assert(name != NULL);
     if ((ofile = fopen(name, "w")) == NULL) {
         fserror("openOut", "open file for write", name);
+        /*NOTREACHED*/
     }
     return ofile;
 }
@@ -905,56 +907,50 @@ FILE *openOut(const char *name)
 
 //void scanFloat(char *txt, float *f)
 //{
-//  fscanf(ifile,txt);
-//  if (fscanf(ifile," %f ",f) != 1) {
-//    fserror ("scanFloat","read float",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %f ", f) != 1) {
+//    fserror("scanFloat", "read float", txt);
 //  }
 //}
 // 
-//void scanDouble(char *txt,double *f)
+//void scanDouble(char *txt, double *f)
 //{
-//  fscanf(ifile,txt);
-//  if (fscanf(ifile," %lf ",f) != 1) {
-//    fserror ("scanDouble","read double",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %lf ", f) != 1) {
+//    fserror("scanDouble", "read double", txt);
 //  }
 //}
 // 
 //void fscanDouble(FILE *ifile, char *txt, double *f)
 //{
-//  fscanf(ifile,txt);
-//  if (fscanf(ifile," %lf ",f) != 1) {
-//    fserror ("fscanDouble","read double",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %lf ", f) != 1) {
+//    fserror("fscanDouble", "read double", txt);
 //  }
 //}
 // 
 //void scanInt(char *txt, int *n)
 //{
-//  int 	s;
-// 
-//  fscanf(ifile,txt);
-//  if ((s = fscanf(ifile," %d ",n)) != 1) {
-//    fserror ("scanInt","read int",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %d ", n) != 1) {
+//    fserror("scanInt", "read int", txt);
 //  }
 //}
 // 
 //void fscanInt(FILE *ifile, char *txt, int *n)
 //{
-// 	int 	s;
-// 
-//  fscanf(ifile,txt);
-//  if ((s = fscanf(ifile," %d ",n)) != 1) {
-//    fserror ("fscanInt","read int",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %d ", n) != 1) {
+//    fserror("fscanInt", "read int", txt);
 //  }
 //}
 // 
 // 
 //void scanLong(char *txt, long *n)
 //{
-//        int     s;
-// 
-//  fscanf(ifile,txt);
-//  if ((s = fscanf(ifile," %ld ",n)) != 1) {
-//    fserror ("scanLong","read long",txt);
+//  fscanf(ifile, txt);
+//  if (fscanf(ifile, " %ld ", n) != 1) {
+//    fserror("scanLong", "read long", txt);
 //  }
 //}
 // 
@@ -962,17 +958,17 @@ FILE *openOut(const char *name)
 // 
 //void scanFloatArray(char *txt, float *x, int n)
 //{
-// 	scanArray(txt,x,n);
+//  scanArray(txt, x, n);
 //}
 // 
 //void scanArray(char *txt, float *x, int n)
 //{
-// 	int	i; 
+//  int	i; 
 // 
-//  fscanf(ifile,txt);
-//  for(i=0;i<n;i++){
-//    if (fscanf(ifile," %f ",&x[i]) != 1) {
-//      fserror ("scanArray","read float array",txt);
+//  fscanf(ifile, txt);
+//  for(i=0;i<n;i++) {
+//    if (fscanf(ifile, " %f ", &x[i]) != 1) {
+//      fserror("scanArray", "read float array", txt);
 //    }
 //  }
 //}
@@ -981,11 +977,10 @@ FILE *openOut(const char *name)
 //{
 //  int	i;
 // 
-//  fscanf(ifile,txt);
-//  for(i=0;i<n;i++){
-//    if (fscanf(ifile," %lg ",&x[i]) != 1) {
-//      fserror ("scanDoubleArray",
-// 	       "read double array",txt);
+//  fscanf(ifile, txt);
+//  for(i=0;i<n;i++) {
+//    if (fscanf(ifile, " %lg ", &x[i]) != 1) {
+//      fserror("scanDoubleArray", "read double array", txt);
 //    }
 //  }
 //}
@@ -994,58 +989,60 @@ FILE *openOut(const char *name)
 //{
 //  int	i;
 // 
-//  for(i=0;i<n;i++){
-//    if (fscanf(in," %lg ",&x[i]) != 1) {
-//      /* printf("i=%d\n",i); */
-//      fserror("fscanDoubleArray","read double array","");
+//  for(i=0;i<n;i++) {
+//    if (fscanf(in, " %lg ", &x[i]) != 1) {
+//      /* printf("i=%d\n", i); */
+//      fserror("fscanDoubleArray", "read double array", "");
 //    }
 //  }
 //}
 // 
 //void scanString(char *txt, char *s, int n)
 //{
-//  fgets(s,n,ifile);
+//  fgets(s, n, ifile);
 //}
 //  
 // 
 //void fscanString(FILE *ifile, char *txt, char *s, int n)
 //{
-//  fgets(s,n,ifile);
+//  fgets(s, n, ifile);
 //}
 //  
-//void scanDoubleMatrix(char *txt,double **x,int r,int c)
+//void scanDoubleMatrix(char *txt, double **x, int r, int c)
 //{
-//  int	i,j;
+//  int	i, j;
 //  
-//  fscanf(ifile,txt);
-//  for(i=0;i<r;i++)
-//    for(j=0;j<c;j++){
-//      if (fscanf(ifile," %lg ",&x[i][j]) != 1) {
-// 	fserror ("scanDoubleMatrix","read double matrix",txt);
+//  fscanf(ifile, txt);
+//  for(i=0;i<r;i++) {
+//    for(j=0;j<c;j++) {
+//      if (fscanf(ifile, " %lg ", &x[i][j]) != 1) {
+//        fserror("scanDoubleMatrix", "read double matrix", txt);
 //      }
 //    }
+//  }
 //}
 // 
-//void fscanDoubleMatrix(FILE *ifile, double **x,int r,int c)
+//void fscanDoubleMatrix(FILE *ifile, double **x, int r, int c)
 //{
-//  int	i,j;
+//  int	i, j;
 //  
-//  for(i=0;i<r;i++)
-//    for(j=0;j<c;j++){
-//      if (fscanf(ifile," %lg ",&x[i][j]) != 1) {
-// 	exit(1);
+//  for(i=0;i<r;i++) {
+//    for(j=0;j<c;j++) {
+//      if (fscanf(ifile, " %lg ", &x[i][j]) != 1) {
+//        fserror("fscanDoubleMatrix", "read double matrix", "");
 //      }
 //    }
+//  }
 //}
 // 
 //void scanIntArray(char *txt, int *x, int n)
 //{
 //  int	i;
 // 
-//  fscanf(ifile,txt);
+//  fscanf(ifile, txt);
 //  for(i=0;i<n;i++){
-//    if (fscanf(ifile," %d ",&x[i]) != 1) {
-//      fserror ("scanIntArray","read int array",txt);
+//    if (fscanf(ifile, " %d ", &x[i]) != 1) {
+//      fserror("scanIntArray", "read int array", txt);
 //    }
 //  }
 //}
@@ -1055,8 +1052,8 @@ FILE *openOut(const char *name)
 //  int	i;
 // 
 //  for(i=0;i<n;i++){
-//    if (fscanf(ifile," %d ",&x[i]) != 1) {
-//      fserror("fscanIntArray","read int array","");
+//    if (fscanf(ifile, " %d ", &x[i]) != 1) {
+//      fserror("fscanIntArray", "read int array", "");
 //    }
 //  }
 //}
@@ -1065,171 +1062,286 @@ FILE *openOut(const char *name)
 /* ------------------------  write scalars  ------------------------ */
 void writeInt(int i)
 {
-  int s;
-  s=fprintf(ofile,"%d\n",i);
-  if(s<0)
-    fserror("writeInt", "write int", "");
+    if (fprintf(ofile, "%d\n", i) < 0) {
+        fserror("writeInt", "write int", "");
+        /*NOTREACHED*/ 
+    }
 }
 
 void writeLong(long i)
 {
-  int s;
-  s=fprintf(ofile,"%ld\n",i);
-  if (s<0)
-    fserror("writeLong", "write long", "");
-    
+    if (fprintf(ofile, "%ld\n", i) < 0) {
+        fserror("writeLong", "write long", "");
+        /*NOTREACHED*/ 
+    }
 }
 
 void writeFloat(float x)
 {
-  int s;
-  s=fprintf(ofile,"%f\n",x);
-  if (s<0)
-    fserror("writeFloat", "write float", "");
-  
+    if (fprintf(ofile, "%f\n", x) < 0) {
+        fserror("writeFloat", "write float", "");
+        /*NOTREACHED*/ 
+    }
 }
 
 void writeDouble(double x)
 {
-  int s;
-  s=fprintf(ofile,"%5.3e\n",x);
-  if (s<0)
-    fserror("writeDouble", "write double", "");
+    if (fprintf(ofile, "%5.3e\n", x) < 0) {
+        fserror("writeDouble", "write double", "");
+        /*NOTREACHED*/ 
+    }
 }
 
 
 /* -----------------------  write arrays   --------------------- */
 
-void fwriteDoubleArray(FILE *f, double *x, int rows, int cols)
+void fwriteDoubleArray(FILE *f,
+                       double *x,
+                       int rows,
+                       int cols)
 {
-  int	i,j,s1,s2;
-  
-  s1 = 0;
-  for(i=0;i<rows;i++){
-    for(j=0;j<cols;j++){
-      if(j%10 == 9)
-	fprintf(f,"\n\t");
-      s1=fprintf(f,"%5.3e ",x[i*cols+j]);
-      if (s1<0) break;
+    register int i;
+    register int j;
+    int s1 = 0;
+    int s2 = 0;
+
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            if (j%10 == 9) {
+                fprintf(f, "\n\t");
+            }
+            s1 = fprintf(f, "%5.3e ", x[i*cols+j]);
+            if (s1 < 0) {
+                break;
+            }
+        }
+        s2 = fprintf(f, "\n");
+        if ((s2 < 0) | (s1 < 0)) {
+            fserror("fwriteDoubleArray", "write double array", "");
+            /*NOTREACHED*/
+        }
     }
-    s2=fprintf(f,"\n");
-    if ((s2<0)|(s1<0))
-      fserror("fwriteDoubleArray", "write double array", "");
-  }
 }
 
-void fwriteIntArray(FILE *f, int *x, int rows, int cols)
+
+void writeDoubleArray(double *x, int rows, int cols)
 {
-  int	i,j,s1,s2;
+    fwriteDoubleArray(ofile, x, rows, cols);
+}
+
+
+void fwriteIntArray(FILE *f,
+                    int *x,
+                    int rows,
+                    int cols)
+{
+    register int i;
+    register int j;
+    int s1 = 0;
+    int s2 = 0;
   
-  s1 = 0;
-  for(i=0;i<rows;i++){
-    for(j=0;j<cols;j++){
-      if(j%10 == 9)
-	fprintf(f,"\n\t");
-      s1=fprintf(f,"%d\t",x[i*cols+j]);
-      if (s1<0) break;
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            if (j%10 == 9) {
+                fprintf(f, "\n\t");
+            }
+            s1 = fprintf(f, "%d\t", x[i*cols+j]);
+            if (s1 < 0) {
+                break;
+            }
+        }
+        s2 = fprintf(f, "\n");
+        if ((s2 < 0) | (s1 < 0)) {
+            fserror("fwriteIntArray", "write int array", "");
+            /*NOTREACHED*/
+        }
     }
-    s2=fprintf(f,"\n");
-    if ((s2<0)|(s1<0))
-      fserror("fwriteIntArray", "write int array", "");
-  }
 }
 
 
 void writeIntArray(int *x, int rows, int cols)
 {
-  fwriteIntArray(ofile,x,rows,cols);
+    fwriteIntArray(ofile, x, rows, cols);
 }
 
-void fwriteIntMatrix(FILE *f, int **x, int rows, int cols)
+
+void fwriteIntMatrix(FILE *f,
+                     int **x,
+                     int rows,
+                     int cols)
 {
-  int	i,j,s1;
-  
-  for(i=0;i<rows;i++){
-    for(j=0;j<cols;j++){
-      if(j%10 == 9)
-	fprintf(f,"\n\t");
-      s1=fprintf(f,"%d\t",x[i][j]);
-      if (s1<0) 
-	fserror("fwriteIntMatrix", "write int matrix", "");
+    register int i;
+    register int j;
+    int s = 0;
+ 
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            if (j%10 == 9) {
+                fprintf(f, "\n\t");
+            }
+            s = fprintf(f, "%d\t", x[i][j]);
+            if (s < 0) {
+                fserror("fwriteIntMatrix", "write int matrix", "");
+                /*NOTREACHED*/
+            }
+        }
+        fprintf(f, "\n");
     }
-    fprintf(f,"\n");
-  }
 }
+
 
 void writeIntMatrix(int **x, int rows, int cols)
 {
-  fwriteIntMatrix(ofile,x,rows,cols);
+    fwriteIntMatrix(ofile, x, rows, cols);
 }
 
-void writeDoubleArray(double *x,int rows,int cols)
-{
-  fwriteDoubleArray(ofile,x,rows,cols);
-}
 
-void fwriteDoubleMatrix2(FILE *f, double **x, int rows, int cols)
+void fwriteDoubleMatrix(FILE *f,
+                        double **x,
+                        int rows,
+                        int cols)
 {
-  int	i, j, s;
-  
-  for(i=0;i<rows;i++){
-    for(j=0;j<cols;j++){
-      if(j%10 == 9){
-	fprintf(f,"\n\t");
-      }
-      s=fprintf(f,"%5.3e ",x[i][j]);
-      if (s<0)
-	fserror("fwriteDoubleMatrix2", "write double matrix", "");
+    register int i;
+    register int j;
+    int s;
+
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        int c;
+
+        c = 0;
+        for (j = 0; j < cols; j++) {
+            if (++c > 10) {
+                fprintf(f, "\n\t");
+                c = 0;
+            }
+            s = fprintf(f, "%5.3e ", x[i][j]);
+            if (s < 0) {
+                fserror("fwriteDoubleMatrix", "write double matrix", "");
+                /*NOTREACHED*/
+            }
+        }
+        fprintf(f, "\n");
     }
-    fprintf(f,"\n");
-  }
 }
 
-void writeDoubleMatrix2(double **x, int rows, int cols)
-{
-  fwriteDoubleMatrix2(ofile,x,rows,cols);
-}
 
 void writeDoubleMatrix(double **x, int rows, int cols)
 {
-  int	i,j, c,s;
-  
-  for(i=0;i<rows;i++){
-    for(j=0, c=0;j<cols;j++){
-      if(++c > 10){
-	fprintf(ofile,"\n\t");
-	c = 0;
-      }
-      s=fprintf(ofile,"%5.3e ",x[i][j]);
-      if (s<0)
-	fserror("writeDoubleMatrix", "write double matrix", "");
-    }
-    fprintf(ofile,"\n");
-  }
+    fwriteDoubleMatrix(ofile, x, rows, cols);
 }
 
-void writeFloatArray(float *x,int rows,int cols)
+
+void fwriteDoubleMatrix2(FILE *f,
+                         double **x,
+                         int rows,
+                         int cols)
 {
- writeArray(x,rows,cols);
+    register int i;
+    register int j;
+    int s = 0;
+ 
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            if (j%10 == 9) {
+                fprintf(f, "\n\t");
+            }
+            s = fprintf(f, "%5.3e ", x[i][j]);
+            if (s < 0) {
+                fserror("fwriteDoubleMatrix2", "write double matrix", "");
+                /*NOTREACHED*/
+            }
+        }
+        fprintf(f, "\n");
+    }
 }
 
-void writeArray(float *x,int rows,int cols)
+
+void writeDoubleMatrix2(double **x, int rows, int cols)
 {
-  int	
-    i,j, c,s;
-  
-  for(i=0;i<rows;i++){
-    for(j=0,c=0;j<cols;j++){
-      if (c++>9){
-	fprintf(ofile,"\n\t");
-	c = 0;
-      }
-      s=fprintf(ofile,"%5.3e ",x[i*cols+j]);
-      if (s<0)
-	fserror("writeArray", "write float matrix", "");
+    fwriteDoubleMatrix2(ofile, x, rows, cols);
+}
+
+
+void fwriteFloatArray(FILE *f,
+                      float *x,
+                      int rows,
+                      int cols)
+{
+    register int i;
+    register int j;
+    int s = 0;
+ 
+    assert(f != NULL);
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        int c;
+
+        c = 0;
+        for (j = 0; j < cols; j++) {
+            if (c++ > 9) {
+                fprintf(f, "\n\t");
+                c = 0;
+            }
+            s = fprintf(f, "%5.3e ", x[i*cols+j]);
+            if (s < 0) {
+                fserror("fwriteFloatArray", "write float matrix", "");
+                /*NOTREACHED*/
+            }
+        }
+        fprintf(f, "\n");
     }
-    fprintf(ofile,"\n");
-  }
+}
+
+
+void writeFloatArray(float *x, int rows, int cols)
+{
+    fwriteFloatArray(ofile, x, rows, cols);
+}
+
+
+void writeArray(float *x,
+                int rows,
+                int cols)
+{
+    register int i;
+    register int j;
+    int s = 0;
+ 
+    assert(x != NULL);
+
+    for (i = 0; i < rows; i++) {
+        int c;
+
+        c = 0;
+        for (j = 0; j < cols; j++) {
+            if (c++ > 9) {
+                fprintf(ofile, "\n\t");
+                c = 0;
+            }
+            s = fprintf(ofile, "%5.3e ", x[i*cols+j]);
+            if (s < 0) {
+                fserror("writeArray", "write float matrix", "");
+                /*NOTREACHED*/
+            }
+        }
+        fprintf(ofile, "\n");
+    }
 }
 
 

@@ -2403,27 +2403,65 @@ void maxvec(const double *x,
 }
 
 
-void choldc(double **a, int n, double **aout) {
-/*Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
-decomposition, A = L * L' . On input, only the upper triangle of a need be given; 
- The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) */
-  int i,j,k;
-  double sum, *p;
+/*
+ * Given a positive-definite symmetric matrix a[1..n][1..n], this routine
+ * constructs its Cholesky decomposition, A = L * L'.
+ * On input, only the upper triangle of a need be given; 
+ * The Cholesky factor L is returned in the lower triangle of aout
+ * (upper-diag elem are set to 0)
+ */
+void choldc(double **a,
+            int n,
+            double **aout)
+{
+    register int i;
+    register int j;
+    double *p;
 
-  for (i=1;i<=n;i++) { for (j=i;j<=n;j++) { aout[i][j]= a[i][j]; } }  //copy a into aout
-  p= dvector(1,n);
-  for (i=1;i<=n;i++) {
-    for (j=i;j<=n;j++) {
-      for (sum=aout[i][j],k=i-1;k>=1;k--) sum -= aout[i][k]*aout[j][k];
-      if (i == j) {
-	if (sum <= 0.0) nrerror("choldc failed","","matrix is not positive definite");
-	aout[i][i]=sqrt(sum);
-      } else aout[j][i]=sum/aout[i][i];
+    assert(a != NULL);
+    assert(n > 0);
+    assert(aout != NULL);
+
+    /* Copy a into aout */
+    for (i = 1; i <= n; i++) {
+        for (j = i; j <= n; j++) {
+            aout[i][j] = a[i][j];
+        }
     }
-  }
-  free_dvector(p,1,n);
-  for (i=1;i<=n;i++) { for (j=i+1;j<=n;j++) { aout[i][j]= 0; } }  //set upper-diagonal elem to 0
+
+    p = dvector(1, n);
+    for (i = 1; i <= n; i++) {
+        for (j = i; j <= n; j++) {
+            double sum;
+            register int k;
+
+            sum = aout[i][j];
+            for (k = i-1; k >= 1; k--) {
+                sum -= aout[i][k] * aout[j][k];
+            }
+            if (i == j) {
+                if (sum <= 0.0) {
+                    nrerror("choldc",
+                            "",
+                            "matrix is not positive definite");
+                    /*NOTREACHED*/
+                }
+                aout[i][i] = sqrt(sum);
+            } else {
+                aout[j][i] = sum / aout[i][i];
+            }
+        }
+    }
+    free_dvector(p, 1, n);
+
+    /* Set upper-diagonal elem to 0 */
+    for (i = 1; i <= n; i++) {
+        for (j = i+1; j <= n; j++) {
+            aout[i][j] = 0.0;
+        }
+    }
 }
+
 
 void choldc_inv(double **a, int n, double **aout) {
   /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse

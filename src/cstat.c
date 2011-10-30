@@ -1821,46 +1821,59 @@ if (x>1.0e-5) {                         //fast approx to trigamma
  
 } 
 
-double polygamma(double x, long n, double low, double high, long terms, double nfact)
-//     long n, terms;
-//     double x, low, high, nfact;
-{
-/* polygamma function of a real positive x of order n (n==1 is trigamma etc.).
+
+/*
+ * polygamma function of a real positive x of order n (n==1 is trigamma etc.).
  * setting low=0.0001, high=100 and terms=5 usually gives good results
  * nfact is n! e.g. 1 for trigamma etc.
-*  no checks are made here on the suitability of arguments */
-long i;
-double asign, ans = 0.0, nd = (double) n, nexp, ser = 0.0;
-double t0, x2_inv;
+ * no checks are made here on the suitability of arguments
+ */
+double polygamma(double x,
+                 long n,
+                 double low,
+                 double high,
+                 long terms,
+                 double nfact)
+{
+    double asign;
+    double ans = 0.0;
+    double nd = (double) n;
+    double nexp;
+    double ser = 0.0;
+    double t0;
+    double x2_inv;
+    long i;
 
- asign = (n % 2) ? 1.0 : -1.0;
- if(x < low) { return(asign * nfact / nd * pow(x, - nd) * (1.0 + nd * .5 / x)); }
- nexp = - nd - 1.0;
- while(x < high) {
-   ans = ans + asign * nfact * pow(x, nexp);
-   x = x + 1.0;
- }
- t0 = nfact / nd * pow(x, - nd);
- ser = t0 * ( 1.0 + nd * .5 / x);
- x2_inv = pow(x, -2.0);
- for(i=0; i < terms; i++) {
-   if(n ==1) {
-     t0 = t0 * x2_inv;
-   } else {
-     t0 = (2.0 * i + nd + 3.0) / (2.0 * i + 4.0) * (2.0 * i + nd + 2.0) / (2.0 * i + 3.0) * t0 * x2_inv;
-   }
-   ser = ser + bernou[i] * t0;
- }
- ans = ans + asign * ser;
- return(ans);
+    asign = (n % 2) ? 1.0 : -1.0;
+    if (x < low) {
+      return(asign * nfact / nd * pow(x, - nd) * (1.0 + nd * 0.5 / x));
+    }
+    nexp = - nd - 1.0;
+    while (x < high) {
+        ans = ans + asign * nfact * pow(x, nexp);
+        x = x + 1.0;
+    }
+    t0 = nfact / nd * pow(x, - nd);
+    ser = t0 * ( 1.0 + nd * 0.5 / x);
+    x2_inv = pow(x, -2.0);
+    for (i = 0; i < terms; i++) {
+        if (n == 1) {
+            t0 = t0 * x2_inv;
+        } else {
+            t0 = (2.0 * i + nd + 3.0) / (2.0 * i + 4.0) * (2.0 * i + nd + 2.0) / (2.0 * i + 3.0) * t0 * x2_inv;
+        }
+        ser = ser + bernou[i] * t0;
+    }
+    ans = ans + asign * ser;
+    return(ans);
 }
 
 
 /* log of Beta function */
-double lnbeta(double a, double b) {
-  double c;
-  c= a+b;
-  return(gamln(&a)+gamln(&b)-gamln(&c));
+double lnbeta(double a, double b)
+{
+    double c = a + b;
+    return(gamln(&a) + gamln(&b) - gamln(&c));
 }
 
 

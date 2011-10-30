@@ -460,34 +460,54 @@ void nn_bayes(double *mpo,
 }
 
 
-void nn_bayes_rand(double *theta, int p, double r1, double **Spr_inv, double *mpr, double r2, double **Slik_inv, double *y) {
-/* same as nn_bayes, but returns a draw only 
-   returns:
-   theta: draw from the posterior N(theta; mpo, Spo):
-*/
-  double *z, **S, **S_inv, *m, **cholS;
+/*
+ * Same as nn_bayes, but returns a draw only 
+ * returns:
+ * theta: draw from the posterior N(theta; mpo, Spo):
+ */
+void nn_bayes_rand(double *theta,
+                   int p,
+                   double r1,
+                   double **Spr_inv,
+                   double *mpr,
+                   double r2,
+                   double **Slik_inv,
+                   double *y)
+{
+    double *z;
+    double *m;
+    double **S;
+    double **S_inv;
+    double **cholS;
 
-  /* allocate memory */
-  z = dvector(0,p-1);
-  m = dvector(0,p-1);
-  S = dmatrix(0,p-1,0,p-1);
-  S_inv = dmatrix(0,p-1,0,p-1);
-  cholS= dmatrix(0,p-1,0,p-1);
+    assert(theta != NULL);
+    assert(Spr_inv != NULL);
+    assert(mpr != NULL);
+    assert(Slik_inv != NULL);
+    assert(y != NULL);
 
-  rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, S_inv,1,p,1,p);
-  inv_posdef(S_inv,p,S);
-  rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z,1,p,1,p);
-  Ax(S,z,m,1,p,1,p);
+    /* Allocate memory */
+    z = dvector(0, p-1);
+    m = dvector(0, p-1);
+    S = dmatrix(0, p-1, 0, p-1);
+    S_inv = dmatrix(0, p-1, 0, p-1);
+    cholS = dmatrix(0, p-1, 0, p-1);
 
-  choldc(S,p,cholS);
-  rmvnormC(theta,p,m,cholS);
+    rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, S_inv, 1, p, 1, p);
+    inv_posdef(S_inv, p, S);
+    rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
+    Ax(S, z, m, 1, p, 1, p);
 
-  free_dvector(z,0,p-1);
-  free_dvector(m,0,p-1);
-  free_dmatrix(S,0,p-1,0,p-1);
-  free_dmatrix(S_inv,0,p-1,0,p-1);
-  free_dmatrix(cholS,0,p-1,0,p-1);
+    choldc(S, p, cholS);
+    rmvnormC(theta, p, m, cholS);
+
+    free_dvector(z, 0, p-1);
+    free_dvector(m, 0, p-1);
+    free_dmatrix(S, 0, p-1, 0, p-1);
+    free_dmatrix(S_inv, 0, p-1, 0, p-1);
+    free_dmatrix(cholS, 0, p-1, 0, p-1);
 }
+
 
 double nn_integral(double *x, double *rx, double **Vxinv, double *detVx, double *mpr, double *rpr, double **Vprinv, double *detVpr, int *p, int *logscale) {
   // Compute normal-normal integral

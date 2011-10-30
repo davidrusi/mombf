@@ -1721,59 +1721,95 @@ S10:
 }
 
 
+/*
+ * Returns the derivative of the natural log of the gamma function,
+ *    e.g. gamma'(x)/gamma(x)
+ * - x must be positive and finite
+ */
+double digamma(double x)
+{
+    double stirling[] = {
+        -8.333333333333333e-02, 8.333333333333333e-03,
+        -3.968253968253968e-03, 4.166666666666667e-03,
+        -7.575757575757576e-03, 2.109279609279609e-02,
+        -8.333333333333334e-02, 4.432598039215686e-01,
+        -3.053954330270120e+00, 2.645621212121212e+01,
+        -2.814601449275362e+02, 3.607510546398047e+03 
+    };
 
-// digamma(x) returns the derivative of the natural log of the gamma function, e.g. gamma'(x)/gamma(x)
-//  x must be positive and finite
+    const double lower = 1.0e-8;
+    const double upper = 19.5;
+    const double euler_one = 0.422784335098467139393488;
+    double x_inv;
+    double x_pow;
+    double ans;
+    int i;
 
-double digamma(double x) {
+    if (x <= 0) {
+        errorC("digamma", "argument must be positive", 1);
+        /*NOTREACHED*/
+    }
 
-  double stirling[] = {
-    -8.333333333333333e-02, 8.333333333333333e-03,
-    -3.968253968253968e-03, 4.166666666666667e-03,
-    -7.575757575757576e-03, 2.109279609279609e-02,
-    -8.333333333333334e-02, 4.432598039215686e-01,
-    -3.053954330270120e+00, 2.645621212121212e+01,
-    -2.814601449275362e+02, 3.607510546398047e+03 
-  };
+    if (x < lower) {
+        ans = -1.0 / x - 1.0/(1.0+x) + euler_one;
+        return(ans);
+    }
 
-  long i;
-  double lower= 1.0e-8, upper= 19.5, euler_one= .422784335098467139393488, ans, x_inv, x_pow;
+    ans = 0.0;
+    while (x < upper) {
+        ans = ans - 1.0/x;
+        x = x + 1.0;
+    }
 
+    x_inv = 1.0 / x;
+    ans = ans + log(x) - 0.5*x_inv;
 
-  if (x<=0) errorC("digamma", "argument must be positive", 1);
+    x_inv = x_inv * x_inv;
+    x_pow = x_inv;
 
-  if (x<lower) {
-    ans = -1.0 / x - 1.0/(1.0+x) + euler_one;
+    for (i = 0; i < 12; i++) {
+        ans = ans + stirling[i] * x_pow;
+        x_pow = x_pow * x_inv;
+    }
+
     return(ans);
-  }
-
-  ans= 0.0;
-  while (x<upper) {
-    ans= ans - 1.0/x;
-    x= x + 1.0;
-  }
-
-  x_inv= 1.0/x;
-  ans= ans + log(x) - 0.5*x_inv;
-
-  x_inv= x_inv*x_inv;
-  x_pow= x_inv;
-
-  for (i=0; i<12; i++) {
-    ans= ans + stirling[i] * x_pow;
-    x_pow= x_pow * x_inv;
-  }
-  return(ans);
-
 }
 
 
 /* Bernoulli numbers of even order from 2 to 60 */
-static double bernou[30] = {1.0/6.0, -1.0/30.0, 1.0/42.0, -1.0/30.0, 5.0/66.0, -691.0/2730.0, 7.0/6.0, -3617.0/510.0, 43867.0/798.0,
--174611.0/330.0, 854513.0/138.0, -236364091.0/2730.0, 8553103.0/6.0, -23749461029.0/870.0, 8615841276005.0/14322.0,
--7709321041217.0/510.0, 2577687858367.0/6.0, -1.371165521e13, 4.883323190e14, -1.929657934e16,
-8.416930476e17, -4.033807185e19, 2.115074864e21, -1.208662652e23, 7.500866746e24, -5.038778101e26,
-3.652877648e28, -2.849876930e30, 2.386542750e32, -2.139994926e34};
+static double bernou[30] = {
+    1.0/6.0,
+   -1.0/30.0,
+    1.0/42.0,
+   -1.0/30.0,
+    5.0/66.0,
+   -691.0/2730.0,
+    7.0/6.0,
+   -3617.0/510.0,
+    43867.0/798.0,
+   -174611.0/330.0,
+   854513.0/138.0,
+   -236364091.0/2730.0,
+   8553103.0/6.0,
+   -23749461029.0/870.0,
+   8615841276005.0/14322.0,
+   -7709321041217.0/510.0,
+   2577687858367.0/6.0,
+   -1.371165521e13,
+    4.883323190e14,
+   -1.929657934e16,
+    8.416930476e17,
+   -4.033807185e19,
+    2.115074864e21,
+   -1.208662652e23,
+    7.500866746e24,
+   -5.038778101e26,
+    3.652877648e28,
+   -2.849876930e30,
+    2.386542750e32,
+   -2.139994926e34
+};
+
 
 double trigamma(double x) { 
 

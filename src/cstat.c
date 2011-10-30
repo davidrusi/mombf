@@ -2463,23 +2463,39 @@ void choldc(double **a,
 }
 
 
-void choldc_inv(double **a, int n, double **aout) {
-  /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
-   of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
-   (note that inv(A)= inv(L)' * inv(L)) */
-  int i,j,k;
-  double sum;
+/*
+ * Given a positive-definite symmetric matrix a[1..n][1..n], this routine
+ * computes the inverse of its Cholesky matrix. That is, if A=L * L' it
+ * returns the inverse of L (note that inv(A)= inv(L)' * inv(L))
+ */
+void choldc_inv(double **a,
+                int n,
+                double **aout)
+{
+    register int i;
 
-  choldc(a,n,aout);
-  for (i=1;i<=n;i++) {
-    aout[i][i]=1.0/aout[i][i];
-    for (j=i+1;j<=n;j++) {
-      sum=0.0;
-      for (k=i;k<j;k++) sum -= aout[j][k]*aout[k][i];
-      aout[j][i]=sum/aout[j][j];
+    assert(a != NULL);
+    assert(n > 0);
+    assert(aout != NULL);
+
+    choldc(a, n, aout);
+    for (i = 1; i <= n; i++) {
+        register int j;
+
+        aout[i][i] = 1.0 / aout[i][i];
+        for (j = i+1; j <= n; j++) {
+            double sum;
+            register int k;
+
+            sum = 0.0;
+            for (k = i; k < j; k++) {
+                sum -= aout[j][k] * aout[k][i];
+            }
+            aout[j][i] = sum / aout[j][j];
+        }
     }
-  }
 }
+
 
 double choldc_det(double **chols, int n) {
   //Find determinant of the matrix having chols as its Cholesky decomposition

@@ -564,38 +564,74 @@ double nn_integral(double *x,
 }
 
 
-void lm (double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, double *y, double **X, int *n, int *p, int *useXtX) {
- //Fits classical multiple linear regression
- /* Input
-      - y: response variable y[1..n]
-      - X: design matrix X[1..n][1..p]
-      - n: number of observations
-      - p: number of covariates
-      - useXtX: if set to 0 the inverse of X'X is computed, otherwise the supplied value is used
-    Ouput
-      - b: least-squares estimate for regression coefficients
-      - XtX, invXtX: X'X and its inverse (if useXtX==0 they're ouput param, otherwise they're input)
-      - Xty: vector X'y (if useXtX==0 it's an output param, otherwise it's input)
-      - s: residual variance (dividing by n-p)
-      - ypred: predicted values i.e. X'b
+/*
+ * Fits classical multiple linear regression
+ *
+ * Input
+ *    - y: response variable y[1..n]
+ *    - X: design matrix X[1..n][1..p]
+ *    - n: number of observations
+ *    - p: number of covariates
+ *    - useXtX: if set to 0 the inverse of X'X is computed,
+ *              otherwise the supplied value is used
+ *  Ouput
+ *    - b: least-squares estimate for regression coefficients
+ *    - XtX, invXtX: X'X and its inverse (if useXtX==0 they're ouput param,
+ *                                        otherwise they're input)
+ *    - Xty: vector X'y (if useXtX==0 it's an output param, otherwise it's input)
+ *    - s: residual variance (dividing by n-p)
+ *    - ypred: predicted values i.e. X'b
  */
-  int i;
+void lm(double *b,
+        double **XtX,
+        double **invXtX,
+        double *Xty,
+        double *s,
+        double *ypred,
+        double *y,
+        double **X,
+        int *n,
+        int *p,
+        int *useXtX)
+{
+    register int i;
 
-  if (*n<*p) errorC("lm", "linear model with more variables than observations", 0);
+    assert(b != NULL);
+    assert(XtX != NULL);
+    assert(invXtX != NULL);
+    assert(Xty != NULL);
+    assert(s != NULL);
+    assert(ypred != NULL);
+    assert(y != NULL);
+    assert(X != NULL);
+    assert(n != NULL);
+    assert(p != NULL);
+    assert(useXtX != NULL);
 
-  if (*useXtX==0) {
-    AtB(X,1,*n,1,*p,X,1,*n,1,*p,XtX);
-    inv_posdef(XtX,*p,invXtX);
-    Atx(X,y,Xty,1,*n,1,*p); //X'y
-  }
+    if (*n < *p) {
+        errorC("lm", "linear model with more variables than observations", 0);
+        /*NOTREACHED*/
+    }
 
-  Ax(invXtX,Xty,b,1,*p,1,*p); //least squares estimate
-  Ax(X,b,ypred,1,*n,1,*p); //predicted values
+    if (*useXtX == 0) {
+        AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
+        inv_posdef(XtX, *p, invXtX);
+        Atx(X, y, Xty, 1, *n, 1, *p); //X'y
+    }
 
-  for (*s= 0, i=1; i<=(*n); i++) { (*s) += (y[i]-ypred[i])*(y[i]-ypred[i]); }
-  (*s)= (*s)/(*n- *p);
+    Ax(invXtX, Xty, b, 1, *p, 1, *p); /* least squares estimate */
+    Ax(X, b, ypred, 1, *n, 1, *p);    /* predicted values */
 
+    (*s) = 0.0;
+    for (i = 1; i <= (*n); i++) {
+        double value;
+
+        value = y[i] - ypred[i];
+        (*s) += value * value;
+    }
+    (*s) = (*s) / (*n - *p);
 }
+
 
 void lmbayes (double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0) {
  //Bayesian conjugate multiple linear regression

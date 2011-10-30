@@ -185,9 +185,9 @@ double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel)
 
 void Atx(const double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
 void AtB(const double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, const double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
-void a_plus_b(double *a, double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
-void a_prod_b(double *a, double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
-void a_prod_b_sel(double *a, double *b, double *c, int *lengtha, int *nsel, int *sel); //same but only using indexes in sel
+void a_plus_b(const double *a, const double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
+void a_prod_b(const double *a, const double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
+void a_prod_b_sel(const double *a, const double *b, double *c, const int *lengtha, const int *nsel, const int *sel); //same but only using indexes in sel
 void a_zero(double *, int); //Set vector to zero
 void R_zero(double **, int, int); //Set matrix to zero
 void ddiag(double **A, int ini, int fi); //Diagonal matrix
@@ -197,8 +197,8 @@ int imax_xy(int x, int y);
 int imin_xy(int x, int y);
 double max_xy(double x, double y);
 double min_xy(double x, double y);
-void minvec(double *x, int ini, int fi, double *xmin, int *minpos); //min of a vector and position at which min occurs
-void maxvec(double *x, int ini, int fi, double *xmax, int *maxpos); //max of a vector and position at which max occurs
+void minvec(const double *x, int ini, int fi, double *xmin, int *minpos); //min of a vector and position at which min occurs
+void maxvec(const double *x, int ini, int fi, double *xmax, int *maxpos); //max of a vector and position at which max occurs
 
 void choldc(double **a, int n, double **aout);   //Cholesky decomposition
 void choldc_inv(double **a, int n, double **aout); //Inverse of Cholesky decomposition

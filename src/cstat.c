@@ -2348,18 +2348,58 @@ double min_xy(double x, double y)
 } 
 
 
-void minvec(double *x, int ini, int fi, double *xmin, int *minpos) {
-//Minimum of vector x[ini..fi] is returned in xmin. Position at which min occurs is returned in minpos
-  int _i;
-  *xmin= x[ini]; *minpos= ini;
-  for (_i=ini+1;_i<=fi;_i++) { if (x[_i]<(*xmin)) { *xmin= x[_i]; *minpos= _i; } }
+/*
+ * Minimum of vector x[ini..fi] is returned in xmin.
+ * Position at which min occurs is returned in minpos
+ */
+void minvec(const double *x,
+            int ini,
+            int fi,
+            double *xmin,
+            int *minpos)
+{
+    register int i;
+
+    assert(x != NULL);
+    assert(xmin != NULL);
+    assert(minpos != NULL);
+
+    *xmin = x[ini];
+    *minpos = ini;
+
+    for (i = ini+1; i <= fi; i++) {
+        if (x[i] < (*xmin)) {
+            *xmin = x[i];
+            *minpos= i;
+        }
+    }
 }
 
-void maxvec(double *x, int ini, int fi, double *xmax, int *maxpos) {
-//Maximum of vector x[ini..fi] is returned in xmax. Position at which max occurs is returned in maxpos
-  int _i;
-  *xmax= x[ini]; *maxpos= ini;
-  for (_i=ini+1;_i<=fi;_i++) { if (x[_i]>(*xmax)) { *xmax= x[_i]; *maxpos= _i; } }
+
+/*
+ * Maximum of vector x[ini..fi] is returned in xmax.
+ * Position at which max occurs is returned in maxpos
+ */
+void maxvec(const double *x,
+            int ini,
+            int fi,
+            double *xmax,
+            int *maxpos)
+{
+    register int i;
+
+    assert(x != NULL);
+    assert(xmin != NULL);
+    assert(minpos != NULL);
+
+    *xmax = x[ini];
+    *maxpos = ini;
+    for (i = ini+1; i <= fi; i++) {
+        if (x[i] > (*xmax)) {
+            *xmax = x[i];
+            *maxpos = i;
+        }
+    }
 }
 
 

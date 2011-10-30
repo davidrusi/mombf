@@ -2600,24 +2600,52 @@ void inv_posdef_upper(double **a,
 }
 
 
-void invdet_posdef(double **a, int n, double **aout, double *det_a) {
-  /* Inverse and determinant of a positive definite matrix a[1..n][1..n] using Cholesky decomposition
-     Inverse is returned in aout, determinant in det_a */
-  int i,j,k;
-  double **b, sum;
+/*
+ * Inverse and determinant of a positive definite matrix a[1..n][1..n] using
+ * Cholesky decomposition. Inverse is returned in aout, determinant in det_a.
+ */
+void invdet_posdef(double **a,
+                   int n,
+                   double **aout,
+                   double *det_a)
+{
+    register int i;
+    register int j;
+    double **b;
 
-  b= dmatrix(1,n,1,n);
-  choldc_inv(a,n,b);
-  for (i=1, *det_a=1; i<=n; i++) { (*det_a)*= 1/(b[i][i]*b[i][i]); }
-  for (i=1; i<=n; i++) {
-    for (j=i; j<=n; j++) {
-      for (k=1,sum=0;k<=n;k++) { sum+= b[k][i]*b[k][j]; }
-      aout[i][j]= sum;
+    assert(a != NULL);
+    assert(aout != NULL);
+    assert(det_a != NULL);
+
+    b = dmatrix(1, n, 1, n);
+    choldc_inv(a, n, b);
+    *det_a = 1.0;
+    for (i = 1; i <= n; i++) {
+        double value;
+
+        value = b[i][i];
+        (*det_a) *= 1 / (value * value);
     }
-  }
-  for (i=2; i<=n; i++) { for (j=1;j<i;j++) { aout[i][j]= aout[j][i]; }}
-  free_dmatrix(b,1,n,1,n);
 
+    for (i = 1; i <= n; i++) {
+        for (j = i; j <= n; j++) {
+            register int k;
+            double sum;
+
+            sum = 0.0;
+            for (k = 1; k <= n; k++) {
+                sum += b[k][i] * b[k][j];
+            }
+            aout[i][j] = sum;
+        }
+    }
+    free_dmatrix(b, 1, n, 1, n);
+
+    for (i = 2; i <= n; i++) {
+        for (j = 1; j < i; j++) {
+            aout[i][j] = aout[j][i];
+        }
+    }
 }
 
 
@@ -3049,9 +3077,9 @@ double dnormC(double y, double m, double s, int logscale) {
 /* Density of univariate Normal(m,s^2) evaluated at y. log==1 returns in log-scale */
 
   if (logscale==1)
-    return(-log(SQ_M_PI_2)-log(s)-.5*(y-m)*(y-m)/(s*s));
+    return(-log(SQ_M_PI_2)-log(s)-0.5*(y-m)*(y-m)/(s*s));
   else
-    return(exp(-.5*(y-m)*(y-m)/(s*s))/(SQ_M_PI_2 * s));
+    return(exp(-0.5*(y-m)*(y-m)/(s*s))/(SQ_M_PI_2 * s));
 }
 
 double dnormC_jvec(double *y, int n, double m, double s, int logscale) { 
@@ -3081,59 +3109,71 @@ double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int
   for (res=0, i=1; i<=n; i++) { res += z2[i]*z2[i]; }
   free_dvector(z,1,n); free_dvector(z2,1,n);
 
-  if(logscale==1) return(-n*log(SQ_M_PI_2) + .5*log(det) - .5*res);
-  else return(exp(-n*log(SQ_M_PI_2) + .5*log(det) - .5*res));
-
+  if (logscale == 1)
+    return(-n*log(SQ_M_PI_2) + 0.5*log(det) - 0.5*res);
+  else
+    return(exp(-n*log(SQ_M_PI_2) + 0.5*log(det) - 0.5*res));
 }
 
 
-double	qnormC (double cdf, double m, double s) 
-/* returns inv cdf of normal N(m,s^2) at p */ 
-{	 
-  double /* used to all be floats.. */
-    p,q,mean,sd,bound,x; 
-  double  
-    y; 
-  int  
-    status,which; 
- 
-  if( (cdf < 0.0) | (cdf > 1.0) ){ 
-    errorC("qnormC", "tried inverse cdf with p<0 or p>1", 1); 
-  }  
-  /* par check */ 
-  if (cdf <= 2.86e-07) 
-    y = -5.0*s+m; 
-  else if (cdf >= 0.9999997) 
-    y = 5.0*s+m; 
-  else{ 
-    /* primitive type conversion */ 
-    p = cdf; 
-    q = 1.0-p;
-    mean = m; 
-    sd = s; 
-    which = 2; 
-     
-    cdfnor(&which,&p,&q, &x,&mean,&sd,&status,&bound); 
-   
-    y = x; /* another primitive type conversion */ 
-  } 
-  return y; 
-} 
+/* Returns inv cdf of normal N(m,s^2) at p */
+double qnormC(double cdf,
+              double m,
+              double s)
+{
+    double y;
+
+    if ((cdf < 0.0) | (cdf > 1.0)) {
+        errorC("qnormC", "tried inverse cdf with p<0 or p>1", 1);
+        /*NOTREACHED*/
+    }
+
+    /* par check */
+    if (cdf <= 2.86e-07) {
+        y = -5.0 * s + m;
+    }
+    else if (cdf >= 0.9999997) {
+        y = 5.0 * s + m;
+    }
+    else {
+        /* primitive type conversion */
+        double p = cdf;
+        double q = 1.0 - p;
+        double mean = m;
+        double sd = s;
+        double bound;
+        double x;
+        int which = 2;
+        int  status;
+
+        cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+
+        y = x; /* another primitive type conversion */
+    }
+
+    return y;
+}
 
 
-/* returns draw from binomial(n,p) */  
-int rbinomial(int n, double p) 
-{ 	 
-  int i,x; 
-  for(i=0,x=0;i<n;i++) 
-    x += (runif() < p) ? 1 : 0; 
-  return x; 
-} 
+/* Returns draw from binomial(n,p) */
+int rbinomial(int n, double p)
+{
+    register int i;
+    int x = 0;
 
-double dbinomial(int x, int n, double p, int logscale) {
-  double ans;
-  ans= lnchoose(n,x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
-  if (logscale==1) return(ans); else return(exp(ans));
+    for (i = 0; i < n; i++) {
+        x += (runif() < p) ? 1 : 0;
+    }
+    return x;
+}
+
+
+double dbinomial(int x, int n, double p, int logscale)
+{
+    double ans;
+
+    ans = lnchoose(n,x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
+    return (logscale == 1) ? ans : exp(ans);
 }
 
 
@@ -3204,24 +3244,34 @@ double rnormC(double mu, double s) {
 }
 
 
-/* Draw from a univariate truncated Normal giving truncation points */
-double rnorm_trunc(double ltrunc, double rtrunc, double m, double s) {
-  // ltrunc: left truncation point; rtrunc: right truncation point, m: mean; s: SD
-  double lprob, rprob;
-  lprob= pnormC(ltrunc,m,s); rprob= pnormC(rtrunc,m,s);
-  return(rnorm_trunc_prob(lprob,rprob,m,s));
+/*
+ * Draw from a univariate truncated Normal giving truncation points.
+ *    ltrunc - left truncation point
+ *    rtrunc - right truncation point
+ *    m      - mean
+ *    s      - SD
+ */
+double rnorm_trunc(double ltrunc, double rtrunc, double m, double s)
+{
+    double lprob;
+    double rprob;
+
+    lprob = pnormC(ltrunc, m, s);
+    rprob = pnormC(rtrunc, m, s);
+    return(rnorm_trunc_prob(lprob, rprob, m, s));
 }
 
+
 /* Draw from a univariate truncated Normal giving truncation probabilities */
-double rnorm_trunc_prob(double lprob, double rprob, double m, double s) {
   // lprob, rprob: prob to the left of the truncation points; m: mean; s: SD
-  //e.g. lprob=0.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+  //e.g. lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+double rnorm_trunc_prob(double lprob, double rprob, double m, double s)
+{
   double u;
   if (lprob>=rprob) nrerror("rnorm_trunc_prob","left truncation probability is larger than right truncation probability","");
   u= lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
   u= qnormC(u,m,s);
   return(u);
-
 }
 
 
@@ -3262,31 +3312,56 @@ double mnorm(double order, double m, double sd) {
 }
 
 
-double dtC(double y, double mu, double s, int nu) { 
-//Density of t with nu df, location mu and scale s^2
-  double normk, t1, t2;
-  t2= .5*nu; t1= t2 + .5;
-  normk= exp(gamln(&t1)-gamln(&t2))/(sqrt(nu*M_PI)*s);
-  return(normk*pow(1+(y-mu)*(y-mu)/(s*s*(nu+0.0)),-t1));
+/* Density of t with nu df, location mu and scale s^2 */
+double dtC(double y, double mu, double s, int nu)
+{
+    double normk;
+    double t1;
+    double t2;
 
+    t2 = 0.5 * nu;
+    t1 = t2 + 0.5;
+    normk = exp(gamln(&t1) - gamln(&t2)) / (sqrt(nu*M_PI) * s);
+    return(normk * pow(1+(y-mu)*(y-mu) / (s*s*(nu+0.0)), -t1));
 }
 
-double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale) {
-//Density of t mixtures with ncomp components, i.e. sum T_nu(y;mu[i],s[i]^2) * probs[i]
-  int i;
-  double ans;
-  for (i=0, ans=0; i<ncomp; i++) ans+= dtC(y,mu[i],s[i],nu) * probs[i];
-  if (logscale) ans= log(ans);
+
+/*
+ * Density of t mixtures with ncomp components,
+ * i.e. sum T_nu(y;mu[i],s[i]^2) * probs[i]
+ */
+double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale)
+{
+  register int i;
+  double ans = 0.0;
+
+  for (i = 0; i < ncomp; i++)
+    ans += dtC(y, mu[i], s[i], nu) * probs[i];
+  if (logscale)
+    ans = log(ans);
   return ans;
 }
 
-double dmvtC(double *y, int n, double *mu, double **cholsinv, double det, int nu, int logscale) {
-/* Density of multivariate T with nu df and n dimensions. mu: location, cholsinv, det: cholesky
-   decomp and determinant of inverse cov matrix, logscale: set to 1 to return density in log-scale
-   Example of usage: 
-     choldc_inv(s,n,cholsinv); 
-     det= choldc_det(cholsinv,n);
-     dmvtC(y,n,mu,cholsinv,det,nu,0); */
+
+/*
+ * Density of multivariate T with nu df and n dimensions.
+ *    mu: location
+ *    cholsinv, det: cholesky decomp and determinant of inverse cov matrix
+ *    logscale: set to 1 to return density in log-scale
+ *
+ * Example of usage: 
+ *     choldc_inv(s, n, cholsinv); 
+ *     det = choldc_det(cholsinv, n);
+ *     dmvtC(y, n, mu, cholsinv, det, nu, 0);
+ */
+double dmvtC(double *y,
+             int n,
+             double *mu,
+             double **cholsinv,
+             double det,
+             int nu,
+             int logscale)
+{
   int i;  
   double *z,*z2, res, t1, t2, normk;
 
@@ -3297,29 +3372,38 @@ double dmvtC(double *y, int n, double *mu, double **cholsinv, double det, int nu
   for (res=0, i=1; i<=n; i++) { res += z2[i]*z2[i]; }
   free_dvector(z,1,n); free_dvector(z2,1,n);
 
-  t2= .5*nu; t1= t2+.5*(n+0.0);
-  normk= gamln(&t1)-gamln(&t2)-.5*(n+0.0)*(log(nu+0.0)+log(M_PI))+.5*log(det);
+  t2= 0.5*nu;
+  t1= t2+0.5*(n+0.0);
+  normk= gamln(&t1)-gamln(&t2)-0.5*(n+0.0)*(log(nu+0.0)+log(M_PI))+0.5*log(det);
 
-  if (logscale==1) return(normk -t1*log(1+res/(nu+0.0)));
-  else return(exp(normk) * pow(1+res/(nu+0.0),-t1));
-
+  if (logscale==1)
+    return(normk -t1*log(1+res/(nu+0.0)));
+  else
+    return(exp(normk) * pow(1+res/(nu+0.0),-t1));
 }
 
 /* Draw from a univariate standard t with nu degrees of freedom */
-double rtC(int nu) {
-  double x, z;
+double rtC(int nu)
+{
+    double x;
+    double z;
 
-  z= rnormC(0,1);
-  x= gengam(.5,nu/2.0);  //draw from chi-square with nu degrees of freedom
-  return(z*sqrt(nu/x));
-
+    z = rnormC(0,1);
+    x = gengam(0.5, nu / 2.0);  //draw from chi-square with nu DoF
+    return(z * sqrt(nu / x));
 }
 
-//Draw from mixture of t_nu(mu[i],s[i]^2)
-double rtmixC(double *mu, double *s, double *probs, int nu, int ncomp) {
-  int comp;
-  comp= rdisc(probs,ncomp);
-  return(mu[comp] + s[comp]*rtC(nu));
+
+/* Draw from mixture of t_nu(mu[i],s[i]^2) */
+double rtmixC(double *mu,
+              double *s,
+              double *probs,
+              int nu,
+              int ncomp)
+{
+    int comp;
+    comp = rdisc(probs, ncomp);
+    return(mu[comp] + s[comp]*rtC(nu));
 }
 
 

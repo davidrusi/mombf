@@ -31,7 +31,14 @@ setMethod("dpmom", signature(x='matrix'), function(x, tau, a.tau, b.tau, phi=1, 
   p <- ncol(x)
   normct <- p*sum(log(seq(1,2*r-1,by=2)))
   distval <- rowSums(x^2)
-  ans <- -(p * log(2 * pi) + p*(log(phi)+log(tau))  + distval/(phi*tau))/2 + r*rowSums(log(x^2/(tau*phi))) - normct
+  if (!missing(tau)) {
+    ans <- -(p * log(2 * pi) + p*(log(phi)+log(tau))  + distval/(phi*tau))/2 + r*rowSums(log(x^2/(tau*phi))) - normct
+  } else {
+    anew <- r*p + .5*p + .5*a.tau
+    num <- lgamma(anew) - anew*log(1+rowSums(x^2)/(phi*b.tau))  + r*rowSums(log(2*x^2/(phi*b.tau))) - normct
+    den <- .5*p*(log(pi)+log(phi)+log(b.tau)) + lgamma(.5*a.tau)
+    ans <- num - den
+  }
   if (!logscale) ans <- exp(ans)
   ans
 }

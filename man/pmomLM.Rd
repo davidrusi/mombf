@@ -1,20 +1,33 @@
 \name{pmomLM}
 \alias{pmomLM}
 \alias{pmomPM}
+\alias{emomLM}
+\alias{emomPM}
+\alias{pplPM}
 \title{ Bayesian variable selection and model averaging for linear
   and probit models via non-local priors. }
 \description{
-  \code{pmomLM} and \code{pmomPM} perform variable selection for linear
-  and probit models (respectively) by
-  sampling from the joint posterior of the model space and
-  coefficients.
-  They implement the regular product MOM and 
-  a heavy-tailed version obtained by specifying an Inverse Gamma
-  distribution on the prior dispersion parameter tau.
+  Variable selection for linear and probit models, providing a sample from the
+  joint posterior of the model and regression coefficients.
+  \code{pmomLM} and \code{pmomPM} implement product Normal MOM and 
+  heavy-tailed product MOM as prior distribution for linear and probit
+  model coefficients (respectively).
+  \code{emomLM} and \code{emomPM} set an eMOM prior.
+
+  \code{pplPM} finds the value of the prior dispersion parameter \code{tau} 
+  minimizing posterior expected predictive loss (Gelfand and Ghosh, 1998) for the Probit model, 
+  i.e. can be used to automatically set up \code{tau}.
 }
 \usage{
 pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
-pmomPM(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+pmomPM(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10),
+priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
+
+emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+emomPM(y, x, xadj, niter=10^4, thinning=1, burnin =round(niter/10),
+priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
+
+pplPM(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1)
 }
 \arguments{
 \item{y}{Vector with observed responses. For \code{pmomLM} this must be
@@ -46,9 +59,21 @@ parameters 'alpha.p','beta.p'.}
   parameter. \code{initSearch=='none'} initializes to the null model
   with no variables in \code{x} included.}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
+\item{tauseq}{Grid of \code{tau} values for which the posterior predictive loss
+  should be evaluated.}
+\item{kPen}{Penalty term specifying the relative importance of
+  deviations from the observed data vs deviation from the posterior
+  predictive. \code{kPen} can be set either to a
+  numeric value or to \code{'msize'} to set penalty equal to the average
+  model size. Loss is Dev(yp,yhat) +
+  kPen*Dev(yhat,yobs), where yp: draw from post predictive, yobs:
+  observed data and yhat is E(yp|yobs).
+}
+\item{mc.cores}{Allows for parallel computing. \code{mc.cores} is the number of processors to use. 
+Setting \code{mc.cores>1} requires the \code{multicore} package.}
 }
 \details{
-  The implemented scheme makes proposals from the joint posterior of
+  The implemented MCMC scheme makes proposals from the joint posterior of
   (delta[i],theta[i]) given all other parameters and the data, where
   delta[i] is the indicator for inclusion/exclusion of covariate i and
   theta[i] is the coefficient value.
@@ -62,8 +87,7 @@ parameters 'alpha.p','beta.p'.}
   \code{pmomPM} uses the scheme of Albert & Chib (1993) for probit models.
 }
 \value{
-  A list with elements
-  return(list(postModel=postModel,postCoef1=postCoef1,postCoef2=postCoef2,postPhi=postPhi,postOther=postOther,margpp=margpp))
+  \code{pmomLM} and \code{pmomPM} returns a list with elements
   
 \item{postModel}{\code{matrix} with posterior samples for the model
   indicator. \code{postModel[i,j]==1}
@@ -81,6 +105,15 @@ parameters 'alpha.p','beta.p'.}
   covariate. This is computed by averaging marginal post prob for
   inclusion in each MCMC iteration, which is much more accurate than
   simply taking \code{colMeans(postModel)}}.
+
+\code{pplPM} returns a list with elements
+
+\item{optfit}{Probit model fit using \code{tauopt}. It is the result of a call to \code{pmomPM}.}
+\item{PPL}{\code{data.frame} indicating for each value in \code{tauseq} the posterior predictive loss (\code{PPL}=\code{G+P}),
+the goodness-of-fit (\code{G}) and penalty terms (\code{P})}, the
+average number of covariates in the model (\code{msize}) including \code{xadj}
+and the smoothed \code{sPPL} obtained via a \code{gam} fit.
+\item{tauopt}{Value of \code{tau} minimizing the PPL}
 }
 \references{
   Johnson V.E., Rossell D. Non-Local Prior Densities for Default
@@ -94,8 +127,11 @@ parameters 'alpha.p','beta.p'.}
   Albert, J. and Chib, S. (1993) Bayesian analysis of binary and
   polychotomous response data. Journal of the American Statistical
   Association, 88, p669-679
+
+  Gelfand, A. and Ghosh, S. (1998) Model choice: A minimum posterior predictive loss approach.
+  Biometrika, 85, p1-11.
 }
-\author{ David Rossell }
+\author{ David Rossell, Donatello Telesca }
 \seealso{
  For more details on the prior specification see \code{\link{msPriorSpec-class}}
  To compute marginal densities for a given model see
@@ -141,7 +177,7 @@ lpred <- as.vector(x \%*\% matrix(theta,ncol=1) + xadj \%*\% matrix(theta.adj,nc
 p <- pnorm(lpred)
 y <- runif(n)<p
 
-mom2 <- pmomPM(y=y,x=x,xadj=xadj,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch='greedy')
+mom2 <- pmomPM(y=y,x=x,xadj=xadj,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,initSearch='greedy')
 colMeans(mom2$postCoef1)
 coef(glm(y ~ x + xadj -1, family=binomial(link='probit')))
 }

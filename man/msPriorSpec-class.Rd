@@ -27,7 +27,9 @@ If \code{priorType=="coefficients"}, \code{priorDistr} can be equal to "pMOM", "
 (product moment, product inverse moment or product exponential moment prior, respectively).
 If \code{priorType=="modelIndicator"}, \code{priorDistr} can be equal to "uniform" or "binomial"
 to specify a uniform prior (all models equaly likely a priori) or a binomial prior. For a binomial prior,
-the prior inclusion probability for any single variable must be specified in slot \code{priorPars}.
+the prior inclusion probability for any single variable must be
+specified in slot \code{priorPars['p']}. For a beta-binomial prior, the
+Beta hyper-prior parameters must be in \code{priorPars['alpha.p']} and \code{priorPars['beta.p']}.
 If \code{priorType=="nuisancePars"}, \code{priorDistr} must be equal to "invgamma". This corresponds to an
 inverse gamma distribution for the residual variance, with parameters
 specified in the slot \code{priorPars}.}

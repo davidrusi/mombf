@@ -1,5 +1,5 @@
 useDynLib(mombf)
 
-export(mode2g, g2mode, priorp2g, mombf, mombf.lm, imombf, imombf.lm, momknown, momunknown, imomknown, imomunknown, zellnerbf, zellnerbf.lm, zbfknown, zbfunknown, pmom, pimom, pemom, qmom, qimom, dmom, dimom, demom, pimomMarginalK, pimomMarginalU, modelSelection, pmomMarginalK, pmomMarginalU, pmomLM, pmomPM, emomLM, emomPM, bbPrior, unifPrior, binomPrior)
+export(mode2g, g2mode, priorp2g, mombf, mombf.lm, imombf, imombf.lm, momknown, momunknown, imomknown, imomunknown, zellnerbf, zellnerbf.lm, zbfknown, zbfunknown, pmom, pimom, pemom, qmom, qimom, dmom, dimom, demom, pimomMarginalK, pimomMarginalU, modelSelection, pmomMarginalK, pmomMarginalU, pmomLM, pmomPM, pplPM, emomLM, emomPM, bbPrior, unifPrior, binomPrior)
 
 #exportClasses("msPriorSpec")

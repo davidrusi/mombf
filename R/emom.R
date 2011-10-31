@@ -1,37 +1,42 @@
-setGeneric("demom",function(x, tau=1, phi=1, heavyTail= FALSE, logscale=FALSE) standardGeneric("demom"))
+setGeneric("demom",function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) standardGeneric("demom"))
 
-setMethod("demom",signature(x='vector'),function(x, tau=1, phi=1, heavyTail= FALSE, logscale=FALSE) {
+setMethod("demom",signature(x='vector'),function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) {
   V1 <- 1
-  pen <- -tau*phi/x^2
-  if (!heavyTail) {
+  if (!missing(tau)) {
+    pen <- -tau*phi/x^2
     normct <- sqrt(2)
     ans <- pen + dnorm(x,mean=0,sd=sqrt(tau*phi*V1),log=TRUE) + normct
   } else {
-    bt <- .5*(x^2/(tau*phi)+1) * tau*phi/x^2
-    num <- sqrt(2) + log(2) + .5*log(bt) + log(besselK(sqrt(4*bt),nu=1,expon.scaled=TRUE)) - sqrt(4*bt)
-    den <- lgamma(.5) + .5*(log(pi)+log(tau)+log(phi)) + log(1+x^2/(tau*phi))
-    ans <- num - den
+    p <- 1; x2phi <- x^2/phi
+    anew <- .5*(a.tau+p); bnew <- .5*(b.tau+x2phi)
+    num <- sqrt(2)*p + .5*a.tau*log(.5*b.tau)
+    den <- lgamma(.5*a.tau) + .5*p*(log(2*pi)+log(phi)) + anew*log(bnew)
+    bt <- bnew/x2phi
+    ans <- num - den + log(2) + .5*anew*log(bt) + log(besselK(sqrt(4*bt),nu=anew,expon.scaled=TRUE)) - sqrt(4*bt)
   }
   if (!logscale) ans <- exp(ans)
   return(ans)
 }
 )
 
-setMethod("demom",signature(x='data.frame'),function(x, tau=1, phi=1, heavyTail= FALSE, logscale=FALSE) {
-  demom(as.matrix(x),tau=tau,phi=phi,heavyTail=heavyTail,logscale=logscale)
+setMethod("demom",signature(x='data.frame'),function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) {
+  demom(as.matrix(x),tau=tau,a.tau=a.tau,b.tau=b.tau,phi=phi,logscale=logscale)
 }
 )
 
-setMethod("demom",signature(x='matrix'),function(x, tau=1, phi=1, heavyTail= FALSE, logscale=FALSE) {
-  require(mvtnorm)
+setMethod("demom",signature(x='matrix'),function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) {
   p <- ncol(x)
   V1 <- diag(p)
-  pen <- -tau*phi*rowSums(1/x^2)
-  if (!heavyTail) {
+  if (!missing(tau)) {
+    pen <- -tau*phi*rowSums(1/x^2)
     normct <- p*sqrt(2)
     ans <- pen + dmvnorm(x,mean=rep(0,p),sigma=tau*phi*V1,log=TRUE) + normct
   } else {
-    stop('heavyTail option not yet implemented for multivariate emom')
+    anew <- .5*(a.tau+p); bnew <- .5*(b.tau+rowSums(x^2)/phi)
+    num <- sqrt(2)*p + .5*a.tau*log(.5*b.tau)
+    den <- lgamma(.5*a.tau) + .5*p*(log(2*pi)+log(phi)) + anew*log(bnew)
+    bt <- bnew*phi*rowSums(1/x^2)
+    ans <- num - den + log(2) + .5*anew*log(bt) + log(besselK(sqrt(4*bt),nu=anew,expon.scaled=TRUE)) - sqrt(4*bt)
   }
   if (!logscale) ans <- exp(ans)
   return(ans)
@@ -39,4 +44,4 @@ setMethod("demom",signature(x='matrix'),function(x, tau=1, phi=1, heavyTail= FAL
 )
 
 
-pemom <- function(q, tau = 1, heavyTail = FALSE) integrate(demom,-Inf,q,tau=tau,heavyTail=heavyTail)$value
+pemom <- function(q, tau, a.tau, b.tau) integrate(demom,-Inf,q,tau=tau,a.tau=a.tau,b.tau=b.tau)$value

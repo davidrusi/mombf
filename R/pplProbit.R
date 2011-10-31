@@ -1,3 +1,44 @@
+## Find probit model minimizing Posterior Predictive Loss
+pplPM <- function(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1) {
+if (missing(priorDelta)) { priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
+if (missing(priorVar)) { priorVar=new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
+if (priorCoef@priorDistr=='pMOM') {
+  nlpfit <- function(tau) {
+    pr <- priorCoef; pr@priorPars['tau'] <- tau
+    fit1 <- pmomPM(y=y,x=x,xadj=xadj,niter=niter,thinning=thinning,burnin=burnin,priorCoef=pr,priorDelta=priorDelta,initSearch=initSearch,verbose=FALSE)
+    p1 <- pplProbit(fit1,x=x,xadj=xadj,y=y,kPen=kPen);
+    return(list(fit1=fit1,ppl=c(p1$d,p1$p,p1$g,p1$msize)))
+  }
+} else if (priorCoef@priorDistr=='peMOM') {
+  nlpfit <- function(tau) {
+    pr <- priorCoef; pr@priorPars['tau'] <- tau
+    fit1 <- emomPM(y=y,x=x,xadj=xadj,niter=niter,thinning=thinning,burnin=burnin,priorCoef=pr,priorDelta=priorDelta,initSearch=initSearch,verbose=FALSE)
+    p1 <- pplProbit(fit1,x=x,xadj=xadj,y=y,kPen=kPen);
+    return(list(fit1=fit1,ppl=c(p1$d,p1$p,p1$g,p1$msize)))
+  }
+} else {
+  stop('Prior on coefficients not recognized. Currently only pMOM and peMOM are implemented')
+}
+#
+if (mc.cores>1) {
+  if ('multicore' %in% loadedNamespaces()) {
+    nlpseq <- multicore::mclapply(as.list(tauseq), nlpfit, mc.cores=mc.cores, mc.preschedule=FALSE)
+  } else stop('multicore library has not been loaded!')
+} else {
+  nlpseq <- lapply(as.list(tauseq), nlpfit)
+}
+PPL <- data.frame(tauseq,do.call(rbind,lapply(nlpseq,'[[','ppl')))
+colnames(PPL) <- c('tau','PPL','G','P','msize')
+require(mgcv)
+gam1 <- gam(PPL ~ s(tau,k=min(10,length(tauseq))), family = Gamma(link = "log"), data=PPL, sp= -1)
+PPL$sPPL <- exp(predict(gam1))
+ans <- list(nlpseq[[which.min(PPL$sPPL)]]$fit1,PPL,PPL$tau[which.min(PPL$PPL)])
+names(ans) <- c('optfit','PPL','tauopt')
+return(ans)
+}
+
+
+
 ## Evaluate Posterior Predictive Loss under a probit model 
 ## Input:
 ## - fit: probit model fit, e.g. as returned by pmomPM
@@ -38,3 +79,6 @@ pplProbit <- function(fit, x, xadj, y, kPen=1){
   return(list(d=D, g=G, p=P, msize=msize));
 }           
 # END ppl() ----------------------------------------------------------------------------------- # 
+
+
+

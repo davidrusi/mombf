@@ -24,11 +24,11 @@
 \usage{
 dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, logscale=FALSE, penalty='product')
 dimom(x, tau=1, phi=1, V1, logscale=FALSE, penalty='product')
-demom(x, tau=1, phi=1, heavyTail=FALSE, logscale=FALSE)
+demom(x, tau, a.tau, b.tau, phi=1, logscale=FALSE)
 
 pmom(q, V1 = 1, tau = 1)
 pimom(q, V1 = 1, tau = 1, nu = 1)
-pemom(q, tau=1, heavyTail=FALSE)
+pemom(q, tau, a.tau, b.tau)
 
 qmom(p, V1 = 1, tau = 1)
 qimom(p, V1 = 1, tau = 1, nu = 1)
@@ -45,7 +45,7 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
   \item{tau}{ Prior dispersion parameter is \code{tau*phi}. See
     details. }
   \item{a.tau}{If \code{tau} is left missing, an Inverse Gamma(a.tau/2,b.tau/2)
-  is placed on \code{tau}. In this case \code{dmom} returns the density
+  is placed on \code{tau}. In this case \code{dmom} and \code{demom} return the density
   marginalized with respect to \code{tau}.}
   \item{b.tau}{See \code{a.tau}.}
   \item{phi}{ Prior dispersion parameter is \code{tau*phi}. See
@@ -62,8 +62,6 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
     be used. \code{penalty=='quadratic'} indicates quadratic iMOM. See Details.}
   \item{logscale}{ For \code{logscale==TRUE}, \code{dimom} returns the
     natural log of the prior density.}
-  \item{heavyTail}{Set to \code{FALSE} to use the normal eMOM prior, and
-  to \code{TRUE} to use the Cauchy eMOM prior.}
 }
 \details{
  For \code{type=='quadratic'} the density is as follows.
@@ -82,7 +80,7 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
    MOM is equivalent to the quadratic MOM. The same happens for the
    iMOM.
 
- For the eMOM prior only the product penalty version is implemented.
+   Only the product eMOM prior is implemented.
 }
 \value{
   \code{dmom} returns the value of the moment prior density.

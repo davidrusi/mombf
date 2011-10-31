@@ -112,7 +112,7 @@ ans$margpp <- colMeans(ans$postModel)
 return(ans)
 }
 
-emomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='none', verbose=TRUE) {
+emomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, initSearch='greedy', verbose=TRUE) {
 require(mvtnorm)
 if (is.character(y)) { y <- as.numeric(factor(y))-1 } else if (is.factor(y)) { y <- as.numeric(y)-1 }
 if (length(unique(y))>2) stop('y has more than 2 levels')
@@ -121,7 +121,7 @@ if (missing(xadj)) xadj <- matrix(1,nrow=nrow(y),ncol=1)
 #Set prior parameters
 if (missing(priorCoef)) { priorCoef=new("msPriorSpec",priorType='coefficients',priorDistr='peMOM',priorPars=c(tau=0.048)) }
 if (missing(priorDelta)) { priorDelta=new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
-if (missing(priorVar)) { priorVar=new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
+priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
 
 if (priorCoef@priorDistr=='peMOM') {
   if (all(c('a.tau','b.tau') %in% names(priorCoef@priorPars))) {
@@ -160,19 +160,31 @@ cholS2inv <- cholS2inv[,order(attr(cholS2inv, "pivot"))]
 postDelta <- postTheta1 <- matrix(NA,nrow=niter,ncol=p1)
 postTheta2 <- matrix(NA,nrow=niter,ncol=p2)
 if (verbose) cat('Initializing...')
-if (initSearch=='none') {
-  sel <- rep(FALSE,p1)
+if (initSearch=='greedy') {
+  sel <- greedyGLM(y=y,x=x,xadj=xadj,family=binomial(link='probit'),priorCoef=priorCoef,priorDelta=priorDelta,maxit=50)
   postDelta[1,] <- sel
   postTheta1[1,] <- rep(0,p1)
+  if (sum(sel)>0) {
+    glm1 <- glm(y ~ x[,sel] + xadj -1, family=binomial(link='probit'))
+    postTheta1[1,sel] <- coef(glm1)[1:sum(sel)]
+    postTheta2[1,] <- coef(glm1)[-1:-sum(sel)]
+  } else {
+    postTheta2[1,] <- coef(glm(y ~ xadj -1, family=binomial(link='probit')))
+  }
 } else if (initSearch=='SCAD') {
   cvscad <- cv.ncvreg(X=x,y=y,family="binomial",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
   postTheta1[1,] <- ncvreg(X=x,y=y,penalty="SCAD",dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1, 1]
   postDelta[1,] <- postTheta1[1,]!=0
+  postTheta2[1,] <- coef(glm(factor(y) ~ -1 + xadj, family=binomial(link='probit')))
+} else if (initSearch=='none') {
+  sel <- rep(FALSE,p1)
+  postDelta[1,] <- sel
+  postTheta1[1,] <- rep(0,p1)
+  postTheta2[1,] <- coef(glm(factor(y) ~ -1 + xadj, family=binomial(link='probit')))
 } else {
   stop('The specified initSearch is not implemented')
 }
 if (verbose) cat('\n')
-postTheta2[1,] <- coef(glm(factor(y) ~ -1 + xadj, family=binomial(link='probit')))
 linpred1 <- x %*% t(postTheta1[1,,drop=FALSE])
 linpred2 <- xadj %*% t(postTheta2[1,,drop=FALSE])
 

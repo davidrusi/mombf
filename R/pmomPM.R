@@ -1,4 +1,5 @@
-pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='none', verbose=TRUE) {
+pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, initSearch='greedy', verbose=TRUE) {
+  priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
   #Check input
   if (is.logical(y) | is.numeric(y)) {
     y <- as.integer(y)
@@ -67,9 +68,10 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
   
   #Initialize
   if (initSearch=='greedy') {
-    niterGreed <- as.integer(100)
-    msfit <- modelSelection(y=y,x=x,center=TRUE,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE) 
-    ndeltaini <- as.integer(sum(msfit$postMode)); deltaini <- as.integer(msfit$postMode)
+    msfit <- greedyGLM(y=y,x=x,xadj=xadj,family=binomial(link='probit'),priorCoef=priorCoef,priorDelta=priorDelta,maxit=50)
+    ndeltaini <- as.integer(sum(msfit)); deltaini <- as.integer(msfit)
+    #msfit <- modelSelection(y=y,x=x,center=TRUE,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE) 
+    #ndeltaini <- as.integer(sum(msfit$postMode)); deltaini <- as.integer(msfit$postMode)
   } else if (initSearch=='SCAD') {
     require(ncvreg)
     if (verbose) cat("Initializing via SCAD cross-validation...")
@@ -194,33 +196,3 @@ return(ans)
 }
 
 
-pplPM <- function(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1) {
-if (priorCoef@priorDistr=='pMOM') {
-  if (missing(priorDelta)) { priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
-  if (missing(priorVar)) { priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
-  nlpfit <- function(tau) {
-    pr <- priorCoef; pr@priorPars['tau'] <- tau
-    fit1 <- pmomPM(y=y,x=x,xadj=xadj,niter=niter,thinning=thinning,burnin=burnin,priorCoef=pr,priorDelta=priorDelta,priorVar=priorVar,initSearch=initSearch,verbose=FALSE)
-    p1 <- pplProbit(fit1,x=x,xadj=xadj,y=y,kPen=kPen);
-    return(list(fit1=fit1,ppl=c(p1$d,p1$p,p1$g,p1$msize)))
-  }
-} else if (priorCoef@priorDistr=='peMOM') {
-  stop('peMOM prior not implemented yet')
-}
-#
-if (mc.cores>1) {
-  if ('multicore' %in% loadedNamespaces()) {
-    nlpseq <- multicore::mclapply(as.list(tauseq), nlpfit, mc.cores=mc.cores, mc.preschedule=FALSE)
-  } else stop('multicore library has not been loaded!')
-} else {
-  nlpseq <- lapply(as.list(tauseq), nlpfit)
-}
-PPL <- data.frame(tauseq,do.call(rbind,lapply(nlpseq,'[[','ppl')))
-colnames(PPL) <- c('tau','PPL','G','P','msize')
-require(mgcv)
-gam1 <- gam(PPL ~ s(tau,k=min(10,length(tauseq))), family = Gamma(link = "log"), data=PPL, sp= -1)
-PPL$sPPL <- exp(predict(gam1))
-ans <- list(nlpseq[[which.min(PPL$sPPL)]]$fit1,PPL,PPL$tau[which.min(PPL$PPL)])
-names(ans) <- c('optfit','PPL','tauopt')
-return(ans)
-}

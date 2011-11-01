@@ -68,10 +68,9 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
   
   #Initialize
   if (initSearch=='greedy') {
+    if (verbose) cat("Initializing via greedy search...")
     msfit <- greedyGLM(y=y,x=x,xadj=xadj,family=binomial(link='probit'),priorCoef=priorCoef,priorDelta=priorDelta,maxit=50)
     ndeltaini <- as.integer(sum(msfit)); deltaini <- as.integer(msfit)
-    #msfit <- modelSelection(y=y,x=x,center=TRUE,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE) 
-    #ndeltaini <- as.integer(sum(msfit$postMode)); deltaini <- as.integer(msfit$postMode)
   } else if (initSearch=='SCAD') {
     require(ncvreg)
     if (verbose) cat("Initializing via SCAD cross-validation...")

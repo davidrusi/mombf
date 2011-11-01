@@ -41,7 +41,7 @@ greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
     if (all(c('a.tau','b.tau') %in% names(priorCoef@priorPars))) {
       cfprior <- function(th) dmom(th,a.tau=priorCoef@priorPars['a.tau'],b.tau=priorCoef@priorPars['b.tau'],r=priorCoef@priorPars['r'],logscale=TRUE)
     } else {
-      cfprior <- function(th) dmom(th,tau=priorCoef@priorPars['tau'],r=priorCoef['r'],logscale=TRUE)
+      cfprior <- function(th) dmom(th,tau=priorCoef@priorPars['tau'],r=priorCoef@priorPars['r'],logscale=TRUE)
     }
   } else if (priorCoef@priorDistr=='piMOM') {
     cfprior <- function(th) dimom(th,tau=priorCoef@priorPars['tau'],logscale=TRUE)

@@ -4,6 +4,7 @@
 \alias{emomLM}
 \alias{emomPM}
 \alias{pplPM}
+\alias{ppmodel}
 \title{ Bayesian variable selection and model averaging for linear
   and probit models via non-local priors. }
 \description{
@@ -17,6 +18,8 @@
   \code{pplPM} finds the value of the prior dispersion parameter \code{tau} 
   minimizing posterior expected predictive loss (Gelfand and Ghosh, 1998) for the Probit model, 
   i.e. can be used to automatically set up \code{tau}.
+
+  \code{ppmodel} returns the proportion of visits to each model.
 }
 \usage{
 pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
@@ -27,7 +30,11 @@ emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=rou
 emomPM(y, x, xadj, niter=10^4, thinning=1, burnin =round(niter/10),
 priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
 
-pplPM(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1)
+pplPM(tauseq=seq(.1,2,length=20), kPen=1, y, x, xadj, niter=10^4,
+thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar,
+initSearch='greedy', mc.cores=1)
+
+ppmodel(nlpfit)
 }
 \arguments{
 \item{y}{Vector with observed responses. For \code{pmomLM} this must be
@@ -70,7 +77,9 @@ parameters 'alpha.p','beta.p'.}
   observed data and yhat is E(yp|yobs).
 }
 \item{mc.cores}{Allows for parallel computing. \code{mc.cores} is the number of processors to use. 
-Setting \code{mc.cores>1} requires the \code{multicore} package.}
+  Setting \code{mc.cores>1} requires the \code{multicore} package.}
+\item{nlpfit}{Non-local prior model fit, as returned by \code{pmomLM},
+  \code{pmomPM}, \code{emomLM} or \code{emomPM}.}
 }
 \details{
   The implemented MCMC scheme makes proposals from the joint posterior of

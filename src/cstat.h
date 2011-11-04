@@ -232,7 +232,7 @@ void sampled_wr(double *x, int popsize, int n); //same for vector of doubles
 
 // Several
 void setseed(long, long);
-int rdisc(double *probs, int nvals);
+int rdisc(const double *probs, int nvals);
 double gamdev(double);
 int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);
@@ -247,8 +247,8 @@ int runifdisc(int min, int max);
 // Beta-Dirichlet
 double rbetaC(double , double );
 double pbetaC(double x, double pin, double qin); //quantile from a Beta(pin,qin)
-void rdirichlet(double *w, double *alpha, int *p);
-double ddirichlet(double *w, double *alpha, int *p); //Dirichlet density
+void rdirichlet(double *w, const double *alpha, const int *p);
+double ddirichlet(const double *w, double *alpha, const int *p); //Dirichlet density
 
 // Normal
 double dnormC(double y, double m, double s, int logscale); //density of Normal(m,s^2)
@@ -267,7 +267,7 @@ double mnorm(double order, double m, double sd); //raw moment of N(m,sd) of orde
 // T Student
 double dtC(double y, double mu, double s, int nu); //density of t with nu df
 double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale); //density of t_nu(mu[i],s[i]^2) mixtures with ncomp components
-double dmvtC(double *y, int n, double *mu, double **cholsinv, double det, int nu, int logscale); //density of multivariate t
+double dmvtC(const double *y, int n, const double *mu, double **cholsinv, double det, int nu, int logscale); //density of multivariate t
 double rtC(int nu); //draw from univariate t with nu degrees of freedom
 double rtmixC(double *mu, double *s, double *probs, int nu, int ncomp); //draw from mixture of t_nu(mu[i],s[i]^2)
 double rt_trunc(int nu, double ltrunc, double rtrunc); //draw from truncated t given trunc points

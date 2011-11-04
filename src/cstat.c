@@ -2923,38 +2923,42 @@ void sampled_wr(double *x, int popsize, int n) { //same for vector of doubles
                        RANDOM VARIATE GENERATION
 ************************************************************************/
 
-/* call setall(is1,is2) */ 
-void setseed(long is1, long is2) 
-{ 
-  set=1;   
-  setall(is1,is2); 
-} 
-
-double runif() 
-{ 
-  double  
-    x; 
- 
-  if (set==0){ 
-    setall(is1,is2); 
-    set=1; 
-  } 
-   
-  /* assign to double x for conversion */ 
-  x = genunf(0.0,1.0); 
-  return(x); 
-} 
-
-double dunifC(double x, double a, double b) {
-  //Density of a Unif(a,b)
-  return ((x>a) && (x<b)) ? (1.0/(b-a)) : 0; 
+/* call setall(is1,is2) */
+void setseed(long is1, long is2)
+{
+    set = 1;
+    setall(is1, is2);
 }
 
 
-int runifdisc(int min, int max) {
-//Returns integer value between min and max (both included)
-  return(min + runif()*(max+1-min));
+double runif(void)
+{
+    double x;
+
+    if (set == 0) {
+        setall(is1, is2);
+        set = 1;
+    }
+
+    /* assign to double x for conversion */
+    x = genunf(0.0, 1.0);
+    return(x);
 }
+
+
+/* Density of a Unif(a,b) */
+double dunifC(double x, double a, double b)
+{
+    return ((x > a) && (x < b)) ? (1.0 / (b - a)) : 0.0;
+}
+
+
+/* Returns integer value between min and max (both included) */
+int runifdisc(int min, int max)
+{
+    return(min + runif()*(max+1-min));
+}
+
 
 int rdisc(double *probs, int nvals) {
 /* Random deviates from a discrete distribution with values 0,1...nvals-1 and probabilities probs[0],probs[1]...probs[nvals-1] */
@@ -2967,7 +2971,7 @@ int rdisc(double *probs, int nvals) {
   return(i-1);
 }
 
-double rbetaC(double alpha, double beta) 
+double rbetaC(double alpha, double beta)
 { 
       double gamdev(); 
       double x, y; 

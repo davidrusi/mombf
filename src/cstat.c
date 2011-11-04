@@ -3081,7 +3081,7 @@ double ddirichlet(const double *w,
     assert(p != NULL);
 
     for (i = 0; i < *p; i++) {
-        ans += (alpha[i]-1) * log(w[i]) - gamln(alpha+i);
+        ans += (alpha[i] - 1) * log(w[i]) - gamln(alpha+i);
         sumalpha += alpha[i];
     }
     ans += gamln(&sumalpha);
@@ -3089,8 +3089,8 @@ double ddirichlet(const double *w,
 }
 
 
-double gamdev(double alpha) 
-{ 
+double gamdev(double alpha)
+{
   double  
     value; 
   double 
@@ -3101,7 +3101,8 @@ double gamdev(double alpha)
   a = alpha; /* type conversion */ 
   value = gengam(1.0,a); 
   return value; 
-} 
+}
+
 
 /* *************************************************' 
    normal cdf and inv cdf 
@@ -3472,7 +3473,7 @@ double rtC(int nu)
     double z;
 
     z = rnormC(0, 1);
-    x = gengam(0.5, nu / 2.0);  //draw from chi-square with nu DoF
+    x = gengam(0.5, nu / 2.0);  /* Draw from chi-square with nu DoF */
     return(z * sqrt(nu / x));
 }
 
@@ -3495,28 +3496,46 @@ double rtmixC(const double *mu,
 }
 
 
-/* Draw from a univariate truncated t with nu degrees of freedom giving truncation points */
-double rt_trunc(int nu, double ltrunc, double rtrunc) {
-  // nu: degrees of freedom; ltrunc: left truncation point; rtrunc: right truncation point
-  double lprob, rprob;
-  lprob= ptC(ltrunc,nu); rprob= ptC(rtrunc,nu);
-  return(rt_trunc_prob(nu,lprob,rprob));
+/*
+ * Draw from a univariate truncated t with nu degrees of freedom giving
+ * truncation points.
+ *     nu     - degrees of freedom
+ *     ltrunc - left truncation point
+ *     rtrunc - right truncation point
+ */
+double rt_trunc(int nu, double ltrunc, double rtrunc)
+{
+    double lprob;
+    double rprob;
+
+    lprob = ptC(ltrunc, nu);
+    rprob = ptC(rtrunc, nu);
+    return(rt_trunc_prob(nu, lprob, rprob));
 }
 
-/* Draw from a univariate truncated t with nu degrees of freedom giving truncation probabilities */
-double rt_trunc_prob(int nu, double lprob, double rprob) {
-  //nu: degrees of freedom; lprob, rprob: prob to the left of the truncation points
-  //e.g. lprob=0.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
-  double u;
-  if (lprob>=rprob) {
-    nrerror("rt_trunc_prob",
-            "left truncation probability is larger than right truncation probability", "");
-    /*NOTREACHED*/
-  }
-  u= lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
-  return(qtC(u,nu));
 
+/*
+ * Draw from a univariate truncated t with nu degrees of freedom giving
+ * truncation probabilities.
+ *    nu           - degrees of freedom
+ *    lprob, rprob - prob to the left of the truncation points
+ *
+ * e.g. lprob=.05, rprob=.99 means truncate the lower 5% and the upper 1%
+ */
+double rt_trunc_prob(int nu, double lprob, double rprob)
+{
+    double u;
+
+    if (lprob >= rprob) {
+        nrerror("rt_trunc_prob",
+                "",
+                "left truncation probability is larger than right truncation probability");
+        /*NOTREACHED*/
+    }
+    u = lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
+    return(qtC(u, nu));
 }
+
 
 /* Find quantiles of a t-distribution with nu degrees of freedom */
 double qtC(double p, int nu) {

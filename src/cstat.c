@@ -3537,12 +3537,19 @@ double rt_trunc_prob(int nu, double lprob, double rprob)
 }
 
 
-/* Find quantiles of a t-distribution with nu degrees of freedom */
-double qtC(double p, int nu) {
-  /* p: probability; nu: degrees of freedom; lower_tail==1 means p indicates left tail area */
- /* * @author Sundar Dorai-Raj
-  * * See the GNU General Public License for more details at http://www.gnu.org * * */
-  // Algorithm 396: Student's t-quantiles by G.W. Hill CACM 13(10), 619-620, October 1970
+/*
+ * Find quantiles of a t-distribution with nu degrees of freedom.
+ *    p: probability
+ *    nu: degrees of freedom
+ *    lower_tail==1 means p indicates left tail area
+ *
+ * Algorithm 396: Student's t-quantiles by G.W. Hill CACM 13(10), 619-620, October 1970
+ *
+ * @author Sundar Dorai-Raj
+ * See the GNU General Public License for more details at http://www.gnu.org
+ */
+double qtC(double p, int nu)
+{
   int neg;
   double ndf, eps, P, q, prob, a, b, c, d, y, x;
 
@@ -3592,45 +3599,54 @@ double qtC(double p, int nu) {
   return(q);
 }
 
+
 /* CDF of a t-Student distribution */
-double ptC(double x, int nu) {
-
-  if (x>0) { return(1-0.5*pbetaC((nu+0.0)/(x*x+nu),0.5*nu,0.5)); }
-  else if (x<0) { return(0.5*pbetaC((nu+0.0)/(x*x+nu),0.5*nu,0.5)); }
-  else { return(0.5); }
-
+double ptC(double x, int nu)
+{
+    if (x > 0) {
+        return(1 - 0.5 * pbetaC((nu+0.0) / (x*x+nu), 0.5*nu, 0.5));
+    }
+    else if (x < 0) {
+        return(0.5 * pbetaC((nu+0.0) / (x*x+nu), 0.5*nu, 0.5));
+    }
+    else {
+        return(0.5);
+    }
 }
 
 
 // Draw from multivar T with n dimensions and nu degrees of freedom
-void rmvtC(double *y, int n, double *mu, double **chols, int nu) {
 /* Result is stored in y[1..n]. mu is the location parameter, chols is the Cholesky decomposition
    of the covariance matrix. That is, the covariance is s*nu/(nu-2) and s=chols*chols'
    and nu are the degrees of freedom 
    Note: both y and mu should have length n, and s should be an n*n matrix. The routine doesn't
    check it 
    Example: choldc(s,n,chols); //compute cholesky decomposition
-            rmvtC(y,n,mu,chols,nu); //generate random variate */
-
+            rmvtC(y,n,mu,chols,nu); //generate random variate
+ */
+void rmvtC(double *y, int n, double *mu, double **chols, int nu)
+{
   int i;
   double x, *z;
 
-  x= sqrt(nu/gengam(.5,nu/2.0));  //draw from chi-square with nu degrees of freedom
+  x= sqrt(nu/gengam(0.5,nu/2.0));  //draw from chi-square with nu degrees of freedom
   z= dvector(1,n);
   for (i=1;i<=n;i++) { z[i]= x*rnormC(0,1); } //multiple n indep normal draws by the common chi-square
   Ax_plus_y(chols,z,mu,y,1,n);          //compute mu + chols*z
   free_dvector(z,1,n);
-
 }
 
 
-double rgammaC(double a, double b) {
-  //Generate from a Gamma(a,b) (a is shape; b location; mean= a/b)
-  return(gengam(b,a));
+/* Generate from a Gamma(a,b) (a is shape; b location; mean= a/b) */
+double rgammaC(double a, double b)
+{
+    return(gengam(b, a));
 }
 
-double dgammaC(double x, double a, double b) {
-  //Density of a Gamma(a,b) (a is shape; b location; mean= a/b)
+
+//Density of a Gamma(a,b) (a is shape; b location; mean= a/b)
+double dgammaC(double x, double a, double b)
+{
   if (x!=0) { 
     return(exp(a*log(b)-gamln(&a)+(a-1)*log(x)-x*b)); 
   } else {
@@ -3638,8 +3654,9 @@ double dgammaC(double x, double a, double b) {
   }
 }
 
-double dinvgammaC(double x, double a, double b) {
- //Density of an Inverse Gamma(a,b) (a: shape; b: location; mean of 1/x= a/b)
+//Density of an Inverse Gamma(a,b) (a: shape; b: location; mean of 1/x= a/b)
+double dinvgammaC(double x, double a, double b)
+{
   if (x!=0) { 
     return(exp(a*log(b)-gamln(&a)-(a+1)*log(x)-b/x)); 
   } else {
@@ -3666,17 +3683,14 @@ double dmomNorm(double y, double m, double tau, double phi, int r, int logscale)
                        MORE RANDOM VARIATE STUFF
 ************************************************************************/
 
-/************************************************************************
-FIFDINT:
-Truncates a double precision number to an integer and returns the
-value in a double.
-************************************************************************/
+/*
+ * Truncates a double precision number to an integer.
+ *     a - number to be truncated
+ */
 double fifdint(double a)
-/* a     -     number to be truncated */
 {
-  long temp;
-  temp = (long)(a);
-  return (double)(temp);
+    long temp = (long)(a);
+    return (double)(temp);
 }
 
 

@@ -3453,20 +3453,25 @@ double rtC(int nu)
     double x;
     double z;
 
-    z = rnormC(0,1);
+    z = rnormC(0, 1);
     x = gengam(0.5, nu / 2.0);  //draw from chi-square with nu DoF
     return(z * sqrt(nu / x));
 }
 
 
 /* Draw from mixture of t_nu(mu[i],s[i]^2) */
-double rtmixC(double *mu,
-              double *s,
-              double *probs,
+double rtmixC(const double *mu,
+              const double *s,
+              const double *probs,
               int nu,
               int ncomp)
 {
     int comp;
+
+    assert(mu != NULL);
+    assert(s != NULL);
+    assert(probs != NULL);
+
     comp = rdisc(probs, ncomp);
     return(mu[comp] + s[comp]*rtC(nu));
 }

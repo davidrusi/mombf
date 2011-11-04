@@ -269,7 +269,7 @@ double dtC(double y, double mu, double s, int nu); //density of t with nu df
 double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale); //density of t_nu(mu[i],s[i]^2) mixtures with ncomp components
 double dmvtC(const double *y, int n, const double *mu, double **cholsinv, double det, int nu, int logscale); //density of multivariate t
 double rtC(int nu); //draw from univariate t with nu degrees of freedom
-double rtmixC(double *mu, double *s, double *probs, int nu, int ncomp); //draw from mixture of t_nu(mu[i],s[i]^2)
+double rtmixC(const double *mu, const double *s, const double *probs, int nu, int ncomp); //draw from mixture of t_nu(mu[i],s[i]^2)
 double rt_trunc(int nu, double ltrunc, double rtrunc); //draw from truncated t given trunc points
 double rt_trunc_prob(int nu, double lprob, double rprob);  //draw from truncated t given trunc probs
 double qtC(double p, int nu);  //quantile from t-Student with nu degrees of freedom

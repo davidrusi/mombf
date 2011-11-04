@@ -1385,27 +1385,27 @@ void err_msg(const char *fct, const char *txt, int n1, int n2, int n3)
                           MEMORY ALLOCATION
 ******************************************************************************/
 
-float *vector(int nl,int nh) 
+float *vector(int nl, int nh) 
 { 
         float *v; 
  
-        v=(float *)calloc((unsigned) (nh-nl+1),sizeof(float)); 
-        if (!v) nrerror("vector","allocate a float vector",""); 
+        v=(float *)calloc((unsigned) (nh-nl+1), sizeof(float)); 
+        if (!v) nrerror("vector", "allocate a float vector", ""); 
         return v-nl; 
 } 
 
-double  *dvector(int nl,int nh) 
+double  *dvector(int nl, int nh) 
 { 
         double  *v; 
  
 	nv += (nh-nl+1); 
-        v=(double  *)calloc((unsigned) (nh-nl+1),sizeof(double)); 
+        v=(double  *)calloc((unsigned) (nh-nl+1), sizeof(double)); 
         if (!v)  
-	  nrerror("dvector","allocate a double vector",""); 
+	  nrerror("dvector", "allocate a double vector", ""); 
         return v-nl; 
 } 
 
-double  **dmatrix(int nrl,int nrh,int ncl,int nch) 
+double  **dmatrix(int nrl, int nrh, int ncl, int nch) 
 { 
         int i; 
         double  **m; 
@@ -1414,14 +1414,14 @@ double  **dmatrix(int nrl,int nrh,int ncl,int nch)
         m=(double  **)calloc((unsigned) (nrh-nrl+1), 
 				   sizeof(double  *)); 
         if (!m)  
-	  nrerror("dmatrix","allocate a double matrix (1st dim)",""); 
+	  nrerror("dmatrix", "allocate a double matrix (1st dim)", ""); 
         m -= nrl; 
  
         for(i=nrl;i<=nrh;i++) { 
                 m[i]=(double  *)calloc((unsigned) (nch-ncl+1), 
 					     sizeof(double)); 
                 if (!m[i])  
-	  	  nrerror("dmatrix","allocate a double matrix (2nd dim)",""); 
+	  	  nrerror("dmatrix", "allocate a double matrix (2nd dim)", ""); 
                 m[i] -= ncl; 
         } 
         return m; 
@@ -1433,9 +1433,9 @@ double ***darray_3(int lo, int hi)
   double ***m; 
  
   nv += (hi-lo+1); 
-  m=(double ***)calloc((unsigned) (hi-lo+1),sizeof(double **)); 
+  m=(double ***)calloc((unsigned) (hi-lo+1), sizeof(double **)); 
   if (!m)  
-    nrerror("darray_3","allocate a 3dim double array ",""); 
+    nrerror("darray_3", "allocate a 3dim double array ", ""); 
   m -= lo; 
   return m; 
 } 
@@ -1445,14 +1445,14 @@ double ***darray3(int n, int p, int q)
 { 
   double ***a; 
   int i; 
-  a = darray_3(0,n); 
+  a = darray_3(0, n); 
   for(i=0;i<n;i++) 
-    a[i] = dmatrix(0,p,0,q); 
+    a[i] = dmatrix(0, p, 0, q); 
   return(a); 
 } 
 */
 
-double ***darray3(int n1,int n2,int n3)
+double ***darray3(int n1, int n2, int n3)
 /***********************************************************************
   allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
 ***********************************************************************/
@@ -1461,14 +1461,14 @@ double ***darray3(int n1,int n2,int n3)
   int  i, j;
 
   a = (double ***) malloc(n1 * sizeof(double **));
-  if(a == NULL) nrerror("darray3","allocate a 3dim double array (1st dim)","");
+  if(a == NULL) nrerror("darray3", "allocate a 3dim double array (1st dim)", "");
 
   a[0] = (double **) malloc(n1 * n2 * sizeof(double *));
-  if(a[0] == NULL) nrerror("darray3","allocate a 3dim double array (2nd dim)","");
+  if(a[0] == NULL) nrerror("darray3", "allocate a 3dim double array (2nd dim)", "");
   for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
 
   a[0][0] = (double *) malloc(n1 * n2 * n3 * sizeof(double));
-  if(a[0][0] == NULL) nrerror("darray3","allocate a 3dim double array (3rd dim)","");
+  if(a[0][0] == NULL) nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
   for(i=0;i<n1;i++) 
     for(j=0;j<n2;j++) 
       a[i][j] = a[0][0] + n2*n3*i + j*n3;
@@ -1476,30 +1476,30 @@ double ***darray3(int n1,int n2,int n3)
   return a;
 }
 
-int  *ivector(int nl,int nh) 
+int  *ivector(int nl, int nh) 
 { 
         int  *v; 
  
 	nv += (nh-nl+1); 
-        v=(int  *)calloc((unsigned) (nh-nl+1),sizeof(int)); 
-        if (!v) nrerror("ivector","allocate an int vector",""); 
+        v=(int  *)calloc((unsigned) (nh-nl+1), sizeof(int)); 
+        if (!v) nrerror("ivector", "allocate an int vector", ""); 
         return v-nl; 
 } 
 
-int  **imatrix(int nrl,int nrh,int ncl,int nch) 
+int  **imatrix(int nrl, int nrh, int ncl, int nch) 
 { 
         int i, **m; 
  
 	nv += (nrh-nrl+1)*(nch-ncl+1); 
-        m=(int  **)calloc((unsigned) (nrh-nrl+1),sizeof(int  *)); 
+        m=(int  **)calloc((unsigned) (nrh-nrl+1), sizeof(int  *)); 
         if (!m)  
-	  nrerror("imatrix","allocate a int matrix (1st dim).",""); 
+	  nrerror("imatrix", "allocate a int matrix (1st dim).", ""); 
         m -= nrl; 
  
         for(i=nrl;i<=nrh;i++) { 
-                m[i]=(int  *)calloc((unsigned) (nch-ncl+1),sizeof(int)); 
+                m[i]=(int  *)calloc((unsigned) (nch-ncl+1), sizeof(int)); 
                 if (!m[i])  
-	  	  nrerror("imatrix","allocate a int matrix (2nd dim).",""); 
+	  	  nrerror("imatrix", "allocate a int matrix (2nd dim).", ""); 
                 m[i] -= ncl; 
         } 
         return m; 
@@ -1511,9 +1511,9 @@ int ***iarray_3(int lo, int hi)
   int ***m; 
  
   nv += (hi-lo+1); 
-  m=(int ***)calloc((unsigned) (hi-lo+1),sizeof(int **)); 
+  m=(int ***)calloc((unsigned) (hi-lo+1), sizeof(int **)); 
   if (!m)  
-    nrerror("iarray_3","allocate a 3dim int array ",""); 
+    nrerror("iarray_3", "allocate a 3dim int array ", ""); 
   m -= lo; 
   return m; 
 }
@@ -1522,15 +1522,15 @@ int ***iarray3(int p1, int p2, int p3)
 { 
   int ***m, i; 
  
-  m = iarray_3(0,p1); 
+  m = iarray_3(0, p1); 
   for (i=0;i<p1;i++) 
-    m[i] = imatrix(0,p2,0,p3); 
+    m[i] = imatrix(0, p2, 0, p3); 
   return m; 
 } 
 */
 
 
-int ***iarray3(int n1,int n2,int n3)
+int ***iarray3(int n1, int n2, int n3)
 /***********************************************************************
   allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
 ***********************************************************************/
@@ -1538,14 +1538,14 @@ int ***iarray3(int n1,int n2,int n3)
   int ***a, i, j;
 
   a = (int ***) malloc(n1 * sizeof(int **));
-  if(a == NULL)  nrerror("iarray3","allocate a 3dim int array (1st dim)","");
+  if(a == NULL)  nrerror("iarray3", "allocate a 3dim int array (1st dim)", "");
 
   a[0] = (int **) malloc(n1 * n2 * sizeof(int *));
-  if(a[0] == NULL)  nrerror("iarray3","allocate a 3dim int array (2nd dim)","");
+  if(a[0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (2nd dim)", "");
   for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
 
   a[0][0] = (int *) malloc(n1 * n2 * n3 * sizeof(int));
-  if(a[0][0] == NULL)  nrerror("iarray3","allocate a 3dim int array (3rd dim)","");
+  if(a[0][0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (3rd dim)", "");
   for(i=0;i<n1;i++) 
     for(j=0;j<n2;j++) 
       a[i][j] = a[0][0] + n2*n3*i + j*n3;
@@ -1554,25 +1554,25 @@ int ***iarray3(int n1,int n2,int n3)
 }
 
 
-void free_vector(float  *v,int nl,int nh) 
+void free_vector(float  *v, int nl, int nh) 
 { 
         if( (v+nl) != NULL ) free((char  *) (v+nl)); 
 	nv -= (nh-nl+1); 
 } 
 
-void free_dvector(double  *v,int nl,int nh) 
+void free_dvector(double  *v, int nl, int nh) 
 { 
         if( (v+nl) != NULL ) free((char  *) (v+nl)); 
 	nv -= (nh-nl+1); 
 } 
 
-void free_ivector(int  *v,int nl,int nh) 
+void free_ivector(int  *v, int nl, int nh) 
 { 
         if( (v+nl) != NULL ) free((char  *) (v+nl)); 
 	nv -= (nh-nl+1); 
 } 
 
-void free_dmatrix(double  **m,int nrl,int nrh,int ncl,int nch) 
+void free_dmatrix(double  **m, int nrl, int nrh, int ncl, int nch) 
 { 
         int i; 
  
@@ -1582,7 +1582,7 @@ void free_dmatrix(double  **m,int nrl,int nrh,int ncl,int nch)
         nv -= (nch-ncl+1)*(nrh-nrl+1); 
 } 
  
-void free_imatrix(int  **m,int nrl,int nrh,int ncl,int nch) 
+void free_imatrix(int  **m, int nrl, int nrh, int ncl, int nch) 
 { 
         int i; 
  

@@ -2960,16 +2960,29 @@ int runifdisc(int min, int max)
 }
 
 
-int rdisc(double *probs, int nvals) {
-/* Random deviates from a discrete distribution with values 0,1...nvals-1 and probabilities probs[0],probs[1]...probs[nvals-1] */
-/* Returns 0 with probability probs[0], 1 with probability probs[1] etc. */
-  int i;
-  double u, pcum;
-  u= runif();
-  pcum= probs[0]; i=1;
-  while((pcum<u) && (i<nvals)) { pcum += probs[i]; i++; }
-  return(i-1);
+/*
+ * Random deviates from a discrete distribution with values 0,1...nvals-1
+ * and probabilities probs[0],probs[1]...probs[nvals-1]
+ * Returns 0 with probability probs[0], 1 with probability probs[1] etc.
+ */
+int rdisc(const double *probs,
+          int nvals)
+{
+    double u;
+    double pcum;
+    int i = 1;
+
+    assert(probs != NULL);
+
+    u = runif();
+    pcum = probs[0];
+    while ((pcum < u) && (i < nvals)) {
+        pcum += probs[i];
+        i++;
+    }
+    return(i-1);
 }
+
 
 double rbetaC(double alpha, double beta)
 { 
@@ -2995,41 +3008,68 @@ double pbetaC(double x, double a, double b) {
   else return(1.0-bt*betacf(b,a,1.0-x)/b); //Use continued fraction after symmetry transformation.
 }
 
+
 /*
  * Draws from Dirichlet with parameter alpha. 
  * The value is saved in w, and p is the dimensionality of the parameter 
  */ 
-void rdirichlet(double *w, double *alpha, int *p) 
-{ 
-  double s, a,b, W; 
-  int j; 
- 
-  for(s=0,j=0;j<*p;j++) s += alpha[j]; 
-  for(j=0,W=1.0,b=s;j<*p-1;j++){ 
-    a = alpha[j]; 
-    b -= alpha[j]; 
-    w[j] = rbetaC(a,b)*W; 
-    W -= w[j]; 
-  } 
-  w[*p-1] = W; 
-  if (W < 0) {
-    REprintf("rdirichlet: negative W generated\n");
-    /* :TBD: - Should this be considered fatal? */
-  }
-} 
+void rdirichlet(double *w,
+                const double *alpha,
+                const int *p)
+{
+    double s = 0.0;
+    double W = 1.0;
+    double a;
+    double b;
+    register int j;
 
+    assert(w != NULL);
+    assert(alpha != NULL);
+    assert(p != NULL);
 
-double ddirichlet(double *w, double *alpha, int *p) {
- //Evaluates Dirichlet density at w (alpha: params; p: dimensionality of w and alpha)
-  int i; double ans, sumalpha;
-
-  for (i=0, ans=0, sumalpha=0; i< *p; i++) {
-    ans+= (alpha[i]-1)*log(w[i]) - gamln(alpha+i);
-    sumalpha+= alpha[i];
-  }
-  ans+= gamln(&sumalpha);
-  return(exp(ans));
+    for (j = 0; j < *p; j++) {
+        s += alpha[j];
+    }
+    b = s;
+    for (j = 0; j < *p-1; j++) {
+        a = alpha[j];
+        b -= alpha[j];
+        w[j] = rbetaC(a, b) * W;
+        W -= w[j];
+    }
+    w[*p-1] = W;
+    if (W < 0) {
+        REprintf("rdirichlet: negative W generated\n");
+        /* :TBD: - Should this be considered fatal? */
+    }
 }
+
+
+/*
+ * Evaluates Dirichlet density at w
+ *     alpha: params
+ *         p: dimensionality of w and alpha
+ */
+double ddirichlet(const double *w,
+                  double *alpha,    /* maybe const */
+                  const int *p)
+{
+    register int i;
+    double ans = 0.0;
+    double sumalpha = 0.0;
+
+    assert(w != NULL);
+    assert(alpha != NULL);
+    assert(p != NULL);
+
+    for (i = 0; i < *p; i++) {
+        ans += (alpha[i]-1) * log(w[i]) - gamln(alpha+i);
+        sumalpha += alpha[i];
+    }
+    ans += gamln(&sumalpha);
+    return(exp(ans));
+}
+
 
 double gamdev(double alpha) 
 { 
@@ -3358,33 +3398,54 @@ double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp,
  *     det = choldc_det(cholsinv, n);
  *     dmvtC(y, n, mu, cholsinv, det, nu, 0);
  */
-double dmvtC(double *y,
+double dmvtC(const double *y,
              int n,
-             double *mu,
+             const double *mu,
              double **cholsinv,
              double det,
              int nu,
              int logscale)
 {
-  int i;  
-  double *z,*z2, res, t1, t2, normk;
+    double res = 0.0;
+    double t1;
+    double t2;
+    double normk;
 
-  //Find (y-mu)' * cholsinv' * cholsinv * (y-mu)
-  z= dvector(1,n); z2= dvector(1,n);
-  for (i=1; i<=n; i++) { z[i]= y[i]-mu[i]; }
-  Ax(cholsinv,z,z2,1,n,1,n);
-  for (res=0, i=1; i<=n; i++) { res += z2[i]*z2[i]; }
-  free_dvector(z,1,n); free_dvector(z2,1,n);
+    assert(y != NULL);
+    assert(mu != NULL);
+    assert(cholsinv != NULL);
 
-  t2= 0.5*nu;
-  t1= t2+0.5*(n+0.0);
-  normk= gamln(&t1)-gamln(&t2)-0.5*(n+0.0)*(log(nu+0.0)+log(M_PI))+0.5*log(det);
+    /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
+    {
+        register int i;
+        double *z;
+        double *z2;
 
-  if (logscale==1)
-    return(normk -t1*log(1+res/(nu+0.0)));
-  else
-    return(exp(normk) * pow(1+res/(nu+0.0),-t1));
+        z  = dvector(1, n);
+        z2 = dvector(1, n);
+        for (i = 1; i <= n; i++) {
+            z[i] = y[i] - mu[i];
+        }
+        Ax(cholsinv, z, z2, 1, n, 1, n);
+        for (i = 1; i <= n; i++) {
+            res += z2[i] * z2[i];
+        }
+        free_dvector(z, 1, n);
+        free_dvector(z2, 1, n);
+    }
+
+    t2 = 0.5 * nu;
+    t1 = t2 + 0.5*(n+0.0);
+    normk = gamln(&t1) -
+            gamln(&t2) -
+            0.5*(n+0.0)*(log(nu+0.0)+log(M_PI))+0.5*log(det);
+
+    if (logscale == 1)
+        return(normk -t1*log(1+res/(nu+0.0)));
+    else
+        return(exp(normk) * pow(1+res/(nu+0.0), -t1));
 }
+
 
 /* Draw from a univariate standard t with nu degrees of freedom */
 double rtC(int nu)

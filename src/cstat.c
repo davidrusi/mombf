@@ -2985,32 +2985,50 @@ int rdisc(const double *probs,
 
 
 double rbetaC(double alpha, double beta)
-{ 
-      double gamdev(); 
-      double x, y; 
+{
+    double x;
+    double y; 
        
-      x = gamdev(alpha);               /* X ~ gamma(alpha) */ 
-      y = gamdev(beta);                /* Y ~ gamma(beta)  */ 
+    x = gamdev(alpha);               /* X ~ gamma(alpha) */ 
+    y = gamdev(beta);                /* Y ~ gamma(beta)  */ 
  
-      return (x/(x+y));     /* X/(X+y) ~ ebta(alpha, beta) */ 
-} 
+    return (x / (x+y));     /* X/(X+y) ~ ebta(alpha, beta) */ 
+}
+
 
 /* CDF of a Beta distribution */
-double pbetaC(double x, double a, double b) {
-  double bt, c;
-  if (x < 0.0 || x > 1.0) nrerror("Bad x in routine betai","","");
-  if (x == 0.0 || x == 1.0) bt=0.0;
-  else { //Factors in front of the continued fraction.
-    c= a+b;
-    bt=exp(gamln(&c)-gamln(&a)-gamln(&b)+a*log(x)+b*log(1.0-x));
-  }
-  if (x < (a+1.0)/(a+b+2.0)) return bt*betacf(a,b,x)/a; //Use continued fraction directly.
-  else return(1.0-bt*betacf(b,a,1.0-x)/b); //Use continued fraction after symmetry transformation.
+double pbetaC(double x, double a, double b)
+{
+    double bt;
+    double c;
+
+    if (x < 0.0 || x > 1.0) {
+        nrerror("pbetaC", "", "invalid probability");
+        /*NOTREACHED*/
+    }
+
+    if (x == 0.0 || x == 1.0) {
+        bt = 0.0;
+    }
+    else {
+        /* Factors in front of the continued fraction */
+        c = a + b;
+        bt = exp(gamln(&c) - gamln(&a) - gamln(&b) + a*log(x) + b*log(1.0-x));
+    }
+
+    if (x < (a+1.0) / (a+b+2.0)) {
+        /* Use continued fraction directly */
+        return bt * betacf(a, b, x) / a;
+    }
+    else {
+        /* Use continued fraction after symmetry transformation */
+        return(1.0 - bt * betacf(b, a, 1.0-x) / b);
+    }
 }
 
 
 /*
- * Draws from Dirichlet with parameter alpha. 
+ * Draws from Dirichlet with parameter alpha.
  * The value is saved in w, and p is the dimensionality of the parameter 
  */ 
 void rdirichlet(double *w,

@@ -2049,14 +2049,27 @@ void grid(double x0, double xn, int n, double *x)
 }
 
 
-void rA(double r,double **A, double **B, int rowini, int rowfi, int colini, int colfi) {
-  //Multiply matrix A[1..p][1..q] by scalar r, store results in matrix B
-  int _i, _j;
-  for(_i=rowini; _i<=(rowfi); _i++){			 
-    for(_j=colini; _j<=(colfi); _j++)			 
-      B[_i][_j] = r* A[_i][_j];	 
-  } 
-} 
+/* Multiply matrix A[1..p][1..q] by scalar r, store results in matrix B */
+void rA(double r,
+        double **A,
+        double **B,
+        int rowini,
+        int rowfi,
+        int colini,
+        int colfi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(B != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        for (j = colini; j <= colfi; j++) {
+            B[i][j] = r * A[i][j];
+        }
+    }
+}
 
 
 void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi) {

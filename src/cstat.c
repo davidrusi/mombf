@@ -2049,7 +2049,10 @@ void grid(double x0, double xn, int n, double *x)
 }
 
 
-/* Multiply matrix A[1..p][1..q] by scalar r, store results in matrix B */
+/*
+ * Multiply matrix A[1..p][1..q] by scalar r.
+ * Store results in matrix B.
+ */
 void rA(double r,
         double **A,
         double **B,
@@ -2072,10 +2075,30 @@ void rA(double r,
 }
 
 
-void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi) {
- //Sum matrix A[rowini..rowfi][colini..colfi] + B[rowini..rowfi][colini..colfi], store results in C
-  int _i, _j;
-  for (_i=rowini; _i<=rowfi; _i++) { for (_j=colini; _j<=colfi; _j++) { C[_i][_j]= A[_i][_j] + B[_i][_j]; } }
+/*
+ * Sum matrix A[rowini..rowfi][colini..colfi] + B[rowini..rowfi][colini..colfi].
+ * Store results in C.
+ */
+void A_plus_B(double **A,
+              double **B,
+              double **C,
+              int rowini,
+              int rowfi,
+              int colini,
+              int colfi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(B != NULL);
+    assert(C != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        for (j = colini; j <= colfi; j++) {
+            C[i][j] = A[i][j] + B[i][j];
+        }
+    }
 }
 
 

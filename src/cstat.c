@@ -2959,26 +2959,61 @@ if ((sortup==0) && (ihi>(pivot+1))) iindexsort(x, index, pivot + 1, ihi, incr);
 /* Random sampling                                            */
 /**************************************************************/
 
-void samplei_wr(int *x, int popsize, int n) { 
-//Sample of size n without replacement from vector x of length popsize
-//Result is returned in the first n elements of x
-  int i, r, temp;
-  for (i=0; i<n; i++) {
-    r= i + (popsize - i - 1)*runif();
-    temp= x[i]; x[i]= x[r]; x[r]= temp;
-  }
+/*
+ * Sample from integer vector.
+ *
+ * Sample of size n without replacement from vector x of length popsize
+ * Result is returned in the first n elements of x
+ */
+void samplei_wr(int *x,
+                int popsize,
+                int n)
+{
+    register int i;
+
+    assert(x != NULL);
+
+    for (i = 0; i < n; i++) {
+        int r;
+
+        r = i + (popsize - i - 1) * runif();
+        {
+            int temp;
+
+            temp = x[i];
+            x[i] = x[r];
+            x[r] = temp;
+        }
+    }
 }
 
 
-void sampled_wr(double *x, int popsize, int n) { //same for vector of doubles
-//Sample of size n without replacement from vector x of length popsize
-//Result is returned in the first n elements of x
-  int i, r;
-  double temp;
-  for (i=0; i<n; i++) {
-    r= i + (popsize - i - 1)*runif();
-    temp= x[i]; x[i]= x[r]; x[r]= temp;
-  }
+/*
+ * Sample from double vector.
+ *
+ * Sample of size n without replacement from vector x of length popsize
+ * Result is returned in the first n elements of x
+ */
+void sampled_wr(double *x,
+                int popsize,
+                int n)
+{
+    register int i;
+
+    assert(x != NULL);
+
+    for (i = 0; i < n; i++) {
+        int r;
+
+        r = i + (popsize - i - 1) * runif();
+        {
+            double temp;
+
+            temp = x[i];
+            x[i] = x[r];
+            x[r] = temp;
+        }
+    }
 }
 
 
@@ -3334,7 +3369,7 @@ void rmultinomial(int n_draw, int n_cell, double *pr, int *x)
   } 
  
   free_dvector(cum_p,0,n_cell); 
-} 
+}
 
 
 //Beta-binomial(alpha,beta) prior probability for a model including k out of p variables.
@@ -5291,12 +5326,11 @@ S160:
 }
 
 
-double fsign( double num, double sign )
 /* Transfers sign of argument sign to argument num */
+double fsign(double num, double sign)
 {
-if ( ( sign > 0.0 && num < 0.0) || ( sign < 0.0 && num > 0.0) )
-    return -num;
-else return num;
+    return ((sign > 0.0 && num < 0.0) ||
+            (sign < 0.0 && num > 0.0)) ? -num : num;
 }
 
 

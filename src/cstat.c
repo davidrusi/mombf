@@ -1609,13 +1609,23 @@ void free_iarray3(int ***a, int n1, int n2, int n3) {
                           MATHEMATICAL FUNCTIONS
 ************************************************************************/
 
-double ldoublefact(double x) {
-  //log-double factorial
-  //Returns x*(x-2)*...*k, where k is the first term <2. Corresponds to double factorial for integer x
-  int _i; double ans=0;
-  for (_i=x; _i>=2; _i-=2) { ans+= log(_i); }
-  return(ans);
+/*
+ * log-double factorial
+ * Returns x*(x-2)*...*k, where k is the first term <2.
+ * Corresponds to double factorial for integer x
+ */
+double ldoublefact(double x)
+{
+    register int i;
+    double ans = 0.0;
+
+    /* :TBD: converts from double to integer without noting rounding intent */
+    for (i = x; i >= 2; i -= 2) {
+        ans += log(i);
+    }
+    return(ans);
 }
+
 
 double gamln(double *a)
 /*
@@ -2811,7 +2821,7 @@ int dcompare(const void *a, const void *b)
 
     assert(da != NULL);
     assert(db != NULL);
-     
+
     return (*da > *db) - (*da < *db);
 }
 
@@ -2819,6 +2829,7 @@ int dcompare(const void *a, const void *b)
 void dvecsort(double *v, int size)
 {
     assert(v != NULL);
+    assert(size >= 0);
     qsort(v, size, sizeof(double), dcompare);
 }
 

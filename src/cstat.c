@@ -2032,14 +2032,21 @@ double isign(int x)
                             VECTOR ALGEBRA
 ************************************************************************/
 
-void grid (double x0, double xn, int n, double *x) 
-{ 
-  int i; 
-  double dx,xi; 
-  dx = (xn-x0)/(n-1.0); 
-  for(i=0,xi=x0;i<n;i++,xi+=dx) 
-    x[i]=xi; 
-} 
+void grid(double x0, double xn, int n, double *x)
+{
+    register int i;
+    double dx;
+    double xi;
+
+    assert(x != NULL);
+
+    dx = (xn - x0) / (n - 1.0);
+    xi = x0;
+    for (i = 0; i < n; i++) {
+        x[i] = xi;
+        xi += dx;
+    }
+}
 
 
 void rA(double r,double **A, double **B, int rowini, int rowfi, int colini, int colfi) {

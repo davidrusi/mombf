@@ -891,6 +891,7 @@ FILE *openIn(const char *name)
     return(ifile);
 }
 
+
 /* open file for output */
 FILE *openOut(const char *name)
 {
@@ -1068,6 +1069,7 @@ void writeInt(int i)
     }
 }
 
+
 void writeLong(long i)
 {
     if (fprintf(ofile, "%ld\n", i) < 0) {
@@ -1076,6 +1078,7 @@ void writeLong(long i)
     }
 }
 
+
 void writeFloat(float x)
 {
     if (fprintf(ofile, "%f\n", x) < 0) {
@@ -1083,6 +1086,7 @@ void writeFloat(float x)
         /*NOTREACHED*/ 
     }
 }
+
 
 void writeDouble(double x)
 {
@@ -1394,6 +1398,7 @@ float *vector(int nl, int nh)
         return v-nl; 
 } 
 
+
 double  *dvector(int nl, int nh) 
 { 
         double  *v; 
@@ -1404,6 +1409,7 @@ double  *dvector(int nl, int nh)
 	  nrerror("dvector", "allocate a double vector", ""); 
         return v-nl; 
 } 
+
 
 double  **dmatrix(int nrl, int nrh, int ncl, int nch) 
 { 
@@ -1426,6 +1432,7 @@ double  **dmatrix(int nrl, int nrh, int ncl, int nch)
         } 
         return m; 
 } 
+
 
 /*
 double ***darray_3(int lo, int hi) 
@@ -1452,6 +1459,7 @@ double ***darray3(int n, int p, int q)
 } 
 */
 
+
 double ***darray3(int n1, int n2, int n3)
 /***********************************************************************
   allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
@@ -1476,6 +1484,7 @@ double ***darray3(int n1, int n2, int n3)
   return a;
 }
 
+
 int  *ivector(int nl, int nh) 
 { 
         int  *v; 
@@ -1485,6 +1494,7 @@ int  *ivector(int nl, int nh)
         if (!v) nrerror("ivector", "allocate an int vector", ""); 
         return v-nl; 
 } 
+
 
 int  **imatrix(int nrl, int nrh, int ncl, int nch) 
 { 
@@ -1505,6 +1515,7 @@ int  **imatrix(int nrl, int nrh, int ncl, int nch)
         return m; 
 } 
 
+
 /*
 int ***iarray_3(int lo, int hi) 
 { 
@@ -1517,6 +1528,7 @@ int ***iarray_3(int lo, int hi)
   m -= lo; 
   return m; 
 }
+
 
 int ***iarray3(int p1, int p2, int p3) 
 { 
@@ -1560,17 +1572,20 @@ void free_vector(float  *v, int nl, int nh)
 	nv -= (nh-nl+1); 
 } 
 
+
 void free_dvector(double  *v, int nl, int nh) 
 { 
         if( (v+nl) != NULL ) free((char  *) (v+nl)); 
 	nv -= (nh-nl+1); 
 } 
 
+
 void free_ivector(int  *v, int nl, int nh) 
 { 
         if( (v+nl) != NULL ) free((char  *) (v+nl)); 
 	nv -= (nh-nl+1); 
 } 
+
 
 void free_dmatrix(double  **m, int nrl, int nrh, int ncl, int nch) 
 { 
@@ -1582,6 +1597,7 @@ void free_dmatrix(double  **m, int nrl, int nrh, int ncl, int nch)
         nv -= (nch-ncl+1)*(nrh-nrl+1); 
 } 
  
+
 void free_imatrix(int  **m, int nrl, int nrh, int ncl, int nch) 
 { 
         int i; 
@@ -1592,11 +1608,13 @@ void free_imatrix(int  **m, int nrl, int nrh, int ncl, int nch)
         nv -= (nch-ncl+1)*(nrh-nrl+1); 
 } 
 
+
 void free_darray3(double ***a, int n1, int n2, int n3) {
   free((char*) (a[0][0]));
   free((char*) (a[0]));
   free((char*) (a));
 }
+
 
 void free_iarray3(int ***a, int n1, int n2, int n3) {
         free((char*) (a[0][0]));
@@ -1680,6 +1698,7 @@ S40:
     gamln = d+w+(*a-0.5e0)*(log(*a)-1.0e0);
     return gamln;
 }
+
 
 double gamln1(double *a)
 /*
@@ -2022,6 +2041,7 @@ void grid (double x0, double xn, int n, double *x)
     x[i]=xi; 
 } 
 
+
 void rA(double r,double **A, double **B, int rowini, int rowfi, int colini, int colfi) {
   //Multiply matrix A[1..p][1..q] by scalar r, store results in matrix B
   int _i, _j;
@@ -2030,6 +2050,7 @@ void rA(double r,double **A, double **B, int rowini, int rowfi, int colini, int 
       B[_i][_j] = r* A[_i][_j];	 
   } 
 } 
+
 
 void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi) {
  //Sum matrix A[rowini..rowfi][colini..colfi] + B[rowini..rowfi][colini..colfi], store results in C
@@ -2046,6 +2067,7 @@ void  rA_plus_sB(double r, double **A, double s, double **B, double **C, int row
       C[_i][_j]= r*A[_i][_j]+s*B[_i][_j];  
 } 
 
+
 void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi) {
   //Scalar*matrix*vector + scalar*matrix*vector
   int _i, _j; 
@@ -2053,6 +2075,7 @@ void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double 
     for(z[_i]=0,_j=colini; _j<=rowfi; _j++) 
       z[_i] += r*A[_i][_j]*x[_j] + s*B[_i][_j]*y[_j]; 
 } 
+
 
 void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi) { 
   //Multiply matrix A[ini..fi][ini..fi] by vector x[ini..fi] and add vector y[ini..fi]
@@ -2063,6 +2086,7 @@ void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi) {
       z[_i] += A[_i][_j]*x[_j]; 
 } 
 
+
 void xA(double *x,double **A,double *z, int ini, int fi) { 
   int _i, _j;
   for(_i=ini;_i<=(fi);_i++){				 
@@ -2071,6 +2095,7 @@ void xA(double *x,double **A,double *z, int ini, int fi) {
   } 
 }
  
+
 void Ax(double **A,double *x,double *z, int rowini, int rowfi, int colini, int colfi) { 
   int _i, _j;
   for(_i=rowini;_i<=rowfi;_i++){				 
@@ -2078,6 +2103,7 @@ void Ax(double **A,double *x,double *z, int rowini, int rowfi, int colini, int c
       z[_i]+=A[_i][_j]*x[_j];	 
   } 
 } 
+
 
 void Avecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi) {
   int _i, _j, nrow=rowfi-rowini+1;
@@ -2087,6 +2113,7 @@ void Avecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, i
   } 
 }
 
+
 void Atvecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi) {
   int _i, _j, nrow=rowfi-rowini+1;
   for(_i=rowini;_i<=rowfi;_i++){				 
@@ -2094,6 +2121,7 @@ void Atvecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, 
       z[_i]+=A[_j + _i*nrow]*x[_j];	 
   } 
 }
+
 
 double xtAy (double *x, double **A, double *y, int ini, int fi) { 
   int _i, _j; double z; 
@@ -2103,6 +2131,7 @@ double xtAy (double *x, double **A, double *y, int ini, int fi) {
   return(z); 
 }
  
+
 double quadratic_xtAx(double *x, double **A, int ini, int fi) {
  //t(vector)*matrix*vector for quadratic forms (A must be symmetric)
  //Note: this routine is faster than xtAy for symmetric A (saves 25%-50% operations)
@@ -2115,6 +2144,7 @@ double quadratic_xtAx(double *x, double **A, int ini, int fi) {
   }
   return(z);
 }
+
 
 double quadratic_xseltAselxsel(double *x, double *A, int *ncolA, int *nsel, int *sel) {
  //t(x[sel])*A[sel,sel]*x[sel] for quadratic forms (A must be symmetric and given as a vector)
@@ -2131,6 +2161,7 @@ double quadratic_xseltAselxsel(double *x, double *A, int *ncolA, int *nsel, int 
   }
   return(z);
 }
+
 
 double quadratic_xtAselx(double *x, double *A, int *ncolA, int *nsel, int *sel) {
  //t(x)*A[sel,sel]*x for quadratic forms (A must be symmetric and given as a vector)
@@ -2337,20 +2368,24 @@ int iabs(int x)
   return (x>0) ? x : -x;
 }
 
+
 int imax_xy(int x, int y) 
 { 
   return (x>y) ? x : y; 
 } 
+
 
 int imin_xy(int x, int y) 
 { 
   return (x<y) ? x : y; 
 } 
 
+
 double max_xy(double x, double y) 
 { 
   return (x>y) ? x : y; 
 } 
+
 
 double min_xy(double x, double y) 
 { 
@@ -2774,6 +2809,7 @@ in matrix inversion. */
   } //All done!
 }
 
+
 void lu_inverse(double **a, int n, double **aout) {
 /* Inverse of a non-singular matrix a. Result is stored in aout, original matrix a is destroyed */
 double d,*col;
@@ -2788,7 +2824,6 @@ int i,j,*indx;
    for(i=1;i<=n;i++) aout[i][j]=col[i];
  }
  free_ivector(indx,1,n); free_dvector(col,1,n);
-
 }
 
 
@@ -2933,6 +2968,7 @@ void samplei_wr(int *x, int popsize, int n) {
     temp= x[i]; x[i]= x[r]; x[r]= temp;
   }
 }
+
 
 void sampled_wr(double *x, int popsize, int n) { //same for vector of doubles
 //Sample of size n without replacement from vector x of length popsize
@@ -3182,6 +3218,7 @@ double dnormC_jvec(double *y, int n, double m, double s, int logscale) {
   return(ans);
 }
 
+
 double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int logscale) { 
 /* Density of multivariate Normal evaluated at y[1]...y[n]. mu is the mean. chols and
    are the Cholesky decomposition and the determinant of the inverse covariance matrix.
@@ -3299,6 +3336,7 @@ void rmultinomial(int n_draw, int n_cell, double *pr, int *x)
   free_dvector(cum_p,0,n_cell); 
 } 
 
+
 //Beta-binomial(alpha,beta) prior probability for a model including k out of p variables.
 double bbPrior(int k, int p, double alpha, double beta, int logscale) {
   double ans;
@@ -3381,8 +3419,8 @@ void rmvnormC(double *y, int n, double *mu, double **chols) {
   for (i=1;i<=n;i++) { z[i]= rnormC(0,1); } //generate n independent draws from a univariate Normal
   Ax_plus_y(chols,z,mu,y,1,n);             //compute mu + chols*z
   free_dvector(z,1,n);
-
 }
+
 
 //Raw moment of N(m,sd) of order "order"
 //Function adapted from that in R package "actuar"
@@ -3681,6 +3719,7 @@ double dgammaC(double x, double a, double b)
   }
 }
 
+
 //Density of an Inverse Gamma(a,b) (a: shape; b: location; mean of 1/x= a/b)
 double dinvgammaC(double x, double a, double b)
 {
@@ -3925,6 +3964,7 @@ S160:
     }
     return;
 }
+
 
 double spmpar(int *i)
 /*
@@ -4206,6 +4246,7 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
     if(*ccum < min) *ccum = 0.0e0;
 }
 
+
 double dinvnr(double *p,double *q)
 /*
 **********************************************************************
@@ -4363,6 +4404,7 @@ S20:
     stvaln = sign*stvaln;
     return stvaln;
 }
+
 
 double devlpl(double a[],int *n,double *x)
 /*
@@ -5248,6 +5290,7 @@ S160:
     goto S140;
 }
 
+
 double fsign( double num, double sign )
 /* Transfers sign of argument sign to argument num */
 {
@@ -5255,7 +5298,6 @@ if ( ( sign > 0.0 && num < 0.0) || ( sign < 0.0 && num > 0.0) )
     return -num;
 else return num;
 }
-
 
 
 double sexpo(void)
@@ -5317,6 +5359,7 @@ S70:
     sexpo = a+umin**q1;
     return sexpo;
 }
+
 
 long mltmod(long a,long s,long m)
 /*
@@ -5413,6 +5456,7 @@ S140:
 #undef h
 }
 
+
 double ranf(void)
 /*
 **********************************************************************
@@ -5437,6 +5481,7 @@ static double ranf;
     ranf = ignlgi()*4.656613057E-10;
     return ranf;
 }
+
 
 void gscgn(long getset,long *g)
 /*
@@ -5465,6 +5510,7 @@ static long curntg = 1;
 #undef numg
 }
 
+
 void gsrgs(long getset,long *qvalue)
 /*
 **********************************************************************
@@ -5483,6 +5529,7 @@ static long qinit = 0;
     else qinit = *qvalue;
 }
 
+
 void gssst(long getset,long *qset)
 /*
 **********************************************************************
@@ -5499,6 +5546,7 @@ static long qstate = 0;
     if(getset != 0) qstate = 1;
     else  *qset = qstate;
 }
+
 
 void setall(long iseed1,long iseed2)
 /*
@@ -5551,6 +5599,7 @@ static long qrgnin;
     gscgn(1L,&ocgn);
 #undef numg
 }
+
 
 void initgn(long isdtyp)
 /*
@@ -5669,6 +5718,7 @@ static long qqssd,qrgnin;
 #undef numg
 }
 
+
 void inrgcm(void)
 /*
 **********************************************************************
@@ -5713,8 +5763,6 @@ static long i;
 }
 
 
-
-
 /************************************************************************
                       INTEGRATION
 ************************************************************************/
@@ -5753,6 +5801,7 @@ double midpnt(double (*func)(double), double a, double b, int n)
   }
 
 }
+
 
 double midinf(double (*funk)(double), double aa, double bb, int n)
 /* This routine is an exact replacement for midpnt i.e. returns the nth stage of refinement of
@@ -5892,7 +5941,6 @@ void polint (double xa[], double ya[], int n, double x, double *y, double *dy)
 
   free_dvector(d,1,n);
   free_dvector(c,1,n);
-
 }
 
 
@@ -5911,6 +5959,7 @@ double bspline_singlex(double x, int j, int degree, double *knots) {
   }
   return(ans);
 }
+
 
 void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
  //B-spline basis eval at vector of values x. Normalized to sum to 1 at any x value.
@@ -5936,8 +5985,9 @@ void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
   }
 }
 
+
 void bspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots) {
-  //same as routine bspline but returs a vector so that it can be called from R
+  //same as routine bspline but returns a vector so that it can be called from R
   int i,j;
   double **Wtemp;
 
@@ -5946,6 +5996,7 @@ bspline(Wtemp,x,nx,degree,knots,nknots);
 for (i=0; i<(*nx); i++) { for (j=0; j<(*nknots - *degree -1); j++) { W[i*(*nknots - *degree -1)+j]= Wtemp[i][j]; } }
 free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
 }
+
 
 void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
   //M-spline basis eval at vector of values x. Normalized to integrate to 1 wrt x
@@ -5962,8 +6013,9 @@ void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
   }
 }
 
+
 void mspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots) {
-  //same as routine mspline but returs a vector so that it can be called from R
+  //same as routine mspline but returns a vector so that it can be called from R
   int i,j;
   double **Wtemp;
 
@@ -6051,6 +6103,7 @@ double univmin(double ax, double bx, double cx, double (*f)(double), double eps,
   return fx;
 
 }
+
 
 #define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f);
 double dunivmin(double ax,double bx,double cx,double (*f)(double),double (*df)(double),double eps,double *xmin,int itmax) {
@@ -6143,9 +6196,7 @@ the minimum function value is returned as dunivmin, the returned function value.
 
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
-
 }
-
 
 
 void minimize(double th[],double **dirini,int n,double eps,int *iter,double *fret,double (*f)(double []),int itmax) {
@@ -6249,6 +6300,7 @@ double xx,xmin,fx,fb,fa,bx,ax;
  free_dvector(pcom,1,n);
 }
 
+
 double f1dim(double x) {
 //Must accompany dirmin.
   int j;
@@ -6259,6 +6311,7 @@ double f1dim(double x) {
   free_dvector(xt,1,ncom);
   return f;
 }
+
 
 static double maxarg1,maxarg2;
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))

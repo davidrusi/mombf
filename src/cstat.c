@@ -2102,13 +2102,34 @@ void A_plus_B(double **A,
 }
 
 
-void  rA_plus_sB(double r, double **A, double s, double **B, double **C, int rowini, int rowfi, int colini, int colfi) {
-  //Multiply scalar r times matrix A, add scalar s times matrix B, store results in C
-  int _i, _j;
-  for(_i=rowini;_i<=(rowfi);_i++)  
-    for(_j=colini;_j<=(colfi);_j++)			 
-      C[_i][_j]= r*A[_i][_j]+s*B[_i][_j];  
-} 
+/*
+ * Add matrix A[rowini..rowfi][colini..colfi] (multiplied by scalar r) and
+ * matrix B[rowini..rowfi][colini..colfi] (multiplied by scalar s).
+ * Store results in C.
+ */
+void rA_plus_sB(double r,
+                double **A,
+                double s,
+                double **B,
+                double **C,
+                int rowini,
+                int rowfi,
+                int colini,
+                int colfi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(B != NULL);
+    assert(C != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        for (j = colini; j <= colfi; j++) {
+            C[i][j] = (r * A[i][j]) + (s * B[i][j]);
+        }
+    }
+}
 
 
 void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi) {

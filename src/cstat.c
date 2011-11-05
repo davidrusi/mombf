@@ -2157,8 +2157,8 @@ void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi) {
  */
 void xA(const double *x,
         double **A,
-        double *z, 
-        int ini, 
+        double *z,
+        int ini,
         int fi)
 {
     register int i;
@@ -2175,7 +2175,7 @@ void xA(const double *x,
         }
     }
 }
- 
+
 
 void Ax(double **A,double *x,double *z, int rowini, int rowfi, int colini, int colfi) { 
   int _i, _j;

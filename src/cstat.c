@@ -2781,29 +2781,45 @@ int i,j,*indx;
 
 }
 
-double lu_det(double **a, int n) {
-/*Determinant of a matrix a. Original matrix a is destroyed and its LU decomposition is returned */
-  double d;
-  int j,*indx;
 
-  indx= ivector(1,n);
-  ludc(a,n,indx,&d); //This returns d as +/-1.
-  for(j=1;j<=n;j++) d *= a[j][j];
-  free_ivector(indx,1,n);
-  return(d);
+/*
+ * Determinant of a matrix a.
+ * Original matrix a is destroyed and its LU decomposition is returned.
+ */
+double lu_det(double **a, int n)
+{
+    double d;
+    int j;
+    int *indx;
+
+    assert(a != NULL);
+
+    indx = ivector(1, n);
+    ludc(a, n, indx, &d); /* returns d as +/-1 */
+    for (j = 1; j <= n; j++) {
+        d *= a[j][j];
+    }
+    free_ivector(indx, 1, n);
+    return(d);
 }
 
 
+int dcompare(const void *a, const void *b)
+{
+    const double *da = (const double *) a;
+    const double *db = (const double *) b;
 
-int dcompare (const void *a, const void *b) {
-const double *da = (const double *) a;
-const double *db = (const double *) b;
+    assert(da != NULL);
+    assert(db != NULL);
      
-return (*da > *db) - (*da < *db);
+    return (*da > *db) - (*da < *db);
 }
 
-void dvecsort(double *v, int size) {
-qsort (v, size, sizeof (double), dcompare);
+
+void dvecsort(double *v, int size)
+{
+    assert(v != NULL);
+    qsort(v, size, sizeof(double), dcompare);
 }
 
 

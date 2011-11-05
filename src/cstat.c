@@ -2363,9 +2363,11 @@ void ddiag(double **A,
 }
 
 
+/* Returns the absolute value of parameter x */
+/* NOTE: redefines C89 standard library function abs() for no good reason. */
 int iabs(int x)
 {
-  return (x>0) ? x : -x;
+    return (x >= 0) ? x : -x;
 }
 
 

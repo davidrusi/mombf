@@ -4555,7 +4555,7 @@ S20:
 }
 
 
-void cumnor(double *arg,double *result,double *ccum)
+void cumnor(double *arg, double *result, double *ccum)
 /*
 **********************************************************************
  
@@ -4768,7 +4768,7 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 }
 
 
-double dinvnr(double *p,double *q)
+double dinvnr(double *p, double *q)
 /*
 **********************************************************************
  
@@ -4927,7 +4927,7 @@ S20:
 }
 
 
-double devlpl(double a[],int *n,double *x)
+double devlpl(double a[], int *n, double *x)
 /*
 **********************************************************************
  
@@ -5427,7 +5427,7 @@ S10:
 }
 
 
-double gengam(double a,double r)
+double gengam(double a, double r)
 /*
 **********************************************************************
      double gengam(double a,double r)
@@ -6370,14 +6370,13 @@ double midinf(double (*funk)(double), double aa, double bb, int n)
  * contains only even powers of the number of steps. Integration is performed
  * by Romberg's method of order 2K (K=2 is Simpson's rule)
  *
- * USAGE EXAMPLES
+ * Examples:
  *
  * Integrate f from 0 to 2
  * answer = qromo(f, 0.0, 2.0, midpnt);
  *
  * Integrate f from 0 to 1.0e30 (cutpoint should be chosen in the tail of fx)
  * answer = qromo(f, 0.0, 2.0, midpnt) + qromo(f, 2.0, 1.0e30, midinf)
- *
  */
 double qromo(double (*func)(double),
              double a,
@@ -6621,7 +6620,6 @@ double univmin(double ax, double bx, double cx, double (*f)(double), double eps,
 
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
-
 }
 
 
@@ -6833,7 +6831,9 @@ double f1dim(double x) {
 }
 
 
-static double maxarg1,maxarg2;
+static double maxarg1;
+static double maxarg2;
+
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))
 
 void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc,double (*func)(double)) {

@@ -3123,20 +3123,45 @@ in matrix inversion. */
 }
 
 
-void lu_inverse(double **a, int n, double **aout) {
-/* Inverse of a non-singular matrix a. Result is stored in aout, original matrix a is destroyed */
-double d,*col;
-int i,j,*indx;
+/*
+ * Inverse of a non-singular matrix a.
+ * Result is stored in aout, original matrix a is destroyed.
+ */
+void lu_inverse(double **a,
+                int n,
+                double **aout)
+{
+    register int i;
+    register int j;
+    double *col;
+    int *indx;
 
- indx= ivector(1,n); col= dvector(1,n);
- ludc(a,n,indx,&d); //Decompose the matrix just once.
- for(j=1;j<=n;j++) { //Find inverse by columns.
-   for(i=1;i<=n;i++) col[i]=0.0;
-   col[j]=1.0;
-   lu_solve(a,n,indx,col);
-   for(i=1;i<=n;i++) aout[i][j]=col[i];
- }
- free_ivector(indx,1,n); free_dvector(col,1,n);
+    assert(a != NULL);
+    assert(aout != NULL);
+
+    col  = dvector(1, n);
+    indx = ivector(1, n);
+
+    /* Decompose the matrix just once */
+    {
+        double d;
+
+        ludc(a, n, indx, &d);
+    }
+
+    /* Find inverse by columns */
+    for (j = 1; j <= n; j++) {
+        for (i = 1; i <= n; i++) {
+            col[i] = 0.0;
+        }
+        col[j] = 1.0;
+        lu_solve(a, n, indx, col);
+        for (i = 1; i <= n; i++) {
+            aout[i][j] = col[i];
+        }
+    }
+    free_dvector(col,  1, n);
+    free_ivector(indx, 1, n);
 }
 
 
@@ -3162,6 +3187,7 @@ double lu_det(double **a, int n)
 }
 
 
+/* Comparison function used by qsort() for doubles */
 int dcompare(const void *a, const void *b)
 {
     const double *da = (const double *) a;
@@ -3174,6 +3200,7 @@ int dcompare(const void *a, const void *b)
 }
 
 
+/* Sorts double vector */
 void dvecsort(double *v, int size)
 {
     assert(v != NULL);

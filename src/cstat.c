@@ -2177,13 +2177,32 @@ void xA(const double *x,
 }
 
 
-void Ax(double **A,double *x,double *z, int rowini, int rowfi, int colini, int colfi) { 
-  int _i, _j;
-  for(_i=rowini;_i<=rowfi;_i++){				 
-    for(z[_i]=0,_j=colini; _j<=colfi; _j++)		 
-      z[_i]+=A[_i][_j]*x[_j];	 
-  } 
-} 
+/*
+ * Multiply matrix A[rowini..rowfi][colini..colfi] by vector x[colini..colfi].
+ * Store result in vector z.
+ */
+void Ax(double **A,
+        const double *x,
+        double *z,
+        int rowini,
+        int rowfi,
+        int colini,
+        int colfi)
+{
+    register int i;
+    register int j;
+
+    assert(x != NULL);
+    assert(A != NULL);
+    assert(z != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        z[i] = 0.0;
+        for (j = colini; j <= colfi; j++) {
+            z[i] += A[i][j] * x[j];
+        }
+    }
+}
 
 
 /*

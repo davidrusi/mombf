@@ -3252,7 +3252,7 @@ void dindexsort(double *x,
     ulo = ilo;
     uhi = ihi;
 
-    /* While the unpartitioned region is not empty, try to reduce its size. */
+    /* While the unpartitioned region is not empty, try to reduce its size */
     while (ulo < uhi) {
         if ((x[index[uhi]] * incr) > (x[index[pivot]] * incr)) {
             /* Check if upper subvector is ordered */
@@ -3633,23 +3633,44 @@ double	pnormC(double y, double m, double s)
 }
 
 
-double dnormC(double y, double m, double s, int logscale) {
-/* Density of univariate Normal(m,s^2) evaluated at y. log==1 returns in log-scale */
-
-  if (logscale==1)
-    return(-log(SQ_M_PI_2)-log(s)-0.5*(y-m)*(y-m)/(s*s));
-  else
-    return(exp(-0.5*(y-m)*(y-m)/(s*s))/(SQ_M_PI_2 * s));
+/*
+ * Density of univariate Normal(m,s^2) evaluated at y.
+ * log==1 returns in log-scale.
+ */
+double dnormC(double y,
+              double m,
+              double s,
+              int logscale)
+{
+    if (logscale == 1) {
+        return(-log(SQ_M_PI_2) - log(s) - 0.5 * (y - m) * (y - m) / (s * s));
+    }
+    else {
+        return(exp(-0.5 * (y - m) * (y - m) / (s * s)) / (SQ_M_PI_2 * s));
+    }
 }
 
-double dnormC_jvec(double *y, int n, double m, double s, int logscale) { 
-//Joint density of y[0]...y[n-1] under Normal(m,s^2), i.e. returns scalar
-  int _i; double ans;
-  for (_i=0, ans=0; _i<n; _i++) {
-    ans+= dnormC(y[_i],m,s,1);
-  }
-  if (logscale!=1) ans= exp(ans);
-  return(ans);
+
+/* Joint density of y[0]...y[n-1] under Normal(m,s^2) */
+double dnormC_jvec(const double *y,
+                   int n,
+                   double m,
+                   double s,
+                   int logscale)
+{
+    register int i;
+    double ans = 0.0;
+
+    assert(y != NULL);
+
+    for (i = 0; i < n; i++) {
+        ans += dnormC(y[i], m, s, 1);
+    }
+
+    if (logscale != 1) {
+        ans = exp(ans);
+    }
+    return(ans);
 }
 
 

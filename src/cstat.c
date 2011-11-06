@@ -3687,12 +3687,23 @@ void rmultinomial(int n_draw, int n_cell, double *pr, int *x)
 }
 
 
-//Beta-binomial(alpha,beta) prior probability for a model including k out of p variables.
-double bbPrior(int k, int p, double alpha, double beta, int logscale) {
-  double ans;
-  ans= lnbeta(alpha +k, beta +p-k) - lnbeta(alpha,beta);
-  if (!logscale) ans= exp(ans);
-  return(ans);
+/*
+ * Beta-binomial(alpha,beta) prior probability for a model including
+ * k out of p variables.
+ */
+double bbPrior(int k,
+               int p,
+               double alpha,
+               double beta,
+               int logscale)
+{
+    double ans;
+
+    ans = lnbeta(alpha + k, beta + p - k) - lnbeta(alpha, beta);
+    if (!logscale) {
+        ans = exp(ans);
+    }
+    return(ans);
 }
 
 

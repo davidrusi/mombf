@@ -181,7 +181,7 @@ double xtAy(const double *x, double **A, const double *y, int ini, int fi); //t(
 double quadratic_xtAx(const double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
 double quadratic_xseltAselxsel(const double *x, const double *A, const int *ncol, const int *nsel, const int *sel); // same but A is formatted as vector & only a subset of x, A is to be used
 double quadratic_xtAselx(const double *x, const double *A, const int *ncolA, const int *nsel, const int *sel); //same but subset is only for A
-double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel); //same but subset is only for x
+double quadratic_xseltAxsel(const double *x, double **A, int ini, const int *nsel, const int *sel); //same but subset is only for x
 
 void Atx(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
 void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C

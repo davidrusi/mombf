@@ -2418,21 +2418,44 @@ double quadratic_xtAselx(const double *x,
 }
 
 
-double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel) {
- //t(x[sel])*A*x[sel] for quadratic forms (A must be symmetric and given as a matrix)
- // - ini: element in A are indexed from ini to *nsel - ini
- // - nsel: length of vector sel
- // - sel: vector with indexes for positions in x and (rows,columns) in A to be used in the operation
- //Note: this routine is faster than xtAy for symmetric A (saves 25%-50% operations)
-  int _i, _j, rowA; double z;
-  for (z=0,_i=0; _i<=(*nsel)-1; _i++) {
-    rowA= ini + _i;
-    z+= A[rowA][rowA]*x[sel[_i]]*x[sel[_i]];
-    for (_j=_i+1; _j<=(*nsel)-1; _j++) {
-      z+= 2*A[rowA][ini+ _j]*x[sel[_i]]*x[sel[_j]];
+/*
+ * Returns sum of multiplying symmetric matrix A[sel][sel]
+ * by transposed vector x[sel] by vector x[sel] for quadratic forms.
+ *     ini  : element in A are indexed from ini to *nsel-1
+ *     nsel : length of vector sel.
+ *     sel  : vector with indexes for positions in x and (rows,cols) in A
+ *            to be used in the operation.
+ *
+ * Same as above but subset is only for x.
+ * Note: Faster than xtAy() for symmetric A (saves 25%-50% operations).
+ */
+double quadratic_xseltAxsel(const double *x,
+                            double **A,
+                            int ini,
+                            const int *nsel,
+                            const int *sel)
+{
+    register int i;
+    register int j;
+    double z = 0.0;
+
+    assert(x != NULL);
+    assert(A != NULL);
+    assert(nsel != NULL);
+    assert(sel != NULL);
+
+    for (i = 0; i <= (*nsel)-1; i++) {
+        int rowA;
+        int i_sel;
+
+        rowA = ini + i;
+        i_sel = sel[i];
+        z += A[rowA][rowA] * x[i_sel] * x[i_sel];
+        for (j = i+1; j <= (*nsel)-1; j++) {
+            z += 2 * A[rowA][ini + j] * x[i_sel] * x[sel[j]];
+        }
     }
-  }
-  return(z);
+    return(z);
 }
 
 

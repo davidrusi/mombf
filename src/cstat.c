@@ -4201,25 +4201,46 @@ double ptC(double x, int nu)
 }
 
 
-// Draw from multivar T with n dimensions and nu degrees of freedom
-/* Result is stored in y[1..n]. mu is the location parameter, chols is the Cholesky decomposition
-   of the covariance matrix. That is, the covariance is s*nu/(nu-2) and s=chols*chols'
-   and nu are the degrees of freedom 
-   Note: both y and mu should have length n, and s should be an n*n matrix. The routine doesn't
-   check it 
-   Example: choldc(s,n,chols); //compute cholesky decomposition
-            rmvtC(y,n,mu,chols,nu); //generate random variate
+/*
+ * Draw from multivar T with n dimensions and nu degrees of freedom
+ * Result is stored in y[1..n].
+ *     mu is the location parameter
+ *     chols is the Cholesky decomposition of the covariance matrix.
+ * That is, the covariance is s*nu/(nu-2) and s=chols*chols'
+ * and nu are the degrees of freedom
+ * Note: both y and mu should have length n, and s should be an n*n matrix.
+ * The routine doesn't check it.
+ *
+ * Example:
+ *   choldc(s,n,chols); //compute cholesky decomposition
+ *   rmvtC(y,n,mu,chols,nu); //generate random variate
  */
-void rmvtC(double *y, int n, double *mu, double **chols, int nu)
+void rmvtC(double *y,
+           int n,
+           const double *mu,
+           double **chols,
+           int nu)
 {
-  int i;
-  double x, *z;
+    register int i;
+    double x;
+    double *z;
 
-  x= sqrt(nu/gengam(0.5,nu/2.0));  //draw from chi-square with nu degrees of freedom
-  z= dvector(1,n);
-  for (i=1;i<=n;i++) { z[i]= x*rnormC(0,1); } //multiple n indep normal draws by the common chi-square
-  Ax_plus_y(chols,z,mu,y,1,n);          //compute mu + chols*z
-  free_dvector(z,1,n);
+    assert(y != NULL);
+    assert(mu != NULL);
+    assert(chols != NULL);
+
+    /* Draw from chi-square with nu degrees of freedom */
+    x = sqrt(nu / gengam(0.5, nu / 2.0));
+
+    /* Multiple n indep normal draws by the common chi-square */
+    z = dvector(1, n);
+    for (i = 1; i <= n; i++) {
+        z[i] = x * rnormC(0, 1);
+    }
+    /* Compute mu + chols*z */
+    Ax_plus_y(chols, z, mu, y, 1, n);
+
+    free_dvector(z, 1, n);
 }
 
 

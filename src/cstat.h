@@ -274,7 +274,7 @@ double rt_trunc(int nu, double ltrunc, double rtrunc); //draw from truncated t g
 double rt_trunc_prob(int nu, double lprob, double rprob);  //draw from truncated t given trunc probs
 double qtC(double p, int nu);  //quantile from t-Student with nu degrees of freedom
 double ptC(double x, int nu);  //CDF of t-Student with nu degrees of freedom
-void rmvtC(double *y, int n, double *mu, double **chols, int nu); //draw from multivar T with nu degrees of freedom
+void rmvtC(double *y, int n, const double *mu, double **chols, int nu); //draw from multivar T with nu degrees of freedom
 
 // Gamma & Inverse gamma
 double rgammaC(double a, double b); //a: shape; b: location; mean=a/b

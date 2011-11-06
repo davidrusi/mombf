@@ -3902,22 +3902,38 @@ double rnorm_trunc_prob(double lprob, double rprob, double m, double s)
 }
 
 
-// Draw from multivar Normal with n dimensions
-void rmvnormC(double *y, int n, double *mu, double **chols) {
-/* Result is stored in y[1..n]. mu is the location parameter, chols is the Cholesky decomposition
-   of the covariance matrix. That is, the covariance is s and s=chols*chols'
-   Note: both y and mu should have length n, and s should be an n*n matrix. The routine doesn't
-   check it 
-   Example: choldc(s,n,chols); //compute cholesky decomposition
-            rmvnormC(y,n,mu,chols); //generate random variate */
+/*
+ * Draw from multivar Normal with n dimensions.
+ * Result is stored in y[1..n]. mu is the location parameter, chols is the
+ * Cholesky decomposition of the covariance matrix. That is, the covariance
+ * is s and s=chols*chols'
+ * Note: both y and mu should have length n, and s should be an n*n matrix.
+ * The routine doesn't check it.
+ *
+ * Example:
+ *   choldc(s,n,chols); //compute cholesky decomposition
+ *   rmvnormC(y,n,mu,chols); //generate random variate
+ */
+void rmvnormC(double *y,
+              int n,
+              const double *mu,
+              double **chols)
+{
+    register int i;
+    double *z;
 
-  int i;
-  double *z;
+    assert(y != NULL);
+    assert(mu != NULL);
+    assert(chols != NULL);
 
-  z= dvector(1,n);
-  for (i=1;i<=n;i++) { z[i]= rnormC(0,1); } //generate n independent draws from a univariate Normal
-  Ax_plus_y(chols,z,mu,y,1,n);             //compute mu + chols*z
-  free_dvector(z,1,n);
+    z = dvector(1, n);
+    /* Generate n independent draws from a univariate Normal */
+    for (i = 1; i <= n; i++) {
+        z[i] = rnormC(0, 1);
+    }
+    /* Compute mu + chols*z */
+    Ax_plus_y(chols, z, mu, y, 1, n);
+    free_dvector(z, 1, n);
 }
 
 

@@ -259,7 +259,7 @@ double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
 double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given trunc points
 double rnorm_trunc_prob(double lprob, double rprob, double m, double s); //draw trunc Normal given trunc probs
-void rmvnormC(double *y, int n, double *mu, double **chols); //draw from multivariate Normal
+void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal
 
 // Moments
 double mnorm(double order, double m, double sd); //raw moment of N(m,sd) of order "order"

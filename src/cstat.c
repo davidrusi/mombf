@@ -3604,32 +3604,43 @@ double gamdev(double alpha)
 /* *************************************************' 
    normal cdf and inv cdf 
  ************************************************* */ 
-double	pnormC(double y, double m, double s) 
-/* returns cdf of normal N(m,s^2) at x */ 
-{	 
-  double  /* used to all be float... */
-    p, q, mean,sd,bound,x,z; 
-  double  
-    cdf; 
-  int  
-    status,which; 
- 
-  /* primitive type conversion */ 
-  x = y;  
-  mean = m; 
-  sd = s; 
-  which = 1; 
-  z = (x-mean)/sd; 
- 
-  if (z < -5.0) 
-    p = 2.86e-7F; 
-  else if (z > 5.0) 
-    p = 0.9999997F; 
-  else 
-    cdfnor(&which,&p, &q,     &x,     &mean,  &sd,    &status,    &bound); 
-   
-  cdf = p; /* another primitive type conversion */ 
-  return cdf; 
+
+/* Returns cdf of normal N(m,s^2) at x */
+double pnormC(double y,
+              double m,
+              double s)
+{
+    double cdf;
+    /* following used to all be float... */
+    double p;
+    double mean;
+    double sd;
+    double bound;
+    double x;
+    double z;
+
+    /* primitive type conversion */
+    x = y;
+    mean = m;
+    sd = s;
+    z = (x - mean) / sd;
+
+    if (z < -5.0) {
+        p = 2.86e-7F;
+    }
+    else if (z > 5.0) {
+        p = 0.9999997F;
+    }
+    else {
+        double q;
+        int status;
+        int which = 1;
+
+        cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+    }
+
+    cdf = p; /* another primitive type conversion */
+    return cdf;
 }
 
 
@@ -3797,7 +3808,7 @@ double dbinomial(int x, int n, double p, int logscale)
 void rmultinomial(int ndraws,
                   int ncells,
                   const double *pr,
-                  int *x) 
+                  int *x)
 {
     register int i;
     register int j;

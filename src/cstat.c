@@ -3209,46 +3209,105 @@ void dvecsort(double *v, int size)
 }
 
 
-void dindexsort(double *x, int *index, int ilo, int ihi, int incr) {
-/* Sorts vector of doubles x by rearranging values in index with quicksort algorithm e.g. x[index[ilo]], x[index[ilo+1]]... x[index[ihi]] is ordered */
-/* Input
-   - x: vector of doubles that we want to order from position ilo to ihi
-   - index: vector of integers indexing the values of x
-   - ilo: first element of x we want to order
-   - ihi: last element of x we want to order
-   - incr: for incr==1 x is returned in increasing order; incr==-1 in decreasing order
-   Output: vector index rearranged so that x[index[lo]], x[index[lo+1]]... x[index[ihi]] is ordered
-*/
+/*
+ * Sorts vector of doubles x by rearranging values in index with quicksort
+ * algorithm, e.g. x[index[ilo]], x[index[ilo+1]]... x[index[ihi]] is ordered
+ *
+ * Input:
+ *   x    : vector of doubles to be ordered from position ilo to ihi
+ *   index: vector of integers indexing the values of x
+ *   ilo  : first element of x to order
+ *   ihi  : last element of x to order
+ *   incr : for incr==1 x is returned in increasing order;
+ *          incr==-1 in decreasing order
+ * Output:
+ *   index: rearranged so that x[index[lo]], x[index[lo+1]]...x[index[ihi]]
+ *          is ordered
+ */
+void dindexsort(double *x,
+                int *index,
+                int ilo,
+                int ihi,
+                int incr)
+{
+    int pivot;              /* pivot value for partitioning array      */
+    int uhi, ulo;           /* indices at ends of unpartitioned region */
+    int tempEntry;          /* temporary entry used for swapping       */
+    bool sortup, sortlo;    /* indicate if sub-vectors are sorted so
+                             * no further subdivision is needed        */
 
-int pivot;              // pivot value for partitioning array
-int ulo, uhi;           // indices at ends of unpartitioned region
-int tempEntry;          // temporary entry used for swapping
-int sortlo, sortup;      // indicate if sub-vectors are sorted so no further subdivision is needed
+    assert(x != NULL);
+    assert(index != NULL);
 
-if (ilo >= ihi) { return; }
+    if (ilo >= ihi) {
+        return;
+    }
 
-sortlo= sortup= 1;
-pivot = (ilo + ihi)/2;                                                // Select a pivot value
-ulo = ilo; uhi = ihi;                                                 // Initialize ends of unpartitioned region
-// While the unpartitioned region is not empty, try to reduce its size.
-while (ulo < uhi) {
-  if ((x[index[uhi]]*incr) > (x[index[pivot]]*incr)) {                // Here, we can reduce the size of the unpartitioned region and try again.
-    if ((uhi<ihi) && ((x[index[uhi]]*incr)>(x[index[uhi+1]]*incr))) sortup= 0;      // Check if upper subvector is ordered
-    uhi--;
-    if ((uhi==pivot) && (ulo<pivot))  { tempEntry= index[pivot]; index[pivot]= index[pivot-1]; index[pivot-1]= tempEntry; pivot--; } 
-  } else {                                                            // Here, x[index[uhi]] <= x[index[pivot]], so swap entries at indices ulo and uhi.
-    tempEntry = index[ulo]; index[ulo] = index[uhi]; index[uhi] = tempEntry;
-    if (pivot==ulo) pivot= uhi;
-    if ((ulo>ilo) && ((x[index[ulo]]*incr)<(x[index[ulo-1]]*incr))) sortlo= 0;
-    ulo++;                                                            // Reduce the size of the unpartitioned region
-    if ((ulo==pivot) && (uhi>(pivot+1)))  { tempEntry= index[pivot]; index[pivot]= index[pivot+1]; index[pivot+1]= tempEntry; pivot++; }
-  }
-}
+    sortup = sortlo = true;
 
-// Entries from ilo to pivot - 1 are < or > pivot and from pivot+1 to ihi are > or < pivot. The two regions can be sorted recursively.
-if ((sortlo==0) && (ilo<(pivot-1))) dindexsort(x, index, ilo, pivot - 1, incr);
-if ((sortup==0) && (ihi>(pivot+1))) dindexsort(x, index, pivot + 1, ihi, incr);
+    /* Select a pivot value */
+    pivot = (ilo + ihi) / 2;
 
+    /* Initialize ends of unpartitioned region */
+    ulo = ilo;
+    uhi = ihi;
+
+    /* While the unpartitioned region is not empty, try to reduce its size. */
+    while (ulo < uhi) {
+        if ((x[index[uhi]] * incr) > (x[index[pivot]] * incr)) {
+            /* Check if upper subvector is ordered */
+            if ((uhi < ihi) &&
+                ((x[index[uhi]] * incr) > (x[index[uhi+1]] * incr))) {
+                sortup = false;
+            }
+
+            /* Reduce the size of the unpartitioned region */
+            uhi--;
+            if ((uhi == pivot) && (ulo < pivot)) {
+                tempEntry      = index[pivot];
+                index[pivot]   = index[pivot-1];
+                index[pivot-1] = tempEntry;
+                pivot--;
+            }
+        }
+        else {
+            /* Swap entries at indices ulo and uhi */
+            tempEntry  = index[ulo];
+            index[ulo] = index[uhi];
+            index[uhi] = tempEntry;
+
+            if (pivot == ulo) {
+                pivot = uhi;
+            }
+
+            /* Check if lower subvector is ordered */
+            if ((ulo > ilo) &&
+                ((x[index[ulo]] * incr) < (x[index[ulo-1]] * incr))) {
+                sortlo = false;
+            }
+
+            /* Reduce the size of the unpartitioned region */
+            ulo++;
+            if ((ulo == pivot) && (uhi > (pivot+1))) {
+                tempEntry      = index[pivot];
+                index[pivot]   = index[pivot+1];
+                index[pivot+1] = tempEntry;
+                pivot++;
+            }
+        }
+    }
+
+    /*
+     * Entries from ilo to pivot-1 are < or > pivot and
+     * from pivot+1 to ihi are > or < pivot.
+     * The two regions can be sorted recursively.
+     */
+    if ((sortlo == false) && (ilo < (pivot-1))) {
+        dindexsort(x, index, ilo, pivot-1, incr);
+    }
+    if ((sortup == false) && (ihi > (pivot+1))) {
+        dindexsort(x, index, pivot+1, ihi, incr);
+    }
 }
 
 

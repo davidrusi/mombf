@@ -3007,25 +3007,42 @@ void inv_posdef_chol(double **invchol,
 }
 
 
-/* LU decomposition, Inverse and determinant of a non-singular matrix */
-void ludc(double **a, int n, int *indx, double *d) {
-/* Given a matrix a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
-permutation of itself. a and n are input. a is output, arranged as in equation (2.3.14) above;
-indx[1..n] is an output vector that records the row permutation e ected by the partial
-pivoting; d is output as  1 depending on whether the number of row interchanges was even
-or odd, respectively. This routine is used in combination with lu_solve to solve linear equations
-or invert a matrix. */
-
+/*
+ * LU decomposition, Inverse and determinant of a non-singular matrix.
+ * Given a matrix a[1..n][1..n], replace it by the LU decomposition of a
+ * row-wise permutation of itself. a and n are input. a is output, arranged
+ * as in equation (2.3.14) above; indx[1..n] is an output vector that records
+ * the row permutation e ected by the partial pivoting; d is output as 1
+ * depending on whether the number of row interchanges was even or odd,
+ * respectively.
+ *
+ * Used in combination with lu_solve to solve linear equations or invert
+ * a matrix.
+ */
+void ludc(double **a,
+          int n,
+          int *indx,
+          double *d)
+{
 //  int i,imax,j,k; //initialized imax to 1 to avoid warning when compiling
   int i,imax=1,j,k;
   double big,dum,sum,temp,TINY=1.0e-20;
   double *vv; //vv stores the implicit scaling of each row.
+
+  assert(a != NULL);
+  assert(indx != NULL);
+  assert(d != NULL);
+
   vv=dvector(1,n);
   *d=1.0; //No row interchanges yet.
   for (i=1;i<=n;i++) { //Loop over rows to get the implicit scaling information
     big= 0.0;
     for (j=1;j<=n;j++) if ((temp=fabs(a[i][j])) > big) big=temp;
-    if (big == 0.0) nrerror("Singular matrix in routine ludcmp","",""); //No nonzero largest element.
+    if (big == 0.0) {
+      // No nonzero largest element.
+      nrerror("ludc", "", "singular matrix detected");
+      /*NOTREACHED*/
+    }
     vv[i]=1.0/big; //Save the scaling.
   }
   for (j=1;j<=n;j++) { //This is the loop over columns of Crout's method.

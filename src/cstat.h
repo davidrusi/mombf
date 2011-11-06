@@ -253,7 +253,7 @@ double ddirichlet(const double *w, double *alpha, const int *p); //Dirichlet den
 // Normal
 double dnormC(double y, double m, double s, int logscale); //density of Normal(m,s^2)
 double dnormC_jvec(const double *y, int n, double m, double s, int logscale); //joint density of y[0]...y[n-1] under Normal(m,s^2), i.e. returns scalar
-double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int logscale); //density of multivariate Normal
+double dmvnormC(const double *y, int n, const double *mu, double **cholsinv, double det, int logscale); //density of multivariate Normal
 double	qnormC(double cdf, double m, double s);  //quantile from Normal(m,s^2)
 double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)

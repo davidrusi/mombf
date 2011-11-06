@@ -3674,29 +3674,48 @@ double dnormC_jvec(const double *y,
 }
 
 
-/* Density of multivariate Normal evaluated at y[1]...y[n]. mu is the mean. chols and
-   are the Cholesky decomposition and the determinant of the inverse covariance matrix.
-   Example: 
-     choldc_inv(s,n,cholsinv); 
-     det= choldc_det(cholsinv,n);
-     dmvnormC(y,n,mu,cholsinv,det,0);
-*/
-double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int logscale)
+/*
+ * Density of multivariate Normal evaluated at y[1]...y[n].
+ * mu is the mean. cholsinv and det are the Cholesky decomposition and the
+ * determinant of the inverse covariance matrix.
+ *
+ * Example:
+ *   choldc_inv(s,n,cholsinv);
+ *   det= choldc_det(cholsinv,n);
+ *   dmvnormC(y,n,mu,cholsinv,det,0);
+ */
+double dmvnormC(const double *y,
+                int n,
+                const double *mu,
+                double **cholsinv,
+                double det,
+                int logscale)
 {
-  int i;  
-  double *z,*z2, res;
+    register int i;
+    double *z;
+    double *z2;
+    double res = 0.0;
+    double ans;
 
-  //Find (y-mu)' * cholsinv' * cholsinv * (y-mu)
-  z= dvector(1,n); z2= dvector(1,n);
-  for (i=1; i<=n; i++) { z[i]= y[i]-mu[i]; }
-  Ax(cholsinv,z,z2,1,n,1,n);
-  for (res=0, i=1; i<=n; i++) { res += z2[i]*z2[i]; }
-  free_dvector(z,1,n); free_dvector(z2,1,n);
+    assert(y != NULL);
+    assert(mu != NULL);
+    assert(cholsinv != NULL);
 
-  if (logscale == 1)
-    return(-n*log(SQ_M_PI_2) + 0.5*log(det) - 0.5*res);
-  else
-    return(exp(-n*log(SQ_M_PI_2) + 0.5*log(det) - 0.5*res));
+    /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
+    z  = dvector(1, n);
+    z2 = dvector(1, n);
+    for (i = 1; i <= n; i++) {
+        z[i] = y[i] - mu[i];
+    }
+    Ax(cholsinv, z, z2, 1, n, 1, n);
+    for (i = 1; i <= n; i++) {
+        res += z2[i] * z2[i];
+    }
+    free_dvector(z, 1, n);
+    free_dvector(z2, 1, n);
+
+    ans = -n * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    return (logscale == 1) ? ans : exp(ans);
 }
 
 
@@ -3756,7 +3775,7 @@ double dbinomial(int x, int n, double p, int logscale)
 {
     double ans;
 
-    ans = lnchoose(n,x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
+    ans = lnchoose(n, x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
     return (logscale == 1) ? ans : exp(ans);
 }
 

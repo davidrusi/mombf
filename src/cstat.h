@@ -236,7 +236,7 @@ int rdisc(const double *probs, int nvals);
 double gamdev(double);
 int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);
-void rmultinomial(int, int, double *, int *);
+void rmultinomial(int ndraws, int ncells, const double *pr, int *x);
 double bbPrior(int k, int p, double alpha, double beta, int logscale);
 
 // Uniform

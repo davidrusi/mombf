@@ -3780,36 +3780,48 @@ double dbinomial(int x, int n, double p, int logscale)
 }
 
 
-/* returns draw from multinomial with cell prob pr  
-  ------------------------------------------   
-  Value: 
-    x:   vector of indices indicating draws 
-         x in [0,..n_cell-1] 
-  ------------------------------------------   
-  Args: 
-    n_draw: number of draws 
-    n_cell: number of cells 
-    pr:     n_cell vector of cell probs 
-            (not necessarily standardized) 
-    x:      n_draw vector of indices 
-            (OUTPUT) 
-*/ 
-void rmultinomial(int n_draw, int n_cell, double *pr, int *x) 
-{ 
-  double *cum_p, uj; 
-  int i,j; 
- 
-  cum_p = dvector(0,n_cell); 
- 
-  for(i=1,cum_p[0]=pr[0];i<n_cell;i++)     
-    cum_p[i] = cum_p[i-1]+pr[i]; 
-  for(j=0;j<n_draw;j++){ 
-    uj = runif()*cum_p[n_cell-1]; 
-    for(i=0; ((uj > cum_p[i]) & (i<n_cell)); i++); 
-    x[j] = i; 
-  } 
- 
-  free_dvector(cum_p,0,n_cell); 
+/*
+ * Returns draw from multinomial with cell prob pr.
+ *------------------------------------------
+ * Value:
+ *   x:   vector of indices indicating draws
+ *         x in [0..ncells-1]
+ *------------------------------------------
+ * Input:
+ *   ndraws: number of draws
+ *   ncells: number of cells
+ *   pr:     ncells vector of cell probs (not necessarily standardized)
+ * Output:
+ *   x:      ndraws vector of indices
+ */
+void rmultinomial(int ndraws,
+                  int ncells,
+                  const double *pr,
+                  int *x) 
+{
+    register int i;
+    register int j;
+    double *cum_p;
+
+    assert(pr != NULL);
+    assert(x != NULL);
+
+    cum_p = dvector(0, ncells);
+
+    cum_p[0] = pr[0];
+    for (i = 1; i < ncells; i++) {
+        cum_p[i] = cum_p[i-1] + pr[i];
+    }
+    for (j = 0; j < ndraws; j++) {
+        double uj;
+
+        uj = runif() * cum_p[ncells-1];
+        for (i = 0; ((uj > cum_p[i]) & (i < ncells)); i++);
+            /*NOBODY*/
+        x[j] = i;
+    }
+
+    free_dvector(cum_p, 0, ncells);
 }
 
 

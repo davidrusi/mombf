@@ -175,7 +175,7 @@ void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi); //
 void xA(const double *x, double **A, double *z, int ini, int fi);  //Multiply vector * matrix
 void Ax(double **A, double *x, double *z, int rowini, int rowfi, int colini, int colfi);  //matrix * vector
 void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same but A is in vector format
-void Atvecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same for A' (row/col indexes refer to A')
+void Atvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same for A' (row/col indexes refer to A')
 double xtAy(double *x, double **A, double *y, int ini, int fi); //t(vector)*matrix*vector
 
 double quadratic_xtAx(double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)

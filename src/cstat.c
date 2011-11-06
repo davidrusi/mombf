@@ -2209,18 +2209,38 @@ void Avecx(const double *A,
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
         for (j = colini; j <= colfi; j++) {
-            z[i] += A[i + j*nrow] * x[j];	 
+            z[i] += A[i + j*nrow] * x[j];
         }
     }
 }
 
 
-void Atvecx(double *A, double *x, double *z, int rowini, int rowfi, int colini, int colfi) {
-  int _i, _j, nrow=rowfi-rowini+1;
-  for(_i=rowini;_i<=rowfi;_i++){				 
-    for(z[_i]=0,_j=colini; _j<=colfi; _j++)		 
-      z[_i]+=A[_j + _i*nrow]*x[_j];	 
-  } 
+/*
+ * Multiply transposed (implicit matrix) vector A by vector x[colini..colfi].
+ * Store result in vector z.
+ */
+void Atvecx(const double *A,
+            const double *x,
+            double *z,
+            int rowini,
+            int rowfi,
+            int colini,
+            int colfi)
+{
+    register int i;
+    register int j;
+    int nrow = rowfi - rowini + 1;
+
+    assert(A != NULL);
+    assert(x != NULL);
+    assert(z != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        z[i] = 0.0;
+        for (j = colini; j <= colfi; j++) {
+            z[i] += A[j + i*nrow] * x[j];
+        }
+    }
 }
 
 

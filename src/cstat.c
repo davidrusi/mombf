@@ -2141,14 +2141,33 @@ void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double 
 } 
 
 
-void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi) { 
-  //Multiply matrix A[ini..fi][ini..fi] by vector x[ini..fi] and add vector y[ini..fi]
-  //Store result in vector z
-  int _i,_j;
-  for(_i=ini;_i<=fi;_i++) 
-    for(z[_i]=y[_i],_j=ini; _j<=fi; _j++) 
-      z[_i] += A[_i][_j]*x[_j]; 
-} 
+/*
+ * Multiply matrix A[ini..fi][ini..fi] by vector x[ini..fi]
+ * and add vector y[ini..fi].
+ * Store result in vector z.
+ */
+void Ax_plus_y(double **A,
+               const double *x,
+               const double *y,
+               double *z,
+               int ini,
+               int fi)
+{
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(x != NULL);
+    assert(y != NULL);
+    assert(z != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        z[i] = y[i];
+        for (j = ini; j <= fi; j++) {
+            z[i] += A[i][j] * x[j];
+        }
+    }
+}
 
 
 /*
@@ -2192,8 +2211,8 @@ void Ax(double **A,
     register int i;
     register int j;
 
-    assert(x != NULL);
     assert(A != NULL);
+    assert(x != NULL);
     assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {

@@ -171,7 +171,7 @@ void rA(double r, double **A, double **B, int rowini, int rowfi, int colini, int
 void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix + matrix
 void rA_plus_sB(double r, double **A, double s, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix*scalar + matrix*scalar
 void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi); //scalar*matrix*vector + scalar*matrix*vector
-void Ax_plus_y(double **A, double *x, double *y, double *z, int ini, int fi); //matrix*vector+vector
+void Ax_plus_y(double **A, const double *x, const double *y, double *z, int ini, int fi); //matrix*vector+vector
 void xA(const double *x, double **A, double *z, int ini, int fi);  //Multiply vector * matrix
 void Ax(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi);  //matrix * vector
 void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same but A is in vector format

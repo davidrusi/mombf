@@ -2818,11 +2818,11 @@ void choldc_inv(double **a,
 /*
  * Find determinant of the matrix having chols as its Cholesky decomposition.
  *
- * Example of usage
+ * Example:
  *   choldc(S, n, cholS);
  *   det = choldc_det(cholS, n);
  *
- * Another example
+ * Another example:
  *   choldc_inv(S, n, cholSinv);
  *   det = 1.0 / choldc_det(cholSinv, n);
  */
@@ -2970,7 +2970,7 @@ void invdet_posdef(double **a,
 void inv_posdef_chol(double **invchol, int n, double **aout) {
   /* Inverse of a positive definite matrix with inverse of Cholesky decomposition stored in invchol
      Result is returned in aout */
-  // Example of usage
+  // Example:
   //   choldc_inv(a,n,invchol);
   //   inv_posdef_chol(invchol,n,ainv);
   int i,j,k;
@@ -3527,13 +3527,15 @@ double dnormC_jvec(double *y, int n, double m, double s, int logscale) {
 }
 
 
-double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int logscale) { 
 /* Density of multivariate Normal evaluated at y[1]...y[n]. mu is the mean. chols and
    are the Cholesky decomposition and the determinant of the inverse covariance matrix.
-   Example of usage: 
+   Example: 
      choldc_inv(s,n,cholsinv); 
      det= choldc_det(cholsinv,n);
-     dmvnormC(y,n,mu,cholsinv,det,0); */
+     dmvnormC(y,n,mu,cholsinv,det,0);
+*/
+double dmvnormC(double *y, int n, double *mu, double **cholsinv, double det, int logscale)
+{
   int i;  
   double *z,*z2, res;
 
@@ -3785,7 +3787,7 @@ double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp,
  *    cholsinv, det: cholesky decomp and determinant of inverse cov matrix
  *    logscale: set to 1 to return density in log-scale
  *
- * Example of usage: 
+ * Example: 
  *     choldc_inv(s, n, cholsinv); 
  *     det = choldc_det(cholsinv, n);
  *     dmvtC(y, n, mu, cholsinv, det, nu, 0);

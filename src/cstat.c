@@ -3024,22 +3024,25 @@ void ludc(double **a,
           int *indx,
           double *d)
 {
+  const double TINY = 1.0e-20;
 //  int i,imax,j,k; //initialized imax to 1 to avoid warning when compiling
-  int i,imax=1,j,k;
-  double big,dum,sum,temp,TINY=1.0e-20;
+  register int i;
+  register int j;
+  int imax=1, k;
+  double big, dum, sum, temp;
   double *vv; //vv stores the implicit scaling of each row.
 
   assert(a != NULL);
   assert(indx != NULL);
   assert(d != NULL);
 
-  vv=dvector(1,n);
+  vv=dvector(1, n);
   *d=1.0; //No row interchanges yet.
   for (i=1;i<=n;i++) { //Loop over rows to get the implicit scaling information
     big= 0.0;
     for (j=1;j<=n;j++) if ((temp=fabs(a[i][j])) > big) big=temp;
     if (big == 0.0) {
-      // No nonzero largest element.
+      /* No nonzero largest element */
       nrerror("ludc", "", "singular matrix detected");
       /*NOTREACHED*/
     }
@@ -3080,7 +3083,7 @@ void ludc(double **a,
       for (i=j+1;i<=n;i++) a[i][j] *= dum;
     }
   } //Go back for the next column in the reduction.
-  free_dvector(vv,1,n);
+  free_dvector(vv, 1, n);
 }
 
 

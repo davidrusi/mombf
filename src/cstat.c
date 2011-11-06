@@ -2967,23 +2967,43 @@ void invdet_posdef(double **a,
 }
 
 
-void inv_posdef_chol(double **invchol, int n, double **aout) {
-  /* Inverse of a positive definite matrix with inverse of Cholesky decomposition stored in invchol
-     Result is returned in aout */
-  // Example:
-  //   choldc_inv(a,n,invchol);
-  //   inv_posdef_chol(invchol,n,ainv);
-  int i,j,k;
-  double sum;
+/*
+ * Inverse of a positive definite matrix with inverse of Cholesky decomposition
+ * stored in invchol.
+ * Result is returned in aout.
+ *
+ * Example:
+ *   choldc_inv(a,n,invchol);
+ *   inv_posdef_chol(invchol,n,ainv);
+ */
+void inv_posdef_chol(double **invchol,
+                     int n,
+                     double **aout)
+{
+    register int i;
+    register int j;
 
-  for (i=1; i<=n; i++) {
-    for (j=i; j<=n; j++) {
-      for (k=1,sum=0;k<=n;k++) { sum+= invchol[k][i]*invchol[k][j]; }
-      aout[i][j]= sum;
+    assert(invchol != NULL);
+    assert(aout != NULL);
+
+    for (i = 1; i <= n; i++) {
+        for (j = i; j <= n; j++) {
+            register int k;
+            double sum;
+
+            sum = 0.0;
+            for (k = 1; k <= n; k++) {
+                sum += invchol[k][i] * invchol[k][j];
+            }
+            aout[i][j] = sum;
+        }
     }
-  }
-  for (i=2; i<=n; i++) { for (j=1;j<i;j++) { aout[i][j]= aout[j][i]; }}
 
+    for (i = 2; i <= n; i++) {
+        for (j = 1; j < i; j++) {
+            aout[i][j] = aout[j][i];
+        }
+    }
 }
 
 

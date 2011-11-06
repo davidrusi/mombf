@@ -3588,16 +3588,10 @@ double ddirichlet(const double *w,
 
 double gamdev(double alpha)
 {
-  double  
-    value; 
-  double 
-    a; 
-  double  
-    gengam(double,double); 
-   
-  a = alpha; /* type conversion */ 
-  value = gengam(1.0,a); 
-  return value; 
+    double value;
+
+    value = gengam(1.0, alpha);
+    return value;
 }
 
 
@@ -4123,7 +4117,8 @@ double rt_trunc_prob(int nu, double lprob, double rprob)
                 "left truncation probability is larger than right truncation probability");
         /*NOTREACHED*/
     }
-    u = lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
+    /* Generate uniform between lprob, rprob */
+    u = lprob + runif() * (rprob-lprob);
     return(qtC(u, nu));
 }
 

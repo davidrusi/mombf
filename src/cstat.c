@@ -2459,6 +2459,11 @@ double quadratic_xseltAxsel(const double *x,
 }
 
 
+/*
+ * Multiply transpose of matrix A[rowini..rowfi][colini..colfi] by
+ * vector x[rowini..rowfi].
+ * Store result in vector z.
+ */
 void Atx(double **A,
          const double *x,
          double *z,
@@ -2483,6 +2488,11 @@ void Atx(double **A,
 } 
 
 
+/*
+ * Multiply transpose of matrix A[rowiniA..rowfiA][coliniA..colfiA] by
+ * matrix B[rowiniB..rowfiB][coliniB..colfiB].
+ * Store result in matrix C.
+ */
 void AtB(double **A,
          int rowiniA,
          int rowfiA,

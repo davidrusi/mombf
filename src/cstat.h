@@ -178,7 +178,7 @@ void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, i
 void Atvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same for A' (row/col indexes refer to A')
 double xtAy(const double *x, double **A, const double *y, int ini, int fi); //t(vector)*matrix*vector
 
-double quadratic_xtAx(double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
+double quadratic_xtAx(constant double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
 double quadratic_xseltAselxsel(double *x, double *A, int *ncol, int *nsel, int *sel); // same but A is formatted as vector & only a subset of x, A is to be used
 double quadratic_xtAselx(double *x, double *A, int *ncolA, int *nsel, int *sel); //same but subset is only for A
 double quadratic_xseltAxsel(double *x, double **A, int ini, int *nsel, int *sel); //same but subset is only for x

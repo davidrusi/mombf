@@ -2283,7 +2283,7 @@ void Atvecx(const double *A,
 
 
 /*
- * Return sum of multiplying matrix A[ini..fi][ini..fi]
+ * Returns sum of multiplying matrix A[ini..fi][ini..fi]
  * by transposed vector x[ini..fi] by vector y[ini..fi].
  */
 double xtAy(const double *x,
@@ -2309,17 +2309,31 @@ double xtAy(const double *x,
 }
  
 
-double quadratic_xtAx(double *x, double **A, int ini, int fi) {
- //t(vector)*matrix*vector for quadratic forms (A must be symmetric)
- //Note: this routine is faster than xtAy for symmetric A (saves 25%-50% operations)
-  int _i, _j; double z;
-  for (z=0,_i=ini; _i<=fi; _i++) {
-    z+= A[_i][_i]*x[_i]*x[_i];
-    for (_j=_i+1; _j<=fi; _j++) {
-      z+= 2*A[_i][_j]*x[_i]*x[_j];
+/*
+ * Returns sum of multiplying symmetric matrix A[ini..fi][ini..fi]
+ * by transposed vector x[ini..fi] by vector x[ini..fi].
+ *
+ * Note: Faster than xtAy() for symmetric A (saves 25%-50% operations).
+ */
+double quadratic_xtAx(const double *x,
+                      double **A,
+                      int ini,
+                      int fi)
+{
+    register int i;
+    register int j;
+    double z = 0.0;
+
+    assert(x != NULL);
+    assert(A != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        z += A[i][i]* x[i]* x[i];
+        for (j = i+1; j <= fi; j++) {
+            z += 2 * A[i][j] * x[i] *x[j];
+        }
     }
-  }
-  return(z);
+    return(z);
 }
 
 

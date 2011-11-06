@@ -2328,7 +2328,7 @@ double quadratic_xtAx(const double *x,
     assert(A != NULL);
 
     for (i = ini; i <= fi; i++) {
-        z += A[i][i]* x[i]* x[i];
+        z += A[i][i] * x[i] * x[i];
         for (j = i+1; j <= fi; j++) {
             z += 2 * A[i][j] * x[i] *x[j];
         }
@@ -2337,20 +2337,45 @@ double quadratic_xtAx(const double *x,
 }
 
 
-double quadratic_xseltAselxsel(double *x, double *A, int *ncolA, int *nsel, int *sel) {
- //t(x[sel])*A[sel,sel]*x[sel] for quadratic forms (A must be symmetric and given as a vector)
- // - ncolA: number of columns in A
- // - nsel: length of vector sel
- // - sel: vector with indexes for positions in x and (rows,columns) in A to be used in the operation
- //Note: this routine is faster than xtAy for symmetric A (saves 25%-50% operations)
-  int _i, _j; double z;
-  for (z=0,_i=0; _i<=(*nsel)-1; _i++) {
-    z+= A[sel[_i]*(*ncolA)+sel[_i]]*x[sel[_i]]*x[sel[_i]];
-    for (_j=_i+1; _j<=(*nsel)-1; _j++) {
-      z+= 2*A[sel[_i]*(*ncolA)+sel[_j]]*x[sel[_i]]*x[sel[_j]];
+/*
+ * Returns sum of multiplying symmetric (implicit matrix) vector A[sel][sel]
+ * by transposed vector x[sel] by vector x[sel] for quadratic forms.
+ *     ncolA: number of columns in A.
+ *     nsel : length of vector sel.
+ *     sel  : vector with indexes for positions in x and (rows,cols) in A
+ *            to be used in the operation.
+ *
+ * Note: Faster than xtAy() for symmetric A (saves 25%-50% operations).
+ */
+double quadratic_xseltAselxsel(const double *x,
+                               const double *A,
+                               const int *ncolA,
+                               const int *nsel,
+                               const int *sel)
+{
+    register int i;
+    register int j;
+    double z = 0.0;
+
+    assert(x != NULL);
+    assert(A != NULL);
+    assert(ncolA != NULL);
+    assert(nsel != NULL);
+    assert(sel != NULL);
+
+    for (i = 0; i <= (*nsel)-1; i++) {
+        int i_sel;
+
+        i_sel = sel[i];
+        z += A[i_sel * (*ncolA) + i_sel] * x[i_sel] * x[i_sel];
+        for (j = i+1; j <= (*nsel)-1; j++) {
+            int j_sel;
+
+            j_sel = sel[j];
+            z += 2 * A[i_sel * (*ncolA) + j_sel] * x[i_sel] * x[j_sel];
+        }
     }
-  }
-  return(z);
+    return(z);
 }
 
 

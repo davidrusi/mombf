@@ -2282,12 +2282,30 @@ void Atvecx(const double *A,
 }
 
 
-double xtAy (double *x, double **A, double *y, int ini, int fi) { 
-  int _i, _j; double z; 
-  for(z=0,_i=ini;_i<=fi;_i++) 
-    for(_j=ini; _j<=fi; _j++) 
-      z += A[_i][_j]*x[_j]*y[_i]; 
-  return(z); 
+/*
+ * Return sum of multiplying matrix A[ini..fi][ini..fi]
+ * by transposed vector x[ini..fi] by vector y[ini..fi].
+ */
+double xtAy(const double *x,
+            double **A,
+            const double *y,
+            int ini,
+            int fi)
+{
+    register int i;
+    register int j;
+    double z = 0.0;
+
+    assert(x != NULL);
+    assert(A != NULL);
+    assert(y != NULL);
+
+    for (i = ini; i <= fi; i++) {
+        for (j = ini; j <= fi; j++) {
+            z += A[i][j] * x[j] * y[i];
+        }
+    }
+    return(z);
 }
  
 

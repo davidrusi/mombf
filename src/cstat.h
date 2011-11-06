@@ -176,7 +176,7 @@ void xA(const double *x, double **A, double *z, int ini, int fi);  //Multiply ve
 void Ax(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi);  //matrix * vector
 void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same but A is in vector format
 void Atvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //same for A' (row/col indexes refer to A')
-double xtAy(double *x, double **A, double *y, int ini, int fi); //t(vector)*matrix*vector
+double xtAy(const double *x, double **A, const double *y, int ini, int fi); //t(vector)*matrix*vector
 
 double quadratic_xtAx(double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
 double quadratic_xseltAselxsel(double *x, double *A, int *ncol, int *nsel, int *sel); // same but A is formatted as vector & only a subset of x, A is to be used

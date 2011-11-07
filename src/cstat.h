@@ -299,7 +299,7 @@ extern double genunf(double low, double high);
 extern double gengam(double a, double r);
 extern double sgamma(double a);
 extern double snorm(void);
-double fsign( double num, double sign);
+double fsign(double num, double sign);
 extern double sexpo(void);
 extern long mltmod(long a, long s, long m);
 extern double ranf(void);

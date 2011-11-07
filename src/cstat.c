@@ -3933,7 +3933,7 @@ double rnorm_trunc(double ltrunc, double rtrunc, double m, double s)
  *    s     - SD
  *
  * For example,
- *   lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+ *   lprob=.05, rprob=.99 means truncate the lower 5% and the upper 1%
  */
 double rnorm_trunc_prob(double lprob,
                         double rprob,
@@ -3945,7 +3945,7 @@ double rnorm_trunc_prob(double lprob,
     if (lprob >= rprob) {
         nrerror("rnorm_trunc_prob",
                 "",
-                "left truncation probability is larger than right truncation probability");
+                "left truncation probability larger than right truncation probability");
         /*NOTREACHED*/
     }
     /* Generate uniform between lprob, rprob */
@@ -4161,7 +4161,7 @@ double rt_trunc_prob(int nu, double lprob, double rprob)
     if (lprob >= rprob) {
         nrerror("rt_trunc_prob",
                 "",
-                "left truncation probability is larger than right truncation probability");
+                "left truncation probability larger than right truncation probability");
         /*NOTREACHED*/
     }
     /* Generate uniform between lprob, rprob */
@@ -5597,7 +5597,6 @@ static double gengam;
 */
 double sgamma(double a)
 {
-extern double fsign( double num, double sign );
 static double q1 = 4.166669E-2;
 static double q2 = 2.083148E-2;
 static double q3 = 8.01191E-3;
@@ -6541,7 +6540,12 @@ void polint(double xa[],
       ho= xa[i]-x;
       hp=xa[i+m]-x;
       w= c[i+1] - d[i];
-      if ( (den=ho-hp) == 0.0) nrerror("polint","increment in x axis in 0 units (two input x values are identical)","");
+      if ( (den=ho-hp) == 0.0) {
+        nrerror("polint",
+                "",
+                "increment x axis in 0 units (two identical input x values)");
+        /*NOTREACHED*/
+      }
       den= w/den;
       d[i]= hp*den;
       c[i]= ho*den;

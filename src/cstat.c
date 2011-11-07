@@ -4334,14 +4334,6 @@ double fifdint(double a)
 }
 
 
-void cdfnor(int *which,
-            double *p,
-            double *q,
-            double *x,
-            double *mean,
-            double *sd,
-            int *status,
-            double *bound)
 /**********************************************************************
 
       void cdfnor(int *which,double *p,double *q,double *x,double *mean,
@@ -4434,6 +4426,14 @@ void cdfnor(int *which,
       exp( - 0.5 * (( X - MEAN)/SD)**2)
 
 **********************************************************************/
+void cdfnor(int *which,
+            double *p,
+            double *q,
+            double *x,
+            double *mean,
+            double *sd,
+            int *status,
+            double *bound)
 {
 static int K1 = 1;
 static double z,pq;
@@ -6560,7 +6560,13 @@ double bspline_singlex(double x,
     Output
       - W: matrix with nx rows and nknots-degree-1 columns containing the B-spline basis
    */
-void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
+void bspline(double **W,
+             double *x,
+             int *nx,
+             int *degree,
+             double *knots,
+             int *nknots)
+{
   int i,j;
   if (*nknots<(*degree+2)) {
     REprintf("bspline: number of knots must be >= degree+2\n");
@@ -6575,8 +6581,14 @@ void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
 }
 
 
-void bspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots) {
   //same as routine bspline but returns a vector so that it can be called from R
+void bspline_vec(double *W,
+                 double *x,
+                 int *nx,
+                 int *degree,
+                 double *knots,
+                 int *nknots)
+{
   int i,j;
   double **Wtemp;
 
@@ -6587,8 +6599,14 @@ free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
 }
 
 
-void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
   //M-spline basis eval at vector of values x. Normalized to integrate to 1 wrt x
+void mspline(double **W,
+             double *x,
+             int *nx,
+             int *degree,
+             double *knots,
+             int *nknots)
+{
   int i,j;
   if (*nknots<(*degree+2)) {
     REprintf("mspline: number of knots must be >= degree+2\n");
@@ -6603,8 +6621,14 @@ void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
 }
 
 
-void mspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots) {
   //same as routine mspline but returns a vector so that it can be called from R
+void mspline_vec(double *W,
+                 double *x,
+                 int *nx,
+                 int *degree,
+                 double *knots,
+                 int *nknots)
+{
   int i,j;
   double **Wtemp;
 
@@ -6619,13 +6643,20 @@ free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
             FUNCTION OPTIMIZATION 
 ************************************************************************/
 
-double univmin(double ax, double bx, double cx, double (*f)(double), double eps, double *xmin, int itmax) {
 /* PURPOSE: UNIVARIATE OPTIMIZATION WITHOUT DERIVATIVE INFORMATION
    Given a function f and a bracketing triplet of abscissas ax, bx, cx (such that bx is between ax & cx
    and f(bx) is less than f(ax) and f(cx)), this routine isolates the minimum to a fractional precision
    of about eps using Brent's method. The abscissa of the minimum is returned as xmin and the value
    of the function at the minimum is the returned value.
  */
+double univmin(double ax,
+               double bx,
+               double cx,
+               double (*f)(double),
+               double eps,
+               double *xmin,
+               int itmax)
+{
 #define CGOLD .3819660  //golden ratio
 #define ZEPS 1.0e-10   //protects against trying to achieve fractional accuracy when min is exactly zero
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);

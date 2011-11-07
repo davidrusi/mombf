@@ -6382,13 +6382,16 @@ double midpnt(double (*func)(double), double a, double b, int n)
 }
 
 
-double midinf(double (*funk)(double), double aa, double bb, int n)
 /* This routine is an exact replacement for midpnt i.e. returns the nth stage of refinement of
    the integral of funk from aa to bb, except that the function is evaluated at evenly spaced
    points in 1/x rather than in x. This allows the upper limit bb to be as large and positive as
    the computer allows, or the lower limit aa to be as large and negative, but not both.
    aa and bb must have the same sign, and they cannot be equal to zero.
 */
+double midinf(double (*funk)(double),
+              double aa,
+              double bb,
+              int n)
 {
 
   #define FUNK(x) ((*funk)(1.0/(x))/((x)*(x)))
@@ -6920,15 +6923,21 @@ double xx,xmin,fx,fb,fa,bx,ax;
 }
 
 
-double f1dim(double x) {
-//Must accompany dirmin.
-  int j;
-  double f,*xt;
-  xt=dvector(1,ncom);
-  for (j=1;j<=ncom;j++) xt[j]=pcom[j]+x*xicom[j];
-  f=(*nrfunc)(xt);
-  free_dvector(xt,1,ncom);
-  return f;
+/* Must accompany dirmin. */
+double f1dim(double x)
+{
+    register int j;
+    double f;
+    double *xt;
+
+    xt = dvector(1, ncom);
+    for (j = 1; j <= ncom; j++) {
+        xt[j] = pcom[j] + x * xicom[j];
+    }
+    f = (*nrfunc)(xt);
+    free_dvector(xt, 1, ncom);
+
+    return f;
 }
 
 

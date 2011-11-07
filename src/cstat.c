@@ -79,7 +79,8 @@ static void _cstaterror(const char *proc,
 ************************************************************************/
 
 /* Sample mean of elements 0 through lim of vector x */
-double meani(const int *x, int lim)
+double meani(const int *x,
+             int lim)
 {
     register int i;
     double value = 0.0;
@@ -95,7 +96,9 @@ double meani(const int *x, int lim)
 }
 
 
-double wmeani(const int *x, int lim, const double *w)
+double wmeani(const int *x,
+              int lim,
+              const double *w)
 {
     register int i;
     double value = 0.0;
@@ -115,7 +118,8 @@ double wmeani(const int *x, int lim, const double *w)
 
 
 /* Sample mean of elements 0 through lim (both included) of vector x */
-double meanx(const double *x, int lim) 
+double meanx(const double *x,
+             int lim) 
 {
     register int i;
     double value = 0.0;
@@ -131,7 +135,9 @@ double meanx(const double *x, int lim)
 }
 
 
-double wmeanx(const double *x, int lim, const double *w)
+double wmeanx(const double *x,
+              int lim,
+              const double *w)
 {
     register int i;
     double value = 0.0;
@@ -151,7 +157,9 @@ double wmeanx(const double *x, int lim, const double *w)
 
 
 /* Sample variance of elements 0 through lim of vector x */
-double vari(const int *x, int lim, bool unbiased) 
+double vari(const int *x,
+            int lim,
+            bool unbiased) 
 {
     register int i;
     double value = 0.0;
@@ -171,7 +179,9 @@ double vari(const int *x, int lim, bool unbiased)
 }
 
 
-double wvari(const int *x, int lim, const double *w) 
+double wvari(const int *x,
+             int lim,
+             const double *w) 
 {
     register int i;
     double value = 0.0;
@@ -191,7 +201,9 @@ double wvari(const int *x, int lim, const double *w)
 
 
 /* Sample variance of elements 0 through lim of vector x */
-double varx(const double *x, int lim, bool unbiased) 
+double varx(const double *x,
+            int lim,
+            bool unbiased) 
 {
     register int i;
     double value = 0.0;
@@ -211,7 +223,9 @@ double varx(const double *x, int lim, bool unbiased)
 }
 
 
-double wvarx(const double *x, int lim, const double *w) 
+double wvarx(const double *x,
+             int lim,
+             const double *w) 
 {
     register int i;
     double value = 0.0;
@@ -231,7 +245,9 @@ double wvarx(const double *x, int lim, const double *w)
 
 
 /* Compute coefficient of variation of x[ini..fi] */
-double cv(const double *x, int ini, int fi)
+double cv(const double *x,
+          int ini,
+          int fi)
 {
     register int i;
     double m = 0.0;
@@ -255,7 +271,9 @@ double cv(const double *x, int ini, int fi)
 
 
 /* Compute inverse coefficient of variation of x[ini..fi] */
-double cvinv(const double *x, int ini, int fi)
+double cvinv(const double *x,
+             int ini,
+             int fi)
 {
     register int i;
     double m = 0.0;
@@ -280,7 +298,10 @@ double cvinv(const double *x, int ini, int fi)
 
 /* Column means */
 /* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
-void colMeans(double *m, const double *x, int nrow, int ncol)
+void colMeans(double *m,
+              const double *x,
+              int nrow,
+              int ncol)
 {
     register int i;
     register int j;
@@ -303,7 +324,10 @@ void colMeans(double *m, const double *x, int nrow, int ncol)
 
 
 /* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
-void colVar(double *v, const double *x, int nrow, int ncol)
+void colVar(double *v,
+            const double *x,
+            int nrow,
+            int ncol)
 {
     register int i;
     register int j;
@@ -339,7 +363,10 @@ void colVar(double *v, const double *x, int nrow, int ncol)
 
 
 /* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
-void colCV(double *cv, const double *x, int nrow, int ncol)
+void colCV(double *cv,
+           const double *x,
+           int nrow,
+           int ncol)
 {
     register int i;
     register int j;
@@ -376,7 +403,10 @@ void colCV(double *cv, const double *x, int nrow, int ncol)
 
 
 /* x is assumed to be in row order (x[0], x[1] ... x[ncol-1] are elem in 1st row) */
-void colCVinv(double *cv, const double *x, int nrow, int ncol)
+void colCVinv(double *cv,
+              const double *x,
+              int nrow,
+              int ncol)
 {
     register int i;
     register int j;
@@ -3851,9 +3881,9 @@ double bbPrior(int k,
 }
 
 
-// Draw from univariate Normal(mu,s^2)
-double rnormC(double mu, double s) {
-
+/* Draw from univariate Normal(mu,s^2) */
+double rnormC(double mu, double s)
+{
   static bool iset=false;
   static double gset;
   double fac,rsq,v1,v2;

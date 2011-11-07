@@ -4324,13 +4324,36 @@ double dinvgammaC(double x, double a, double b)
                        NON-LOCAL PRIORS
 ************************************************************************/
 
-//Normal MOM prior
-//Density is proportional to (y-m)^(2*r) N(y;m,tau*phi), where tau*phi is the variance
-double dmomNorm(double y, double m, double tau, double phi, int r, int logscale)
+/*
+ * Normal MOM prior.
+ * Density is proportional to (y-m)^(2*r) N(y;m,tau*phi), where tau*phi
+ * is the variance.
+ */
+double dmomNorm(double y,
+                double m,
+                double tau,
+                double phi,
+                int r,
+                int logscale)
 {
-  double ans, normct[]={0,1.098612,2.70805,4.65396,6.851185,9.24908,11.81403,14.52208,17.35529,20.29973};
-  ans= r*log((y-m)*(y-m)/(tau*phi)) + dnormC(y,m,sqrt(tau*phi),1) - normct[r-1];
-  if (logscale==0) ans= exp(ans);
+  double normct[] = {
+     0,
+     1.098612,
+     2.70805,
+     4.65396,
+     6.851185,
+     9.24908,
+    11.81403,
+    14.52208,
+    17.35529,
+    20.29973
+  };
+  double ans;
+
+  ans = r * log((y-m) * (y-m) / (tau*phi)) +
+        dnormC(y, m, sqrt(tau*phi), 1) - normct[r-1];
+
+  if (logscale==0) ans = exp(ans);
   return(ans);
 }
 

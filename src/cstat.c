@@ -2192,7 +2192,7 @@ void rAx_plus_sBy(double r,
     assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
-        z[_i] = 0.0;
+        z[i] = 0.0;
         for (j = colini; j <= colfi; j++) {
             z[i] += (r * A[i][j] * x[j]) + (s * B[i][j] * y[j]);
         }

@@ -883,7 +883,7 @@ void lmbayes_knownvar(double *bpost,
     if (*B > 0) {             //posterior samples
         double *zeroes;
         double **cholVb;
-        int i, j;
+        register int i;
 
         cholVb = dmatrix(1, *p, 1, *p);
         choldc(Vb, *p, cholVb); //cholesky decomp of posterior covar for beta
@@ -892,6 +892,8 @@ void lmbayes_knownvar(double *bpost,
             zeroes[i] = 0.0;
         }
         for (i = 1; i <= (*B); i++) {
+            register int j;
+
             rmvnormC(bpost+(i-1)*(*p), *p, zeroes, cholVb);
             for (j = 1; j <= (*p); j++) {
                 bpost[(i-1)*(*p)+j] = bpost[(i-1)*(*p)+j]*(*sigma)+b[j];
@@ -2162,13 +2164,39 @@ void rA_plus_sB(double r,
 }
 
 
-  //Scalar*matrix*vector + scalar*matrix*vector
-void rAx_plus_sBy(double r, double **A, const double *x, double s, double **B, const double *y, double *z, int rowini, int rowfi, int colini, int colfi)
+/*
+ * Sum the product of scalar r, matrix A[rowini..rowfi][colini..colfi],
+ * and vector x[colini..colfi] with the product of scalar s,
+ * matrix B[rowini..rowfi][colini..colfi], and vector y[colini..colfi].
+ * Store results in vector z[rowini..rowfi].
+ */
+void rAx_plus_sBy(double r,
+                  double **A,
+                  const double *x,
+                  double s,
+                  double **B,
+                  const double *y,
+                  double *z,
+                  int rowini,
+                  int rowfi,
+                  int colini,
+                  int colfi)
 {
-  int _i, _j; 
-  for(_i=rowini;_i<=rowfi;_i++) 
-    for(z[_i]=0,_j=colini; _j<=rowfi; _j++) 
-      z[_i] += r*A[_i][_j]*x[_j] + s*B[_i][_j]*y[_j]; 
+    register int i;
+    register int j;
+
+    assert(A != NULL);
+    assert(x != NULL);
+    assert(B != NULL);
+    assert(y != NULL);
+    assert(z != NULL);
+
+    for (i = rowini; i <= rowfi; i++) {
+        z[_i] = 0.0;
+        for (j = colini; j <= colfi; j++) {
+            z[i] += (r * A[i][j] * x[j]) + (s * B[i][j] * y[j]);
+        }
+    }
 } 
 
 

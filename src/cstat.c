@@ -5461,7 +5461,6 @@ static int ipmpar;
                         EVEN MORE STUFF
 ************************************************************************/
 
-double genunf(double low, double high)
 /*
 **********************************************************************
      double genunf(double low,double high)
@@ -5473,6 +5472,8 @@ double genunf(double low, double high)
      high --> High bound (exclusive) on real value to be generated
 **********************************************************************
 */
+double genunf(double low,
+              double high)
 {
 static double genunf;
 
@@ -5486,7 +5487,6 @@ S10:
 }
 
 
-double gengam(double a, double r)
 /*
 **********************************************************************
      double gengam(double a,double r)
@@ -5517,6 +5517,8 @@ double gengam(double a, double r)
      Adapted algorithm GS.
 **********************************************************************
 */
+double gengam(double a,
+              double r)
 {
 static double gengam;
 
@@ -5526,7 +5528,6 @@ static double gengam;
 }
 
 
-double sgamma(double a)
 /*
 **********************************************************************
                                                                       
@@ -5578,6 +5579,7 @@ double sgamma(double a)
      PREVIOUS A PRE-SET TO ZERO - AA IS A', AAA IS A"
      SQRT32 IS THE SQUAREROOT OF 32 = 5.656854249492380
 */
+double sgamma(double a)
 {
 extern double fsign( double num, double sign );
 static double q1 = 4.166669E-2;
@@ -5742,7 +5744,6 @@ S140:
 }
 
 
-double snorm(void)
 /*
 **********************************************************************
                                                                       
@@ -5770,6 +5771,7 @@ double snorm(void)
      THE DEFINITIONS OF THE CONSTANTS A(K), D(K), T(K) AND
      H(K) ARE ACCORDING TO THE ABOVEMENTIONED ARTICLE
 */
+double snorm(void)
 {
 static double a[32] = {
     0.0,3.917609E-2,7.841241E-2,0.11777,0.1573107,0.1970991,0.2372021,0.2776904,
@@ -5872,14 +5874,14 @@ S160:
 
 
 /* Transfers sign of argument sign to argument num */
-double fsign(double num, double sign)
+double fsign(double num,
+             double sign)
 {
     return ((sign > 0.0 && num < 0.0) ||
             (sign < 0.0 && num > 0.0)) ? -num : num;
 }
 
 
-double sexpo(void)
 /*
 **********************************************************************
                                                                       
@@ -5907,6 +5909,7 @@ double sexpo(void)
      Q(N) = SUM(ALOG(2.0)**K/K!)    K=1,..,N ,      THE HIGHEST N
      (HERE 8) IS DETERMINED BY Q(N)=1.0 WITHIN STANDARD PRECISION
 */
+double sexpo(void)
 {
 static double q[8] = {
     0.6931472,0.9333737,0.9888778,0.9984959,0.9998293,0.9999833,0.9999986,1.0
@@ -5940,7 +5943,6 @@ S70:
 }
 
 
-long mltmod(long a,long s,long m)
 /*
 **********************************************************************
      long mltmod(long a,long s,long m)
@@ -5954,6 +5956,9 @@ long mltmod(long a,long s,long m)
      a, s, m  -->
 **********************************************************************
 */
+long mltmod(long a,
+            long s,
+            long m)
 {
 #define h 32768L
 static long mltmod,a0,a1,k,p,q,qh,rh;
@@ -6036,7 +6041,6 @@ S140:
 }
 
 
-double ranf(void)
 /*
 **********************************************************************
      double ranf(void)
@@ -6051,6 +6055,7 @@ double ranf(void)
      Software, 17:98-111 (1991)
 **********************************************************************
 */
+double ranf(void)
 {
 static double ranf;
 /*
@@ -6062,7 +6067,6 @@ static double ranf;
 }
 
 
-void gscgn(long getset,long *g)
 /*
 **********************************************************************
      void gscgn(long getset,long *g)
@@ -6074,6 +6078,8 @@ void gscgn(long getset,long *g)
      g <-- Number of the current random number generator (1..32)
 **********************************************************************
 */
+void gscgn(long getset,
+           long *g)
 {
 #define numg 32L
 static long curntg = 1;
@@ -6090,7 +6096,6 @@ static long curntg = 1;
 }
 
 
-void gsrgs(long getset,long *qvalue)
 /*
 **********************************************************************
      void gsrgs(long getset,long *qvalue)
@@ -6101,6 +6106,8 @@ void gsrgs(long getset,long *qvalue)
      If getset is 0 state returned in qvalue
 **********************************************************************
 */
+void gsrgs(long getset,
+           long *qvalue)
 {
 static long qinit = 0;
 
@@ -6109,7 +6116,6 @@ static long qinit = 0;
 }
 
 
-void gssst(long getset,long *qset)
 /*
 **********************************************************************
      void gssst(long getset,long *qset)
@@ -6120,6 +6126,8 @@ void gssst(long getset,long *qset)
      Else returns F in qset
 **********************************************************************
 */
+void gssst(long getset,
+           long *qset)
 {
 static long qstate = 0;
     if(getset != 0) qstate = 1;
@@ -6127,7 +6135,6 @@ static long qstate = 0;
 }
 
 
-void setall(long iseed1,long iseed2)
 /*
 **********************************************************************
      void setall(long iseed1,long iseed2)
@@ -6145,6 +6152,8 @@ void setall(long iseed1,long iseed2)
      iseed2 -> Second of two integer seeds
 **********************************************************************
 */
+void setall(long iseed1,
+            long iseed2)
 {
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
@@ -6180,7 +6189,6 @@ static long qrgnin;
 }
 
 
-void initgn(long isdtyp)
 /*
 **********************************************************************
      void initgn(long isdtyp)
@@ -6200,6 +6208,7 @@ void initgn(long isdtyp)
                           the next block
 **********************************************************************
 */
+void initgn(long isdtyp)
 {
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
@@ -6243,7 +6252,6 @@ S50:
 }
 
 
-long ignlgi(void)
 /*
 **********************************************************************
      long ignlgi(void)
@@ -6257,6 +6265,7 @@ long ignlgi(void)
      Software, 17:98-111 (1991)
 **********************************************************************
 */
+long ignlgi(void)
 {
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
@@ -6298,7 +6307,6 @@ static long qqssd,qrgnin;
 }
 
 
-void inrgcm(void)
 /*
 **********************************************************************
      void inrgcm(void)
@@ -6309,6 +6317,7 @@ void inrgcm(void)
      assuring that the routine is loaded with the other routines.
 **********************************************************************
 */
+void inrgcm(void)
 {
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
@@ -6346,13 +6355,16 @@ static long i;
                       INTEGRATION
 ************************************************************************/
 
-double midpnt(double (*func)(double), double a, double b, int n)
 /* This routine computes the nth stage of refinement of an extended midpoint rule. func is input
    as a pointer to the function to be integrated between limits a and b. When called with n=1, 
    the routine return the crudest estimate. Subsequent calls with n=2,3... (in that order) will
    improve the accuracy of s by adding (2/3)*3^(n-1) additional interior points.
    s should not be modified between sequential calls
 */
+double midpnt(double (*func)(double),
+              double a,
+              double b,
+              int n)
 {
 
   #define FUNC(x) ((*func)(x))
@@ -6728,13 +6740,21 @@ double univmin(double ax,
 
 
 #define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f);
-double dunivmin(double ax,double bx,double cx,double (*f)(double),double (*df)(double),double eps,double *xmin,int itmax) {
 /* Given a function f and its derivative function df, and given a bracketing triplet of abscissas ax,
    bx, cx [such that bx is between ax and cx, and f(bx) is less than both f(ax) and f(cx)],
    this routine isolates the minimum to a fractional precision of about eps using a modification of
    Brent's method that uses derivatives. The abscissa of the minimum is returned as xmin, and
 the minimum function value is returned as dunivmin, the returned function value.
 */
+double dunivmin(double ax,
+                double bx,
+                double cx,
+                double (*f)(double),
+                double (*df)(double),
+                double eps,
+                double *xmin,
+                int itmax)
+{
 
   #define ZEPS 1.0e-10   //protects against trying to achieve fractional accuracy when min is exactly zero
   int iter,ok1,ok2; //Will be used as flags for whether proposed steps are acceptable or not.
@@ -6821,7 +6841,6 @@ the minimum function value is returned as dunivmin, the returned function value.
 }
 
 
-void minimize(double th[],double **dirini,int n,double eps,int *iter,double *fret,double (*f)(double []),int itmax) {
 /* Multivariate function minimization. */
 /* Input/Output
    - th[1..n]: initial parameter values.
@@ -6835,7 +6854,15 @@ void minimize(double th[],double **dirini,int n,double eps,int *iter,double *fre
    - iter: number of iterations used
    - fret: value of the function at the optimum
 */
-
+void minimize(double th[],
+              double **dirini,
+              int n,
+              double eps,
+              int *iter,
+              double *fret,
+              double (*f)(double []),
+              int itmax)
+{
   int i,ibig,j,converged=0;
   double del,fth,fthtt,t,*tht,*thtt,*dirinit;
 
@@ -6887,13 +6914,20 @@ void minimize(double th[],double **dirini,int n,double eps,int *iter,double *fre
 int ncom; //Global variables communicate with f1dim.
 double *pcom,*xicom,(*nrfunc)(double []);
 
-void dirmin(double p[], double xi[], int n, double *fret, double (*func)(double []), int itmax, double dirminEPS) {
 /* Given an n-dimensional point p[1..n] and an n-dimensional direction xi[1..n], moves and
    resets p to where the function func(p) takes on a minimum along the direction xi from p,
    and replaces xi by the actual vector displacement that p was moved. Also returns as fret
    the value of func at the returned location p. This is actually all accomplished by calling the
    routines mnbrak and univmin.
 */
+void dirmin(double p[],
+            double xi[],
+            int n,
+            double *fret,
+            double (*func)(double []),
+            int itmax,
+            double dirminEPS)
+{
 
 double univmin(double ax, double bx, double cx,double (*f)(double), double eps, double *xmin, int itmax);
 double f1dim(double x);
@@ -6946,12 +6980,19 @@ static double maxarg2;
 
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))
 
-void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc,double (*func)(double)) {
 /* Given a function func, and given distinct initial points ax and bx, this routine searches in
    the downhill direction (defined by the function as evaluated at the initial points) and returns
    new points ax, bx, cx that bracket a minimum of the function. Also returned are the function
    values at the three points, fa, fb, and fc.
 */
+void mnbrak(double *ax,
+            double *bx,
+            double *cx,
+            double *fa,
+            double *fb,
+            double *fc,
+            double (*func)(double))
+{
 #define GOLD 1.618034  //default ratio by which successive intervals are magnified;
 #define GLIMIT 100.0   //maximum magnification allowed for a parabolic-fit step.
 

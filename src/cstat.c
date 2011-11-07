@@ -3921,20 +3921,36 @@ double rnorm_trunc(double ltrunc, double rtrunc, double m, double s)
 
     lprob = pnormC(ltrunc, m, s);
     rprob = pnormC(rtrunc, m, s);
-    return(rnorm_trunc_prob(lprob, rprob, m, s));
+    return rnorm_trunc_prob(lprob, rprob, m, s);
 }
 
 
-/* Draw from a univariate truncated Normal giving truncation probabilities */
-  // lprob, rprob: prob to the left of the truncation points; m: mean; s: SD
-  //e.g. lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
-double rnorm_trunc_prob(double lprob, double rprob, double m, double s)
+/*
+ * Draw from a univariate truncated Normal giving truncation probabilities.
+ *    lprob - prob to the left of the truncation points
+ *    rprob - prob to the right of the truncation points
+ *    m     - mean
+ *    s     - SD
+ *
+ * For example,
+ *   lprob=.05, rprob=.99 means we're truncating the lower 5% and the upper 1%
+ */
+double rnorm_trunc_prob(double lprob,
+                        double rprob,
+                        double m,
+                        double s)
 {
-  double u;
-  if (lprob>=rprob) nrerror("rnorm_trunc_prob","left truncation probability is larger than right truncation probability","");
-  u= lprob + runif()*(rprob-lprob);  //generate uniform between lprob, rprob
-  u= qnormC(u,m,s);
-  return(u);
+    double u;
+
+    if (lprob >= rprob) {
+        nrerror("rnorm_trunc_prob",
+                "",
+                "left truncation probability is larger than right truncation probability");
+        /*NOTREACHED*/
+    }
+    /* Generate uniform between lprob, rprob */
+    u = lprob + runif() * (rprob-lprob);
+    return qnormC(u, m, s);
 }
 
 
@@ -4196,7 +4212,7 @@ double qtC(double p, int nu)
     d = ((94.5 / (b + c) - 3.0) / b + 1.0) * sqrt(a * M_PI_2) * ndf;
     y = pow(d * P, 2.0 / ndf);
     if (y > 0.05 + a) {  /* Asymptotic inverse expansion about normal */
-      x = qnormC(0.5*P,0.0,1.0);
+      x = qnormC(0.5*P, 0.0, 1.0);
       y = x * x;
       if (ndf < 5)
 	c += 0.3 * (ndf - 4.5) * (x + 0.6);
@@ -6494,11 +6510,16 @@ double qromo(double (*func)(double),
           INTERPOLATION, EXTRAPOLATION AND SPLINES
 ************************************************************************/
 
-void polint (double xa[], double ya[], int n, double x, double *y, double *dy)
 /* Given arrays xa[1..n] and ya[1..n], and given a value x, this routine returns a value y, and
    and error estimate dy. If P(x) is the polynomial of degree N-1 such that P(xa[i])=ya[i] i=1..n
    then the returned value y=P(x).
 */
+void polint(double xa[],
+            double ya[],
+            int n,
+            double x,
+            double *y,
+            double *dy)
 {
 
   int i,m,ns=1;

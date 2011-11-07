@@ -170,7 +170,7 @@ void grid(double x0, double xn, int n, double *x);
 void rA(double r, double **A, double **B, int rowini, int rowfi, int colini, int colfi);  //matrix*scalar
 void A_plus_B(double **A, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix + matrix
 void rA_plus_sB(double r, double **A, double s, double **B, double **C, int rowini, int rowfi, int colini, int colfi); //matrix*scalar + matrix*scalar
-void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi); //scalar*matrix*vector + scalar*matrix*vector
+void rAx_plus_sBy(double r, double **A, const double *x, double s, double **B, const double *y, double *z, int rowini, int rowfi, int colini, int colfi); //scalar*matrix*vector + scalar*matrix*vector
 void Ax_plus_y(double **A, const double *x, const double *y, double *z, int ini, int fi); //matrix*vector+vector
 void xA(const double *x, double **A, double *z, int ini, int fi);  //Multiply vector * matrix
 void Ax(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi);  //matrix * vector
@@ -323,7 +323,7 @@ double qromo(double (*func)(double), double a, double b, double (*choose)(double
 /**************************************************************/
 
 void polint(double xa[], double ya[], int n, double x, double *y, double *dy); //interpolates via polynomials
-double bspline_singlex(double x, int j, int degree, double *knots); //jth B-spline basis eval at single value x
+double bspline_singlex(double x, int j, int degree, const double *knots); //jth B-spline basis eval at single value x
 void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots); //B-spline basis eval at vector of values x
 void bspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots); //same as bspline but returns a vector, so that it can be called from R
 void mspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots); //M-spline basis eval at vector of values x

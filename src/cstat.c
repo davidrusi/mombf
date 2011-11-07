@@ -2132,8 +2132,9 @@ void rA_plus_sB(double r,
 }
 
 
-void rAx_plus_sBy(double r, double **A, double *x, double s, double **B, double *y, double *z, int rowini, int rowfi, int colini, int colfi) {
   //Scalar*matrix*vector + scalar*matrix*vector
+void rAx_plus_sBy(double r, double **A, const double *x, double s, double **B, const double *y, double *z, int rowini, int rowfi, int colini, int colfi)
+{
   int _i, _j; 
   for(_i=rowini;_i<=rowfi;_i++) 
     for(z[_i]=0,_j=colini; _j<=rowfi; _j++) 
@@ -4279,7 +4280,8 @@ double dinvgammaC(double x, double a, double b)
 
 //Normal MOM prior
 //Density is proportional to (y-m)^(2*r) N(y;m,tau*phi), where tau*phi is the variance
-double dmomNorm(double y, double m, double tau, double phi, int r, int logscale) {
+double dmomNorm(double y, double m, double tau, double phi, int r, int logscale)
+{
   double ans, normct[]={0,1.098612,2.70805,4.65396,6.851185,9.24908,11.81403,14.52208,17.35529,20.29973};
   ans= r*log((y-m)*(y-m)/(tau*phi)) + dnormC(y,m,sqrt(tau*phi),1) - normct[r-1];
   if (logscale==0) ans= exp(ans);
@@ -4302,8 +4304,14 @@ double fifdint(double a)
 }
 
 
-void cdfnor(int *which,double *p,double *q,double *x,double *mean,
-	    double *sd,int *status,double *bound)
+void cdfnor(int *which,
+            double *p,
+            double *q,
+            double *x,
+            double *mean,
+            double *sd,
+            int *status,
+            double *bound)
 /**********************************************************************
 
       void cdfnor(int *which,double *p,double *q,double *x,double *mean,
@@ -6484,24 +6492,34 @@ void polint (double xa[], double ya[], int n, double x, double *y, double *dy)
 }
 
 
-double bspline_singlex(double x, int j, int degree, double *knots) {
-/*Returns the jth B-spline basis evaluated at single value x
-  - x: value at which to evaluate the B-spline basis
-  - j: basis
-  - degree: degree of the B-spline (0: piecewise constant, 1:linear etc.)
-  - knots: sequence of knots
-*/
-  double ans;
-  if (degree==0) {
-    if (knots[j]<=x && x<knots[j+1]) ans= 1.0; else ans= 0.0;
-  } else {
-    ans= bspline_singlex(x,j,degree-1,knots)*(x-knots[j])/(knots[j+degree]-knots[j]) + bspline_singlex(x,j+1,degree-1,knots)*(knots[j+degree+1]-x)/(knots[j+degree+1]-knots[j+1]);
-  }
-  return(ans);
+/*
+ * Returns the jth B-spline basis evaluated at single value x
+ *    x: value at which to evaluate the B-spline basis
+ *    j: basis
+ *    degree: degree of the B-spline (0: piecewise constant, 1:linear etc.)
+ *    knots: sequence of knots
+ */
+double bspline_singlex(double x,
+                       int j,
+                       int degree,
+                       const double *knots)
+{
+    double ans;
+
+    assert(knots != NULL);
+
+    if (degree == 0) {
+        ans = (knots[j] <= x && x < knots[j+1]) ? 1.0 : 0.0;
+    } else {
+        ans = bspline_singlex(x, j, degree-1, knots) *
+              (x - knots[j]) / (knots[j+degree] - knots[j]) +
+              bspline_singlex(x, j+1, degree-1, knots) *
+              (knots[j+degree+1] - x) / (knots[j+degree+1] - knots[j+1]);
+    }
+    return(ans);
 }
 
 
-void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
  //B-spline basis eval at vector of values x. Normalized to sum to 1 at any x value.
  /* Input
       - x: vector of values at which to evaluate the B-spline basis
@@ -6512,6 +6530,7 @@ void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nk
     Output
       - W: matrix with nx rows and nknots-degree-1 columns containing the B-spline basis
    */
+void bspline(double **W, double *x, int *nx, int *degree, double *knots, int *nknots) {
   int i,j;
   if (*nknots<(*degree+2)) {
     REprintf("bspline: number of knots must be >= degree+2\n");

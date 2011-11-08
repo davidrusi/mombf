@@ -4212,14 +4212,16 @@ double rtmixC(const double *mu,
  *     ltrunc - left truncation point
  *     rtrunc - right truncation point
  */
-double rt_trunc(int nu, double ltrunc, double rtrunc)
+double rt_trunc(int nu,
+                double ltrunc,
+                double rtrunc)
 {
     double lprob;
     double rprob;
 
     lprob = ptC(ltrunc, nu);
     rprob = ptC(rtrunc, nu);
-    return(rt_trunc_prob(nu, lprob, rprob));
+    return rt_trunc_prob(nu, lprob, rprob);
 }
 
 
@@ -4231,7 +4233,9 @@ double rt_trunc(int nu, double ltrunc, double rtrunc)
  *
  * e.g. lprob=.05, rprob=.99 means truncate the lower 5% and the upper 1%
  */
-double rt_trunc_prob(int nu, double lprob, double rprob)
+double rt_trunc_prob(int nu,
+                     double lprob,
+                     double rprob)
 {
     double u;
 

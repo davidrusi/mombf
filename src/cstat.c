@@ -6742,25 +6742,32 @@ free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
 }
 
 
-  //M-spline basis eval at vector of values x. Normalized to integrate to 1 wrt x
+/*
+ * M-spline basis eval at vector of values x.
+ * Normalized to integrate to 1 wrt x
+ */
 void mspline(double **W,
-             double *x,
-             int *nx,
-             int *degree,
-             double *knots,
-             int *nknots)
+             const double *x,
+             const int *nx,
+             const int *degree,
+             const double *knots,
+             const int *nknots)
 {
-  int i,j;
-  if (*nknots<(*degree+2)) {
-    REprintf("mspline: number of knots must be >= degree+2\n");
-    /* :TBD: - Should this be fatal? */ 
-  } else {
-    for (i=0; i<(*nx); i++) {
-      for (j=0; j<(*nknots - *degree -1); j++) {
-        W[i][j]= bspline_singlex(x[i],j,*degree,knots)*(*degree+1.0)/(knots[j+ *degree +1]-knots[j]);
-      }
+    if (*nknots < (*degree + 2)) {
+        REprintf("mspline: number of knots must be >= degree+2\n");
+        /* :TBD: - Should this be fatal? */ 
     }
-  }
+    else {
+        register int i;
+        register int j;
+
+        for (i = 0; i < (*nx); i++) {
+            for (j = 0; j < (*nknots - *degree -1); j++) {
+                W[i][j] = bspline_singlex(x[i], j, *degree, knots) *
+                          (*degree+1.0) / (knots[j+ *degree +1] - knots[j]);
+            }
+        }
+    }
 }
 
 

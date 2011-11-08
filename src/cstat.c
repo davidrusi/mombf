@@ -7052,51 +7052,16 @@ void minimize(double th[],
 }
 
 
+/* TODO: Convert TINY to constant */
 #define TINY 1.0e-25
-int ncom; //Global variables communicate with f1dim.
-double *pcom,*xicom,(*nrfunc)(double []);
 
-/* Given an n-dimensional point p[1..n] and an n-dimensional direction xi[1..n], moves and
-   resets p to where the function func(p) takes on a minimum along the direction xi from p,
-   and replaces xi by the actual vector displacement that p was moved. Also returns as fret
-   the value of func at the returned location p. This is actually all accomplished by calling the
-   routines mnbrak and univmin.
-*/
-void dirmin(double p[],
-            double xi[],
-            int n,
-            double *fret,
-            double (*func)(double []),
-            int itmax,
-            double dirminEPS)
-{
-
-double univmin(double ax, double bx, double cx,double (*f)(double), double eps, double *xmin, int itmax);
-double f1dim(double x);
-void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb,
-double *fc, double (*func)(double));
-int j;
-double xx,xmin,fx,fb,fa,bx,ax;
-
- ncom=n; //Define the global variables.
- pcom=dvector(1,n);
- xicom=dvector(1,n);
- nrfunc=func;
- for (j=1;j<=n;j++) {
-   pcom[j]=p[j];
-   xicom[j]=xi[j];
- }
- ax=0.0; //Initial guess for brackets.
- xx=1.0;
- mnbrak(&ax,&xx,&bx,&fa,&fx,&fb,f1dim);
- *fret=univmin(ax,xx,bx,f1dim,dirminEPS,&xmin,itmax);
- for (j=1;j<=n;j++) { //Construct the vector results to return.
-   xi[j] *= xmin;
-   p[j] += xi[j];
- }
- free_dvector(xicom,1,n);
- free_dvector(pcom,1,n);
-}
+/*
+ * Global variables communicate with f1dim.
+ */
+int ncom;
+double *pcom;
+double *xicom;
+double (*nrfunc)(double []);
 
 
 /* Must accompany dirmin. */
@@ -7114,6 +7079,57 @@ double f1dim(double x)
     free_dvector(xt, 1, ncom);
 
     return f;
+}
+
+
+/*
+ * Given an n-dimensional point p[1..n] and an n-dimensional direction xi[1..n],
+ * moves and resets p to where the function func(p) takes on a minimum along
+ * the direction xi from p, and replaces xi by the actual vector displacement
+ * that p was moved. Also returns as fret the value of func at the returned
+ * location p. This is actually all accomplished by calling the routines
+ * mnbrak() and univmin().
+ */
+void dirmin(double p[],
+            double xi[],
+            int n,
+            double *fret,
+            double (*func)(double []),
+            int itmax,
+            double dirminEPS)
+{
+    register int j;
+    double xmin;
+    double fx;
+    double fb;
+    double fa;
+    double bx;
+    double ax = 0.0;
+    double xx = 1.0;
+
+    assert(fret != NULL);
+    assert(func != NULL);
+
+    /* Set the global variables */
+    ncom = n;
+    pcom = dvector(1, n);
+    xicom = dvector(1, n);
+    nrfunc = func;
+    for (j = 1; j <= n; j++) {
+        pcom[j] = p[j];
+        xicom[j] = xi[j];
+    }
+
+    mnbrak(&ax, &xx, &bx, &fa, &fx, &fb, f1dim);
+    *fret = univmin(ax, xx, bx, f1dim, dirminEPS, &xmin, itmax);
+
+    /* Construct the vector results to return */
+    for (j = 1; j <= n; j++) {
+        xi[j] *= xmin;
+        p[j] += xi[j];
+    }
+    free_dvector(xicom, 1, n);
+    free_dvector(pcom, 1, n);
 }
 
 

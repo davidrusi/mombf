@@ -6753,9 +6753,16 @@ void mspline(double **W,
              const double *knots,
              const int *nknots)
 {
+    assert(W != NULL);
+    assert(x != NULL);
+    assert(nx != NULL);
+    assert(degree != NULL);
+    assert(knots != NULL);
+    assert(nknots != NULL);
+
     if (*nknots < (*degree + 2)) {
         REprintf("mspline: number of knots must be >= degree+2\n");
-        /* :TBD: - Should this be fatal? */ 
+        /* :TBD: - Should this be fatal? */
     }
     else {
         register int i;

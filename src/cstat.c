@@ -6576,11 +6576,10 @@ double qromo(double (*func)(double),
              double b,
              double (*choose)(double(*)(double), double, double, int))
 {
-
-#define EPS 1.0e-6
-#define JMAX 14
-#define JMAXP (JMAX+1)
-#define K 5
+    const double EPS = 1.0e-6;
+    const int JMAX = 14;
+    const int JMAXP = (JMAX+1);
+    const int K = 5;
 
     register int j;
     double ss;

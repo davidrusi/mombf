@@ -3910,28 +3910,41 @@ double bbPrior(int k,
 
 
 /* Draw from univariate Normal(mu,s^2) */
-double rnormC(double mu, double s)
+double rnormC(double mu,
+              double s)
 {
-  static bool iset=false;
-  static double gset;
-  double fac,rsq,v1,v2;
+    static bool iset = false;
+    static double gset;
+    double normdev;
 
-  if (iset == 0) { //We don't have an extra deviate handy, so
-    do {
-      v1=2.0*runif()-1.0; //pick two uniform numbers in the square extending from
-      v2=2.0*runif()-1.0; //-1 to +1 in each direction,
-      rsq=v1*v1+v2*v2;       //see if they are in the unit circle,
-    } while (rsq >= 1.0 || rsq == 0.0); //and if they are not, try again.
-    fac=sqrt(-2.0*log(rsq)/rsq);
-    //Now make the Box-Muller transformation to get two normal deviates. Return one and
-    //save the other for next time.
-    gset=v1*fac;
-    iset=true; //Set flag.
-    return v2*fac*s + mu;
-  } else { //We have an extra deviate handy,
-    iset=false; //so unset the flag, and return it.
-    return gset*s + mu; 
-  }
+    /* Is a deviate available from a previous invocation? */
+    if (iset == false) {
+        double fac;
+        double rsq;
+        double v1;
+        double v2;
+
+        do {
+            /*
+             * Pick two uniform numbers in the square extending
+             * from -1 to +1 in each direction
+             */
+            v1 = 2.0 * runif() - 1.0;
+            v2 = 2.0 * runif() - 1.0;
+            /* See if they are in the unit circle */
+            rsq = (v1 * v1) + (v2 * v2);
+        } while (rsq >= 1.0 || rsq == 0.0);
+        fac = sqrt(-2.0 * log(rsq) / rsq);
+        /* Make Box-Muller transformation to get two normal deviates */
+        gset = v1 * fac;        /* Save this one for next invocation */
+        iset = true;
+        normdev = v2 * fac;
+    }
+    else {
+        iset = false;
+        normdev = gset;
+    }
+    return normdev * s + mu; 
 }
 
 
@@ -3942,7 +3955,10 @@ double rnormC(double mu, double s)
  *    m      - mean
  *    s      - SD
  */
-double rnorm_trunc(double ltrunc, double rtrunc, double m, double s)
+double rnorm_trunc(double ltrunc,
+                   double rtrunc,
+                   double m,
+                   double s)
 {
     double lprob;
     double rprob;

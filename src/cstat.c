@@ -4091,16 +4091,27 @@ double dtC(double y,
  * Density of t mixtures with ncomp components,
  * i.e. sum T_nu(y;mu[i],s[i]^2) * probs[i]
  */
-double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale)
+double dtmixC(double y,
+              const double *mu,
+              const double *s,
+              const double *probs,
+              int nu,
+              int ncomp,
+              int logscale)
 {
-  register int i;
-  double ans = 0.0;
+    register int i;
+    double ans = 0.0;
 
-  for (i = 0; i < ncomp; i++)
-    ans += dtC(y, mu[i], s[i], nu) * probs[i];
-  if (logscale)
-    ans = log(ans);
-  return ans;
+    assert(mu != NULL);
+    assert(s != NULL);
+    assert(probs != NULL);
+
+    for (i = 0; i < ncomp; i++) {
+        ans += dtC(y, mu[i], s[i], nu) * probs[i];
+    }
+    if (logscale)
+        ans = log(ans);
+    return ans;
 }
 
 

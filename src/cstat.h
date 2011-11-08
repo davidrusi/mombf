@@ -266,7 +266,7 @@ double mnorm(double order, double m, double sd); //raw moment of N(m,sd) of orde
 
 // T Student
 double dtC(double y, double mu, double s, int nu); //density of t with nu df
-double dtmixC(double y, double *mu, double *s, double *probs, int nu, int ncomp, int logscale); //density of t_nu(mu[i],s[i]^2) mixtures with ncomp components
+double dtmixC(double y, const double *mu, const double *s, const double *probs, int nu, int ncomp, int logscale); //density of t_nu(mu[i],s[i]^2) mixtures with ncomp components
 double dmvtC(const double *y, int n, const double *mu, double **cholsinv, double det, int nu, int logscale); //density of multivariate t
 double rtC(int nu); //draw from univariate t with nu degrees of freedom
 double rtmixC(const double *mu, const double *s, const double *probs, int nu, int ncomp); //draw from mixture of t_nu(mu[i],s[i]^2)

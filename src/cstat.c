@@ -3944,7 +3944,7 @@ double rnormC(double mu,
         iset = false;
         normdev = gset;
     }
-    return normdev * s + mu; 
+    return normdev * s + mu;
 }
 
 
@@ -4033,26 +4033,48 @@ void rmvnormC(double *y,
 }
 
 
-//Raw moment of N(m,sd) of order "order"
-//Function adapted from that in R package "actuar"
-double mnorm(double order, double m, double sd) {
-  int i, n = order;
-  double res, temp1, temp2, ans;
-  if (order == 0.0) {   /* Trivial case */
-    ans=1.0;
-  } else if (n % 2 == 1 && m == 0.0) {   /* Odd moments about 0 are equal to 0 */
-    ans=0.0;
-  } else {
-    for (i=0, res=0; i<=n/2; i++) { temp1= i+1; temp2= order-2*i+1; res+= pow(sd,2*i) * pow(m,n-2*i) / (pow(2,i) * exp(gamln(&temp1)) * exp(gamln(&temp2))); }
-    temp1= order+1;
-    ans= exp(gamln(&temp1)) * res;
-  }
-  return(ans);
+/*
+ * Raw moment of N(m,sd) of order "order"
+ * Adapted from that in R package "actuar"
+ */
+double mnorm(double order,
+             double m,
+             double sd)
+{
+    int n = order;
+    double ans;
+
+    if (order == 0.0) {
+        ans = 1.0;        /* Trivial case */
+    }
+    else if ((n % 2) == 1 && m == 0.0) {
+        ans = 0.0;        /* Odd moments about 0 are equal to 0 */
+    }
+    else {
+        register int i;
+        double temp1;
+        double temp2;
+        double res;
+
+        res = 0.0;
+        for (i = 0; i <= n/2; i++) {
+            temp1 = i+1;
+            temp2 = order-2*i+1;
+            res += pow(sd, 2*i) * pow(m, n-2*i) /
+                   (pow(2, i) * exp(gamln(&temp1)) * exp(gamln(&temp2)));
+        }
+        temp1 = order+1;
+        ans = exp(gamln(&temp1)) * res;
+    }
+    return(ans);
 }
 
 
 /* Density of t with nu df, location mu and scale s^2 */
-double dtC(double y, double mu, double s, int nu)
+double dtC(double y,
+           double mu,
+           double s,
+           int nu)
 {
     double normk;
     double t1;

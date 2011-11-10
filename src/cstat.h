@@ -327,7 +327,7 @@ double bspline_singlex(double x, int j, int degree, const double *knots); //jth 
 void bspline(double **W, const double *x, const int *nx, const int *degree, const double *knots, const int *nknots); //B-spline basis eval at vector of values x
 void bspline_vec(double *W, const double *x, const int *nx, const int *degree, const double *knots, const int *nknots); //same as bspline but returns a vector, so that it can be called from R
 void mspline(double **W, const double *x, const int *nx, const int *degree, const double *knots, const int *nknots); //M-spline basis eval at vector of values x
-void mspline_vec(double *W, double *x, int *nx, int *degree, double *knots, int *nknots); //same as mspline but returns a vector, so that it can be called from R
+void mspline_vec(double *W, const double *x, const int *nx, const int *degree, const double *knots, const int *nknots); //same as mspline but returns a vector, so that it can be called from R
 
 
 /**************************************************************/

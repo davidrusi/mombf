@@ -4374,7 +4374,8 @@ double qtC(double p,
 
 
 /* CDF of a t-Student distribution */
-double ptC(double x, int nu)
+double ptC(double x,
+           int nu)
 {
     if (x > 0) {
         return(1 - 0.5 * pbetaC((nu+0.0) / (x*x+nu), 0.5*nu, 0.5));
@@ -4812,7 +4813,6 @@ S20:
 }
 
 
-void cumnor(double *arg, double *result, double *ccum)
 /*
 **********************************************************************
  
@@ -4899,6 +4899,9 @@ void cumnor(double *arg, double *result, double *ccum)
  
 ------------------------------------------------------------------
 */
+void cumnor(double *arg,
+            double *result,
+            double *ccum)
 {
 static double a[5] = {
     2.2352520354606839287e00,1.6102823106855587881e02,1.0676894854603709582e03,
@@ -5025,7 +5028,6 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 }
 
 
-double dinvnr(double *p, double *q)
 /*
 **********************************************************************
  
@@ -5065,6 +5067,8 @@ double dinvnr(double *p, double *q)
  
 **********************************************************************
 */
+double dinvnr(double *p,
+              double *q)
 {
 #define maxit 100
 #define eps 1.0e-13
@@ -5123,7 +5127,6 @@ S40:
 }
 
 
-double stvaln(double *p)
 /*
 **********************************************************************
  
@@ -5154,6 +5157,7 @@ double stvaln(double *p)
  
 **********************************************************************
 */
+double stvaln(double *p)
 {
 static double xden[5] = {
     0.993484626060e-1,0.588581570495e0,0.531103462366e0,0.103537752850e0,
@@ -5184,7 +5188,6 @@ S20:
 }
 
 
-double devlpl(double a[], int *n, double *x)
 /*
 **********************************************************************
  
@@ -5213,6 +5216,9 @@ double devlpl(double a[], int *n, double *x)
  
 **********************************************************************
 */
+double devlpl(double a[],
+              int *n,
+              double *x)
 {
 static double devlpl,term;
 static int i;
@@ -5227,7 +5233,6 @@ static int i;
 }
 
 
-int ipmpar(int*);
 /*
 -----------------------------------------------------------------------
  

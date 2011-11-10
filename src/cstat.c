@@ -1385,21 +1385,27 @@ void writeArray(float *x,
                                        ERROR HANDLING     
 ******************************************************************************/
 
-void fserror(const char *proc, const char *act, const char *what)
+void fserror(const char *proc,
+             const char *act,
+             const char *what)
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
 }
 
 
-void nrerror(const char *proc, const char *act, const char *what)
+void nrerror(const char *proc,
+             const char *act,
+             const char *what)
 {
     _cstaterror(proc, act, what);
     /*NOTREACHED*/
 }
 
 
-void errorC(const char *module, const char *msg, int nr)
+void errorC(const char *module,
+            const char *msg,
+            int nr)
 {
     REprintf("\n *** ERROR # %d in %s***\n %s\n", nr, module, msg);
     _cstatfatal();
@@ -1407,7 +1413,11 @@ void errorC(const char *module, const char *msg, int nr)
 }
 
 
-void err_msg(const char *fct, const char *txt, int n1, int n2, int n3)
+void err_msg(const char *fct,
+             const char *txt,
+             int n1,
+             int n2,
+             int n3)
 {
     REprintf("\n\n *** Error in %s \n", fct);
     REprintf(txt, n1, n2, n3); /* n1,n2 allows to include numbers in txt */

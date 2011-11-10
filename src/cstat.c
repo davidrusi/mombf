@@ -913,11 +913,11 @@ void lmbayes_knownvar(double *bpost,
 ************************************************************************/
 
 /* open file for input */
-FILE *openIn(const char *name)
+FILE *openIn(const char *fname)
 {
-    assert(name != NULL);
-    if ((ifile = fopen(name, "r")) == NULL) {
-        fserror("openIn", "open file for read", name);
+    assert(fname != NULL);
+    if ((ifile = fopen(fname, "r")) == NULL) {
+        fserror("openIn", "open file for read", fname);
         /*NOTREACHED*/
     }
     return(ifile);
@@ -925,11 +925,11 @@ FILE *openIn(const char *name)
 
 
 /* open file for output */
-FILE *openOut(const char *name)
+FILE *openOut(const char *fname)
 {
-    assert(name != NULL);
-    if ((ofile = fopen(name, "w")) == NULL) {
-        fserror("openOut", "open file for write", name);
+    assert(fname != NULL);
+    if ((ofile = fopen(fname, "w")) == NULL) {
+        fserror("openOut", "open file for write", fname);
         /*NOTREACHED*/
     }
     return ofile;
@@ -1687,7 +1687,6 @@ double ldoublefact(double x)
 }
 
 
-double gamln(double *a)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF LN(GAMMA(A)) FOR POSITIVE A
@@ -1699,6 +1698,7 @@ double gamln(double *a)
      D = 0.5*(LN(2*PI) - 1)
 --------------------------
 */
+double gamln(double *a)
 {
 static double c0 = .833333333333333e-01;
 static double c1 = -.277777777760991e-02;
@@ -1742,12 +1742,12 @@ S40:
 }
 
 
-double gamln1(double *a)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF LN(GAMMA(1 + A)) FOR -0.2 .LE. A .LE. 1.25
 -----------------------------------------------------------------------
 */
+double gamln1(double *a)
 {
 static double p0 = .577215664901533e+00;
 static double p1 = .844203922187225e+00;

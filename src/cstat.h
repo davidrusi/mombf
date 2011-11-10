@@ -70,8 +70,8 @@ void lmbayes_knownvar(double *bpost, double *b, double **Vb, double **XtX, doubl
 /* Input/output functions (interface)                         */
 /**************************************************************/
 
-FILE *openIn(const char *);
-FILE *openOut(const char *);
+FILE *openIn(const char *filename);
+FILE *openOut(const char *filename);
 //void scanFloat(char *, float *);
 //void scanDouble(char *, double *);
 //void scanInt(char *, int *);

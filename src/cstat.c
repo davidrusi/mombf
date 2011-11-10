@@ -6631,10 +6631,11 @@ double qromo(double (*func)(double),
           INTERPOLATION, EXTRAPOLATION AND SPLINES
 ************************************************************************/
 
-/* Given arrays xa[1..n] and ya[1..n], and given a value x, this routine returns a value y, and
-   and error estimate dy. If P(x) is the polynomial of degree N-1 such that P(xa[i])=ya[i] i=1..n
-   then the returned value y=P(x).
-*/
+/*
+ * Given arrays xa[1..n] and ya[1..n], and given a value x, this routine
+ * returns a value y, and and error estimate dy. If P(x) is the polynomial of
+ * degree N-1 such that P(xa[i])=ya[i] i=1..n then the returned value y=P(x).
+ */
 void polint(double xa[],
             double ya[],
             int n,
@@ -6642,45 +6643,74 @@ void polint(double xa[],
             double *y,
             double *dy)
 {
+    register int i;
+    register int m;
+    int ns = 1;
+    double dif;
+    double *c;
+    double *d;
 
-  int i,m,ns=1;
-  double den,dif,dift,ho,hp,w;
-  double *c, *d;
+    assert(y != NULL);
+    assert(dy != NULL);
 
-  dif= fabs(x-xa[1]);
-  c= dvector(1,n);
-  d= dvector(1,n);
+    dif = fabs(x - xa[1]);
+    c = dvector(1, n);
+    d = dvector(1, n);
 
-  for (i=1; i<=n; i++) { //here we find the index ns of the closest table entry
-    if ((dift=fabs(x-xa[i])) < dif) { ns=i; dif= dift; }
-    c[i]= ya[i];
-    d[i]= ya[i];
-  }
-  *y= ya[ns--];          //this is the initial approximation to y
-  for (m=1; m<n; m++) {  //for each column of the tableau
-    for (i=1; i<=n-m; i++) {  //we loop over the current c's and d's and update them
-      ho= xa[i]-x;
-      hp=xa[i+m]-x;
-      w= c[i+1] - d[i];
-      if ( (den=ho-hp) == 0.0) {
-        nrerror("polint",
-                "",
-                "increment x axis in 0 units (two identical input x values)");
-        /*NOTREACHED*/
-      }
-      den= w/den;
-      d[i]= hp*den;
-      c[i]= ho*den;
+    /* Find the index ns of the closest table entry */
+    for (i = 1; i <= n; i++) {
+        double dift;
+
+        dift = fabs(x - xa[i]);
+        if (dift < dif) {
+            ns = i;
+            dif = dift;
+        }
+        c[i] = ya[i];
+        d[i] = ya[i];
     }
-    *y += (*dy=(2*ns < (n-m) ? c[ns+1] : d[ns--]));
-    //after each column in the tableau is completed, we decide which correction (c or d) to add to our accumulating value of y
-    //i.e. which path to take through the tableau: forking up or down. We do this in such a way as to take the most "straigh line"
-    //route to its apex, updating ns accordingly to keep track of where we are. This route keeps the partial approximations
-    //centered on the target x. The last dy added is thus the error indication.
-  }
 
-  free_dvector(d,1,n);
-  free_dvector(c,1,n);
+    *y = ya[ns--];          /* initial approximation to y */
+
+    /* For each column of the tableau, update the c's and d's */
+    for (m = 1; m < n; m++) {
+        for (i = 1; i <= (n - m); i++) {
+            double den;
+            double ho;
+            double hp;
+            double w;
+
+            ho = xa[i] - x;
+            hp = xa[i + m] - x;
+            w = c[i + 1] - d[i];
+            den = ho - hp;
+            if (den == 0.0) {
+                nrerror("polint",
+                        "",
+                 "increment x axis in 0 units (two identical input x values)");
+                /*NOTREACHED*/
+            }
+            den = w / den;
+            d[i] = hp * den;
+            c[i] = ho * den;
+        }
+
+        /*
+         * After each column in the tableau is completed, we decide which
+         * correction (c or d) to add to our accumulating value of y.
+         * i.e., which path to take through the tableau: forking up or down.
+         * We do this in such a way as to take the most "straight line"
+         * route to its apex, updating ns accordingly to keep track of where
+         * we are. This route keeps the partial approximations centered on
+         * the target x. The last dy added is thus the error indication.
+         */
+
+        *dy = (2 * ns) < (n - m) ? c[ns + 1] : d[ns--];
+        *y += *dy;
+    }
+
+    free_dvector(d, 1, n);
+    free_dvector(c, 1, n);
 }
 
 

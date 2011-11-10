@@ -6693,52 +6693,83 @@ double bspline_singlex(double x,
 }
 
 
- //B-spline basis eval at vector of values x. Normalized to sum to 1 at any x value.
- /* Input
-      - x: vector of values at which to evaluate the B-spline basis
-      - nx: length of x
-      - degree: degree of the spline (0: piecewise constant, 1: linear etc.)
-      - knots: vector with positions of the knots
-      - nknots: length of knots
-    Output
-      - W: matrix with nx rows and nknots-degree-1 columns containing the B-spline basis
-   */
+/*
+ * B-spline basis eval at vector of values x.
+ * Normalized to sum to 1 at any x value.
+ *
+ * Input:
+ *    x: vector of values at which to evaluate the B-spline basis
+ *    nx: length of x
+ *    degree: degree of the spline (0: piecewise constant, 1: linear etc.)
+ *    knots: vector with positions of the knots
+ *    nknots: length of knots
+ *  Output:
+ *    W: matrix[nx][nknots-degree-1] containing the B-spline basis
+ */
 void bspline(double **W,
-             double *x,
-             int *nx,
-             int *degree,
-             double *knots,
-             int *nknots)
+             const double *x,
+             const int *nx,
+             const int *degree,
+             const double *knots,
+             const int *nknots)
 {
-  int i,j;
-  if (*nknots<(*degree+2)) {
-    REprintf("bspline: number of knots must be >= degree+2\n");
-    /* :TBD: - Should this be fatal? */ 
-  } else {
-    for (i=0; i<(*nx); i++) {
-      for (j=0; j<(*nknots - *degree -1); j++) {
-        W[i][j]= bspline_singlex(x[i],j,*degree,knots);
-      }
+    assert(W != NULL);
+    assert(x != NULL);
+    assert(nx != NULL);
+    assert(degree != NULL);
+    assert(knots != NULL);
+    assert(nknots != NULL);
+
+    if (*nknots < (*degree + 2)) {
+        REprintf("bspline: number of knots must be >= degree+2\n");
+        /* :TBD: - Should this be fatal? */
     }
-  }
+    else {
+        register int i;
+        register int j;
+        int ncols = (*nknots - *degree - 1);
+
+        for (i = 0; i < (*nx); i++) {
+            for (j = 0; j < ncols; j++) {
+                W[i][j] = bspline_singlex(x[i], j, *degree, knots);
+            }
+        }
+    }
 }
 
 
-  //same as routine bspline but returns a vector so that it can be called from R
+/*
+ * Same as bspline() but uses a vector as its first argument so that it can
+ * be called from R
+ */
 void bspline_vec(double *W,
-                 double *x,
-                 int *nx,
-                 int *degree,
-                 double *knots,
-                 int *nknots)
+                 const double *x,
+                 const int *nx,
+                 const int *degree,
+                 const double *knots,
+                 const int *nknots)
 {
-  int i,j;
-  double **Wtemp;
+    register int i;
+    register int j;
+    double **Wtemp;
+    int ncols;
 
-Wtemp= dmatrix(0,*nx,0,*nknots- *degree -1);
-bspline(Wtemp,x,nx,degree,knots,nknots);
-for (i=0; i<(*nx); i++) { for (j=0; j<(*nknots - *degree -1); j++) { W[i*(*nknots - *degree -1)+j]= Wtemp[i][j]; } }
-free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
+    assert(W != NULL);
+    assert(x != NULL);
+    assert(nx != NULL);
+    assert(degree != NULL);
+    assert(knots != NULL);
+    assert(nknots != NULL);
+
+    ncols = *nknots - *degree - 1;
+    Wtemp = dmatrix(0, *nx, 0, ncols);
+    bspline(Wtemp, x, nx, degree, knots, nknots);
+    for (i = 0; i < (*nx); i++) {
+        for (j = 0; j < ncols; j++) {
+            W[(i * ncols) + j] = Wtemp[i][j];
+        }
+    }
+    free_dmatrix(Wtemp, 0, *nx, 0, *nknots- *degree -1);
 }
 
 

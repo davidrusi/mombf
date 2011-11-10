@@ -548,16 +548,16 @@ void nn_bayes_rand(double *theta,
  *    p              - dimensionality
  *    logscale       - if not 0, result is returned in log scale
  */
-double nn_integral(double *x,
-                   double *rx,
+double nn_integral(const double *x,
+                   const double *rx,
                    double **Vxinv,
-                   double *detVx,
-                   double *mpr,
-                   double *rpr,
+                   const double *detVx,
+                   const double *mpr,
+                   const double *rpr,
                    double **Vprinv,
-                   double *detVpr,
-                   int *p,
-                   int *logscale)
+                   const double *detVpr,
+                   const int *p,
+                   const int *logscale)
 {
     double detsum;
     double **Vsum;
@@ -565,6 +565,17 @@ double nn_integral(double *x,
     double **cholVsum;
     double *m;
     double ans;
+
+    assert(x != NULL);
+    assert(rx != NULL);
+    assert(Vxinv != NULL);
+    assert(detVx != NULL);
+    assert(mpr != NULL);
+    assert(rpr != NULL);
+    assert(Vprinv != NULL);
+    assert(detVpr != NULL);
+    assert(p != NULL);
+    assert(logscale != NULL);
 
     m = dvector(1, *p);
     Vsum = dmatrix(1, *p, 1, *p);
@@ -580,7 +591,8 @@ double nn_integral(double *x,
           xtAy(x, Vxinv, x, 1, *p) -
           xtAy(mpr, Vprinv, mpr, 1, *p);
 
-    ans = 0.5*ans - 0.5*((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
+    ans = 0.5 * ans -
+          0.5 * ((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
     if (*logscale != 0) {
         ans = exp(ans);
     }

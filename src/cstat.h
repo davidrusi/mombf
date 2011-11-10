@@ -59,7 +59,7 @@ void colCVinv(double *cv, const double *x, int nrow, int ncol); //CV of 1/x
 
 void nn_bayes(double *mpo, double **Spo, double **Spo_inv, int p, double r1, double *mpr, double **Spr_inv, double r2, double *y, double **Slik_inv);  //Posterior of multiv normal mean with normal prior
 void nn_bayes_rand(double *theta, int p, double r1, double **Spr_inv, double *mpr, double r2, double **Slik_inv, double *y); //Single draw from posterior of multiv normal mean with normal prior
-double nn_integral(double *x, double *rx, double **Vxinv, double *detVx, double *mpr, double *rpr, double **Vprinv, double *detVpr, int *p, int *logscale); //Normal-Normal integral (useful to compute Bayes factors etc.)
+double nn_integral(const double *x, const double *rx, double **Vxinv, const double *detVx, const double *mpr, const double *rpr, double **Vprinv, const double *detVpr, const int *p, const int *logscale); //Normal-Normal integral (useful to compute Bayes factors etc.)
 
 void lm(double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, double *y, double **X, int *n, int *p, int *useXtX); //classical multiple linear regression
 void lmbayes(double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0); //Bayesian multiple linear regression

@@ -3575,17 +3575,16 @@ int runifdisc(int min, int max)
 int rdisc(const double *probs,
           int nvals)
 {
+    register int i;
     double u;
     double pcum;
-    int i = 1;
 
     assert(probs != NULL);
 
     u = runif();
     pcum = probs[0];
-    while ((pcum < u) && (i < nvals)) {
+    for (i = 1; (pcum < u) && (i < nvals); i++) {
         pcum += probs[i];
-        i++;
     }
     return(i-1);
 }

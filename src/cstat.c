@@ -6798,9 +6798,10 @@ void mspline(double **W,
     else {
         register int i;
         register int j;
+        int ncols = (*nknots - *degree - 1);
 
         for (i = 0; i < (*nx); i++) {
-            for (j = 0; j < (*nknots - *degree -1); j++) {
+            for (j = 0; j < ncols; j++) {
                 W[i][j] = bspline_singlex(x[i], j, *degree, knots) *
                           (*degree+1.0) / (knots[j+ *degree +1] - knots[j]);
             }
@@ -6809,21 +6810,38 @@ void mspline(double **W,
 }
 
 
-  //same as routine mspline but returns a vector so that it can be called from R
+/*
+ * Same as mspline() but uses a vector as its first argument so that it can
+ * be called from R
+ */
 void mspline_vec(double *W,
-                 double *x,
-                 int *nx,
-                 int *degree,
-                 double *knots,
-                 int *nknots)
+                 const double *x,
+                 const int *nx,
+                 const int *degree,
+                 const double *knots,
+                 const int *nknots)
 {
-  int i,j;
-  double **Wtemp;
+    register int i;
+    register int j;
+    double **Wtemp;
+    int ncols;
 
-Wtemp= dmatrix(0,*nx,0,*nknots- *degree -1);
-mspline(Wtemp,x,nx,degree,knots,nknots);
-for (i=0; i<(*nx); i++) { for (j=0; j<(*nknots - *degree -1); j++) { W[i*(*nknots - *degree -1)+j]= Wtemp[i][j]; } }
-free_dmatrix(Wtemp,0,*nx,0,*nknots- *degree -1);
+    assert(W != NULL);
+    assert(x != NULL);
+    assert(nx != NULL);
+    assert(degree != NULL);
+    assert(knots != NULL);
+    assert(nknots != NULL);
+
+    ncols = *nknots - *degree - 1;
+    Wtemp = dmatrix(0, *nx, 0, ncols);
+    mspline(Wtemp, x, nx, degree, knots, nknots);
+    for (i = 0; i < (*nx); i++) {
+        for (j = 0; j < ncols; j++) {
+            W[(i * ncols) + j] = Wtemp[i][j];
+        }
+    }
+    free_dmatrix(Wtemp, 0, *nx, 0, ncols);
 }
 
 

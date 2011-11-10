@@ -61,7 +61,7 @@ void nn_bayes(double *mpo, double **Spo, double **Spo_inv, int p, double r1, dou
 void nn_bayes_rand(double *theta, int p, double r1, double **Spr_inv, double *mpr, double r2, double **Slik_inv, double *y); //Single draw from posterior of multiv normal mean with normal prior
 double nn_integral(const double *x, const double *rx, double **Vxinv, const double *detVx, const double *mpr, const double *rpr, double **Vprinv, const double *detVpr, const int *p, const int *logscale); //Normal-Normal integral (useful to compute Bayes factors etc.)
 
-void lm(double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, double *y, double **X, int *n, int *p, int *useXtX); //classical multiple linear regression
+void lm(double *b, double **XtX, double **invXtX, double *Xty, double *s, double *ypred, const double *y, double **X, const int *n, const int *p, const int *useXtX); //classical multiple linear regression
 void lmbayes(double *bpost, double *spost, double *b, double **Vb, double *a_s, double *b_s, double **XtX, double **invXtX, double *Xty, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior, double *nu0, double *s0); //Bayesian multiple linear regression
 void lmbayes_knownvar(double *bpost, double *b, double **Vb, double **XtX, double **invXtX, double *Xty, double *sigma, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior); //same as lmbayes with known variance sigma^2
 

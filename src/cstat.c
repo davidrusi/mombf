@@ -630,11 +630,11 @@ void lm(double *b,
         double *Xty,
         double *s,
         double *ypred,
-        double *y,
+        const double *y,
         double **X,
-        int *n,
-        int *p,
-        int *useXtX)
+        const int *n,
+        const int *p,
+        const int *useXtX)
 {
     register int i;
 

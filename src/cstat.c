@@ -17,12 +17,12 @@
 
 static const char interface_c_sccs_id[] = "%W%";
 static const char mess_c_sccs_id[] = "%W%";
-static const char nrutil_c_sccs_id[] = "%W%"; 
+static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
 static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-08-23$";
 
-static long is1=123456789, is2=981963; 
+static long is1=123456789, is2=981963;
 static int set=0;
 
 FILE *ifile, *ofile;
@@ -119,7 +119,7 @@ double wmeani(const int *x,
 
 /* Sample mean of elements 0 through lim (both included) of vector x */
 double meanx(const double *x,
-             int lim) 
+             int lim)
 {
     register int i;
     double value = 0.0;
@@ -159,7 +159,7 @@ double wmeanx(const double *x,
 /* Sample variance of elements 0 through lim of vector x */
 double vari(const int *x,
             int lim,
-            bool unbiased) 
+            bool unbiased)
 {
     register int i;
     double value = 0.0;
@@ -181,7 +181,7 @@ double vari(const int *x,
 
 double wvari(const int *x,
              int lim,
-             const double *w) 
+             const double *w)
 {
     register int i;
     double value = 0.0;
@@ -203,7 +203,7 @@ double wvari(const int *x,
 /* Sample variance of elements 0 through lim of vector x */
 double varx(const double *x,
             int lim,
-            bool unbiased) 
+            bool unbiased)
 {
     register int i;
     double value = 0.0;
@@ -225,7 +225,7 @@ double varx(const double *x,
 
 double wvarx(const double *x,
              int lim,
-             const double *w) 
+             const double *w)
 {
     register int i;
     double value = 0.0;
@@ -263,7 +263,7 @@ double cv(const double *x,
         m += value;
         s += value * value;
     }
-    m = m / (1.0+fi-ini); 
+    m = m / (1.0+fi-ini);
     s = s / (0.0+fi-ini) - m*m*(1.0+fi-ini)/(0.0+fi-ini);
     ans = sqrt(s) / m;
     return(ans);
@@ -289,7 +289,7 @@ double cvinv(const double *x,
         m += 1.0 / value;
         s += 1.0 / (value * value);
     }
-    m = m / (1.0+fi-ini); 
+    m = m / (1.0+fi-ini);
     s = s / (0.0+fi-ini) - m*m*(1.0+fi-ini)/(0.0+fi-ini);
     ans = sqrt(s) / m;
     return(ans);
@@ -392,7 +392,7 @@ void colCV(double *cv,
         }
     }
     for (j = 0; j < ncol; j++) {
-        m[j] = m[j] / (nrow+0.0); 
+        m[j] = m[j] / (nrow+0.0);
         s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+0.0)/(nrow-1.0);
         cv[j] = sqrt(s[j]) / m[j];
     }
@@ -431,8 +431,8 @@ void colCVinv(double *cv,
             s[j] += 1.0 / (value * value);
         }
     }
-    for (j = 0; j < ncol; j++) { 
-        m[j] = m[j] / (nrow+0.0); 
+    for (j = 0; j < ncol; j++) {
+        m[j] = m[j] / (nrow+0.0);
         s[j] = s[j] / (nrow-1.0) - m[j]*m[j]*(nrow+0.0)/(nrow-1.0);
         cv[j] = sqrt(s[j]) / m[j];
     }
@@ -482,16 +482,16 @@ void nn_bayes(double *mpo,
     z = dvector(1, p);
 
     rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, Spo_inv, 1, p, 1, p);
-    inv_posdef(Spo_inv, p, Spo); 
+    inv_posdef(Spo_inv, p, Spo);
     rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
     Ax(Spo, z, mpo, 1, p, 1, p);
-  
+
     free_dvector(z, 1, p);
 }
 
 
 /*
- * Same as nn_bayes, but returns a draw only 
+ * Same as nn_bayes, but returns a draw only
  * returns:
  * theta: draw from the posterior N(theta; mpo, Spo):
  */
@@ -585,7 +585,7 @@ double nn_integral(double *x,
         ans = exp(ans);
     }
 
-    free_dvector(m, 1, *p); 
+    free_dvector(m, 1, *p);
     free_dmatrix(Vsum, 1, *p, 1, *p);
     free_dmatrix(Vsuminv, 1, *p, 1, *p);
     free_dmatrix(cholVsum, 1, *p, 1, *p);
@@ -667,7 +667,7 @@ void lm(double *b,
  * Bayesian conjugate multiple linear regression
  *    y ~ N(X'beta,sigma^2)
  *    beta ~ N(mpr,sigma^2*Spr) (if tauprior<=0)
- *    beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0) 
+ *    beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0)
  *           e.g. tauprior==n gives unit information prior
  *    sigma^2 ~ IG(0.5*nu0,0.5*s0)  (nu0: prior sample size; s0: prior sum of squares)
  * Input
@@ -798,10 +798,10 @@ void lmbayes(double *bpost,
  * Bayesian conjugate multiple linear regression with known var
  *  y ~ N(X'beta,sigma^2)
  *  beta ~ N(mpr,sigma^2*Spr) (if tauprior<=0)
- *  beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0) 
+ *  beta ~ N(mpr,tauprior*sigma^2*(X'X)^{-1}) (if tauprior>0)
  *         e.g. tauprior==n gives unit information prior
  * Input
- *    sigma: residual standard deviation 
+ *    sigma: residual standard deviation
  *    B: number of posterior samples to draw (can be 0)
  *    y: response variable y[1..n]
  *    X: design matrix X[1..n][1..p]

@@ -6567,42 +6567,55 @@ static long i;
                       INTEGRATION
 ************************************************************************/
 
-/* This routine computes the nth stage of refinement of an extended midpoint rule. func is input
-   as a pointer to the function to be integrated between limits a and b. When called with n=1, 
-   the routine return the crudest estimate. Subsequent calls with n=2,3... (in that order) will
-   improve the accuracy of s by adding (2/3)*3^(n-1) additional interior points.
-   s should not be modified between sequential calls
-*/
-double midpnt(double (*func)(double),
+/*
+ * Computes the nth stage of refinement of an extended midpoint rule.
+ * func is input as a pointer to the function to be integrated between
+ * limits a and b. When called with n=1, the routine return the crudest
+ * estimate. Subsequent calls with n=2,3... (in that order) will improve
+ * the accuracy of s by adding (2/3)*3^(n-1) additional interior points.
+ * s should not be modified between sequential calls.
+ */
+double midpnt(const double (*func)(double),
               double a,
               double b,
               int n)
 {
+#define FUNC(x) ((*func)(x))
 
-  #define FUNC(x) ((*func)(x))
+    static double s;
 
-  double x, tnm, sum, del, ddel;
-  static double s;
-  int it, j;
+    assert(func != NULL);
 
-  if (n==1) {
-    return(s=(b-a)*FUNC(0.5*(a+b)));
-  } else {
-    for (it=1,j=1;j<n-1;j++) it *= 3;
-    tnm=it;
-    del=(b-a)/(3.0*tnm);
-    ddel=del+del;
-    x=a+0.5*del;
-    sum=0.0;
-    for (j=1;j<=it;j++) {
-      sum += FUNC(x);
-      x += ddel;
-      sum += FUNC(x);
-      x += del;
+    if (n == 1) {
+        s = (b - a) * FUNC(0.5 * (a + b));
     }
-    return(s= (s+(b-a)*sum/tnm)/3.0);
-  }
+    else {
+        register int j;
+        double x;
+        double tnm;
+        double sum;
+        double del;
+        double ddel;
+        int it = 1;
 
+        for (j = 1; j < n-1; j++) {
+            it *= 3;
+        }
+        tnm = it;
+        del = (b - a) / (3.0 * tnm);
+        ddel = del + del;
+        x = a + 0.5 * del;
+        sum = 0.0;
+        for (j = 1; j <= it; j++) {
+            sum += FUNC(x);
+            x += ddel;
+            sum += FUNC(x);
+            x += del;
+        }
+        s = (s + (b - a) * sum / tnm) / 3.0;
+    }
+    return s;
+#undef FUNC
 }
 
 

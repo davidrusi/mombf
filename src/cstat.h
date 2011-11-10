@@ -209,7 +209,7 @@ void invdet_posdef(double **a, int n, double **aout, double *det_a); //Inverse a
 void inv_posdef_chol(double **invchol, int n, double **aout); //Inverse given cholesky decomposition
 
 void ludc(double **a, int n, int *indx, double *d); //LU decomposition (renamed routine ludcmp from NR)
-void lu_solve(double **a, int n, int *indx, double b[]); //Solve A*x=b (renamed routine lubksb from NR)
+void lu_solve(double **a, int n, const int *indx, double b[]); //Solve A*x=b (renamed routine lubksb from NR)
 void lu_inverse(double **a, int n, double **aout); //Inverse of A[1..n][1..n]
 double lu_det(double **a, int n); //Determinant of A[1..n][1..n]
 

@@ -3085,7 +3085,7 @@ void inv_posdef_chol(double **invchol,
  * depending on whether the number of row interchanges was even or odd,
  * respectively.
  *
- * Used in combination with lu_solve to solve linear equations or invert
+ * Used in combination with lu_solve() to solve linear equations or invert
  * a matrix.
  */
 void ludc(double **a,
@@ -3156,39 +3156,68 @@ void ludc(double **a,
 }
 
 
-void lu_solve(double **a, int n, int *indx, double b[]) {
-/*Solves the set of n linear equations A X = B. Here a[1..n][1..n] is input, not as the matrix
-A but rather as its LU decomposition, determined by the routine ludc. indx[1..n] is input
-as the permutation vector returned by ludcmp. b[1..n] is input as the right-hand side vector
-B, and returns with the solution vector X. a, n, and indx are not modi ed by this routine
-and can be left in place for successive calls with di erent right-hand sides b. This routine takes
-into account the possibility that b will begin with many zero elements, so it is efficient for use
-in matrix inversion. */
-/* Usage:
-     ludc(a,n,indx,&d);
-     lu_solve(a,n,indx,b);  //answer in b, original matrix A has been destroyed
-     lu_solve(a,n,indx,c);  //now we solve AX=c, since A hasn't changed we only call lu_solve
+/*
+ * Solves the set of n linear equations A X = B. Here a[1..n][1..n] is input,
+ * not as the matrix A but rather as its LU decomposition, determined by the
+ * routine ludc(). indx[1..n] is input as the permutation vector returned by
+ * ludcmp(). b[1..n] is input as the right-hand side vector B, and returns
+ * with the solution vector X. a, n, and indx are not modified by this routine
+ * and can be left in place for successive calls with different right-hand
+ * sides b. This routine takes into account the possibility that b will begin
+ * with many zero elements, so it is efficient for use in matrix inversion.
+ *
+ * Usage:
+ *   ludc(a,n,indx,&d);
+ *   lu_solve(a,n,indx,b);  //answer in b, original matrix A has been destroyed
+ *   lu_solve(a,n,indx,c);  //now we solve AX=c,
+ *                          //since A hasn't changed we only call lu_solve
  */
+void lu_solve(double **a,
+              int n,
+              const int *indx,
+              double b[])
+{
+    register int i;
+    register int j;
+    int ii = 0;
+    double sum;
 
-  int i,ii=0,ip,j;
-  double sum;
-  for (i=1;i<=n;i++) { 
-    /*When ii is set to a positive value, it will become the
-      index of the  rst nonvanishing element of b. Wenow
-      do the forward substitution, equation (2.3.6). The
-      only new wrinkle is to unscramble the permutation as we go. */
-    ip=indx[i];
-    sum=b[ip];
-    b[ip]=b[i];
-    if (ii) for (j=ii;j<=i-1;j++) sum -= a[i][j]*b[j];
-    else if (sum) ii=i; //Nonzero element encountered, from now we do sums in the loop above.
-    b[i]=sum; 
-  }
-  for (i=n;i>=1;i--) { //Now we do the backsubstitution, equation (2.3.7).
-    sum=b[i];
-    for (j=i+1;j<=n;j++) sum -= a[i][j]*b[j];
-    b[i]=sum/a[i][i]; //Store a component of the solution vector X.
-  } //All done!
+    assert(a != NULL);
+    assert(indx != NULL);
+
+    for (i = 1; i <= n; i++) {
+        int ip;
+
+        /*
+         * When ii is set to a positive value, it will become the
+         * index of the first non-vanishing element of b. We now
+         * do the forward substitution, equation (2.3.6).
+         * The only new wrinkle is to unscramble the permutation as we go.
+         */
+        ip = indx[i];
+        sum = b[ip];
+        b[ip] = b[i];
+        if (ii) {
+            for (j = ii; j <= i-1; j++) {
+                sum -= a[i][j] * b[j];
+            }
+        }
+        else if (sum != 0.0) {
+            /* Nonzero element encountered, from now do sums in above loop */
+            ii = i;
+        }
+        b[i] = sum;
+    }
+
+    /* Now we do the backsubstitution, equation (2.3.7) */
+    for (i = n; i >= 1; i--) {
+        sum = b[i];
+        for (j = i+1; j <= n; j++) {
+            sum -= a[i][j] * b[j];
+        }
+        /* Store a component of the solution vector X */
+        b[i] = sum / a[i][i];
+    }
 }
 
 

@@ -6882,11 +6882,11 @@ double univmin(double ax,
                double *xmin,
                int itmax)
 {
-#define CGOLD .3819660  //golden ratio
-#define ZEPS 1.0e-10   //protects against trying to achieve fractional accuracy when min is exactly zero
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);
 #define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
+  const double CGOLD = 0.3819660;  //golden ratio
+  const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
   int iter;
   double a,b,d=1,etemp,fu,fv,fw,fx,p,q,r,eps1,eps2,u,v,w,x,xm;
   double e=0.0;
@@ -7120,9 +7120,6 @@ void minimize(double th[],
 }
 
 
-/* TODO: Convert TINY to constant */
-#define TINY 1.0e-25
-
 /*
  * Global variables communicate with f1dim.
  */
@@ -7217,12 +7214,12 @@ void mnbrak(double *ax,
             double *fa,
             double *fb,
             double *fc,
-            double (*func)(double))
+            const double (*func)(double))
 {
-#define GOLD 1.618034  //default ratio by which successive intervals are magnified;
-#define GLIMIT 100.0   //maximum magnification allowed for a parabolic-fit step.
-
-double ulim,u,r,q,fu,dum;
+  const double GOLD = 1.618034;  //default ratio by which successive intervals are magnified
+  const double GLIMIT = 100.0;   //maximum magnification allowed for a parabolic-fit step
+  const double TINY = 1.0e-25;
+  double ulim,u,r,q,fu,dum;
 
  *fa=(*func)(*ax);
  *fb=(*func)(*bx);

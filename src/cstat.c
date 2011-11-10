@@ -4372,32 +4372,51 @@ void rmvtC(double *y,
 }
 
 
-/* Generate from a Gamma(a,b) (a is shape; b location; mean= a/b) */
-double rgammaC(double a, double b)
+/*
+ * Generate from a Gamma(a,b)
+ *   (a is shape; b location; mean= a/b)
+ */
+double rgammaC(double a,
+               double b)
 {
     return(gengam(b, a));
 }
 
 
-//Density of a Gamma(a,b) (a is shape; b location; mean= a/b)
-double dgammaC(double x, double a, double b)
+/*
+ * Density of a Gamma(a,b)
+ *   (a is shape; b location; mean= a/b)
+ */
+double dgammaC(double x,
+               double a,
+               double b)
 {
-  if (x!=0) { 
-    return(exp(a*log(b)-gamln(&a)+(a-1)*log(x)-x*b)); 
-  } else {
-    if (a==1) return(b); else return(0);
-  }
+    double ans = 0.0;
+
+    if (x != 0.0) {
+        ans = exp(a * log(b) - gamln(&a) + (a - 1) * log(x) - x * b);
+    }
+    else if (a == 1.0) {
+        ans = b;
+    }
+    return ans;
 }
 
 
-//Density of an Inverse Gamma(a,b) (a: shape; b: location; mean of 1/x= a/b)
-double dinvgammaC(double x, double a, double b)
+/*
+ * Density of an Inverse Gamma(a,b)
+ *   (a: shape; b: location; mean of 1/x= a/b)
+ */
+double dinvgammaC(double x,
+                  double a,
+                  double b)
 {
-  if (x!=0) { 
-    return(exp(a*log(b)-gamln(&a)-(a+1)*log(x)-b/x)); 
-  } else {
-    return(0);
-  }
+    double ans = 0.0;
+
+    if (x != 0.0) {
+        ans = exp(a * log(b) - gamln(&a) - (a + 1) * log(x) - b / x);
+    }
+    return ans;
 }
 
 

@@ -913,11 +913,11 @@ void lmbayes_knownvar(double *bpost,
 ************************************************************************/
 
 /* open file for input */
-FILE *openIn(const char *fname)
+FILE *openIn(const char *filename)
 {
-    assert(fname != NULL);
-    if ((ifile = fopen(fname, "r")) == NULL) {
-        fserror("openIn", "open file for read", fname);
+    assert(filename != NULL);
+    if ((ifile = fopen(filename, "r")) == NULL) {
+        fserror("openIn", "open file for read", filename);
         /*NOTREACHED*/
     }
     return(ifile);
@@ -925,11 +925,11 @@ FILE *openIn(const char *fname)
 
 
 /* open file for output */
-FILE *openOut(const char *fname)
+FILE *openOut(const char *filename)
 {
-    assert(fname != NULL);
-    if ((ofile = fopen(fname, "w")) == NULL) {
-        fserror("openOut", "open file for write", fname);
+    assert(filename != NULL);
+    if ((ofile = fopen(filename, "w")) == NULL) {
+        fserror("openOut", "open file for write", filename);
         /*NOTREACHED*/
     }
     return ofile;

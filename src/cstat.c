@@ -6596,12 +6596,14 @@ double midpnt(double (*func)(double),
 }
 
 
-/* This routine is an exact replacement for midpnt i.e. returns the nth stage of refinement of
-   the integral of funk from aa to bb, except that the function is evaluated at evenly spaced
-   points in 1/x rather than in x. This allows the upper limit bb to be as large and positive as
-   the computer allows, or the lower limit aa to be as large and negative, but not both.
-   aa and bb must have the same sign, and they cannot be equal to zero.
-*/
+/*
+ * This routine is an exact replacement for midpnt, i.e. returns the nth stage
+ * of refinement of the integral of funk from aa to bb, except that the
+ * function is evaluated at evenly spaced points in 1/x rather than in x.
+ * This allows the upper limit bb to be as large and positive as the computer
+ * allows, or the lower limit aa to be as large and negative, but not both.
+ * aa and bb must have the same sign, and they cannot be equal to zero.
+ */
 double midinf(double (*funk)(double),
               double aa,
               double bb,
@@ -7297,11 +7299,13 @@ static double maxarg2;
 
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1) : (maxarg2))
 
-/* Given a function func, and given distinct initial points ax and bx, this routine searches in
-   the downhill direction (defined by the function as evaluated at the initial points) and returns
-   new points ax, bx, cx that bracket a minimum of the function. Also returned are the function
-   values at the three points, fa, fb, and fc.
-*/
+/*
+ * Given a function func, and given distinct initial points ax and bx, search
+ * in the downhill direction (defined by the function as evaluated at the
+ * initial points) and returns new points ax, bx, cx that bracket a minimum
+ * of the function. Also returned are the function values at the three points,
+ * fa, fb, and fc.
+ */
 void mnbrak(double *ax,
             double *bx,
             double *cx,

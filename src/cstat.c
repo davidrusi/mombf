@@ -1947,7 +1947,8 @@ double polygamma(double x,
 
 
 /* log of Beta function */
-double lnbeta(double a, double b)
+double lnbeta(double a,
+              double b)
 {
     double c = a + b;
     return(gamln(&a) + gamln(&b) - gamln(&c));
@@ -1958,7 +1959,9 @@ double lnbeta(double a, double b)
  * Used by pbetaC: Evaluates continued fraction for incomplete beta function
  * by modified Lentz's method (x5.2).
  */
-double betacf(double a, double b, double x)
+double betacf(double a,
+              double b,
+              double x)
 {
     double aa;
     double c;
@@ -2027,7 +2030,8 @@ double betacf(double a, double b, double x)
 }
 
 
-double lnchoose(int n, int k)
+double lnchoose(int n,
+                int k)
 {
     double a = 1.0 + n - k;
     double b = 1.0 + k;
@@ -2035,7 +2039,8 @@ double lnchoose(int n, int k)
 }
 
 
-double choose(int n, int k)
+double choose(int n,
+              int k)
 {
     return exp(lnchoose(n, k));
 }
@@ -2074,7 +2079,10 @@ double isign(int x)
                             VECTOR ALGEBRA
 ************************************************************************/
 
-void grid(double x0, double xn, int n, double *x)
+void grid(double x0,
+          double xn,
+          int n,
+          double *x)
 {
     register int i;
     double dx;
@@ -2711,28 +2719,32 @@ int iabs(int x)
 }
 
 
-int imax_xy(int x, int y) 
-{ 
-  return (x>y) ? x : y; 
-} 
+int imax_xy(int x,
+            int y) 
+{
+    return (x > y) ? x : y;
+}
 
 
-int imin_xy(int x, int y) 
-{ 
-  return (x<y) ? x : y; 
-} 
+int imin_xy(int x,
+            int y) 
+{
+    return (x < y) ? x : y;
+}
 
 
-double max_xy(double x, double y) 
-{ 
-  return (x>y) ? x : y; 
-} 
+double max_xy(double x,
+              double y) 
+{
+    return (x > y) ? x : y;
+}
 
 
-double min_xy(double x, double y) 
-{ 
-  return (x<y) ? x : y; 
-} 
+double min_xy(double x,
+              double y) 
+{
+    return (x < y) ? x : y;
+}
 
 
 /*
@@ -3579,7 +3591,8 @@ int rdisc(const double *probs,
 }
 
 
-double rbetaC(double alpha, double beta)
+double rbetaC(double alpha,
+              double beta)
 {
     double x;
     double y; 
@@ -3592,7 +3605,9 @@ double rbetaC(double alpha, double beta)
 
 
 /* CDF of a Beta distribution */
-double pbetaC(double x, double a, double b)
+double pbetaC(double x,
+              double a,
+              double b)
 {
     double bt;
     double c;
@@ -3862,7 +3877,8 @@ double qnormC(double cdf,
 
 
 /* Returns draw from binomial(n,p) */
-int rbinomial(int n, double p)
+int rbinomial(int n,
+              double p)
 {
     register int i;
     int x = 0;
@@ -3874,7 +3890,10 @@ int rbinomial(int n, double p)
 }
 
 
-double dbinomial(int x, int n, double p, int logscale)
+double dbinomial(int x,
+                 int n,
+                 double p,
+                 int logscale)
 {
     double ans;
 
@@ -4301,7 +4320,8 @@ double rt_trunc_prob(int nu,
  * @author Sundar Dorai-Raj
  * See the GNU General Public License for more details at http://www.gnu.org
  */
-double qtC(double p, int nu)
+double qtC(double p,
+           int nu)
 {
   int neg;
   double ndf, eps, P, q, prob, a, b, c, d, y, x;

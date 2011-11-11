@@ -6682,8 +6682,8 @@ double midinf(const double (*func)(double),
         s = (s + (b - a) * sum / tnm) / 3.0;
     }
     return s;
-#undef SIGN
 #undef FUNC
+#undef SIGN
 }
 
 
@@ -7012,16 +7012,19 @@ void mspline_vec(double *W,
             FUNCTION OPTIMIZATION 
 ************************************************************************/
 
-/* PURPOSE: UNIVARIATE OPTIMIZATION WITHOUT DERIVATIVE INFORMATION
-   Given a function f and a bracketing triplet of abscissas ax, bx, cx (such that bx is between ax & cx
-   and f(bx) is less than f(ax) and f(cx)), this routine isolates the minimum to a fractional precision
-   of about eps using Brent's method. The abscissa of the minimum is returned as xmin and the value
-   of the function at the minimum is the returned value.
+/*
+ * PURPOSE: UNIVARIATE OPTIMIZATION WITHOUT DERIVATIVE INFORMATION
+ *
+ * Given a function f and a bracketing triplet of abscissas ax, bx, cx
+ * (such that bx is between ax & cx and f(bx) is less than f(ax) and f(cx)),
+ * this routine isolates the minimum to a fractional precision of about eps
+ * using Brent's method. The abscissa of the minimum is returned as xmin and
+ * the value of the function at the minimum is the returned value.
  */
 double univmin(double ax,
                double bx,
                double cx,
-               double (*f)(double),
+               const double (*f)(double),
                double eps,
                double *xmin,
                int itmax)
@@ -7034,6 +7037,9 @@ double univmin(double ax,
   int iter;
   double a,b,d=1,etemp,fu,fv,fw,fx,p,q,r,eps1,eps2,u,v,w,x,xm;
   double e=0.0;
+
+  assert(f != NULL);
+  assert(xmin != NULL);
 
   a=(ax < cx ? ax : cx);     //a,b must be in ascending order but input abscissas need not be
   b=(ax > cx ? ax : cx);
@@ -7090,30 +7096,39 @@ double univmin(double ax,
 
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
+#undef SHFT
+#undef SIGN
 }
 
 
-#define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f);
-/* Given a function f and its derivative function df, and given a bracketing triplet of abscissas ax,
-   bx, cx [such that bx is between ax and cx, and f(bx) is less than both f(ax) and f(cx)],
-   this routine isolates the minimum to a fractional precision of about eps using a modification of
-   Brent's method that uses derivatives. The abscissa of the minimum is returned as xmin, and
-the minimum function value is returned as dunivmin, the returned function value.
-*/
+/*
+ * Given a function f and its derivative function df, and given a bracketing
+ * triplet of abscissas ax, bx, cx [such that bx is between ax and cx, and
+ * f(bx) is less than both f(ax) and f(cx)], this routine isolates the minimum
+ * to a fractional precision of about eps using a modification of Brent's
+ * method that uses derivatives. The abscissa of the minimum is returned as
+ * xmin and the value of the function at the minimum is the returned value.
+ */
 double dunivmin(double ax,
                 double bx,
                 double cx,
-                double (*f)(double),
-                double (*df)(double),
+                const double (*f)(double),
+                const double (*df)(double),
                 double eps,
                 double *xmin,
                 int itmax)
 {
+#define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f);
+#define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
-  #define ZEPS 1.0e-10   //protects against trying to achieve fractional accuracy when min is exactly zero
+  const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
   int iter,ok1,ok2; //Will be used as flags for whether proposed steps are acceptable or not.
   double a,b,d=1,d1,d2,du,dv,dw,dx,e=0.0; 
   double fu,fv,fw,fx,olde,eps1,eps2,u,u1,u2,v,w,x,xm;
+
+  assert(f != NULL);
+  assert(df != NULL);
+  assert(xmin != NULL);
 
   a=(ax < cx ? ax : cx);
   b=(ax > cx ? ax : cx);
@@ -7192,6 +7207,8 @@ double dunivmin(double ax,
 
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
+#undef MOV3
+#undef SIGN
 }
 
 
@@ -7214,11 +7231,16 @@ void minimize(double th[],
               double eps,
               int *iter,
               double *fret,
-              double (*f)(double []),
+              const double (*f)(double []),
               int itmax)
 {
   int i,ibig,j,converged=0;
   double del,fth,fthtt,t,*tht,*thtt,*dirinit;
+
+  assert(dirini != NULL);
+  assert(iter != NULL);
+  assert(fret != NULL);
+  assert(f != NULL);
 
   tht=dvector(1,n);
   thtt=dvector(1,n);
@@ -7303,7 +7325,7 @@ void dirmin(double p[],
             double xi[],
             int n,
             double *fret,
-            double (*func)(double []),
+            const double (*func)(double []),
             int itmax,
             double dirminEPS)
 {
@@ -7362,10 +7384,20 @@ void mnbrak(double *ax,
             double *fc,
             const double (*func)(double))
 {
+#define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);
+#define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
   const double GOLD = 1.618034;  //default ratio by which successive intervals are magnified
   const double GLIMIT = 100.0;   //maximum magnification allowed for a parabolic-fit step
   const double TINY = 1.0e-25;
   double ulim,u,r,q,fu,dum;
+
+  assert(ax != NULL);
+  assert(bx != NULL);
+  assert(cx != NULL);
+  assert(fa != NULL);
+  assert(fb != NULL);
+  assert(fc != NULL);
+  assert(func != NULL);
 
  *fa=(*func)(*ax);
  *fb=(*func)(*bx);
@@ -7411,5 +7443,7 @@ void mnbrak(double *ax,
    SHFT(*ax,*bx,*cx,u); //Eliminate oldest point and continue.
    SHFT(*fa,*fb,*fc,fu);
  }
+#undef SHFT
+#undef SIGN
 }
 

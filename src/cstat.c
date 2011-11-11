@@ -7118,7 +7118,7 @@ double dunivmin(double ax,
                 double *xmin,
                 int itmax)
 {
-#define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f);
+#define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f)
 #define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
   const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
@@ -7212,19 +7212,22 @@ double dunivmin(double ax,
 }
 
 
-/* Multivariate function minimization. */
-/* Input/Output
-   - th[1..n]: initial parameter values.
-   - dirini[1..n][1..n]: matrix with initial directions, typically the n unit vectors
-   - n: length of th
-   - eps: relative tolerance to achieve convergence
-   - f: function to minimize (must take a vector of doubles as input)
-   Output
-   - th[1..n]: optimal parameter values
-   - dirini[1..n][1..n]: directions used in the last iteration
-   - iter: number of iterations used
-   - fret: value of the function at the optimum
-*/
+/*
+ * Multivariate function minimization.
+ *
+ * Input/Output
+ *   th[1..n]: initial parameter values.
+ *   dirini[1..n][1..n]: matrix with initial directions,
+ *                       typically the n unit vectors
+ *   n: length of th
+ *   eps: relative tolerance to achieve convergence
+ *   f: function to minimize (must take a vector of doubles as input)
+ * Output
+ *   th[1..n]: optimal parameter values
+ *   dirini[1..n][1..n]: directions used in the last iteration
+ *   iter: number of iterations used
+ *   fret: value of the function at the optimum
+ */
 void minimize(double th[],
               double **dirini,
               int n,
@@ -7234,8 +7237,9 @@ void minimize(double th[],
               const double (*f)(double []),
               int itmax)
 {
-  int i,ibig,j,converged=0;
+  int i,ibig,j;
   double del,fth,fthtt,t,*tht,*thtt,*dirinit;
+  bool converged=false;
 
   assert(dirini != NULL);
   assert(iter != NULL);
@@ -7248,7 +7252,7 @@ void minimize(double th[],
   //initial parameter and function values
   *fret=(*f)(th);
   for (j=1;j<=n;j++) tht[j]=th[j];
-  for (*iter=1;(*iter <itmax) && (converged==0);++(*iter)) {
+  for (*iter=1;(*iter <itmax) && (converged==false);++(*iter)) {
     fth=(*fret);
     ibig=0;
     del=0.0;
@@ -7277,7 +7281,7 @@ void minimize(double th[],
 	}
       }
     }
-    if (2.0*fabs(fth-(*fret)) <= eps*(fabs(fth)+fabs(*fret))) converged=1;
+    if (2.0*fabs(fth-(*fret)) <= eps*(fabs(fth)+fabs(*fret))) converged=true;
   }
 
   free_dvector(dirinit,1,n);
@@ -7384,8 +7388,9 @@ void mnbrak(double *ax,
             double *fc,
             const double (*func)(double))
 {
-#define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);
+#define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d)
 #define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
+
   const double GOLD = 1.618034;  //default ratio by which successive intervals are magnified
   const double GLIMIT = 100.0;   //maximum magnification allowed for a parabolic-fit step
   const double TINY = 1.0e-25;

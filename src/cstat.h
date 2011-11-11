@@ -334,10 +334,10 @@ void mspline_vec(double *W, const double *x, const int *nx, const int *degree, c
 /* Function optimization                                      */
 /**************************************************************/
 
-double univmin(double ax, double bx, double cx, double (*f)(double), double tol, double *xmin, int itmax); //univariate minim
-double dunivmin(double ax, double bx, double cx, double (*f)(double), double (*df)(double), double tol, double *xmin, int itmax);
-void minimize(double th[], double **dirini, int n, double ftol, int *iter, double *fret, double (*f)(double []), int itmax);//multivar minim
-void dirmin(double p[], double xi[], int n, double *fret, double (*func)(double []), int itmax, double dirminEPS); //minim in 1 direction
+double univmin(double ax, double bx, double cx, const double (*f)(double), double tol, double *xmin, int itmax); //univariate minim
+double dunivmin(double ax, double bx, double cx, const double (*f)(double), const double (*df)(double), double tol, double *xmin, int itmax);
+void minimize(double th[], double **dirini, int n, double ftol, int *iter, double *fret, const double (*f)(double []), int itmax);//multivar minim
+void dirmin(double p[], double xi[], int n, double *fret, const double (*func)(double []), int itmax, double dirminEPS); //minim in 1 direction
 void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc, const double (*func)(double)); //find bracketing triplets
 
 #endif /* CSTAT_H */

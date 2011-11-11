@@ -315,7 +315,7 @@ extern void inrgcm(void);                      /* code in com.c */
 /**************************************************************/
 
 double midpnt(const double (*func)(double), double a, double b, int n); //nth stage refinement of integral of func from a to b (evenly spaced in x)
-double midinf(double (*funk)(double), double aa, double bb, int n); //nth stage refinement of integral of func from aa to bb (evenly spaced in 1/x)
+double midinf(const double (*func)(double), double aa, double bb, int n); //nth stage refinement of integral of func from aa to bb (evenly spaced in 1/x)
 double qromo(double (*func)(double), double a, double b, double (*choose)(double(*)(double), double, double, int)); //Romberg integr on open interval (a,b)
 
 /**************************************************************/

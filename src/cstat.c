@@ -6593,9 +6593,9 @@ double midpnt(const double (*func)(double),
         register int j;
         double x;
         double tnm;
-        double sum;
         double del;
         double ddel;
+        double sum = 0.0;
         int it = 1;
 
         for (j = 1; j < n-1; j++) {
@@ -6605,7 +6605,6 @@ double midpnt(const double (*func)(double),
         del = (b - a) / (3.0 * tnm);
         ddel = del + del;
         x = a + 0.5 * del;
-        sum = 0.0;
         for (j = 1; j <= it; j++) {
             sum += FUNC(x);
             x += ddel;
@@ -6620,45 +6619,71 @@ double midpnt(const double (*func)(double),
 
 
 /*
- * This routine is an exact replacement for midpnt, i.e. returns the nth stage
- * of refinement of the integral of funk from aa to bb, except that the
+ * This routine is an exact replacement for midpnt(), i.e. returns the nth
+ * stage of refinement of the integral of funk from aa to bb, except that the
  * function is evaluated at evenly spaced points in 1/x rather than in x.
  * This allows the upper limit bb to be as large and positive as the computer
  * allows, or the lower limit aa to be as large and negative, but not both.
  * aa and bb must have the same sign, and they cannot be equal to zero.
  */
-double midinf(double (*funk)(double),
+double midinf(const double (*func)(double),
               double aa,
               double bb,
               int n)
 {
+#define FUNC(x) ((*func)(1.0 / (x)) / ((x) * (x)))
+#define SIGN(x) (((x) > 0.0) ? 1 : (((x) < 0.0) ? -1 : 0))
 
-  #define FUNK(x) ((*funk)(1.0/(x))/((x)*(x)))
-  double x,tnm,sum,del,ddel,b,a;
-  static double s;
-  int it,j;
+    static double s;
+    double a;
+    double b;
 
-  b= 1.0/aa;  //change the limits of integration
-  a= 1.0/bb;
+    assert(func != NULL);
 
-  if (n==1) {  //from here on the routine is identical to midpnt
-    return(s=(b-a)*FUNK(0.5*(a+b)));
-  } else {
-    for (it=1,j=1;j<n-1;j++) it *= 3;
-    tnm=it;
-    del=(b-a)/(3.0*tnm);
-    ddel=del+del;
-    x=a+0.5*del;
-    sum=0.0;
-    for (j=1;j<=it;j++) {
-      sum += FUNK(x);
-      x += ddel;
-      sum += FUNK(x);
-      x += del;
+    if (SIGN(aa) != SIGN(bb)) {
+        nrerror("midinf", "", "aa and bb must have same sign");
+        /*NOTREACHED*/
     }
-    return(s= (s+(b-a)*sum/tnm)/3.0);
-  }
+    if ((aa == 0.0) || (bb == 0.0)) {
+        nrerror("midinf", "", "aa and/or bb is zero");
+        /*NOTREACHED*/
+    }
 
+    /* Change the limits of integration */
+    b = 1.0 / aa;
+    a = 1.0 / bb;
+
+    /* From here on, the routine is identical to midpnt() */
+    if (n == 1) {
+        s = (b - a) * FUNC(0.5 * (a + b));
+    }
+    else {
+        register int j;
+        double x;
+        double tnm;
+        double del;
+        double ddel;
+        double sum = 0.0;
+        int it = 1;
+
+        for (j = 1; j < n-1; j++) {
+            it *= 3;
+        }
+        tnm = it;
+        del = (b - a) / (3.0 * tnm);
+        ddel = del + del;
+        x = a + 0.5 * del;
+        for (j = 1; j <= it; j++) {
+            sum += FUNC(x);
+            x += ddel;
+            sum += FUNC(x);
+            x += del;
+        }
+        s = (s + (b - a) * sum / tnm) / 3.0;
+    }
+    return s;
+#undef SIGN
+#undef FUNC
 }
 
 

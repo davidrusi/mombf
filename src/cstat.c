@@ -3337,7 +3337,8 @@ void lu_inverse(double **a,
  * Determinant of a matrix a.
  * Original matrix a is destroyed and its LU decomposition is returned.
  */
-double lu_det(double **a, int n)
+double lu_det(double **a,
+              int n)
 {
     double d;
     int j;
@@ -3356,7 +3357,8 @@ double lu_det(double **a, int n)
 
 
 /* Comparison function used by qsort() for doubles */
-int dcompare(const void *a, const void *b)
+int dcompare(const void *a,
+             const void *b)
 {
     const double *da = (const double *) a;
     const double *db = (const double *) b;
@@ -3369,10 +3371,12 @@ int dcompare(const void *a, const void *b)
 
 
 /* Sorts double vector */
-void dvecsort(double *v, int size)
+void dvecsort(double *v,
+              int size)
 {
     assert(v != NULL);
     assert(size >= 0);
+
     qsort(v, size, sizeof(double), dcompare);
 }
 
@@ -3589,7 +3593,8 @@ void sampled_wr(double *x,
 ************************************************************************/
 
 /* call setall(is1,is2) */
-void setseed(long is1, long is2)
+void setseed(long is1,
+             long is2)
 {
     set = 1;
     setall(is1, is2);
@@ -3612,14 +3617,17 @@ double runif(void)
 
 
 /* Density of a Unif(a,b) */
-double dunifC(double x, double a, double b)
+double dunifC(double x,
+              double a,
+              double b)
 {
     return ((x > a) && (x < b)) ? (1.0 / (b - a)) : 0.0;
 }
 
 
 /* Returns integer value between min and max (both included) */
-int runifdisc(int min, int max)
+int runifdisc(int min,
+              int max)
 {
     return(min + runif()*(max+1-min));
 }
@@ -4801,7 +4809,6 @@ S160:
 }
 
 
-double spmpar(int *i)
 /*
 -----------------------------------------------------------------------
 
@@ -4829,6 +4836,7 @@ double spmpar(int *i)
      MADE AS PART OF CONVERTING BRATIO TO DOUBLE PRECISION
 -----------------------------------------------------------------------
 */
+double spmpar(int *i)
 {
 static int K1 = 4;
 static int K2 = 8;

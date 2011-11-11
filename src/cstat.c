@@ -7448,63 +7448,96 @@ void mnbrak(double *ax,
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d)
 #define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
-  const double GOLD = 1.618034;  //default ratio by which successive intervals are magnified
-  const double GLIMIT = 100.0;   //maximum magnification allowed for a parabolic-fit step
-  const double TINY = 1.0e-25;
-  double ulim,u,r,q,fu,dum;
+    const double GOLD = 1.618034;  /* default ratio by which successive intervals are magnified */
+    const double GLIMIT = 100.0;   /* maximum magnification allowed for a parabolic-fit step */
+    const double TINY = 1.0e-25;
 
-  assert(ax != NULL);
-  assert(bx != NULL);
-  assert(cx != NULL);
-  assert(fa != NULL);
-  assert(fb != NULL);
-  assert(fc != NULL);
-  assert(func != NULL);
+    assert(ax != NULL);
+    assert(bx != NULL);
+    assert(cx != NULL);
+    assert(fa != NULL);
+    assert(fb != NULL);
+    assert(fc != NULL);
+    assert(func != NULL);
 
- *fa=(*func)(*ax);
- *fb=(*func)(*bx);
- if (*fb > *fa) { //Switch roles of a and b so that we can go downhill in the direction from a to b.
-   SHFT(dum,*ax,*bx,dum);
-   SHFT(dum,*fb,*fa,dum);
- }
- *cx=(*bx)+GOLD*(*bx-*ax); //First guess for c.
- *fc=(*func)(*cx);
- while (*fb > *fc) {       //Keep returning here until we bracket.
-   r=(*bx-*ax)*(*fb-*fc);  //Compute u by parabolic extrapolation from a, b, c. TINY prevents any division by zero.
-   q=(*bx-*cx)*(*fb-*fa);
-   u=(*bx)-((*bx-*cx)*q-(*bx-*ax)*r)/(2.0*SIGN(FMAX(fabs(q-r),TINY),q-r));
-   ulim=(*bx)+GLIMIT*(*cx-*bx); //We won't go farther than this. Test various possibilities:
-   if ((*bx-u)*(u-*cx) > 0.0) { //Parabolic u is between b and c: try it.
-     fu=(*func)(u);
-     if (fu < *fc) {              //Got a minimum between b and c.
-       *ax=(*bx);
-       *bx=u;
-       *fa=(*fb);
-       *fb=fu;
-       return;
-     } else if (fu > *fb) {       //Got a minimum between between a and u.
-       *cx=u;
-       *fc=fu;
-       return;
-     }
-     u=(*cx)+GOLD*(*cx-*bx); //Parabolic fit was no use. Use default magnification.
-     fu=(*func)(u);
-   } else if ((*cx-u)*(u-ulim) > 0.0) { //Parabolic fit is between c and its allowed limit
-     fu=(*func)(u);
-     if (fu < *fc) {
-       SHFT(*bx,*cx,u,*cx+GOLD*(*cx-*bx));
-       SHFT(*fb,*fc,fu,(*func)(u));
-     }
-   } else if ((u-ulim)*(ulim-*cx) >= 0.0) { //Limit parabolic u to maximum allowed value
-     u=ulim;
-     fu=(*func)(u);
-   } else {                                 //Reject parabolic u, use default magnification
-     u=(*cx)+GOLD*(*cx-*bx);
-     fu=(*func)(u);
-   }
-   SHFT(*ax,*bx,*cx,u); //Eliminate oldest point and continue.
-   SHFT(*fa,*fb,*fc,fu);
- }
+    *fa = (*func)(*ax);
+    *fb = (*func)(*bx);
+    if (*fb > *fa) {
+        double dum;
+
+        /*
+         * Switch roles of a and b so that we can go downhill
+         * in the direction from a to b.
+         */
+        SHFT(dum, *ax, *bx, dum);
+        SHFT(dum, *fb, *fa, dum);
+    }
+    *cx = (*bx) + GOLD * (*bx - *ax);  /* First guess for c */
+    *fc = (*func)(*cx);
+
+    /* Keep returning here until we bracket... */
+    while (*fb > *fc) {
+        double r;
+        double q;
+        double u;
+        double ulim;
+        double fu;
+
+        /*
+         * Compute u by parabolic extrapolation from a, b, c.
+         * TINY prevents any division by zero.
+         */
+        r = (*bx - *ax) * (*fb - *fc);
+        q = (*bx - *cx) * (*fb - *fa);
+        u = (*bx) - ((*bx - *cx) * q - (*bx - *ax) * r) /
+                (2.0 * SIGN(FMAX(fabs(q-r), TINY), q-r));
+        ulim = (*bx) + GLIMIT * (*cx - *bx); /* Go no farther than this. */
+
+        /* Test various possibilities */
+        if ((*bx - u) * (u - *cx) > 0.0) {
+            /* Parabolic u is between b and c: try it */
+            fu = (*func)(u);
+            if (fu < *fc) {
+                /* Got a minimum between b and c */
+                *ax = (*bx);
+                *bx = u;
+                *fa = (*fb);
+                *fb = fu;
+                return;
+            }
+            else if (fu > *fb) {
+                /* Got a minimum between between a and u */
+                *cx = u;
+                *fc = fu;
+                return;
+            }
+            /* Parabolic fit was no use, use default magnification */
+            u = (*cx) + GOLD * (*cx - *bx);
+            fu = (*func)(u);
+        }
+        else if ((*cx - u) * (u - ulim) > 0.0) {
+            /* Parabolic fit is between c and its allowed limit */
+            fu = (*func)(u);
+            if (fu < *fc) {
+                SHFT(*bx, *cx, u, *cx + GOLD * (*cx - *bx));
+                SHFT(*fb, *fc, fu, (*func)(u));
+            }
+        }
+        else if ((u - ulim) * (ulim - *cx) >= 0.0) {
+            /* Limit parabolic u to maximum allowed value */
+            u = ulim;
+            fu = (*func)(u);
+        }
+        else {
+            /* Reject parabolic u, use default magnification */
+            u = (*cx) + GOLD * (*cx - *bx);
+            fu = (*func)(u);
+        }
+
+        /* Eliminate oldest point and continue */
+        SHFT(*ax, *bx, *cx, u);
+        SHFT(*fa, *fb, *fc, fu);
+    }
 #undef SHFT
 #undef SIGN
 }

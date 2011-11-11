@@ -314,8 +314,8 @@ extern void inrgcm(void);                      /* code in com.c */
 /* Integration                                                */
 /**************************************************************/
 
-double midpnt(const double (*func)(double), double a, double b, int n); //nth stage refinement of integral of func from a to b (evenly spaced in x)
-double midinf(const double (*func)(double), double aa, double bb, int n); //nth stage refinement of integral of func from aa to bb (evenly spaced in 1/x)
+double midpnt(double (* const func)(double), double a, double b, int n); //nth stage refinement of integral of func from a to b (evenly spaced in x)
+double midinf(double (* const func)(double), double aa, double bb, int n); //nth stage refinement of integral of func from aa to bb (evenly spaced in 1/x)
 double qromo(double (*func)(double), double a, double b, double (*choose)(double(*)(double), double, double, int)); //Romberg integr on open interval (a,b)
 
 /**************************************************************/
@@ -334,11 +334,11 @@ void mspline_vec(double *W, const double *x, const int *nx, const int *degree, c
 /* Function optimization                                      */
 /**************************************************************/
 
-double univmin(double ax, double bx, double cx, const double (*f)(double), double tol, double *xmin, int itmax); //univariate minim
-double dunivmin(double ax, double bx, double cx, const double (*f)(double), const double (*df)(double), double tol, double *xmin, int itmax);
-void minimize(double th[], double **dirini, int n, double ftol, int *iter, double *fret, const double (*f)(double []), int itmax);//multivar minim
-void dirmin(double p[], double xi[], int n, double *fret, const double (*func)(double []), int itmax, double dirminEPS); //minim in 1 direction
-void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc, const double (*func)(double)); //find bracketing triplets
+double univmin(double ax, double bx, double cx, double (* const f)(double), double tol, double *xmin, int itmax); //univariate minim
+double dunivmin(double ax, double bx, double cx, double (* const f)(double), double (* const df)(double), double tol, double *xmin, int itmax);
+void minimize(double th[], double **dirini, int n, double ftol, int *iter, double *fret, double (* const f)(double []), int itmax);//multivar minim
+void dirmin(double p[], double xi[], int n, double *fret, double (* const func)(double []), int itmax, double dirminEPS); //minim in 1 direction
+void mnbrak(double *ax, double *bx, double *cx, double *fa, double *fb, double *fc, double (* const func)(double)); //find bracketing triplets
 
 #endif /* CSTAT_H */
 

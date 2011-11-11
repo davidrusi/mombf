@@ -6621,7 +6621,7 @@ static long i;
  * the accuracy of s by adding (2/3)*3^(n-1) additional interior points.
  * s should not be modified between sequential calls.
  */
-double midpnt(const double (*func)(double),
+double midpnt(double (* const func)(double),
               double a,
               double b,
               int n)
@@ -6672,7 +6672,7 @@ double midpnt(const double (*func)(double),
  * allows, or the lower limit aa to be as large and negative, but not both.
  * aa and bb must have the same sign, and they cannot be equal to zero.
  */
-double midinf(const double (*func)(double),
+double midinf(double (* const func)(double),
               double aa,
               double bb,
               int n)
@@ -7070,7 +7070,7 @@ void mspline_vec(double *W,
 double univmin(double ax,
                double bx,
                double cx,
-               const double (*f)(double),
+               double (* const f)(double),
                double eps,
                double *xmin,
                int itmax)
@@ -7158,8 +7158,8 @@ double univmin(double ax,
 double dunivmin(double ax,
                 double bx,
                 double cx,
-                const double (*f)(double),
-                const double (*df)(double),
+                double (* const f)(double),
+                double (* const df)(double),
                 double eps,
                 double *xmin,
                 int itmax)
@@ -7280,7 +7280,7 @@ void minimize(double th[],
               double eps,
               int *iter,
               double *fret,
-              const double (*f)(double []),
+              double (* const f)(double []),
               int itmax)
 {
   int i,ibig,j;
@@ -7375,7 +7375,7 @@ void dirmin(double p[],
             double xi[],
             int n,
             double *fret,
-            const double (*func)(double []),
+            double (* const func)(double []),
             int itmax,
             double dirminEPS)
 {
@@ -7432,7 +7432,7 @@ void mnbrak(double *ax,
             double *fa,
             double *fb,
             double *fc,
-            const double (*func)(double))
+            double (* const func)(double))
 {
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d)
 #define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))

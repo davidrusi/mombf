@@ -3127,66 +3127,102 @@ void ludc(double **a,
           int *indx,
           double *d)
 {
-  const double TINY = 1.0e-20;
-//  int i,imax,j,k; //initialized imax to 1 to avoid warning when compiling
-  register int i;
-  register int j;
-  int imax=1, k;
-  double big, dum, sum, temp;
-  double *vv; //vv stores the implicit scaling of each row.
+    const double TINY = 1.0e-20;
+    register int i;
+    register int j;
+    int imax = 1;
+    double big;
+    double *vv;                       /* Stores implicit scaling of each row */
 
-  assert(a != NULL);
-  assert(indx != NULL);
-  assert(d != NULL);
+    assert(a != NULL);
+    assert(indx != NULL);
+    assert(d != NULL);
 
-  vv=dvector(1, n);
-  *d=1.0; //No row interchanges yet.
-  for (i=1;i<=n;i++) { //Loop over rows to get the implicit scaling information
-    big= 0.0;
-    for (j=1;j<=n;j++) if ((temp=fabs(a[i][j])) > big) big=temp;
-    if (big == 0.0) {
-      /* No nonzero largest element */
-      nrerror("ludc", "", "singular matrix detected");
-      /*NOTREACHED*/
+    vv = dvector(1, n);
+    *d = 1.0;                          /* No row interchanges yet */
+
+    /* Loop over rows to get the implicit scaling information */
+    for (i = 1; i <= n; i++) {
+        big = 0.0;
+        for (j = 1; j <= n; j++) {
+            double temp;
+
+            temp = fabs(a[i][j]);
+            if (temp > big) {
+                big = temp;
+            }
+        }
+        if (big == 0.0) {
+            /* No nonzero largest element */
+            nrerror("ludc", "", "singular matrix detected");
+            /*NOTREACHED*/
+        }
+        vv[i] = 1.0 / big;             /* Save the scaling */
     }
-    vv[i]=1.0/big; //Save the scaling.
-  }
-  for (j=1;j<=n;j++) { //This is the loop over columns of Crout's method.
-    for (i=1;i<j;i++) { //This is equation (2.3.12) except for i = j.
-      sum=a[i][j];
-      for (k=1;k<i;k++) sum -= a[i][k]*a[k][j];
-      a[i][j]=sum;
+
+    /* This is the loop over columns of Crout's method */
+    for (j = 1; j <= n; j++) {
+        register int k;
+        double sum;
+        double dum;
+
+        /* Equation (2.3.12) except for i = j */
+        for (i = 1; i < j; i++) {
+            sum = a[i][j];
+            for (k = 1; k < i; k++) {
+                sum -= a[i][k] * a[k][j];
+            }
+            a[i][j] = sum;
+        }
+
+        /* Initialize for the search for largest pivot element */
+        big = 0.0;
+
+        /* i = j of equation (2.3.12) and i = j+1 : ::N of equation (2.3.13) */
+        for (i = j; i <= n; i++) {
+            sum = a[i][j];
+            for (k = 1; k < j; k++) {
+                sum -= a[i][k] * a[k][j];
+            }
+            a[i][j] = sum;
+            /* Is figure of merit for the pivot better than the best so far? */
+            dum = vv[i] * fabs(sum);
+            if (dum >= big) {
+                big = dum;
+                imax = i;
+            }
+        }
+
+        /* Do we need to interchange rows? */
+        if (j != imax) {
+            for (k = 1; k <= n; k++) { /* Yes, do so... */
+                dum = a[imax][k];
+                a[imax][k] = a[j][k];
+                a[j][k] = dum;
+            }
+            *d = -(*d);                /* Change the parity of d */
+            vv[imax] = vv[j];          /* Interchange the scale factor */
+        }
+        indx[j] = imax;
+        /*
+         * If the pivot element is zero, the matrix is singular (at least to
+         * the precision of the algorithm). For some applications on singular
+         * matrices, it is desirable to substitute TINY for zero.
+         */
+        if (a[j][j] == 0.0) {
+            a[j][j] = TINY;
+        }
+
+        if (j != n) {
+            /* Now, finally, divide by the pivot element */
+            dum = 1.0 / a[j][j];
+            for (i = j+1; i <= n; i++) {
+                a[i][j] *= dum;
+            }
+        }
+        /* Go back for the next column in the reduction... */
     }
-    big=0.0; //Initialize for the search for largest pivot element.
-    for (i=j;i<=n;i++) { //This is i = j of equation (2.3.12) and i = j+1 : ::N of equation (2.3.13).
-      sum=a[i][j];
-      for (k=1;k<j;k++) sum -= a[i][k]*a[k][j];
-      a[i][j]=sum;
-      if ( (dum=vv[i]*fabs(sum)) >= big) { //Is gure of merit for the pivot better than the best so far?
-	big=dum;
-	imax=i;
-      }
-    }
-    if (j != imax) { //Do we need to interchange rows?
-      for (k=1;k<=n;k++) { ///Yes, do so...
-	dum=a[imax][k];
-	a[imax][k]=a[j][k];
-	a[j][k]=dum;
-      }
-      *d = -(*d); //...and change the parity of d.
-      vv[imax]=vv[j]; //Also interchange the scale factor.
-    }
-    indx[j]=imax;
-    if (a[j][j] == 0.0) a[j][j]=TINY;
-    /*If the pivot element is zero the matrix is singular (at least to the precision of the
-      algorithm). For some applications on singular matrices, it is desirable to substitute
-      TINY for zero. */
-    if (j != n) { //Now,  nally, divide by the pivot element.
-      dum=1.0/(a[j][j]);
-      for (i=j+1;i<=n;i++) a[i][j] *= dum;
-    }
-  } //Go back for the next column in the reduction.
-  free_dvector(vv, 1, n);
+    free_dvector(vv, 1, n);
 }
 
 

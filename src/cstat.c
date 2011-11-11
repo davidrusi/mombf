@@ -1,8 +1,9 @@
 /***********************************************************
  Basic, input-output and matrix manipulation
 
- Authors. Peter Mueller, Stephen Morris, David Rossell
+ Authors: Peter Mueller, Stephen Morris, David Rossell
           (some routines obtained from other sources)
+ Edits: P. Roebuck
 ***********************************************************/
 
 #include <math.h>
@@ -20,16 +21,25 @@ static const char mess_c_sccs_id[] = "%W%";
 static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
-static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-08-23$";
+static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-10$";
 
+
+/*
+ * Globals
+ */
 static long is1=123456789, is2=981963;
 static int set=0;
 
 FILE *ifile, *ofile;
 int nv = 0;
 
-long Xm1,Xm2,Xa1,Xa2,Xcg1[32],Xcg2[32],Xa1w,Xa2w,Xig1[32],Xig2[32],Xlg1[32],
-    Xlg2[32],Xa1vw,Xa2vw;
+long Xm1,Xm2;
+long Xa1,Xa2;
+long Xcg1[32],Xcg2[32];
+long Xa1w,Xa2w;
+long Xig1[32],Xig2[32];
+long Xlg1[32],Xlg2[32];
+long Xa1vw,Xa2vw;
 long Xqanti[32];
 
 
@@ -957,7 +967,7 @@ FILE *openOut(const char *filename)
 //    fserror("scanFloat", "read float", txt);
 //  }
 //}
-// 
+//
 //void scanDouble(char *txt, double *f)
 //{
 //  fscanf(ifile, txt);
@@ -965,7 +975,7 @@ FILE *openOut(const char *filename)
 //    fserror("scanDouble", "read double", txt);
 //  }
 //}
-// 
+//
 //void fscanDouble(FILE *ifile, char *txt, double *f)
 //{
 //  fscanf(ifile, txt);
@@ -973,7 +983,7 @@ FILE *openOut(const char *filename)
 //    fserror("fscanDouble", "read double", txt);
 //  }
 //}
-// 
+//
 //void scanInt(char *txt, int *n)
 //{
 //  fscanf(ifile, txt);
@@ -981,7 +991,7 @@ FILE *openOut(const char *filename)
 //    fserror("scanInt", "read int", txt);
 //  }
 //}
-// 
+//
 //void fscanInt(FILE *ifile, char *txt, int *n)
 //{
 //  fscanf(ifile, txt);
@@ -989,8 +999,8 @@ FILE *openOut(const char *filename)
 //    fserror("fscanInt", "read int", txt);
 //  }
 //}
-// 
-// 
+//
+//
 //void scanLong(char *txt, long *n)
 //{
 //  fscanf(ifile, txt);
@@ -998,18 +1008,18 @@ FILE *openOut(const char *filename)
 //    fserror("scanLong", "read long", txt);
 //  }
 //}
-// 
+//
 ///* --------------------   read arrays   ------------------------- */
-// 
+//
 //void scanFloatArray(char *txt, float *x, int n)
 //{
 //  scanArray(txt, x, n);
 //}
-// 
+//
 //void scanArray(char *txt, float *x, int n)
 //{
-//  int	i; 
-// 
+//  int	i;
+//
 //  fscanf(ifile, txt);
 //  for(i=0;i<n;i++) {
 //    if (fscanf(ifile, " %f ", &x[i]) != 1) {
@@ -1017,11 +1027,11 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void scanDoubleArray(char *txt, double *x, int n)
 //{
 //  int	i;
-// 
+//
 //  fscanf(ifile, txt);
 //  for(i=0;i<n;i++) {
 //    if (fscanf(ifile, " %lg ", &x[i]) != 1) {
@@ -1029,11 +1039,11 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void fscanDoubleArray(FILE *in, double *x, int n)
 //{
 //  int	i;
-// 
+//
 //  for(i=0;i<n;i++) {
 //    if (fscanf(in, " %lg ", &x[i]) != 1) {
 //      /* printf("i=%d\n", i); */
@@ -1041,22 +1051,22 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void scanString(char *txt, char *s, int n)
 //{
 //  fgets(s, n, ifile);
 //}
-//  
-// 
+//
+//
 //void fscanString(FILE *ifile, char *txt, char *s, int n)
 //{
 //  fgets(s, n, ifile);
 //}
-//  
+//
 //void scanDoubleMatrix(char *txt, double **x, int r, int c)
 //{
 //  int	i, j;
-//  
+//
 //  fscanf(ifile, txt);
 //  for(i=0;i<r;i++) {
 //    for(j=0;j<c;j++) {
@@ -1066,11 +1076,11 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void fscanDoubleMatrix(FILE *ifile, double **x, int r, int c)
 //{
 //  int	i, j;
-//  
+//
 //  for(i=0;i<r;i++) {
 //    for(j=0;j<c;j++) {
 //      if (fscanf(ifile, " %lg ", &x[i][j]) != 1) {
@@ -1079,11 +1089,11 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void scanIntArray(char *txt, int *x, int n)
 //{
 //  int	i;
-// 
+//
 //  fscanf(ifile, txt);
 //  for(i=0;i<n;i++){
 //    if (fscanf(ifile, " %d ", &x[i]) != 1) {
@@ -1091,11 +1101,11 @@ FILE *openOut(const char *filename)
 //    }
 //  }
 //}
-// 
+//
 //void fscanIntArray(FILE *ifile, int *x, int n)
 //{
 //  int	i;
-// 
+//
 //  for(i=0;i<n;i++){
 //    if (fscanf(ifile, " %d ", &x[i]) != 1) {
 //      fserror("fscanIntArray", "read int array", "");
@@ -1109,7 +1119,7 @@ void writeInt(int i)
 {
     if (fprintf(ofile, "%d\n", i) < 0) {
         fserror("writeInt", "write int", "");
-        /*NOTREACHED*/ 
+        /*NOTREACHED*/
     }
 }
 
@@ -1118,7 +1128,7 @@ void writeLong(long i)
 {
     if (fprintf(ofile, "%ld\n", i) < 0) {
         fserror("writeLong", "write long", "");
-        /*NOTREACHED*/ 
+        /*NOTREACHED*/
     }
 }
 
@@ -1127,7 +1137,7 @@ void writeFloat(float x)
 {
     if (fprintf(ofile, "%f\n", x) < 0) {
         fserror("writeFloat", "write float", "");
-        /*NOTREACHED*/ 
+        /*NOTREACHED*/
     }
 }
 
@@ -1136,7 +1146,7 @@ void writeDouble(double x)
 {
     if (fprintf(ofile, "%5.3e\n", x) < 0) {
         fserror("writeDouble", "write double", "");
-        /*NOTREACHED*/ 
+        /*NOTREACHED*/
     }
 }
 
@@ -1190,7 +1200,7 @@ void fwriteIntArray(FILE *f,
     register int j;
     int s1 = 0;
     int s2 = 0;
-  
+
     assert(f != NULL);
     assert(x != NULL);
 
@@ -1227,7 +1237,7 @@ void fwriteIntMatrix(FILE *f,
     register int i;
     register int j;
     int s = 0;
- 
+
     assert(f != NULL);
     assert(x != NULL);
 
@@ -1299,7 +1309,7 @@ void fwriteDoubleMatrix2(FILE *f,
     register int i;
     register int j;
     int s = 0;
- 
+
     assert(f != NULL);
     assert(x != NULL);
 
@@ -1333,7 +1343,7 @@ void fwriteFloatArray(FILE *f,
     register int i;
     register int j;
     int s = 0;
- 
+
     assert(f != NULL);
     assert(x != NULL);
 
@@ -1370,7 +1380,7 @@ void writeArray(float *x,
     register int i;
     register int j;
     int s = 0;
- 
+
     assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
@@ -1394,7 +1404,7 @@ void writeArray(float *x,
 
 
 /******************************************************************************
-                                       ERROR HANDLING     
+                                       ERROR HANDLING
 ******************************************************************************/
 
 void fserror(const char *proc,
@@ -1817,7 +1827,7 @@ double digamma(double x)
         -7.575757575757576e-03, 2.109279609279609e-02,
         -8.333333333333334e-02, 4.432598039215686e-01,
         -3.053954330270120e+00, 2.645621212121212e+01,
-        -2.814601449275362e+02, 3.607510546398047e+03 
+        -2.814601449275362e+02, 3.607510546398047e+03
     };
 
     const double lower = 1.0e-8;
@@ -1908,7 +1918,7 @@ double trigamma(double x)
         /* slower computation */
         return(polygamma(x, 1, 0.0001, 100, 5, 1));
     }
-} 
+}
 
 
 /*
@@ -1991,7 +2001,7 @@ double betacf(double a,
 
     /* These q's will be used in factors that occur in coe cients (6.4.6). */
     qab = a + b;
-    qap = a + 1.0; 
+    qap = a + 1.0;
     qam = a - 1.0;
 
     /* First step of Lentz's method */
@@ -2227,7 +2237,7 @@ void rAx_plus_sBy(double r,
             z[i] += (r * A[i][j] * x[j]) + (s * B[i][j] * y[j]);
         }
     }
-} 
+}
 
 
 /*
@@ -2396,7 +2406,7 @@ double xtAy(const double *x,
     }
     return(z);
 }
- 
+
 
 /*
  * Returns sum of multiplying symmetric matrix A[ini..fi][ini..fi]
@@ -2573,8 +2583,8 @@ void Atx(double **A,
         for (j = rowini; j <= rowfi; j++) {
             z[i] += A[j][i] * x[j];
         }
-    } 
-} 
+    }
+}
 
 
 /*
@@ -2610,7 +2620,7 @@ void AtB(double **A,
         for (j = coliniB; j <= colfiB; j++) {
             C[i][j] = 0.0;
             for (k = rowiniA; k <= rowfiA; k++) {
-                C[i][j] += A[k][i] * B[k][j]; 
+                C[i][j] += A[k][i] * B[k][j];
             }
         }
     }
@@ -2630,7 +2640,7 @@ void a_plus_b(const double *a,
     assert(c != NULL);
 
     for (i = ini; i <= fi; i++) {
-        c[i] = a[i] + b[i]; 
+        c[i] = a[i] + b[i];
     }
 }
 
@@ -2690,7 +2700,7 @@ void a_zero(double *a,
 
 void R_zero(double **A,
             int p,
-            int q) 
+            int q)
 {
     register int i;
     register int j;
@@ -2732,28 +2742,28 @@ int iabs(int x)
 
 
 int imax_xy(int x,
-            int y) 
+            int y)
 {
     return (x > y) ? x : y;
 }
 
 
 int imin_xy(int x,
-            int y) 
+            int y)
 {
     return (x < y) ? x : y;
 }
 
 
 double max_xy(double x,
-              double y) 
+              double y)
 {
     return (x > y) ? x : y;
 }
 
 
 double min_xy(double x,
-              double y) 
+              double y)
 {
     return (x < y) ? x : y;
 }
@@ -2817,7 +2827,7 @@ void maxvec(const double *x,
 /*
  * Given a positive-definite symmetric matrix a[1..n][1..n], this routine
  * constructs its Cholesky decomposition, A = L * L'.
- * On input, only the upper triangle of a need be given; 
+ * On input, only the upper triangle of a need be given;
  * The Cholesky factor L is returned in the lower triangle of aout
  * (upper-diag elem are set to 0)
  */
@@ -3149,7 +3159,7 @@ void ludc(double **a,
     }
     big=0.0; //Initialize for the search for largest pivot element.
     for (i=j;i<=n;i++) { //This is i = j of equation (2.3.12) and i = j+1 : ::N of equation (2.3.13).
-      sum=a[i][j]; 
+      sum=a[i][j];
       for (k=1;k<j;k++) sum -= a[i][k]*a[k][j];
       a[i][j]=sum;
       if ( (dum=vv[i]*fabs(sum)) >= big) { //Is gure of merit for the pivot better than the best so far?
@@ -3459,7 +3469,7 @@ while (ulo < uhi) {
   if ((x[index[uhi]]*incr) > (x[index[pivot]]*incr)) {                // Here, we can reduce the size of the unpartitioned region and try again.
     if ((uhi<ihi) && ((x[index[uhi]]*incr)>(x[index[uhi+1]]*incr))) sortup= 0;      // Check if upper subvector is ordered
     uhi--;
-    if ((uhi==pivot) && (ulo<pivot))  { tempEntry= index[pivot]; index[pivot]= index[pivot-1]; index[pivot-1]= tempEntry; pivot--; } 
+    if ((uhi==pivot) && (ulo<pivot))  { tempEntry= index[pivot]; index[pivot]= index[pivot-1]; index[pivot-1]= tempEntry; pivot--; }
   } else {                                                            // Here, x[index[uhi]] <= x[index[pivot]], so swap entries at indices ulo and uhi.
     tempEntry = index[ulo]; index[ulo] = index[uhi]; index[uhi] = tempEntry;
     if (pivot==ulo) pivot= uhi;
@@ -3606,12 +3616,12 @@ double rbetaC(double alpha,
               double beta)
 {
     double x;
-    double y; 
-       
-    x = gamdev(alpha);               /* X ~ gamma(alpha) */ 
-    y = gamdev(beta);                /* Y ~ gamma(beta)  */ 
- 
-    return (x / (x+y));     /* X/(X+y) ~ ebta(alpha, beta) */ 
+    double y;
+
+    x = gamdev(alpha);               /* X ~ gamma(alpha) */
+    y = gamdev(beta);                /* Y ~ gamma(beta)  */
+
+    return (x / (x+y));     /* X/(X+y) ~ ebta(alpha, beta) */
 }
 
 
@@ -3650,8 +3660,8 @@ double pbetaC(double x,
 
 /*
  * Draws from Dirichlet with parameter alpha.
- * The value is saved in w, and p is the dimensionality of the parameter 
- */ 
+ * The value is saved in w, and p is the dimensionality of the parameter
+ */
 void rdirichlet(double *w,
                 const double *alpha,
                 const int *p)
@@ -3719,9 +3729,9 @@ double gamdev(double alpha)
 }
 
 
-/* *************************************************' 
-   normal cdf and inv cdf 
- ************************************************* */ 
+/* *************************************************
+   normal cdf and inv cdf
+ ************************************************* */
 
 /* Returns cdf of normal N(m,s^2) at x */
 double pnormC(double y,
@@ -4190,8 +4200,8 @@ double dtmixC(double y,
  *    cholsinv, det: cholesky decomp and determinant of inverse cov matrix
  *    logscale: set to 1 to return density in log-scale
  *
- * Example: 
- *     choldc_inv(s, n, cholsinv); 
+ * Example:
+ *     choldc_inv(s, n, cholsinv);
  *     det = choldc_det(cholsinv, n);
  *     dmvtC(y, n, mu, cholsinv, det, nu, 0);
  */
@@ -4758,19 +4768,19 @@ S160:
 double spmpar(int *i)
 /*
 -----------------------------------------------------------------------
- 
+
      SPMPAR PROVIDES THE SINGLE PRECISION MACHINE CONSTANTS FOR
      THE COMPUTER BEING USED. IT IS ASSUMED THAT THE ARGUMENT
      I IS AN INTEGER HAVING ONE OF THE VALUES 1, 2, OR 3. IF THE
      SINGLE PRECISION ARITHMETIC BEING USED HAS M BASE B DIGITS AND
      ITS SMALLEST AND LARGEST EXPONENTS ARE EMIN AND EMAX, THEN
- 
+
         SPMPAR(1) = B**(1 - M), THE MACHINE PRECISION,
- 
+
         SPMPAR(2) = B**(EMIN - 1), THE SMALLEST MAGNITUDE,
- 
+
         SPMPAR(3) = B**EMAX*(1 - B**(-M)), THE LARGEST MAGNITUDE.
- 
+
 -----------------------------------------------------------------------
      WRITTEN BY
         ALFRED H. MORRIS, JR.
@@ -4825,13 +4835,13 @@ S20:
 
 /*
 **********************************************************************
- 
+
      void cumnor(double *arg,double *result,double *ccum)
- 
- 
+
+
                               Function
- 
- 
+
+
      Computes the cumulative  of    the  normal   distribution,   i.e.,
      the integral from -infinity to x of
           (1/sqrt(2*pi)) exp(-u*u/2) du
@@ -6387,7 +6397,7 @@ static long qrgnin;
 */
     gsrgs(0L,&qrgnin);
     if(!qrgnin) inrgcm();
-    *Xig1 = iseed1; 
+    *Xig1 = iseed1;
     *Xig2 = iseed2;
     initgn(-1L);
     for(g=2; g<=numg; g++) {
@@ -7009,7 +7019,7 @@ void mspline_vec(double *W,
 
 
 /************************************************************************
-            FUNCTION OPTIMIZATION 
+            FUNCTION OPTIMIZATION
 ************************************************************************/
 
 /*
@@ -7064,7 +7074,7 @@ double univmin(double ax,
       etemp= e;
       e= d;
       //determine acceptability of parabolic fit & take the golden section step into the larger of the two segments
-      if (fabs(p) >= fabs(0.5*q*etemp) || p <= q*(a-x) || p >= q*(b-x)) { 
+      if (fabs(p) >= fabs(0.5*q*etemp) || p <= q*(a-x) || p >= q*(b-x)) {
 	d= CGOLD*(e=(x >= xm ? a-x : b-x));
       } else {
 	d=p/q;                            //take the parabolic step
@@ -7123,7 +7133,7 @@ double dunivmin(double ax,
 
   const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
   int iter,ok1,ok2; //Will be used as flags for whether proposed steps are acceptable or not.
-  double a,b,d=1,d1,d2,du,dv,dw,dx,e=0.0; 
+  double a,b,d=1,d1,d2,du,dv,dw,dx,e=0.0;
   double fu,fv,fw,fx,olde,eps1,eps2,u,u1,u2,v,w,x,xm;
 
   assert(f != NULL);
@@ -7134,7 +7144,7 @@ double dunivmin(double ax,
   b=(ax > cx ? ax : cx);
   x=w=v=bx;
   fw=fv=fx=(*f)(x);
-  dw=dv=dx=(*df)(x); 
+  dw=dv=dx=(*df)(x);
   for (iter=1;iter<=itmax;iter++) {
     xm=0.5*(a+b);
     eps1=eps*fabs(x)+ZEPS;

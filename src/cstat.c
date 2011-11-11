@@ -6750,10 +6750,13 @@ double midinf(double (* const func)(double),
  * Integrate f from 0 to 1.0e30 (cutpoint should be chosen in the tail of fx)
  * answer = qromo(f, 0.0, 2.0, midpnt) + qromo(f, 2.0, 1.0e30, midinf)
  */
-double qromo(double (*func)(double),
+double qromo(double (* const func)(double),
              double a,
              double b,
-             double (*choose)(double(*)(double), double, double, int))
+             double (* const choose)(double(* const)(double),
+                                     double,
+                                     double,
+                                     int))
 {
     const double EPS = 1.0e-6;
     const int JMAX = 14;

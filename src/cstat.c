@@ -21,7 +21,7 @@ static const char mess_c_sccs_id[] = "%W%";
 static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
-static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-12$";
+static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-15$";
 
 
 /*
@@ -586,6 +586,7 @@ double nn_integral(const double *x,
     assert(detVpr != NULL);
     assert(p != NULL);
     assert(logscale != NULL);
+    assert((*logscale == 0) || (*logscale == 1));
 
     m = dvector(1, *p);
     Vsum = dmatrix(1, *p, 1, *p);
@@ -603,6 +604,7 @@ double nn_integral(const double *x,
 
     ans = 0.5 * ans -
           0.5 * ((*p+0.0)*LOG_M_2PI + log(*detVx) + log(*detVpr) - log(detsum));
+    /* :BUG?: Returns exponential when logscale flag enabled */
     if (*logscale != 0) {
         ans = exp(ans);
     }
@@ -3825,6 +3827,8 @@ double dnormC(double y,
               double s,
               int logscale)
 {
+    assert((logscale == 0) || (logscale == 1));
+
     if (logscale == 1) {
         return(-log(SQ_M_PI_2) - log(s) - 0.5 * (y - m) * (y - m) / (s * s));
     }
@@ -3845,15 +3849,13 @@ double dnormC_jvec(const double *y,
     double ans = 0.0;
 
     assert(y != NULL);
+    assert((logscale == 0) || (logscale == 1));
 
     for (i = 0; i < n; i++) {
         ans += dnormC(y[i], m, s, 1);
     }
 
-    if (logscale != 1) {
-        ans = exp(ans);
-    }
-    return(ans);
+    return (logscale == 1) ? ans : exp(ans);
 }
 
 
@@ -3883,6 +3885,7 @@ double dmvnormC(const double *y,
     assert(y != NULL);
     assert(mu != NULL);
     assert(cholsinv != NULL);
+    assert((logscale == 0) || (logscale == 1));
 
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     z  = dvector(1, n);
@@ -3962,6 +3965,8 @@ double dbinomial(int x,
 {
     double ans;
 
+    assert((logscale == 0) || (logscale == 1));
+
     ans = lnchoose(n, x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
     return (logscale == 1) ? ans : exp(ans);
 }
@@ -4024,11 +4029,10 @@ double bbPrior(int k,
 {
     double ans;
 
+    assert((logscale == 0) || (logscale == 1));
+
     ans = lnbeta(alpha + k, beta + p - k) - lnbeta(alpha, beta);
-    if (!logscale) {
-        ans = exp(ans);
-    }
-    return(ans);
+    return (logscale == 1) ? ans : exp(ans);
 }
 
 
@@ -4228,13 +4232,12 @@ double dtmixC(double y,
     assert(mu != NULL);
     assert(s != NULL);
     assert(probs != NULL);
+    assert((logscale == 0) || (logscale == 1));
 
     for (i = 0; i < ncomp; i++) {
         ans += dtC(y, mu[i], s[i], nu) * probs[i];
     }
-    if (logscale)
-        ans = log(ans);
-    return ans;
+    return (logscale == 1) ? log(ans) : ans;
 }
 
 
@@ -4265,6 +4268,7 @@ double dmvtC(const double *y,
     assert(y != NULL);
     assert(mu != NULL);
     assert(cholsinv != NULL);
+    assert((logscale == 0) || (logscale == 1));
 
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     {
@@ -4574,6 +4578,8 @@ double dmomNorm(double y,
         20.29973
     };
     double ans;
+
+    assert((logscale == 0) || (logscale == 1));
 
     ans = r * log((y - m) * (y - m) / (tau * phi)) +
           dnormC(y, m, sqrt(tau * phi), 1) - normct[r-1];

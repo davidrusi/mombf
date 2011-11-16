@@ -21,25 +21,25 @@ static const char mess_c_sccs_id[] = "%W%";
 static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
-static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-10$";
+static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-12$";
 
 
 /*
  * Globals
  */
-static long is1=123456789, is2=981963;
-static int set=0;
+static long is1 = 123456789, is2 = 981963;
+static int set = 0;
 
 FILE *ifile, *ofile;
 int nv = 0;
 
-long Xm1,Xm2;
-long Xa1,Xa2;
-long Xcg1[32],Xcg2[32];
-long Xa1w,Xa2w;
-long Xig1[32],Xig2[32];
-long Xlg1[32],Xlg2[32];
-long Xa1vw,Xa2vw;
+long Xm1, Xm2;
+long Xa1, Xa2;
+long Xcg1[32], Xcg2[32];
+long Xa1w, Xa2w;
+long Xig1[32], Xig2[32];
+long Xlg1[32], Xlg2[32];
+long Xa1vw, Xa2vw;
 long Xqanti[32];
 
 
@@ -7294,56 +7294,81 @@ void minimize(double th[],
               double (* const f)(double []),
               int itmax)
 {
-  int i,ibig,j;
-  double del,fth,fthtt,t,*tht,*thtt,*dirinit;
-  bool converged=false;
+    register int i;
+    register int j;
+    int ibig;
+    double del;
+    double fth;
+    double fthtt;
+    double t;
+    double *tht;
+    double *thtt;
+    double *dirinit;
+    bool converged = false;
 
-  assert(dirini != NULL);
-  assert(iter != NULL);
-  assert(fret != NULL);
-  assert(f != NULL);
+    assert(dirini != NULL);
+    assert(iter != NULL);
+    assert(fret != NULL);
+    assert(f != NULL);
 
-  tht=dvector(1,n);
-  thtt=dvector(1,n);
-  dirinit=dvector(1,n);
-  //initial parameter and function values
-  *fret=(*f)(th);
-  for (j=1;j<=n;j++) tht[j]=th[j];
-  for (*iter=1;(*iter <itmax) && (converged==false);++(*iter)) {
-    fth=(*fret);
-    ibig=0;
-    del=0.0;
-    for (i=1;i<=n;i++) {  //minimize along all directions
-      for (j=1;j<=n;j++) dirinit[j]=dirini[j][i];
-      fthtt=(*fret);
-      dirmin(th,dirinit,n,fret,f,itmax,eps);
-      if (fabs(fthtt-(*fret)) > del) {  //
-	del=fabs(fthtt-(*fret));
-	ibig=i;
-      }
-    }
-    for (j=1;j<=n;j++) { //extrapolated point, average direction and function value at extrapolated point
-      thtt[j]=2.0*th[j]-tht[j];
-      dirinit[j]=th[j]-tht[j];
-      tht[j]=th[j];
-    }
-    fthtt=(*f)(thtt);
-    if (fthtt < fth) {
-      t=2.0*(fth-2.0*(*fret)+fthtt)*sqrt(fth-(*fret)-del)-del*sqrt(fth-fthtt);
-      if (t < 0.0) {
-	dirmin(th,dirinit,n,fret,f,itmax,eps);
-	for (j=1;j<=n;j++) {
-	  dirini[j][ibig]=dirini[j][n];
-	  dirini[j][n]=dirinit[j];
-	}
-      }
-    }
-    if (2.0*fabs(fth-(*fret)) <= eps*(fabs(fth)+fabs(*fret))) converged=true;
-  }
+    tht     = dvector(1, n);
+    thtt    = dvector(1, n);
+    dirinit = dvector(1, n);
 
-  free_dvector(dirinit,1,n);
-  free_dvector(thtt,1,n);
-  free_dvector(tht,1,n);
+    /* Initial parameter and function values */
+    *fret = (*f)(th);
+    for (j = 1; j <= n; j++) {
+        tht[j] = th[j];
+    }
+
+    for (*iter = 1; (*iter < itmax) && (converged == false); ++(*iter)) {
+        fth = (*fret);
+        ibig = 0;
+        del = 0.0;
+
+        /* Minimize along all directions */
+        for (i = 1; i <= n; i++) {
+            for (j = 1; j <= n; j++) {
+                dirinit[j] = dirini[j][i];
+            }
+            fthtt = (*fret);
+            dirmin(th, dirinit, n, fret, f, itmax, eps);
+            if (fabs(fthtt - (*fret)) > del) {
+                del = fabs(fthtt - (*fret));
+                ibig = i;
+            }
+        }
+
+        /*
+         * extrapolated point, average direction and function value
+         * at extrapolated point
+         */
+        for (j = 1; j <= n; j++) {
+            thtt[j] = 2.0 * th[j] - tht[j];
+            dirinit[j] = th[j] - tht[j];
+            tht[j] = th[j];
+        }
+        fthtt = (*f)(thtt);
+        if (fthtt < fth) {
+            t = 2.0 * (fth - 2.0 * (*fret) + fthtt) *
+                sqrt(fth - (*fret) - del) - del * sqrt(fth - fthtt);
+            if (t < 0.0) {
+                dirmin(th, dirinit, n, fret, f, itmax, eps);
+                for (j = 1; j <= n; j++) {
+                    dirini[j][ibig] = dirini[j][n];
+                    dirini[j][n] = dirinit[j];
+                }
+            }
+        }
+
+        if (2.0 * fabs(fth - (*fret)) <= eps * (fabs(fth) + fabs(*fret))) {
+            converged = true;
+        }
+    }
+
+    free_dvector(dirinit, 1, n);
+    free_dvector(thtt, 1, n);
+    free_dvector(tht, 1, n);
 }
 
 

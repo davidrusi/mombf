@@ -1,4 +1,5 @@
 CHANGES IN VERSION 1.3.2
+- Added check to T dmom to ensure that prior is proper
 - Added greedy initialization algorithm for probit models
 - Added multivariate version of heavy-tailed pMOM to dmom
 - Modified heavy-tailed eMOM implemented in dmom so that it is consistent with heavy-tailed pMOM. Now both are defined via hyper-priors on tau.

@@ -48,6 +48,7 @@ setMethod("dpmom", signature(x='matrix'), function(x, tau, a.tau, b.tau, phi=1, 
 dqmom <- function(x,V1=1,g,n=1,theta0,baseDensity='normal',nu=3) {
 if (missing(g)) stop("Prior dispersion must be specified for quadratic MOM")
 if (!(baseDensity %in% c('normal','t'))) stop("The only implemented baseDensity values are 'normal' and 't'")
+if (baseDensity=='t' & nu<3) stop('nu must be >=3, otherwise the prior is improper')
 if (missing(V1)) {
   if (is.vector(x)) V1 <- 1 else V1 <- diag(ncol(x))
 }

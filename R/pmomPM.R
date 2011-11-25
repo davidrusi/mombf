@@ -71,6 +71,7 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
     if (verbose) cat("Initializing via greedy search...")
     msfit <- greedyGLM(y=y,x=x,xadj=xadj,family=binomial(link='probit'),priorCoef=priorCoef,priorDelta=priorDelta,maxit=50)
     ndeltaini <- as.integer(sum(msfit)); deltaini <- as.integer(msfit)
+    if (verbose) cat(" Done\n")
   } else if (initSearch=='SCAD') {
     require(ncvreg)
     if (verbose) cat("Initializing via SCAD cross-validation...")

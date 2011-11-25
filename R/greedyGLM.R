@@ -17,10 +17,10 @@
 greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
   pluginJoint <- function(sel) {
     p <- sum(sel)
-    if (p>0) {
+    if (p>0 & p<=length(y)) {
       glm1 <- glm(y ~ x[,sel,drop=FALSE] + xadj -1, family=family)
       ans <- -.5*glm1$deviance + cfprior(matrix(coef(glm1)[1:p],nrow=1)) + modelprior(sel)
-    } else if (p>0 & p<=length(y)) {
+    } else if (p==0) {
       glm1 <- glm(y ~ xadj -1, family=family)
       ans <- -.5*glm1$deviance + modelprior(sel)
     } else { ans <- -Inf }
@@ -59,7 +59,7 @@ greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
   mcur <- pluginJoint(sel)
   nchanges <- 1; niter <- 1
   while (nchanges>0 & niter<maxit) {
-    nchanges <- 0; maxit <- maxit+1
+    nchanges <- 0; niter <- niter+1
     for (i in 1:ncol(x)) {
       selnew <- sel; selnew[i] <- !selnew[i]
       mnew <- pluginJoint(selnew)

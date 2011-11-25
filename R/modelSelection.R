@@ -195,6 +195,67 @@ return(list(postSample=postSample,postOther=postOther,margpp=margpp/niter,postMo
 }
 
 
+#Gibbs model selection using BIC to approximate marginal likelihood
+# - y, x, xadj: response, covariates under selection and adjustment covariates
+# - family: glm family, passed on to glm
+# - niter: number of Gibbs iteration
+# - burnin: burn-in iterations
+# - modelPrior: function evaluating model log-prior probability. Takes a logical vector as input
+# Returns:
+# - postModel, postCoef1, postCoef2, margpp (analogous to pmomPM. postCoef1 & postCoef2 are MLEs under each visited model)
+modelselBIC <- function(y, x, xadj, family, niter=1000, burnin= round(.1*niter), modelPrior, verbose=TRUE) {
+  pluginJoint <- function(sel) {
+    p <- sum(sel)
+    ans <- vector("list",2); names(ans) <- c('marginal','coef')
+    if (p>0 & p<=length(y)) {
+      glm1 <- glm(y ~ x[,sel,drop=FALSE] + xadj -1, family=family)
+      ans$marginal <- -.5*glm1$deviance - .5*log(length(y))*(glm1$df.null-glm1$df.residual) + modelPrior(sel)
+      ans$coef1 <- coef(glm1)[1:p]; ans$coef2 <- coef(glm1)[-1:-p]
+    } else if (p==0) {
+      glm1 <- glm(y ~ xadj -1, family=family)
+      ans$marginal <- -.5*glm1$deviance - .5*log(length(y))*(glm1$df.null-glm1$df.residual) + modelPrior(sel)
+      ans$coef1 <- double(0); ans$coef2 <- coef(glm1)
+    } else { ans$marginal <- -Inf; ans$coef1 <- ans$coef2 <- 0}
+    return(ans)
+  }
+  #Greedy iterations
+  if (verbose) cat("Initializing...")
+  sel <- rep(FALSE,ncol(x))
+  mcur <- pluginJoint(sel)$marginal
+  nchanges <- 1; it <- 1
+  while (nchanges>0 & it<100) {
+    nchanges <- 0; it <- it+1
+    for (i in 1:ncol(x)) {
+      selnew <- sel; selnew[i] <- !selnew[i]
+      mnew <- pluginJoint(selnew)$marginal
+      if (mnew>mcur) { sel[i] <- selnew[i]; mcur <- mnew; nchanges <- nchanges+1 }
+    }
+  }
+  if (verbose) { cat(" Done\nGibbs sampling") }
+  #Gibbs iterations
+  niter10 <- ceiling(niter/10)
+  postModel <- matrix(NA,nrow=niter,ncol=ncol(x))
+  postCoef1 <- matrix(0,nrow=niter,ncol=ncol(x))
+  postCoef2 <- matrix(0,nrow=niter,ncol=ncol(xadj))
+  curmod <- pluginJoint(sel)
+  for (j in 1:niter) {
+    for (i in 1:ncol(x)) {
+      selnew <- sel; selnew[i] <- !selnew[i]
+      newmod <- pluginJoint(selnew)
+      mnew <- newmod$marginal
+      if (runif(1) < 1/(1+exp(mcur-mnew))) { sel[i] <- selnew[i]; mcur <- mnew; curmod <- newmod }
+    }
+    postModel[j,] <- sel
+    postCoef1[j,sel] <- curmod$coef1; postCoef2[j,] <- curmod$coef2
+    if (verbose & ((j%%niter10)==0)) cat(".")
+  }
+  if (verbose) cat("Done\n")
+  #Return output
+  if (burnin>0) { postModel <- postModel[-1:-burnin,,drop=FALSE]; postCoef1 <- postCoef1[-1:-burnin,,drop=FALSE]; postCoef2 <- postCoef2[-1:-burnin,,drop=FALSE] }
+  ans <- list(postModel=postModel, postCoef1=postCoef1, postCoef2=postCoef2, margpp=colMeans(postModel))
+  return(ans)
+}
+
 
 ## Common prior distributions on model space
 

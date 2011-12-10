@@ -21,7 +21,13 @@ static const char mess_c_sccs_id[] = "%W%";
 static const char nrutil_c_sccs_id[] = "%W%";
 static const char vector_c_sccs_id[] = "%W%";
 static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
-static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-11-15$";
+static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-12-10$";
+
+
+/*
+ * Much of this code has undocumented assumptions, the least of which
+ * is IEC-559 / IEEE-754 standard compliance.
+ */
 
 
 /*
@@ -1455,26 +1461,57 @@ void err_msg(const char *fct,
                           MEMORY ALLOCATION
 ******************************************************************************/
 
-float *vector(int nl, int nh) 
-{ 
-        float *v; 
- 
-        v=(float *)calloc((unsigned) (nh-nl+1), sizeof(float)); 
-        if (!v) nrerror("vector", "allocate a float vector", ""); 
-        return v-nl; 
-} 
+/* Allocate int vector with subscript range v[nl..nh] */
+int *ivector(int nl,
+             int nh)
+{
+    int *v;
+    size_t count = nh-nl+1;
+
+    assert(count > 0);
+
+    nv += count;
+    v = (int *) calloc(count, sizeof(int));
+    if (v == NULL) {
+        nrerror("ivector", "allocate an int vector", "");
+    }
+    return v-nl;
+}
 
 
-double  *dvector(int nl, int nh) 
-{ 
-        double  *v; 
- 
-	nv += (nh-nl+1); 
-        v=(double  *)calloc((unsigned) (nh-nl+1), sizeof(double)); 
-        if (!v)  
-	  nrerror("dvector", "allocate a double vector", ""); 
-        return v-nl; 
-} 
+/* Allocate float vector with subscript range v[nl..nh] */
+float *vector(int nl,
+              int nh)
+{
+    float *v;
+    size_t count = nh-nl+1;
+
+    assert(count > 0);
+
+    v = (float *) calloc(count, sizeof(float));
+    if (v == NULL) {
+        nrerror("vector", "allocate a float vector", "");
+    }
+    return v-nl;
+}
+
+
+/* Allocate double vector with subscript range v[nl..nh] */
+double *dvector(int nl,
+                int nh)
+{
+    double  *v;
+    size_t count = nh-nl+1;
+
+    assert(count > 0);
+
+    nv += count;
+    v = (double *) calloc(count, sizeof(double));
+    if (v == NULL) {
+        nrerror("dvector", "allocate a double vector", "");
+    }
+    return v-nl;
+}
 
 
 double  **dmatrix(int nrl, int nrh, int ncl, int nch) 
@@ -1549,17 +1586,6 @@ double ***darray3(int n1, int n2, int n3)
     
   return a;
 }
-
-
-int  *ivector(int nl, int nh) 
-{ 
-        int  *v; 
- 
-	nv += (nh-nl+1); 
-        v=(int  *)calloc((unsigned) (nh-nl+1), sizeof(int)); 
-        if (!v) nrerror("ivector", "allocate an int vector", ""); 
-        return v-nl; 
-} 
 
 
 int  **imatrix(int nrl, int nrh, int ncl, int nch) 

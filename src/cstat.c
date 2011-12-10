@@ -1725,39 +1725,69 @@ void free_dvector(double *v,
 }
 
 
-void free_dmatrix(double  **m, int nrl, int nrh, int ncl, int nch) 
-{ 
-        int i; 
- 
-        for(i=nrh;i>=nrl;i--) {if( (m[i]+ncl) != NULL )  
-				 free((char  *) (m[i]+ncl));} 
-        if( (m+nrl) != NULL ) free((char  *) (m+nrl)); 
-        nv -= (nch-ncl+1)*(nrh-nrl+1); 
-} 
- 
+/* Free int matrix allocated by imatrix() */
+void free_imatrix(int **m,
+                  int nrl,
+                  int nrh,
+                  int ncl,
+                  int nch)
+{
+    register int i;
+    size_t nrow = nrh-nrl+1;
+    size_t ncol = nch-ncl+1;
 
-void free_imatrix(int  **m, int nrl, int nrh, int ncl, int nch) 
-{ 
-        int i; 
- 
-        for(i=nrh;i>=nrl;i--) {if( (m[i]+ncl) != NULL )  
-				 free((char  *) (m[i]+ncl));} 
-        if( (m+nrl) != NULL ) free((char  *) (m+nrl)); 
-        nv -= (nch-ncl+1)*(nrh-nrl+1); 
-} 
+    assert(m != NULL);
 
-
-void free_darray3(double ***a, int n1, int n2, int n3) {
-  free((char*) (a[0][0]));
-  free((char*) (a[0]));
-  free((char*) (a));
+    for (i = nrh; i >= nrl; i--) {
+        if ((m[i]+ncl) != NULL) {
+            free((char *) (m[i]+ncl));
+        }
+    }
+    if ((m+nrl) != NULL) {
+        free((char *) (m+nrl));
+    }
+    nv -= ncol * nrow;
 }
 
 
-void free_iarray3(int ***a, int n1, int n2, int n3) {
-        free((char*) (a[0][0]));
-        free((char*) (a[0]));
-        free((char*) (a));
+/* Free double matrix allocated by dmatrix() */
+void free_dmatrix(double **m,
+                  int nrl,
+                  int nrh,
+                  int ncl,
+                  int nch)
+{
+    register int i;
+    size_t nrow = nrh-nrl+1;
+    size_t ncol = nch-ncl+1;
+
+    assert(m != NULL);
+
+    for (i = nrh; i >= nrl; i--) {
+        if ((m[i]+ncl) != NULL) {
+            free((char *) (m[i]+ncl));
+        }
+    }
+    if ((m+nrl) != NULL) {
+        free((char *) (m+nrl));
+    }
+    nv -= ncol * nrow;
+}
+ 
+
+void free_iarray3(int ***a, int n1, int n2, int n3)
+{
+    free((char*) (a[0][0]));
+    free((char*) (a[0]));
+    free((char*) (a));
+}
+
+
+void free_darray3(double ***a, int n1, int n2, int n3)
+{
+    free((char*) (a[0][0]));
+    free((char*) (a[0]));
+    free((char*) (a));
 }
 
 

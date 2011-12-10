@@ -1683,25 +1683,46 @@ double ***darray3(int n1,
 }
 
 
-void free_vector(float  *v, int nl, int nh) 
-{ 
-        if( (v+nl) != NULL ) free((char  *) (v+nl)); 
-	nv -= (nh-nl+1); 
-} 
+/* Free int vector allocated with ivector() */
+void free_ivector(int *v,
+                  int nl,
+                  int nh)
+{
+    assert(v != NULL);
+
+    if ((v+nl) != NULL) {
+        free((char  *) (v+nl));
+    }
+    nv -= (nh-nl+1);
+}
 
 
-void free_dvector(double  *v, int nl, int nh) 
-{ 
-        if( (v+nl) != NULL ) free((char  *) (v+nl)); 
-	nv -= (nh-nl+1); 
-} 
+/* Free float vector allocated with vector() */
+void free_vector(float *v,
+                 int nl,
+                 int nh)
+{
+    assert(v != NULL);
+
+    if ((v+nl) != NULL) {
+        free((char  *) (v+nl));
+    }
+    nv -= (nh-nl+1);
+}
 
 
-void free_ivector(int  *v, int nl, int nh) 
-{ 
-        if( (v+nl) != NULL ) free((char  *) (v+nl)); 
-	nv -= (nh-nl+1); 
-} 
+/* Free double vector allocated with dvector() */
+void free_dvector(double *v,
+                  int nl,
+                  int nh)
+{
+    assert(v != NULL);
+
+    if ((v+nl) != NULL) {
+        free((char  *) (v+nl));
+    }
+    nv -= (nh-nl+1);
+}
 
 
 void free_dmatrix(double  **m, int nrl, int nrh, int ncl, int nch) 

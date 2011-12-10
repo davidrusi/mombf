@@ -1593,30 +1593,28 @@ double **dmatrix(int nrl,
 }
 
 
-/*
-double ***darray_3(int lo, int hi) 
-{ 
-  double ***m; 
- 
-  nv += (hi-lo+1); 
-  m=(double ***)calloc((unsigned) (hi-lo+1), sizeof(double **)); 
-  if (!m)  
-    nrerror("darray_3", "allocate a 3dim double array ", ""); 
-  m -= lo; 
-  return m; 
-} 
+int ***iarray3(int n1, int n2, int n3)
+/***********************************************************************
+  allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
+***********************************************************************/
+{
+  int ***a, i, j;
 
+  a = (int ***) malloc(n1 * sizeof(int **));
+  if(a == NULL)  nrerror("iarray3", "allocate a 3dim int array (1st dim)", "");
 
-double ***darray3(int n, int p, int q) 
-{ 
-  double ***a; 
-  int i; 
-  a = darray_3(0, n); 
-  for(i=0;i<n;i++) 
-    a[i] = dmatrix(0, p, 0, q); 
-  return(a); 
-} 
-*/
+  a[0] = (int **) malloc(n1 * n2 * sizeof(int *));
+  if(a[0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (2nd dim)", "");
+  for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
+
+  a[0][0] = (int *) malloc(n1 * n2 * n3 * sizeof(int));
+  if(a[0][0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (3rd dim)", "");
+  for(i=0;i<n1;i++) 
+    for(j=0;j<n2;j++) 
+      a[i][j] = a[0][0] + n2*n3*i + j*n3;
+    
+  return a;
+}
 
 
 double ***darray3(int n1, int n2, int n3)
@@ -1636,56 +1634,6 @@ double ***darray3(int n1, int n2, int n3)
 
   a[0][0] = (double *) malloc(n1 * n2 * n3 * sizeof(double));
   if(a[0][0] == NULL) nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
-  for(i=0;i<n1;i++) 
-    for(j=0;j<n2;j++) 
-      a[i][j] = a[0][0] + n2*n3*i + j*n3;
-    
-  return a;
-}
-
-
-/*
-int ***iarray_3(int lo, int hi) 
-{ 
-  int ***m; 
- 
-  nv += (hi-lo+1); 
-  m=(int ***)calloc((unsigned) (hi-lo+1), sizeof(int **)); 
-  if (!m)  
-    nrerror("iarray_3", "allocate a 3dim int array ", ""); 
-  m -= lo; 
-  return m; 
-}
-
-
-int ***iarray3(int p1, int p2, int p3) 
-{ 
-  int ***m, i; 
- 
-  m = iarray_3(0, p1); 
-  for (i=0;i<p1;i++) 
-    m[i] = imatrix(0, p2, 0, p3); 
-  return m; 
-} 
-*/
-
-
-int ***iarray3(int n1, int n2, int n3)
-/***********************************************************************
-  allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
-***********************************************************************/
-{
-  int ***a, i, j;
-
-  a = (int ***) malloc(n1 * sizeof(int **));
-  if(a == NULL)  nrerror("iarray3", "allocate a 3dim int array (1st dim)", "");
-
-  a[0] = (int **) malloc(n1 * n2 * sizeof(int *));
-  if(a[0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (2nd dim)", "");
-  for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
-
-  a[0][0] = (int *) malloc(n1 * n2 * n3 * sizeof(int));
-  if(a[0][0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (3rd dim)", "");
   for(i=0;i<n1;i++) 
     for(j=0;j<n2;j++) 
       a[i][j] = a[0][0] + n2*n3*i + j*n3;

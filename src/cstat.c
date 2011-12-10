@@ -1775,16 +1775,32 @@ void free_dmatrix(double **m,
 }
  
 
-void free_iarray3(int ***a, int n1, int n2, int n3)
+/* Free int array allocated by iarray3() */
+void free_iarray3(int ***a,
+                  int n1,
+                  int n2,
+                  int n3)
 {
+    assert(a != NULL);
+    assert(a[0] != NULL);
+    assert(a[0][0] != NULL);
+
     free((char*) (a[0][0]));
     free((char*) (a[0]));
     free((char*) (a));
 }
 
 
-void free_darray3(double ***a, int n1, int n2, int n3)
+/* Free double array allocated by darray3() */
+void free_darray3(double ***a,
+                  int n1,
+                  int n2,
+                  int n3)
 {
+    assert(a != NULL);
+    assert(a[0] != NULL);
+    assert(a[0][0] != NULL);
+
     free((char*) (a[0][0]));
     free((char*) (a[0]));
     free((char*) (a));

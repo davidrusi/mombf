@@ -1593,52 +1593,93 @@ double **dmatrix(int nrl,
 }
 
 
-int ***iarray3(int n1, int n2, int n3)
-/***********************************************************************
-  allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
-***********************************************************************/
+/* Allocates int array with subscript range a[0..n1-1][0..n2-1][0..n3-1] */
+int ***iarray3(int n1,
+               int n2,
+               int n3)
 {
-  int ***a, i, j;
+    int ***a;
+    register int i;
+    register int j;
 
-  a = (int ***) malloc(n1 * sizeof(int **));
-  if(a == NULL)  nrerror("iarray3", "allocate a 3dim int array (1st dim)", "");
+    assert(n1 > 0);
+    assert(n2 > 0);
+    assert(n3 > 0);
 
-  a[0] = (int **) malloc(n1 * n2 * sizeof(int *));
-  if(a[0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (2nd dim)", "");
-  for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
+    /* Allocate pointers to first dimension */
+    a = (int ***) calloc(n1, sizeof(int **));
+    if (a == NULL) {
+        nrerror("iarray3", "allocate a 3dim int array (1st dim)", "");
+        /*NOTREACHED*/
+    }
 
-  a[0][0] = (int *) malloc(n1 * n2 * n3 * sizeof(int));
-  if(a[0][0] == NULL)  nrerror("iarray3", "allocate a 3dim int array (3rd dim)", "");
-  for(i=0;i<n1;i++) 
-    for(j=0;j<n2;j++) 
-      a[i][j] = a[0][0] + n2*n3*i + j*n3;
-    
-  return a;
+    /* Allocate pointers to second dimension and set pointers */
+    a[0] = (int **) calloc(n1 * n2, sizeof(int *));
+    if (a[0] == NULL) {
+        nrerror("iarray3", "allocate a 3dim int array (2nd dim)", "");
+        /*NOTREACHED*/
+    }
+    for (i = 1; i < n1; i++) {
+        a[i] = a[i-1] + n2;
+    }
+
+    /* Allocate pointers to third dimension and set pointers */
+    a[0][0] = (int *) calloc(n1 * n2 * n3, sizeof(int));
+    if (a[0][0] == NULL) {
+        nrerror("iarray3", "allocate a 3dim int array (3rd dim)", "");
+        /*NOTREACHED*/
+    }
+    for (i = 0; i < n1; i++) {
+        for (j = 0; j < n2; j++) {
+            a[i][j] = a[0][0] + n2*n3*i + j*n3;
+        }
+    }
+    return a;
 }
 
 
-double ***darray3(int n1, int n2, int n3)
-/***********************************************************************
-  allocates space for a 3 index array 0..n1-1, 0...n2-1, 0...n3-1
-***********************************************************************/
+/* Allocates double array with subscript range a[0..n1-1][0..n2-1][0..n3-1] */
+double ***darray3(int n1,
+                  int n2,
+                  int n3)
 {
-  double ***a;
-  int  i, j;
+    double ***a;
+    register int i;
+    register int j;
 
-  a = (double ***) malloc(n1 * sizeof(double **));
-  if(a == NULL) nrerror("darray3", "allocate a 3dim double array (1st dim)", "");
+    assert(n1 > 0);
+    assert(n2 > 0);
+    assert(n3 > 0);
 
-  a[0] = (double **) malloc(n1 * n2 * sizeof(double *));
-  if(a[0] == NULL) nrerror("darray3", "allocate a 3dim double array (2nd dim)", "");
-  for(i=1;i<n1;i++) a[i] = a[i-1] + n2;
+    /* Allocate pointers to first dimension */
+    a = (double ***) calloc(n1, sizeof(double **));
+    if (a == NULL) {
+        nrerror("darray3", "allocate a 3dim double array (1st dim)", "");
+        /*NOTREACHED*/
+    }
 
-  a[0][0] = (double *) malloc(n1 * n2 * n3 * sizeof(double));
-  if(a[0][0] == NULL) nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
-  for(i=0;i<n1;i++) 
-    for(j=0;j<n2;j++) 
-      a[i][j] = a[0][0] + n2*n3*i + j*n3;
-    
-  return a;
+    /* Allocate pointers to second dimension and set pointers */
+    a[0] = (double **) calloc(n1 * n2, sizeof(double *));
+    if (a[0] == NULL) {
+        nrerror("darray3", "allocate a 3dim double array (2nd dim)", "");
+        /*NOTREACHED*/
+    }
+    for (i = 1; i < n1; i++) {
+        a[i] = a[i-1] + n2;
+    }
+
+    /* Allocate pointers to third dimension and set pointers */
+    a[0][0] = (double *) calloc(n1 * n2 * n3, sizeof(double));
+    if (a[0][0] == NULL) {
+        nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
+        /*NOTREACHED*/
+    }
+    for (i = 0; i < n1; i++) {
+        for (j = 0; j < n2; j++) {
+            a[i][j] = a[0][0] + n2*n3*i + j*n3;
+        }
+    }
+    return a;
 }
 
 

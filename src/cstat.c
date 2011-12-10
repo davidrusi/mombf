@@ -1474,6 +1474,7 @@ int *ivector(int nl,
     v = (int *) calloc(count, sizeof(int));
     if (v == NULL) {
         nrerror("ivector", "allocate an int vector", "");
+        /*NOTREACHED*/
     }
     return v-nl;
 }
@@ -1491,6 +1492,7 @@ float *vector(int nl,
     v = (float *) calloc(count, sizeof(float));
     if (v == NULL) {
         nrerror("vector", "allocate a float vector", "");
+        /*NOTREACHED*/
     }
     return v-nl;
 }
@@ -1509,32 +1511,86 @@ double *dvector(int nl,
     v = (double *) calloc(count, sizeof(double));
     if (v == NULL) {
         nrerror("dvector", "allocate a double vector", "");
+        /*NOTREACHED*/
     }
     return v-nl;
 }
 
 
-double  **dmatrix(int nrl, int nrh, int ncl, int nch) 
-{ 
-        int i; 
-        double  **m; 
-	 
-	nv += (nrh-nrl+1)*(nch-ncl+1); 
-        m=(double  **)calloc((unsigned) (nrh-nrl+1), 
-				   sizeof(double  *)); 
-        if (!m)  
-	  nrerror("dmatrix", "allocate a double matrix (1st dim)", ""); 
-        m -= nrl; 
- 
-        for(i=nrl;i<=nrh;i++) { 
-                m[i]=(double  *)calloc((unsigned) (nch-ncl+1), 
-					     sizeof(double)); 
-                if (!m[i])  
-	  	  nrerror("dmatrix", "allocate a double matrix (2nd dim)", ""); 
-                m[i] -= ncl; 
-        } 
-        return m; 
-} 
+/* Allocate int matrix with subscript range m[nrl..nrh][ncl..nch] */
+int **imatrix(int nrl,
+              int nrh,
+              int ncl,
+              int nch)
+{
+    int **m;
+    size_t nrow = nrh-nrl+1;
+    size_t ncol = nch-ncl+1;
+    register int i;
+
+    assert(nrow > 0);
+    assert(ncol > 0);
+
+    nv += nrow * ncol;
+
+    /* Allocate pointers to rows */
+    m = (int **) calloc(nrow, sizeof(int *));
+    if (m == NULL) {
+        nrerror("imatrix", "allocate an int matrix (1st dim)", "");
+        /*NOTREACHED*/
+    }
+    m -= nrl;
+
+    /* For each row pointer... */
+    for (i = nrl; i <= nrh; i++) {
+        /* Allocate columns for individual row */
+        m[i] = (int *) calloc(ncol, sizeof(int));
+        if (m[i] == NULL) {
+            nrerror("imatrix", "allocate an int matrix (2nd dim)", "");
+            /*NOTREACHED*/
+        }
+        m[i] -= ncl;
+    }
+    return m;
+}
+
+
+/* Allocate double matrix with subscript range m[nrl..nrh][ncl..nch] */
+double **dmatrix(int nrl,
+                 int nrh,
+                 int ncl,
+                 int nch)
+{
+    double **m;
+    size_t nrow = nrh-nrl+1;
+    size_t ncol = nch-ncl+1;
+    register int i;
+
+    assert(nrow > 0);
+    assert(ncol > 0);
+
+    nv += nrow * ncol;
+
+    /* Allocate pointers to rows */
+    m = (double **) calloc(nrow, sizeof(double *));
+    if (m == NULL) {
+        nrerror("dmatrix", "allocate a double matrix (1st dim)", "");
+        /*NOTREACHED*/
+    }
+    m -= nrl;
+
+    /* For each row pointer... */
+    for (i = nrl; i <= nrh; i++) {
+        /* Allocate columns for individual row */
+        m[i] = (double *) calloc(ncol, sizeof(double));
+        if (m[i] == NULL) {
+            nrerror("dmatrix", "allocate a double matrix (2nd dim)", "");
+            /*NOTREACHED*/
+        }
+        m[i] -= ncl;
+    }
+    return m;
+}
 
 
 /*
@@ -1586,26 +1642,6 @@ double ***darray3(int n1, int n2, int n3)
     
   return a;
 }
-
-
-int  **imatrix(int nrl, int nrh, int ncl, int nch) 
-{ 
-        int i, **m; 
- 
-	nv += (nrh-nrl+1)*(nch-ncl+1); 
-        m=(int  **)calloc((unsigned) (nrh-nrl+1), sizeof(int  *)); 
-        if (!m)  
-	  nrerror("imatrix", "allocate a int matrix (1st dim).", ""); 
-        m -= nrl; 
- 
-        for(i=nrl;i<=nrh;i++) { 
-                m[i]=(int  *)calloc((unsigned) (nch-ncl+1), sizeof(int)); 
-                if (!m[i])  
-	  	  nrerror("imatrix", "allocate a int matrix (2nd dim).", ""); 
-                m[i] -= ncl; 
-        } 
-        return m; 
-} 
 
 
 /*

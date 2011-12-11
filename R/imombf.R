@@ -5,8 +5,7 @@
 imombf <- function(lm1,
                    coef,
                    g,
-                   prior.
-                   mode,
+                   prior.mode,
                    nu=1,
                    theta0,
                    method='adapt',

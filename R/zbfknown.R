@@ -10,7 +10,7 @@ zbfknown <- function(theta1hat,
                      sigma,
                      logbf=FALSE) {
   if (missing(sigma)) {
-    stop("'sigma' must be specified')
+    stop("'sigma' must be specified")
   }
   if (missing(theta0)) {
     theta0 <- rep(0, length(theta1hat))

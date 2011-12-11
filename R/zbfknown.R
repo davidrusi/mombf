@@ -1,3 +1,7 @@
+###
+### zbfknown.R
+###
+
 zbfknown <- function(theta1hat,V1,n,g=1,theta0,sigma,logbf=FALSE) {
 
 if (missing(sigma)) stop('sigma must be specified')
@@ -10,3 +14,4 @@ bf <- .5*t1 - .5*p1*log(1+n*g)
 if (!logbf) bf <- exp(bf)
 return(bf)
 }
+

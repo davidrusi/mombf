@@ -1,3 +1,7 @@
+###
+### pmomLM.R
+###
+
 pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE) {
   #Check input
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
@@ -329,3 +333,4 @@ pmomMargKuniv <- function(y,x,phi,tau=1,r=1,logscale=TRUE) {
   if (!logscale) ans <- exp(ans)
   return(ans)
 }
+

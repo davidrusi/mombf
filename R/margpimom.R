@@ -1,3 +1,7 @@
+###
+### margpimom.R
+###
+
 #fimomNeg works both for th of class vector and class matrix
 #fpimomNeg, fppimomNeg work only for vector th
 fimomNeg <- function(th, XtX, ytX, phi, tau) {

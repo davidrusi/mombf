@@ -1,3 +1,7 @@
+###
+### zbfunknown.R
+###
+
 zbfunknown <- function(theta1hat,V1,n,nuisance.theta,g=1,theta0,ssr,logbf=FALSE) {
 
 if (missing(theta0)) theta0 <- rep(0,length(theta1hat))
@@ -9,3 +13,4 @@ bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)
 if (!logbf) bf <- exp(bf)
 return(bf)
 }
+

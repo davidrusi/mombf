@@ -1,3 +1,6 @@
+###
+### modelSelection.R
+###
 
 #### General model selection routines
 modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method, B=10^5, verbose=TRUE) {

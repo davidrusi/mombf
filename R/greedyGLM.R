@@ -1,3 +1,7 @@
+###
+### greedyGLM.R
+###
+
 # Greedy algorithm to find approximate posterior mode
 # Searches for model M that maximizes log-likelihood(theta_M) + log-prior(theta_M|M) + log-prior(M),
 # where theta_M: MLE of theta under model M.
@@ -52,7 +56,7 @@ greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
       cfprior <- function(th) demom(th,tau=priorCoef@priorPars['tau'],logscale=TRUE)
     }
   } else {
-    stop('Prior on coefficients not recognized')
+    stop('prior on coefficients not recognized')
   }
   #Greedy iterations
   sel <- rep(FALSE,ncol(x))
@@ -68,3 +72,4 @@ greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
   }
   return(sel)
 }
+

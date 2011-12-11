@@ -1,3 +1,7 @@
+###
+### qmom.R
+###
+
 qmom <- function(p,V1=1,tau=1) {
 
   e <- function(q) { return((pmom(q,V1,tau)-pneg)^2) }
@@ -9,3 +13,4 @@ qmom <- function(p,V1=1,tau=1) {
   }
   return(ans)
 }
+

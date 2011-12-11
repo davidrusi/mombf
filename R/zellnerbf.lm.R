@@ -1,3 +1,7 @@
+###
+### zellnerbf.lm.R
+###
+
 zellnerbf.lm <- function(lm1,coef,g,theta0,logbf=FALSE) {
   
 if (missing(g)) stop('g must be specified')
@@ -11,3 +15,4 @@ if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=leng
   bf.zellner <- zbfunknown(thetahat[coef],V[coef,coef],n=n,nuisance.theta=p-p1,g=g,theta0=theta0,ssr=ssr,logbf=logbf)
   return(bf.zellner)
 }
+

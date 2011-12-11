@@ -1,3 +1,7 @@
+###
+### dmom.R
+###
+
 #Wrapper to call dpmom (product mom) and dqmom (quadratic mom)
 dmom <- function(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, logscale=FALSE, penalty='product') {
   if (penalty=='product') {
@@ -75,3 +79,4 @@ if (is.vector(V1)) {
 }
 return(ans)
 }
+

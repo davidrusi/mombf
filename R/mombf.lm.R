@@ -1,3 +1,7 @@
+###
+### mombf.lm.R
+###
+
 mombf.lm <- function(lm1,coef,g,prior.mode,baseDensity='normal',nu=3,theta0,logbf=FALSE,B=10^5) {
  
 if ((!missing(g)) & (!missing(prior.mode))) warning('Both g and prior.mode were specified. g will be ignored')
@@ -19,3 +23,4 @@ if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=leng
   }
   return(bf.mom)
 }
+

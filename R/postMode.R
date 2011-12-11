@@ -1,3 +1,7 @@
+###
+### postMode.R
+###
+
 postMode <- function(y,x,priorCoef) {
   f2min <- function(th) {
     phi <- exp(th[length(th)])
@@ -5,7 +9,8 @@ postMode <- function(y,x,priorCoef) {
     logpr <- priorFun(th)
     return(-logl-logpr)
   }
-  #Set up priorFun
+
+  ## Set up priorFun
   tau <- as.double(priorCoef@priorPars['tau'])
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r'])
@@ -17,10 +22,12 @@ postMode <- function(y,x,priorCoef) {
   } else {
     stop('Prior specified in priorDistr not recognized')
   }
-  #Optimize
+
+  ## Optimize
   n <- nrow(x); p <- ncol(x)
   lm1 <- lm(y~-1+x)
   thini <- c(coef(lm1),log(sum(residuals(lm1)^2/(n-p))))
   opt <- nlminb(thini, objective=f2min)$par
   return(list(coef=opt[-length(opt)],sigma2=exp(opt[length(opt)])))
 }
+

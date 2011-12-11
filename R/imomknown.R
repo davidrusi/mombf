@@ -1,3 +1,7 @@
+###
+### imomknown.R.R
+###
+
 imomknown <- function(theta1hat,V1,n,nuisance.theta,g=1,nu=1,theta0,sigma,method='adapt',B=10^5) {
 if (missing(sigma)) stop('sigma must be specified')
 if (missing(theta0)) theta0 <- rep(0,length(theta1hat))
@@ -18,3 +22,4 @@ if (method=='MC') {
 bf <- exp((p1/2)*log(2/(n*g)) + lgamma(p1/2)-lgamma(nu/2) + .5*l) * m
 return(bf)
 }
+

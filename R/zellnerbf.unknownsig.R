@@ -1,3 +1,7 @@
+###
+### zellnerbf.unknownsig.R
+###
+
 zellnerbf.unknownsig <- function(theta1hat,V1,n,nuisance.theta,g=1,theta0,ssr,logbf=FALSE) {
 #Bayes factor based on Zellner's g-prior for linear models (unknown sigma^2 case). 
 # - theta1hat: vector with estimated value of the coefficients that are to be tested
@@ -16,3 +20,4 @@ bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)
 if (!logbf) bf <- exp(bf)
 return(bf)
 }
+

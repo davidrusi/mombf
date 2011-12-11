@@ -1,3 +1,7 @@
+###
+### dimom.R
+###
+
 #Wrapper to call dpimom (product iMOM) and dqimom (quadratic imom)
 dimom <- function(x, tau=1, phi=1, V1, logscale=FALSE, penalty='product') {
   if (penalty=='product') {

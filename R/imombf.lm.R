@@ -1,3 +1,7 @@
+###
+### imombf.lm.R
+###
+
 imombf.lm <- function(lm1,coef,g,prior.mode,nu=1,theta0,method='adapt',nquant=100,B=10^5) {
 if ((!missing(g)) & (!missing(prior.mode))) warning('Both g and prior.mode were specified. g will be ignored')
 if ((missing(g)) & (missing(prior.mode))) stop('Either g or prior.mode must be specified')
@@ -12,3 +16,4 @@ if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=leng
   bf.imom <- imomunknown(thetahat[coef],V[coef,coef],n,nuisance.theta=p-p1,g=g,nu=nu,theta0=theta0,ssr=ssr,method=method,nquant=nquant,B=B)
   return(bf.imom)
 }
+

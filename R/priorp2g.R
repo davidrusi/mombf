@@ -1,3 +1,7 @@
+###
+### priorp2g.R
+###
+
 priorp2g <- function(priorp,q,nu=1,prior="iMom") {
   if (!(prior %in% c('normalMom','tMom','iMom'))) stop("Currently only prior=='normalMom', 'tMom' or 'iMom' are implemented")
   if (prior == "normalMom") {

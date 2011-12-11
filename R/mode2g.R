@@ -1,3 +1,7 @@
+###
+### mode2g.R
+###
+
 mode2g <- function(prior.mode,prior='iMom',nu=1,dim=1) {
   if (!(prior %in% c('normalMom','tMom','iMom'))) stop("Currently only prior=='normalMom', 'tMom' or 'iMom' are implemented")
   if (prior=='normalMom') {

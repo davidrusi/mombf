@@ -1,3 +1,7 @@
+###
+### mombf.R
+###
+
 mombf <- function(lm1,coef,g,prior.mode,baseDensity='normal',nu=3,theta0,logbf=FALSE,B=10^5) {
   if (!(baseDensity %in% c('normal','t'))) stop('baseDensity must either be normal or t')
   if (baseDensity=='t') {
@@ -7,3 +11,4 @@ mombf <- function(lm1,coef,g,prior.mode,baseDensity='normal',nu=3,theta0,logbf=F
   }
   UseMethod("mombf")
 }
+

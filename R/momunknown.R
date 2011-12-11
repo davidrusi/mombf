@@ -1,3 +1,7 @@
+###
+### momunknown.R
+###
+
 momunknown <- function(theta1hat,V1,n,nuisance.theta,g=1,theta0,ssr,logbf=FALSE) {
 if (missing(theta0)) theta0 <- rep(0,length(theta1hat))
 p1 <- length(theta1hat); p <- p1 + nuisance.theta
@@ -8,3 +12,4 @@ bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + log(muk) - log(1+n*g) + (
 if (!logbf) bf <- exp(bf)
 return(bf)
 }
+

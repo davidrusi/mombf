@@ -1,3 +1,7 @@
+###
+### zellnerbf.knownsig.R
+###
+
 zellnerbf.knownsig <- function(theta1hat,V1,n,g=1,theta0,sigma,logbf=FALSE) {
 #Bayes factor based on Zellner's g-prior for linear models (known sigma^2 case).
 # - theta1hat: vector with estimated value of the coefficients that are to be tested
@@ -17,3 +21,4 @@ bf <- .5*t1
 if (!logbf) bf <- exp(bf)
 return(bf)
 }
+

@@ -1,3 +1,7 @@
+###
+### g2mode.R
+###
+
 g2mode <- function(g,prior='iMom',nu=1,dim=1) {
   if (!(prior %in% c('normalMom','tMom','iMom'))) stop("Currently only prior=='normalMom', 'tMom' or 'iMom' are implemented")
   if (prior=='normalMom') {
@@ -8,3 +12,4 @@ g2mode <- function(g,prior='iMom',nu=1,dim=1) {
     return(2*g/(nu+dim))
   }
 }
+

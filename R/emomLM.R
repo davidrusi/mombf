@@ -1,3 +1,7 @@
+###
+### emomLM.R
+###
+
 emomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE) {
 
 require(mvtnorm)

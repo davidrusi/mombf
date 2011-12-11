@@ -1,3 +1,7 @@
+###
+### pplProbit.R
+###
+
 ## Find probit model minimizing Posterior Predictive Loss
 pplPM <- function(tauseq=exp(seq(log(.01),log(2),length=20)), kPen=1, y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', mc.cores=1) {
 if (missing(priorDelta)) { priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
@@ -79,6 +83,4 @@ pplProbit <- function(fit, x, xadj, y, kPen=1){
   return(list(d=D, g=G, p=P, msize=msize));
 }           
 # END ppl() ----------------------------------------------------------------------------------- # 
-
-
 

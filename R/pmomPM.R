@@ -1,3 +1,7 @@
+###
+### pmomPM.R
+###
+
 pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, initSearch='greedy', verbose=TRUE) {
   priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
   #Check input
@@ -194,5 +198,4 @@ ans <- cbind(postDelta,postTheta1,postTheta2,postTau)
 colnames(ans) <- c(paste('delta',1:ncol(postDelta),sep=''),paste('theta',1:ncol(postTheta1),sep=''),paste('thetaAdj',1:ncol(postTheta2),sep=''),'tau')
 return(ans)
 }
-
 

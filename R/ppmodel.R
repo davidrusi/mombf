@@ -1,3 +1,7 @@
+###
+### ppmodel.R
+###
+
 ppmodel <- function(nlpfit) {
   postmodel <- apply(nlpfit$postModel==1,1,function(z) paste(which(z),collapse=','))
   ans <- table(postmodel)
@@ -7,3 +11,4 @@ ppmodel <- function(nlpfit) {
   rownames(ans) <- NULL
   return(ans)
 }
+

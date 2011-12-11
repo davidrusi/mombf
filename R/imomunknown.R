@@ -1,3 +1,7 @@
+###
+### imomunknown.R
+###
+
 imomunknown <- function(theta1hat,V1,n,nuisance.theta,g=1,nu=1,theta0,ssr,method='adapt',nquant=100,B=10^5) {
 
 fncp <- function(sigma2) {
@@ -29,3 +33,4 @@ t1 <- theta1hat-theta0; t1 <- matrix(t1,nrow=1) %*% solve(V1) %*% matrix(t1,ncol
 bf <- exp((p1/2)*log(2/(n*g)) + lgamma(p1/2) - lgamma(nu/2) + ((n-nuisance.theta)/2)*log(1+t1)) * m
 return(bf)
 }
+

@@ -5,7 +5,7 @@ Title: Moment and Inverse Moment Bayes factors
 Author: David Rossell, John D. Cook, Donatello Telesca
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.11.0), methods, mvtnorm, ncvreg, actuar, mgcv
-Enhances: multicore
+Suggests: multicore
 Description: This package performs model selection based on non-local priors, including MOM, eMOM and iMOM priors. Routines are provided to compute Bayes factors, marginal densities and to perform variable selection in regression setups. Routines to evaluate prior densities, distribution functions, quantiles and modes are included.
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/

@@ -4,6 +4,7 @@
 #include <Rinternals.h>
 #include "cstat.h"
 #include "modelSel.h"
+#include "do_mombf.h"
 
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;
@@ -991,7 +992,7 @@ void modelSelectionC(int *postSample, double *postOther, double *margpp, int *po
     if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
   if (iupper>ilow) { for (j=0; j< *(*pars).p; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
-  if (*verbose==1) printf(" Done.\n");
+  if (*verbose==1) Rprintf(" Done.\n");
 
   free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
 }

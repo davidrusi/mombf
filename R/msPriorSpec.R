@@ -3,40 +3,168 @@
 ###
 
 
-setValidity("msPriorSpec", function(object){
-  msg <- NULL
-  if (!any(object@priorType %in% c('coefficients','modelIndicator','nuisancePars'))) {
-    msg <- "priorType must be 'coefficients', 'modelIndicator' or 'nuisancePars'"
-  } else {
-    if (object@priorType=='coefficients') {
-      
-      if (!any(object@priorDistr %in% c('pMOM','piMOM','peMOM'))) {
-        msg <- "priorDistr must be 'pMOM','piMOM' or 'peMOM'"
-      } else {
-        if (object@priorDistr=='pMOM') { if (!('r' %in% names(object@priorPars))) msg <- "priorPars must contain an element named 'r'" } 
-        if (!('tau' %in% names(object@priorPars)) & !all(c('a.tau','b.tau') %in% names(object@priorPars))) msg <- "priorPars must either specify 'tau' or 'a.tau' and 'b.tau'"        }
-      
-    } else if (object@priorType=='modelIndicator') {
+##-----------------------------------------------------------------------------
+## Invoked by validObject() method.
+valid_msPriorSpec <- function(object) {
 
-      if (!any(object@priorDistr %in% c('uniform','binomial'))) {
-        msg <- "priorDistr must be 'uniform' or 'binomial'"
-      } else {
-        if (object@priorDistr=='binomial') {
-          n <- c('p','alpha.p','beta.p') %in% names(object@priorPars)
-          if ((!n[1]) & (!all(n[-1]))) msg <- "For priorDistr=='binomial' either 'p' or 'alpha.p' and 'beta.p' must be specified in priorPars"
-        }
-      }
-      
-    } else {
-      if (object@priorDistr!='invgamma') {
-        msg <- "priorDistr must be invgamma"
-      } else {
-        if (!all(c('alpha','lambda') %in% names(object@priorPars))) msg <- "priorPars must contain elements named 'alpha', 'lambda'"
-      }
+    msg <- NULL
+
+    ## Ensure first two slots are scalar
+    if (length(object@priorType) != 1) {
+        msg <- c(msg,
+                 sprintf("slot %s must be of length 1",
+                         sQuote("priorType")))
+        object@priorType <- object@priorType[1]         # process first only
     }
-  }
+    if (length(object@priorDistr) != 1) {
+        msg <- c(msg,
+                 sprintf("slot %s must be of length 1",
+                         sQuote("priorDistr")))
+        object@priorDistr <- object@priorDistr[1]       # process first only
+    }
 
-  ifelse(is.null(msg),TRUE,msg)
+    ## Ensure valid type
+    valid_prior_types <- c("coefficients",
+                           "modelIndicator",
+                           "nuisancePars")
+    found <- object@priorType %in% valid_prior_types
+    if (!found) {
+        msg <- c(msg,
+                 sprintf("slot %s must be one of: %s",
+                         sQuote("priorType"),
+                         paste(dQuote(valid_prior_types), collapse=", ")))
+    }
+
+    ##-------------------------------------------------------------------------
+    has_either_or <- function(this, that, among) {
+        this_in <- this %in% among
+        that_in <- that %in% among
+
+        (all(this_in) & !any(that_in)) || (!any(this_in) & all(that_in))
+    }
+
+
+    ## Validate rest based on type
+    switch(object@priorType,
+           coefficients = {
+               valid_coef_prior_distrs <- c("pMOM",
+                                            "piMOM",
+                                            "peMOM")
+               found <- object@priorDistr %in% valid_coef_prior_distrs
+               if (!found) {
+                   msg <- c(msg,
+                            sprintf("slot %s must be one of: %s",
+                                    sQuote("priorDistr"),
+                                    paste(dQuote(valid_coef_prior_distrs),
+                                          collapse=", ")))
+               }
+               if (object@priorDistr == "pMOM") {
+                   reqd_pmom_prior_par <- "r"
+                   found <- reqd_pmom_prior_par %in% names(object@priorPars)
+                   if (!found) {
+                       msg <- c(msg,
+                                sprintf("slot %s must be vector with named element %s (when using %s distr)",
+                                        sQuote("priorPars"),
+                                        dQuote(reqd_pmom_prior_par),
+                                        sQuote("pMOM")))
+                   }
+               }
+               reqd_prior_pars <- c("tau",
+                                    "a.tau",
+                                    "b.tau")
+               found <- has_either_or(reqd_prior_pars[1],
+                                      reqd_prior_pars[-1],
+                                      names(object@priorPars))
+               if (!found) {
+                   msg <- c(msg,
+                            sprintf("slot %s must be vector with named element(s) %s, or %s",
+                                    sQuote("priorPars"),
+                                    dQuote(reqd_prior_pars[1]),
+                                    paste(dQuote(reqd_prior_pars[-1]),
+                                          collapse=" and ")))
+               }
+           },
+           modelIndicator = {
+               valid_ind_prior_distrs <- c("uniform",
+                                           "binomial")
+               found <- object@priorDistr %in% valid_ind_prior_distrs
+               if (!found) {
+                   msg <- c(msg,
+                            sprintf("slot %s must be one of: %s",
+                                    sQuote("priorDistr"),
+                                    paste(dQuote(valid_ind_prior_distrs), collapse=", ")))
+               }
+               if (object@priorDistr == "binomial") {
+                   reqd_prior_pars <- c("p",
+                                        "alpha.p",
+                                        "beta.p")
+                   found <- has_either_or(reqd_prior_pars[1],
+                                          reqd_prior_pars[-1], 
+                                          names(object@priorPars))
+                   if (!found) {
+                       msg <- c(msg,
+                                sprintf("slot %s must be vector with named element(s) %s, or %s (when using %s distr)",
+                                        sQuote("priorPars"),
+                                        dQuote(reqd_prior_pars[1]),
+                                        paste(dQuote(reqd_prior_pars[-1]),
+                                              collapse=" and "),
+                                        sQuote("binomial")))
+                   }
+               }
+           },
+           nuisancePars = {
+               valid_nuisance_prior_distrs <- "invgamma"
+               found <- object@priorDistr %in% valid_nuisance_prior_distrs
+               if (!found) {
+                 msg <- c(msg,
+                          sprintf("slot %s must be %s",
+                                  sQuote("priorDistr"), 
+                                  dQuote(valid_nuisance_prior_distrs)))
+               }
+               reqd_prior_pars <- c("alpha",
+                                    "lambda")
+               found <- reqd_prior_pars %in% names(object@priorPars)
+               if (!all(found)) {
+                   msg <- c(msg,
+                            sprintf("slot %s must contain named elements %s",
+                                    sQuote("priorPars"),
+                                    paste(dQuote(reqd_prior_pars), 
+                                          collapse=", ")))
+               }
+           })
+
+    if (is.null(msg)) {
+        TRUE
+    } else {
+        msg
+    }
 }
-)
+
+setValidity("msPriorSpec", valid_msPriorSpec)
+
+
+##-----------------------------------------------------------------------------
+is.msPriorSpec <- function(x) {
+    extends(class(x), "msPriorSpec")
+}
+
+
+##-----------------------------------------------------------------------------
+## Generator for this object.
+msPriorSpec <- function(priorType=c("coefficients",
+                                    "modelIndicator",
+                                    "nuisancePars"),
+                        priorDistr,
+                        priorPars) {
+    ## Check arguments
+    stopifnot(is.character(priorType)  && length(priorType) == 1)
+    stopifnot(is.character(priorDistr) && length(priorDistr) == 1)
+    stopifnot(is.vector(priorPars))
+
+    ## Create new class
+    new("msPriorSpec",
+        priorType=match.arg(priorType),
+        priorDistr=priorDistr,
+        priorPars=priorPars)
+}
 

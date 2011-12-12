@@ -10,5 +10,5 @@ Description: This package performs model selection based on non-local priors, in
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R imombf.R mode2g.R pimom.R zellnerbf.knownsig.R imomknown.R modelSelection.R pmom.R zellnerbf.lm.R dimom.R imomunknown.R priorp2g.R zellnerbf.R margpimom.R mombf.lm.R qimom.R emom.R zellnerbf.unknownsig.R dmom.R mombf.R qmom.R g2mode.R margpmom.R momknown.R zbfknown.R imombf.lm.R momunknown.R zbfunknown.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R
+Collate: AllClasses.R AllGenerics.R msPriorSpec.R imombf.R mode2g.R pimom.R zellnerbf.knownsig.R imomknown.R modelSelection.R pmom.R zellnerbf.lm.R dimom.R imomunknown.R priorp2g.R zellnerbf.R margpimom.R mombf.lm.R qimom.R emom.R zellnerbf.unknownsig.R dmom.R mombf.R qmom.R g2mode.R margpmom.R momknown.R zbfknown.R imombf.lm.R momunknown.R zbfunknown.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R
 

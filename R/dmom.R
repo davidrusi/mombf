@@ -15,7 +15,7 @@ dmom <- function(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=
 }
 
 ##Product MOM density
-setGeneric("dpmom", function(x, tau, a.tau, b.tau, phi=1, r=1, baseDensity='normal', logscale=FALSE) standardGeneric("dpmom"))
+
 setMethod("dpmom", signature(x='vector'), function(x, tau, a.tau, b.tau, phi=1, r=1, baseDensity='normal', logscale=FALSE) {
   if (baseDensity!='normal') stop("Only baseDensity=='normal' is implemented for the product MOM")
   if (missing(tau) & (missing(a.tau) | missing(b.tau))) stop("Either tau or (a.tau,b.tau) must be specified")

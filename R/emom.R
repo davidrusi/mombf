@@ -2,7 +2,6 @@
 ### emom.R
 ###
 
-setGeneric("demom",function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) standardGeneric("demom"))
 
 setMethod("demom",signature(x='vector'),function(x, tau, a.tau, b.tau, phi=1, logscale=FALSE) {
   V1 <- 1

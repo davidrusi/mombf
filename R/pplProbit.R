@@ -69,19 +69,29 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
     stop('prior on coefficients not recognized. Currently only pMOM and peMOM are implemented')
   }
 
-  #
-  if (mc.cores>1) {
-    if ('multicore' %in% loadedNamespaces()) {
-      nlpseq <- multicore::mclapply(as.list(tauseq), nlpfit, mc.cores=mc.cores, mc.preschedule=FALSE)
-    } else stop('multicore library has not been loaded!')
-  } else {
-    nlpseq <- lapply(as.list(tauseq), nlpfit)
+  pp.pkgname <- if (getRversion() >= "2.14.0") 'parallel' else 'multicore'
+  if (mc.cores > 1) {
+    ## Load parallel processing package, if possible
+    if (!require(pp.pkgname)) {
+      warning(sprintf("cannot load '%s' package - continuing without it...",
+                      pp.pkgname),
+              immediate.=TRUE)
+    }
   }
+  nlpseq <- if (pp.pkgname %in% loadedNamespaces()) {
+              mclapply(as.list(tauseq),
+                       nlpfit,
+                       mc.cores=mc.cores,
+                       mc.preschedule=FALSE)
+            } else {
+              lapply(as.list(tauseq), nlpfit)
+            }
+
   PPL <- data.frame(tauseq, do.call(rbind, lapply(nlpseq, '[[', 'ppl')))
   colnames(PPL) <- c('tau', 'PPL', 'G', 'P', 'msize')
   require(mgcv)
   gam1 <- gam(PPL ~ s(tau, k=min(10, length(tauseq))),
-              family = Gamma(link = "log"),
+              family=Gamma(link="log"),
               data=PPL,
               sp= -1)
   PPL$sPPL <- exp(predict(gam1))
@@ -109,7 +119,7 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
 pplProbit <- function(fit, x, xadj, y, kPen=1) {
   m <- nrow(fit$postModel)
   n <- nrow(x)
-# generate predictive distribution -------------------------------------
+  ## Generate predictive distribution -------------------------------------
   yp <- matrix(0, nrow=m, ncol=n)
   for (i in 1:m) {
     th1 <- fit$postCoef1[i, ]
@@ -118,21 +128,21 @@ pplProbit <- function(fit, x, xadj, y, kPen=1) {
     p <- pnorm(lpred)
     yp[i, ] <- rbinom(n, 1, p)
   }
-# Compute ppl ----------------------------------------------------------
+  ## Compute ppl ----------------------------------------------------------
   h <- function(z) (z + 0.5)*log(z + 0.5) + (1.5-z)*log(1.5 - z)
   msize <- mean(apply(fit$postModel, 1, sum)) + ncol(xadj)
   if (kPen=='msize') kPen <- msize
-# P_k(m) - (Penalty) ---------------------------------------------------
+  ## P_k(m) - (Penalty) ---------------------------------------------------
   mu    <- apply(yp, 2, mean, na.rm=TRUE)
   hi    <- h(yp)
   hm    <- apply(hi, 2, mean, na.rm=TRUE)
   P     <- sum(hm - h(mu))
-# G_k(m) - (Fit) -------------------------------------------------------
+  ## G_k(m) - (Fit) -------------------------------------------------------
   Gm    <- (h(mu) + kPen*h(y))/(kPen+1) - h((mu + kPen*y)/(kPen+1))
   G     <- (kPen+1)*sum(Gm, na.rm=TRUE) 
-# D_k(m) ---------------------------------------------------------------
+  ## D_k(m) ---------------------------------------------------------------
   D = P + G
-# Return Output -------------------------------------------------------- 
+  ## Return Output -------------------------------------------------------- 
   list(d=D,
        g=G,
        p=P,

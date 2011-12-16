@@ -72,7 +72,7 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
   pp.pkgname <- if (getRversion() >= "2.14.0") 'parallel' else 'multicore'
   if (mc.cores > 1) {
     ## Load parallel processing package, if possible
-    if (!require(pp.pkgname)) {
+    if (!require(pp.pkgname, character.only=TRUE)) {
       warning(sprintf("cannot load '%s' package - continuing without it...",
                       pp.pkgname),
               immediate.=TRUE)

@@ -1,0 +1,10 @@
+###
+### MAKEVARS
+###
+
+PKG_CPPFLAGS = -I./
+PKG_CFLAGS = -DNDEBUG
+## :DEBUG: Do Not Distribute with GCC-specific flags enabled...
+#PKG_CFLAGS = -g -Wall -Wextra -DDEBUG -pedantic
+PKG_LIBS =
+

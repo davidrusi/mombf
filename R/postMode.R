@@ -2,6 +2,7 @@
 ### postMode.R
 ###
 
+##-----------------------------------------------------------------------------
 postMode <- function(y, x, priorCoef) {
   f2min <- function(th) {
     phi <- exp(th[length(th)])
@@ -16,7 +17,7 @@ postMode <- function(y, x, priorCoef) {
   ## Set up priorFun
   tau <- as.double(priorCoef@priorPars['tau'])
   priorFun <- switch(EXPR=priorCoef@priorDistr,
-                     pMOM = {
+                     'pMOM' = {
                        r <- as.integer(priorCoef@priorPars['r'])
                        function(th) {
                          dmom(matrix(th[-length(th)], nrow=1),
@@ -27,7 +28,7 @@ postMode <- function(y, x, priorCoef) {
                               penalty="product")
                        }
                      },
-                     piMOM = {
+                     'piMOM' = {
                        function(th) {
                          dimom(matrix(th[-length(th)], nrow=1),
                                tau=tau,
@@ -36,7 +37,7 @@ postMode <- function(y, x, priorCoef) {
                                penalty="product") 
                        }
                      },
-                     peMOM = {
+                     'peMOM' = {
                        function(th) {
                          demom(matrix(th[-length(th)], nrow=1),
                                tau=tau,

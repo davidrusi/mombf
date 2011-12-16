@@ -29,7 +29,7 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
                     priorDistr='invgamma',
                     priorPars=c(alpha=.01, lambda=.01))
   }
-  if (priorCoef@priorDistr=='pMOM') {
+  if (priorCoef@priorDistr == 'pMOM') {
     nlpfit <- function(tau) {
       pr <- priorCoef
       pr@priorPars['tau'] <- tau
@@ -47,7 +47,7 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
       list(fit1=fit1,
            ppl=c(p1$d, p1$p, p1$g, p1$msize))
     }
-  } else if (priorCoef@priorDistr=='peMOM') {
+  } else if (priorCoef@priorDistr == 'peMOM') {
     nlpfit <- function(tau) {
       pr <- priorCoef
       pr@priorPars['tau'] <- tau
@@ -104,14 +104,14 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
 
 
 ##-----------------------------------------------------------------------------
-## Evaluate Posterior Predictive Loss under a probit model 
+## Evaluate Posterior Predictive Loss under a probit model.
 ## Input:
 ## - fit: probit model fit, e.g. as returned by pmomPM
 ## - x: covariates used to fit the model
 ## - xadj: adjustment covariates
 ## - y: response variables (e.g. 0/1 vector or TRUE/FALSE)
 ## - kPen: Loss is Dev(yp,a) + kPen*Dev(yobs,a), where yp: draw from post predictive, yobs: observed data and a is E(yp|yobs).
-##         i.e. kPen is a penalty term specifying the relative importance of deviations from the observed data. 
+##         i.e. kPen is a penalty term specifying the relative importance of deviations from the observed data.
 ## Ouput
 ## - D: P + G
 ## - P: P_k(m) - (Penalty), i.e. sum(hm - h(mu))
@@ -129,9 +129,13 @@ pplProbit <- function(fit, x, xadj, y, kPen=1) {
     yp[i, ] <- rbinom(n, 1, p)
   }
   ## Compute ppl ----------------------------------------------------------
-  h <- function(z) (z + 0.5)*log(z + 0.5) + (1.5-z)*log(1.5 - z)
+  h <- function(z) {
+    (z + 0.5)*log(z + 0.5) + (1.5-z)*log(1.5 - z)
+  }
   msize <- mean(apply(fit$postModel, 1, sum)) + ncol(xadj)
-  if (kPen=='msize') kPen <- msize
+  if (kPen == 'msize') {
+    kPen <- msize
+  }
   ## P_k(m) - (Penalty) ---------------------------------------------------
   mu    <- apply(yp, 2, mean, na.rm=TRUE)
   hi    <- h(yp)
@@ -139,13 +143,13 @@ pplProbit <- function(fit, x, xadj, y, kPen=1) {
   P     <- sum(hm - h(mu))
   ## G_k(m) - (Fit) -------------------------------------------------------
   Gm    <- (h(mu) + kPen*h(y))/(kPen+1) - h((mu + kPen*y)/(kPen+1))
-  G     <- (kPen+1)*sum(Gm, na.rm=TRUE) 
+  G     <- (kPen+1)*sum(Gm, na.rm=TRUE)
   ## D_k(m) ---------------------------------------------------------------
-  D = P + G
-  ## Return Output -------------------------------------------------------- 
+  D <- P + G
+  ## Return Output --------------------------------------------------------
   list(d=D,
        g=G,
        p=P,
        msize=msize)
-}           
+}
 

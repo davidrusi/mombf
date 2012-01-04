@@ -7,6 +7,7 @@ dmom <- function(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=
   if (penalty=='product') {
     ans <- dpmom(x, tau=tau, a.tau=a.tau, b.tau=b.tau, phi=phi, r=r, baseDensity=baseDensity, logscale=logscale)
   } else if (penalty=='quadratic') {
+    if (r>1) stop("r>1 not implemented for penalty=='quadratic'. Try penalty=='product' instead")
     ans <- dqmom(x, V1=V1, g=tau, n=1, baseDensity=baseDensity, nu=nu)
   } else {
     stop("Only 'penalty==product' and 'penalty==quadratic' are implemented")

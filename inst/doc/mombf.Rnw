@@ -187,6 +187,7 @@ Let's set the prior parameter $tau=1$ and plot the Mom and iMom priors in a univ
 for $\theta_1 \in (-3,3)$.
 Notice that in the univariate case the product and quadratic priors are equivalent.
 
+\footnotesize
 \setkeys{Gin}{width=0.5\textwidth} 
 <<label=fig1plot,include=FALSE>>=
  library(mombf)
@@ -196,6 +197,7 @@ Notice that in the univariate case the product and quadratic priors are equivale
  lines(thseq,dmom(thseq,tau=tau,baseDensity='t',penalty='quadratic',nu=3),lty=2,col=2)
  lines(thseq,dimom(thseq,tau=tau),lty=3,col=3)
 @
+\normalsize
 
 \begin{figure}
 \begin{center}
@@ -211,13 +213,14 @@ The iMOM prior assigns the lowest density for $\theta_1$ in a neighborhood of 0,
 whereas the normal MOM prior assigns the largest density.
 We can also plot the corresponding distribution functions.
 
-
+\footnotesize
 \setkeys{Gin}{width=0.5\textwidth} 
 <<label=fig1bplot,include=FALSE>>=
  library(mombf)
  plot(thseq,pmom(thseq,tau=tau),type='l',ylab='Prior cdf')
  lines(thseq,pimom(thseq,tau=tau),lty=3,col=3)
 @
+\normalsize
 
 \begin{figure}
 \begin{center}
@@ -243,12 +246,14 @@ For examples using product non-local priors see Section \ref{sec:varsellm}.
 The Hald data contains 13 observations, a continuous response variable and
 4 predictors. We start by loading the data and fitting a linear regression model.
 
+\footnotesize
 <<one>>=
 data(hald)
 dim(hald)
 lm1 <- lm(hald[,1] ~ hald[,2] + hald[,3] + hald[,4] + hald[,5])
 summary(lm1)
 @
+\normalsize
 
 The goal is to obtain Bayes factors to assess whether any one predictor
 can be dropped from the model.
@@ -261,6 +266,7 @@ we use the function \texttt{mode2g}.
 For instance, for the regression coefficient associated to \texttt{hald[,2]}
 we would do as follows.
 
+\footnotesize
 <<two>>=
 prior.mode <- .2^2
 V <- summary(lm1)$cov.unscaled
@@ -272,9 +278,11 @@ taumom
 tautmom
 tauimom
 @
+\normalsize
 
 We can check the obtained $\tau$ values by plotting the prior density.
 
+\footnotesize
 \setkeys{Gin}{width=0.5\textwidth} 
 <<label=fig2plot,include=FALSE>>=
 thseq <- seq(-1,1,length=1000)
@@ -283,6 +291,7 @@ lines(thseq,dmom(thseq,V1=nrow(hald)*V[2,2],tau=tautmom,baseDensity='t',nu=3,pen
 lines(thseq,dimom(thseq,V1=nrow(hald)*V[2,2],tau=tauimom),lty=3,col=3)
 abline(v=.2,lty=2,col='gray')
 @
+\normalsize
 
 \begin{figure}
 \begin{center}
@@ -301,7 +310,7 @@ This can be achieved with the function \texttt{priorp2g}.
 For instance, to find the $g$ value that gives 5\% probability to the interval
 (-0.2,0.2) we use the following code.
 
-
+\footnotesize
 <<twobis>>=
 a <- .2; priorp <- .05
 taumom2 <- priorp2g(priorp=priorp,q=a,prior='normalMom')
@@ -309,6 +318,7 @@ tauimom2 <- priorp2g(priorp=priorp,q=-a,prior='iMom')
 taumom2
 tauimom2
 @
+\normalsize
 
 \subsection{Bayes factor computation}
 \label{ssec:bflmcomput}
@@ -342,6 +352,7 @@ Notice that $g$ corresponds to $\tau$ in our notation.
 For reproducibility, we set the random number generator seed
 to the date this code was written.
 
+\footnotesize
 <<three>>=
 set.seed(4*2*2008)
 mombf(lm1,coef=2,g=taumom)
@@ -350,24 +361,29 @@ imombf(lm1,coef=2,g=tauimom,method='adapt')
 imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
 zellnerbf(lm1,coef=2,g=1)
 @
+\normalsize
 
 We assess the Monte Carlo error by re-computing the iMom BF
 with a different set of Monte Carlo samples.
 We find the error to be acceptable.
 
+\footnotesize
 <<four>>=
 imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
 @
+\normalsize
 
 We now assess the sensitivity to the prior mode specification.
 For illustration purposes, we exclude the T MOM and iMom BF as these take longer to compute.
 The estimated standardized regression coefficient is
 
+\footnotesize
 <<five>>=
 sr <- sqrt(sum(lm1$residuals^2)/(nrow(hald)-5))
 thest <- coef(lm1)[2]/sr
 thest
 @
+\normalsize
 
 We define a sequence of prior modes, find the corresponding $g$ values 
 and compute Bayes factors.
@@ -377,7 +393,7 @@ For large $g$ vectors setting the option \texttt{method='MC'} in \texttt{imombf}
 save considerable computing time, as the Monte Carlo samples need only be generated
 once for all $g$ values.
 
-
+\footnotesize
 \setkeys{Gin}{width=0.5\textwidth} 
 <<label=fig3plot,include=FALSE>>=
 prior.mode <- seq(.01,1,length=100)^2
@@ -388,6 +404,7 @@ plot(prior.mode,bf1,type='l',ylab='BF')
 lines(prior.mode,bf2,lty=2,col=2)
 abline(v=thest,lty=2)
 @
+\normalsize
 
 \begin{figure}
 \begin{center}
@@ -424,6 +441,7 @@ in the vector \texttt{y}.
 As in Section \ref{ssec:bflmcomput}, for reproducibility purposes
 we set the random number generator seed to the date this code was written.
 
+\footnotesize
 <<six>>=
 set.seed(4*2*2008)
 n <- 50; theta <- c(log(2),0)
@@ -432,16 +450,19 @@ x[,1] <- rnorm(n,0,1); x[,2] <- rnorm(n,.5*x[,1],1)
 p <- pnorm(x %*% matrix(theta,ncol=1))
 y <- rbinom(n,1,p)
 @
+\normalsize
 
 Before computing Bayes factors, we fit a probit regression model with the function \texttt{glm}.
 The maximum likelihood estimates are stored in \texttt{thetahat} and
 the asymptotic covariance matrix in \texttt{V}.
 
+\footnotesize
 <<seven>>=
 glm1 <- glm(y~x[,1]+x[,2],family=binomial(link = "probit"))
 thetahat <- coef(glm1)
 V <- summary(glm1)$cov.scaled
 @
+\normalsize
 
 To compute Bayes factors we use the functions \texttt{momknown}
 and \texttt{imomknown}.
@@ -459,6 +480,7 @@ We first compare the full model with the model resulting from excluding the seco
 setting $g=0.5$ for illustration
 (note that \texttt{thetahat[1]} contains the intercept).
 
+\footnotesize
 <<eight>>=
 g <- .5
 bfmom.1 <- momknown(thetahat[2],V[2,2],n=n,g=g,sigma=1)
@@ -466,15 +488,20 @@ bfimom.1 <- imomknown(thetahat[2],V[2,2],n=n,nuisance.theta=2,g=g,sigma=1)
 bfmom.1
 bfimom.1
 @
+\normalsize
+
 Both priors result in evidence for including the first covariate.
 We now check whether the second covariate can be dropped.
 
+\footnotesize
 <<nine>>=
 bfmom.2 <- momknown(thetahat[3],V[3,3],n=n,g=g,sigma=1)
 bfimom.2 <- imomknown(thetahat[3],V[3,3],n=n,nuisance.theta=2,g=g,sigma=1)
 bfmom.2
 bfimom.2
 @
+\normalsize
+
 Both Mom and iMom BF provide strong evidence in favor of the simpler model,
 {\it i.e.} excluding \texttt{x[,2]}.
 To compare the full model with the model that has no covariates
@@ -482,12 +509,15 @@ To compare the full model with the model that has no covariates
 routines, passing a vector as the first argument 
 and a matrix as the second argument.
 
+\footnotesize
 <<ten>>=
 bfmom.0 <- momknown(thetahat[2:3],V[2:3,2:3],n=n,g=g,sigma=1)
 bfimom.0 <- imomknown(thetahat[2:3],V[2:3,2:3],n=n,nuisance.theta=2,g=g,sigma=1)
 bfmom.0
 bfimom.0
 @
+\normalsize
+
 Based on the resulting BF being close to 1, it is not clear whether the full
 model is preferable to the model with no covariates.
 
@@ -496,12 +526,15 @@ of the four considered models: no covariates, only \texttt{x[,1]}, only \texttt{
 and both \texttt{x[,1]} and \texttt{x[,2]}.
 We assume equal probabilities {\it a priori}.
 
+\footnotesize
 <<eleven>>=
 prior.prob <- rep(1/4,4)
 bf <- c(bfmom.0,bfmom.1,bfmom.2,1)
 pos.prob <- prior.prob*bf/sum(prior.prob*bf)
 pos.prob
 @
+\normalsize
+
 The model with the highest posterior probability is the one including only \texttt{x[,1]},
 {\it i.e.} the correct model,
 and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
@@ -514,12 +547,14 @@ We illustrate how to perform variable selection with a simple simualted dataset.
 We generate 100 observations for the response variable and 3 covariates.
 The regression coefficient for the third covariate is 0.
 
+\footnotesize
 <<varsel1>>= 
 set.seed(2011*01*18)
 x <- matrix(rnorm(100*3),nrow=100,ncol=3)
 theta <- matrix(c(1,1,0),ncol=1)
 y <- x %*% theta + rnorm(100)
 @
+\normalsize
 
 First we need to specify the prior distribution for the regression coefficients,
 the model space and the residual variance.
@@ -530,11 +565,13 @@ with a beta hyper-prior on the Binomial success probability)
 as then posterior probabilities automatically adjust for multiple comparisons \citep{scott:2010}.
 Finally, for the residual variance we set a fairly non-informative inverse gamma prior.
 
+\footnotesize
 <<varsel2>>=
 priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='piMOM',priorPars=c(tau=.131))
 priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=1,beta.p=1))
 priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
 @
+\normalsize
 
 The routine \texttt{modelSelection} implements a Gibbs sampling scheme which
 returns a posterior sample for the variable inclusion indicators in the slot \texttt{postSample},
@@ -544,6 +581,7 @@ The marginal posterior probabilities are estimated via Rao-Blackwellization,
 i.e. averaging the posterior probability for inclusion in each Gibbs iteration,
 as this estimate is more precise than simply taking \texttt{colMeans} on the slot \texttt{postSample}.
 
+\footnotesize
 <<varsel3>>=
 fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
 priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, 
@@ -551,6 +589,7 @@ method='Laplace')
 fit1$postMode
 fit1$margpp
 @
+\normalsize
 
 We see that the posterior mode chooses the correct model,
 and that the marginal probabilities clearly indicate
@@ -564,11 +603,12 @@ typically assign negligible mass to any single model.
 We can see this by checking the proportion of posterior samples in which
 the correct model has been visited: 90 out of 90.
 
+\footnotesize
 <<varsel4>>=
 correct <- t(fit1$postSample)==c(TRUE,TRUE,FALSE)
 table(colSums(correct)==3)
 @
-
+\normalsize
 
 \bibliographystyle{plainnat}
 \bibliography{references} 

@@ -1,3 +1,6 @@
+CHANGES IN VERSION 1.3.4
+- Fixed code chunks in vignette to enhance their visibility
+
 CHANGES IN VERSION 1.3.2
 - Added check to T dmom to ensure that prior is proper
 - Added greedy initialization algorithm for probit models

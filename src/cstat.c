@@ -2172,17 +2172,15 @@ double betacf(double a,
 }
 
 
-double lnchoose(int n,
-                int k)
+double lnchoose(double n,
+                double k)
 {
-    double a = 1.0 + n - k;
-    double b = 1.0 + k;
-    return lnbeta(a, b) - log(1.0+n);
+  return -lnbeta(1.0+n-k,1.0+k) - log(1.0+n);
 }
 
 
-double choose(int n,
-              int k)
+double choose(double n,
+              double k)
 {
     return exp(lnchoose(n, k));
 }
@@ -4085,9 +4083,17 @@ double dbinomial(int x,
 
     assert((logscale == 0) || (logscale == 1));
 
-    ans = lnchoose(n, x) + (x+0.0)*log(p) + (n-x+0.0)*log(1-p);
+    ans= lnchoose((double) n, (double) x) + (x+.0)*log(p) + (n-x+.0)*log(1-p);
     return (logscale == 1) ? ans : exp(ans);
 }
+
+double dnegbinomial(int x, double r, double p, int logscale) {
+  double ans;
+ //r: number of failures; p: success prob
+  ans= lnchoose(x + r -1.0,(double) x) + (x+.0)*log(p) + r*log(1-p);
+  if (logscale==1) return(ans); else return(exp(ans));
+}
+
 
 
 /*

@@ -1565,7 +1565,7 @@ void fppimomUNegC_non0(double **ans, double *th, double *sumy2, double *XtX, dou
 
 void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, int *n, int *p, double *sumy2, double *XtX, double *ytX, double *alpha, double *lambda, double *tau, int *logscale) {
   int iter, maxit=50, emptyint;
-  double ftol= 1.0e-2, **dirth, **Vopt, **Voptinv, detVopt, emptydouble=0, **emptymatrix, fopt;
+  double ftol= 1.0e-4, **dirth, **Vopt, **Voptinv, detVopt, emptydouble=0, **emptymatrix, fopt;
 
   Vopt= dmatrix(1,*nsel +1,1,*nsel +1); Voptinv= dmatrix(1,*nsel +1,1,*nsel +1);
   dirth= dmatrix(1,*nsel +1,1,*nsel +1);

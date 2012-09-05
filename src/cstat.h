@@ -153,8 +153,8 @@ double trigamma(double x);
 double polygamma(double x, long n, double low, double high, long terms, double nfact); //from S Poetry
 double lnbeta(double a, double b); //log of Beta function
 double betacf(double a, double b, double x); //continued fraction for incomplete Beta function
-double lnchoose(int n, int k);
-double choose(int n, int k);
+double lnchoose(double n, double k);
+double choose(double n, double k);
 
 double logit(double x);
 double ilogit(double x);
@@ -236,6 +236,7 @@ int rdisc(const double *probs, int nvals);
 double gamdev(double);
 int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);
+double dnegbinomial(int x, double r, double p, int logscale);
 void rmultinomial(int ndraws, int ncells, const double *pr, int *x);
 double bbPrior(int k, int p, double alpha, double beta, int logscale);
 

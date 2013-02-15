@@ -40,7 +40,7 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
     it is a matrix with an observation in each row.}
   \item{q}{ Vector of quantiles.}
   \item{p}{ Vector of probabilities.}
-  \item{V1}{ Scale matrix. Defaults to 1 in univariate setting and
+  \item{V1}{ Scale matrix (ignored if \code{penalty=='product'}). Defaults to 1 in univariate setting and
     the identity matrix in the multivariate setting. }
   \item{tau}{ Prior dispersion parameter is \code{tau*phi}. See
     details. }

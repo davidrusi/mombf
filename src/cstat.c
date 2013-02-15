@@ -2484,7 +2484,7 @@ void Atvecx(const double *A,
 {
     register int i;
     register int j;
-    int nrow = rowfi - rowini + 1;
+    int ncol = colfi - colini + 1;
 
     assert(A != NULL);
     assert(x != NULL);
@@ -2493,7 +2493,7 @@ void Atvecx(const double *A,
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
         for (j = colini; j <= colfi; j++) {
-            z[i] += A[j + i*nrow] * x[j];
+            z[i] += A[j + i*ncol] * x[j];
         }
     }
 }
@@ -2739,6 +2739,32 @@ void AtB(double **A,
             C[i][j] = 0.0;
             for (k = rowiniA; k <= rowfiA; k++) {
                 C[i][j] += A[k][i] * B[k][j];
+            }
+        }
+    }
+}
+
+//C= t(A) %*% B, where C[1..ncolA][1..nrowB]
+void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB, double **C) {
+    register int i;
+    register int j;
+    register int k;
+
+    assert(A != NULL);
+    assert(B != NULL);
+    assert(C != NULL);
+
+    if (nrowA != nrowB) {
+        errorC("AvectBvec", "dimensions don't match", 1);
+        /*NOTREACHED*/
+    }
+    for (i = 1; i <= ncolA; i++) {
+      int offsetA= (i-1)*nrowA;
+        for (j = 1; j <= ncolB; j++) {
+            C[i][j] = 0.0;
+	    int offsetB= (j-1)*nrowB;
+            for (k = 1; k <= nrowA; k++) {
+	      C[i][j] += A[k-1 + offsetA] * B[k-1 + offsetB];
             }
         }
     }
@@ -3896,36 +3922,26 @@ double gamdev(double alpha)
  ************************************************* */
 
 /* Returns cdf of normal N(m,s^2) at x */
-double pnormC(double y,
-              double m,
-              double s)
-{
-    double cdf;
-    /* following used to all be float... */
-    double p;
-    double mean;
-    double sd;
-    double bound;
-    double x;
-    double z;
-
+double pnormC(double y, double m, double s) {
+  double cdf, p, mean, sd, bound, x, z;
     /* primitive type conversion */
     x = y;
     mean = m;
     sd = s;
     z = (x - mean) / sd;
 
-    if (z < -5.0) {
-        p = 2.86e-7F;
+    if (z < -20.0) {
+      p= 2.753624e-89;
+      //p = 2.86e-7F;
     }
-    else if (z > 5.0) {
-        p = 0.9999997F;
+    else if (z > 20.0) {
+      p= 1 - 2.753624e-89;
+      //p = 0.9999997F;
     }
     else {
         double q;
         int status;
         int which = 1;
-
         cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
     }
 
@@ -4022,10 +4038,7 @@ double dmvnormC(const double *y,
 
 
 /* Returns inv cdf of normal N(m,s^2) at p */
-double qnormC(double cdf,
-              double m,
-              double s)
-{
+double qnormC(double cdf, double m, double s) {
     double y;
 
     if ((cdf < 0.0) | (cdf > 1.0)) {
@@ -4034,11 +4047,11 @@ double qnormC(double cdf,
     }
 
     /* par check */
-    if (cdf <= 2.86e-07) {
-        y = -5.0 * s + m;
+    if (cdf <= 2.753624e-89) {
+	y = -20.0*s + m;
     }
-    else if (cdf >= 0.9999997) {
-        y = 5.0 * s + m;
+    else if (cdf >= 0.99999999999999989) {
+        y = 8.209536 * s + m;
     }
     else {
         /* primitive type conversion */
@@ -4247,6 +4260,550 @@ double rnorm_trunc_prob(double lprob,
     u = lprob + runif() * (rprob-lprob);
     return qnormC(u, m, s);
 }
+
+//Obtain n draws from normal given multiple truncation points, i.e. N(th; m,s) prod_i I(ltrunc[i] < th < rtrunc[i])
+//Important note: intervals are assumed to be disjoint and ordered.
+// Input
+// - n: length of output y
+// - ltrunc, rtrunc: vectors [0..ntrunc-1] with start / end of truncation intervals. 
+// - ntrunc: number of truncatio intervals, i.e. length of vectors ltrunc & rtrunc
+// - m: mean of underlying normal
+// - s: sd
+// Output
+// - y: random draws
+// - pdfy: joint log-density of y[0..n-1]
+void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rtrunc, int ntrunc, double *m, double *s) {
+  int i, j;
+  double u, **p, *cump;
+  //Find quantiles for truncation points
+  p = dmatrix(0,ntrunc -1,0,1);
+  cump = dvector(0,ntrunc);
+  cump[0]= 0;
+  for (i=0; i<ntrunc; i++) {
+    p[i][0]= pnormC(ltrunc[i], *m, *s);
+    p[i][1]= pnormC(rtrunc[i], *m, *s);
+    cump[i+1]= max_xy(cump[i] + 1.0e-30, cump[i] + p[i][1] - p[i][0]);
+  }
+  //Generate random draws
+  (*pdfy)= 0;
+  for (i=0; i< *n; i++) {
+    u= runif() * cump[ntrunc];
+    j= 0;
+    while ((u > cump[j+1]) && (j< ntrunc -1)) j++;    
+    y[i]= qnormC(p[j][0] + u - cump[j], *m, *s);
+    (*pdfy) += dnormC(y[i], *m, *s, 1) - log(cump[ntrunc]);
+  }
+  free_dmatrix(p,0,ntrunc -1,0,1);
+  free_dvector(cump,0,ntrunc);
+}
+
+SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s) {
+  double pdfans;
+  SEXP ans;
+  PROTECT(ans= allocVector(REALSXP,INTEGER(n)[0]));
+  rnorm_truncMult(REAL(ans),&pdfans,INTEGER(n),REAL(ltrunc),REAL(rtrunc),LENGTH(ltrunc),REAL(m),REAL(s));
+  UNPROTECT(1);
+  return ans;
+}
+
+
+
+//Rectangular Truncated Multivariate Normal draws (within==1 for truncation inside the hyper-rectanble, within==0 for outside)
+// Input
+// - n: number of draws
+// - p: number of variables
+// - mu: mean [1..p]
+// - Sigma: covariance matrix [1..p][1..p]
+// - lower: lower truncation points [1..p]
+// - upper: upper truncation points [1..p]
+// - within: if within==1 random draws are restricted so that lower[i] <= x[i] <= upper[i]. Else, x[i] <= lower[i] or x[i] >= upper[i]
+// - method: if method==1 Gibbs sampling is used. Else independent proposal Metropolis-Hastings is used.
+void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *lower, double *upper, int within, int method) {
+  int i, j, k;
+  double **D, **K, *alpha, *ansortho, paccept;
+  D= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
+  alpha= dvector(1,p); ansortho= dvector(0,n*p -1);
+  choldc(Sigma, p, D); 
+  choldc_inv(Sigma, p, K);
+  //Draws from orthogonal transformation
+  Ax(K, mu, alpha, 1, p, 1, p); //alpha= K %*% mu
+  if (method==1) {
+    if (within==1) {
+      rtmvnormWithin(ansortho, n, p, alpha, D, lower, upper);
+    } else {
+      rtmvnormOutside(ansortho, n, p, alpha, D, lower, upper);
+    }
+  } else {
+    double det= choldc_det(K,p);
+    rtmvnormMH(ansortho, &paccept, n, p, alpha, D, K, det, lower, upper, within);
+  }
+  //Map draws back to original variables, i.e. ans= ansortho %*% t(D)
+  for (i=0; i<n; i++) {
+    for (j=0; j<p; j++) {
+      ans[i+j*n]= 0;
+      for (k=0; k<p; k++) ans[i+j*n] += ansortho[i+k*n] * D[j+1][k+1];
+    }
+  }
+  free_dmatrix(D,1,p,1,p); free_dmatrix(K,1,p,1,p);
+  free_dvector(alpha,1,p); free_dvector(ansortho,0,n*p -1);
+}
+
+//R interface to rtmvnorm
+SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method) {
+  int i, j, p= LENGTH(mu);
+  double **S;
+  SEXP ans;
+
+  S= dmatrix(1,p,1,p);
+  for (i=1; i<=p; i++) S[i][i]= REAL(Sigma)[(i-1)*p+i-1];
+  for (i=1; i<=p; i++) {
+    int ip= (i-1)*p;
+    for (j=1; j<i; j++) S[i][j]= S[j][i]= REAL(Sigma)[ip+j-1];
+  }
+
+  PROTECT(ans= allocVector(REALSXP,INTEGER(n)[0]*p));
+  rtmvnorm(REAL(ans), INTEGER(n)[0], p, REAL(mu)-1, S, REAL(lower)-1, REAL(upper)-1, INTEGER(within)[0], INTEGER(method)[0]);
+  free_dmatrix(S,1,p,1,p);
+  UNPROTECT(1);
+  return ans; 
+}
+
+
+//Metropolis-Hastings to obtain n multiv draws from z ~ N(alpha, 1) with D[,j] * z[j] restricted either within or outside interval (lower[j] - D[,-j] %*% z[-j], upper[j] - D[,-j] %*% z[-j])
+//Input
+// - n: number of draws
+// - p: dimension of multivariate normal
+// - alpha: mean vector 1..p
+// - D: matrix [1..p][1..p] with Cholesky decomp of original covariance matrix of x= D %*% z, i.e. Cov(x)= D'D
+// - K: matrix [1..p][1..p] with Cholesky decomp of inverse covariance matrix
+// - det: determinant of D'D
+// - lower: lower truncation points [1..p]
+// - upper: upper truncation points [1..p]
+// - within: if within==1 draws are restricted to be within interval. Else they are restricted to be outside interval.
+//Output
+// - ans: n \times p matrix with Gibbs draws, in column order
+// - paccept: proportion of accepted proposals
+void rtmvnormMH(double *ansortho, double *paccept, int n, int p, double *alpha, double **D, double **K, double det, double *lower, double *upper, int within) {
+  int i, j, naccept;
+  double *x0, propold, propnew, lold, lnew;
+  x0= dvector(1,p);
+  rtmvnormProp(x0, &propold, p, alpha, D, lower, upper, within);
+  lold= 0;
+  for (j=1; j<=p; j++) { 
+    lold -= 0.5 * (x0[j]-alpha[j]) * (x0[j]-alpha[j]);
+    ansortho[n*(j-1)]= x0[j];
+  }
+  naccept= 1;
+  for (i=1; i<n; i++) {
+    rtmvnormProp(x0, &propnew, p, alpha, D, lower, upper, within);
+    lnew= 0;
+    for (j=1; j<=p; j++) lnew -= 0.5 * (x0[j]-alpha[j]) * (x0[j]-alpha[j]);
+    if (runif() <= exp(lnew - lold + propold - propnew)) {
+      for (j=1; j<=p; j++) ansortho[i + n*(j-1)]= x0[j];
+      lold= lnew; propold= propnew;
+      naccept++;
+    } else {
+      for (j=1; j<=p; j++) ansortho[i + n*(j-1)]= ansortho[i-1 + n*(j-1)];
+    }
+  }
+  (*paccept)= (naccept+.0)/(n+.0);
+  free_dvector(x0,1,p);
+}
+
+
+//Gibbs sampling to obtain n multivariate draws from z ~ N(alpha, 1) with D[,j] * z[j] restricted inside interval (lower[j] - D[,-j] %*% z[-j] , upper[j] - D[,-j] %*% z[-j])
+//Input
+// - n: number of draws
+// - p: dimension of multivariate normal
+// - alpha: mean vector 1..p
+// - D: lower-triangular matrix [1..p][1..p]
+// - lower: lower truncation points [1..p]
+// - upper: upper truncation points [1..p]
+//Output
+// - ans: n \times p matrix with Gibbs draws, in column order
+void rtmvnormWithin(double *ans, int n, int p, double *alpha, double **D, double *lower, double *upper) {
+  int i, j, k;
+  double l, u, *Dj, *x0, lprop;
+  //Initialize
+  Dj= dvector(1,p);
+  x0= dvector(1,p);
+  rtmvnormProp(x0, &lprop, p, alpha, D, lower, upper, 1);
+  for (j=1; j<=p; j++) ans[n*(j-1)]= x0[j];
+  //Gibbs
+  for (j=1; j<=p; j++) {
+    Dj[j]= 0; 
+    for (k=1; k<=p; k++) Dj[j] += D[j][k] * ans[(k-1)*n];
+  }
+  i= 1;
+  while (i<n) {
+    for (j=1; j<=p; j++) {
+      //Find truncation points for variable j
+      for (k=1; k<=p; k++) Dj[k]= Dj[k] - D[k][j]*ans[i-1 +(j-1)*n];
+      l= -1.0e20; u= 1.0e20;
+      k= 1;
+      while (k <= p) {
+        if (D[k][j]>0) {
+          l= max_xy(l,(lower[k]-Dj[k])/D[k][j]);
+          u= min_xy(u,(upper[k]-Dj[k])/D[k][j]);
+        } else if (D[k][j]<0) {
+          u= min_xy(u,(lower[k]-Dj[k])/D[k][j]);
+          l= max_xy(l,(upper[k]-Dj[k])/D[k][j]);
+        }
+        k++;
+      }
+      ans[i +(j-1)*n]= rnorm_trunc(l, u, alpha[j], 1.0);
+      for (k=1; k<=p; k++) Dj[k] += ans[i+(j-1)*n] * D[k][j];
+    }
+    i++;
+  }
+  free_dvector(x0,1,p);
+  free_dvector(Dj,1,p);
+}
+
+
+//Obtain n multivariate draws from z ~ N(alpha, 1) with D[,j] * z[j] restricted outside of interval (lower[j] - D[,-j] %*% z[-j] , upper[j] - D[,-j] %*% z[-j])
+//(uses Gibbs sampling)
+//Input
+// - n: number of draws
+// - p: dimension of multivariate normal
+// - alpha: mean vector 1..p
+// - D: lower-triangular matrix [1..p][1..p]
+// - lower: lower truncation points [1..p]
+// - upper: upper truncation points [1..p]
+//Output
+// - ans: n \times p matrix with Gibbs draws, in column order
+void rtmvnormOutside(double *ans, int n, int p, double *alpha, double **D, double *lower, double *upper) {
+  int i, j, k;
+  double *Dj, lprop, *x0;
+  //Initialize
+  Dj= dvector(1,p);
+  x0= dvector(1,p);
+  rtmvnormProp(x0, &lprop, p, alpha, D, lower, upper, 0);
+  for (j=1; j<=p; j++) ans[n*(j-1)]= x0[j];
+  for (j=1; j<=p; j++) {
+    Dj[j]= 0; 
+    for (k=1; k<=p; k++) Dj[j] += D[j][k] * x0[k];
+  }
+  //Gibbs
+  i= 1;
+  while (i<n) {
+    rtmvnormOutside_Gibbs(x0, Dj, alpha, D, p, lower, upper);
+    for (j=1; j<=p; j++) ans[i+n*(j-1)]= x0[j];
+    i++;
+  }
+  free_dvector(Dj,1,p);
+  free_dvector(x0,1,p);
+}
+
+
+//Perform 1 Gibbs iteration to sample from z ~ N(alpha, 1) with D[,j] * z[j] restricted outside of interval (lower[j] - D[,-j] %*% z[-j] , upper[j] - D[,-j] %*% z[-j])
+//Input:
+// - alpha: mean vector [1..p]
+// - D: Cholesky decomposition of covariance matrix
+// - p: dimensionality of Normal (number of variables)
+//Input-Output
+// - z: on input contains current draw, on output contains updated draw
+// - Dj: on input current value of D %*% z, on output updated according to draw in z
+void rtmvnormOutside_Gibbs(double *z, double *Dj, double *alpha, double **D, int p, double *lower, double *upper) {
+  int j, k, nrestrict, one=1;
+  double *l, *u, oned=1;
+  l= dvector(1,p); u= dvector(1,p);
+  for (j=1; j<=p; j++) {
+    //Find truncation points for variable j
+    for (k=1; k<=p; k++) Dj[k]= Dj[k] - D[k][j]*z[j];
+    //for (k=1; k<=p; k++) Dj[k]= Dj[k] - D[k][j]*ans[i-1 +(j-1)*n];
+    k=1; nrestrict= 0;
+    while (k <= p) {
+      if (D[k][j]>0) {
+	nrestrict++;
+	l[nrestrict]= (lower[k]-Dj[k])/D[k][j];
+	u[nrestrict]= (upper[k]-Dj[k])/D[k][j];
+      } else if (D[k][j]<0) {
+	nrestrict++;
+	u[nrestrict]= (lower[k]-Dj[k])/D[k][j];
+	l[nrestrict]= (upper[k]-Dj[k])/D[k][j];
+      }
+      k++;
+    }
+    //Merge excluded regions & define inclusion regions
+    if (nrestrict>0) {
+      int *o, jj;
+      double *lmod, *umod, lprop;
+      o= ivector(1,nrestrict);
+      lmod= dvector(1,nrestrict+1);
+      umod= dvector(1,nrestrict+1);
+      for (jj=1; jj<=nrestrict; jj++) o[jj]= jj;
+      dindexsort(l, o, 1, nrestrict, 1); //sort indexes according to values in l
+      jj=k=2;
+      lmod[1]= l[o[1]]; umod[2]= u[o[1]];
+      while (jj <= nrestrict) {
+        if (u[o[jj]] > umod[k]) {
+	  if (l[o[jj]] <= umod[k]) {
+	    umod[k]= u[o[jj]];
+	  } else {
+	    lmod[k]= l[o[jj]];
+	    k++;
+	    umod[k]= u[o[jj]];
+	  }
+	}
+	jj++;
+      }
+      umod[1]= -1.0e20; lmod[k]= 1.0e20;
+      //Draw random variate	     
+      rnorm_truncMult(z+j, &lprop, &one, umod+1, lmod+1, k, alpha+j, &oned); //note: umod is lower bound for inclusion intervals (lmod is upper bound)
+      for (k=1; k<=p; k++) Dj[k] += z[j] * D[k][j];
+      //rnorm_truncMult(ans+i+(j-1)*n, &lprop, &one, umod+1, lmod+1, k, alpha+j, &oned); //note: umod is lower bound for inclusion intervals (lmod is upper bound)
+      //for (k=1; k<=p; k++) Dj[k] += ans[i+(j-1)*n] * D[k][j];
+      free_ivector(o,1,nrestrict);
+      free_dvector(lmod,1,nrestrict+1);
+      free_dvector(umod,1,nrestrict+1);
+    } else {
+      z[j]= rnormC(alpha[j], 1);
+    }
+  }    
+  free_dvector(l,1,p); free_dvector(u,1,p);
+}
+
+//Draw from proposal approximating truncated multivariate normal (rectangular truncation)
+// x ~ N(mu,Sigma) restricted to either I(lower[i] <= x[i] <= upper[i]) or I(x[i]<=lower[i]) + I(x[i]>=upper[i])
+// Let D be the Cholesky decomp of Sigma, and alpha= D^{-1} %*% mu. rtmvnormProp samples from an approximation to z= D^{-1} %*% x ~ N(alpha, I) * I(lower[i] <= D %*% z <=upper[i])
+// Input
+// - p: number of variables, i.e. dim(x)
+// - alpha: mean vector [1..p]
+// - D: Cholesky decomposition of Sigma
+// - lower: vector with lower truncation points [1..p]
+// - upper: vector with upper truncation points [1..p]
+// - within: set within==1 for lower[i] <= x[i] <= upper[i], and within==0 for x[i]<=lower[i] | x[i]>=upper[i]
+// Output
+// - z: vector [1..p] with draw from proposal distribution (guaranteed to have the same support as target distrib, i.e. to satisfy the constraints)
+// - propdens: log-proposal density
+void rtmvnormProp(double *z, double *propdens, int p, double *alpha, double **D, double *lower, double *upper, int within) {
+  int j, k, one=1;
+  double Dj, logp, oned=1.0;
+  (*propdens)= 0;
+  if (within==1) {
+    double l, u;
+    l= lower[1]/D[1][1]; u=  upper[1]/D[1][1];
+    rnorm_truncMult(z+1, &logp, &one, &l, &u, 1, alpha+1, &oned);
+    (*propdens) += logp;
+    for (j=2; j<=p; j++) {
+      Dj= 0;
+      for (k=1; k<=(j-1); k++) Dj += D[j][k] * z[k];
+      l= (lower[j]-Dj)/D[j][j]; u= (upper[j]-Dj)/D[j][j];
+      rnorm_truncMult(z+j, &logp, &one, &l, &u, 1, alpha+j, &oned);
+      (*propdens) += logp;
+    }
+  } else {
+    double *l, *u;
+    l= dvector(1,2); u= dvector(1,2);
+    l[1]= -1.0e20; l[2]= upper[1]/D[1][1];
+    u[1]= lower[1]/D[1][1]; u[2]= 1.0e20;
+    rnorm_truncMult(z+1, &logp, &one, l+1, u+1, 2, alpha+1, &oned);
+    (*propdens) += logp;
+    for (j=2; j<=p; j++) {
+      Dj= 0;
+      for (k=1; k<=(j-1); k++) Dj += D[j][k] * z[k];
+      l[2]= (upper[j]-Dj)/D[j][j]; u[1]= (lower[j]-Dj)/D[j][j];
+      rnorm_truncMult(z+j, &logp, &one, l+1, u+1, 2, alpha+j, &oned);
+      (*propdens) += logp;
+    }
+    free_dvector(l,1,2); free_dvector(u,1,2);
+  }
+}
+
+
+//Multiv trunc Normal given constraint on product
+void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int is_low_trunc, int is_up_trunc, int burnin) { 
+  if (is_low_trunc==1 && is_up_trunc==0) {
+    rtmvnormProd_low(ans, n, p, mu, Sinv, k, lower, burnin);
+  } else if (is_low_trunc==0 && is_up_trunc==1) {
+    rtmvnormProd_up(ans, n, p, mu, Sinv, k, upper, burnin);
+  } else if (is_low_trunc==1 && is_up_trunc==1) {
+    rtmvnormProd_lowup(ans, n, p, mu, Sinv, k, lower, upper, burnin);
+  } else {
+    double *y, **S, **cholS;
+    y= dvector(1,p); S= dmatrix(1,p,1,p); cholS= dmatrix(1,p,1,p);
+    inv_posdef(Sinv,p,S);
+    choldc(S,p,cholS);
+    rmvnormC(y, p, mu, cholS);
+    free_dvector(y,1,p); free_dmatrix(S,1,p,1,p); free_dmatrix(cholS,1,p,1,p);
+  }
+}
+
+//R interface for rtmvnormProd
+SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin) {
+  int i,j, p=LENGTH(mu), nn=INTEGER(n)[0];
+  double **S, **Sinv;
+
+  S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p);
+  for (i=1; i<=p; i++) S[i][i]= REAL(Sigma)[(i-1)*p+i-1];
+  for (i=1; i<=p; i++) {
+    int ip= (i-1)*p;
+    for (j=1; j<i; j++) S[i][j]= S[j][i]= REAL(Sigma)[ip+j-1];
+  }
+  inv_posdef(S, p, Sinv);
+  free_dmatrix(S,1,p,1,p);
+
+  SEXP ans;
+  PROTECT(ans= allocVector(REALSXP, nn*p));
+  rtmvnormProd(REAL(ans), nn, p, REAL(mu)-1, Sinv, INTEGER(k)[0], REAL(lower)[0], REAL(upper)[0], INTEGER(is_low_trunc)[0], INTEGER(is_up_trunc)[0], INTEGER(burnin)[0]);
+
+  free_dmatrix(Sinv,1,p,1,p);
+  UNPROTECT(1);
+  return(ans);
+}
+
+
+//Product-Truncated Multivariate Normal draws (via Gibbs), i.e. lower < prod abs(x)^k < upper
+// Input
+// - n: number of draws
+// - p: number of variables
+// - mu: vector [1..p] with mean
+// - Sinv: precision matrix [1..p][1..p]
+// - k: power for the truncation
+// - lower: lower truncation point
+// - upper: upper truncation point
+// - burnin: number of burnin iterations
+void rtmvnormProd_lowup(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int burnin) {
+  int i, j, kk, one=1;
+  double *condvar, *condsd, *xcur, l, u, m, pdfy, *ltrunc, *rtrunc;
+  //Pre-compute stuff
+  condvar= dvector(1,p); condsd= dvector(1,p);
+  xcur= dvector(1,p);
+  ltrunc= dvector(1,2); rtrunc= dvector(1,2);
+  for (i=1; i<=p; i++) { condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]); }
+  //Initialize
+  l= pow(lower, 1.0/(k*p+.0));
+  u= pow(upper, 1.0/(k*p+.0));
+  for (i=1; i<=p; i++) {
+    if (mu[i]>=l && mu[i]<=u) xcur[i]= mu[i]; else if (mu[i]<l) xcur[i]= l + .1*(u-l); else if (mu[i]>u) xcur[i]= u - .1*(u-l);
+  }
+  //Burn-in
+  l= pow(lower,1.0/(k+.0)); u= pow(upper,1.0/(k+.0));
+  for (i=1; i<=p; i++) {
+    l= l/fabs(xcur[i]);
+    u= u/fabs(xcur[i]);
+  }
+  for (i=0; i<burnin; i++) {
+    for (j=1; j<=p; j++) {
+      l= l*fabs(xcur[j]); u= u*fabs(xcur[j]);
+      m= mu[j];
+      for (kk=1; kk<j; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      for (kk=j+1; kk<=p; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      ltrunc[1]= -u; rtrunc[1]= -l;
+      ltrunc[2]= l; rtrunc[2]= u;
+      rnorm_truncMult(xcur+j, &pdfy, &one, ltrunc+1, rtrunc+1, 2, &m, condsd+j);
+      l= l/fabs(xcur[j]); u= u/fabs(xcur[j]);
+    }
+  }
+  //Gibbs
+  for (i=0; i<n; i++) {
+    for (j=1; j<=p; j++) {
+      l= l*fabs(xcur[j]); u= u*fabs(xcur[j]);
+      m= mu[j];
+      for (k=1; k<j; k++) m -= Sinv[j][k] * (xcur[k]-mu[k]) * condvar[j];
+      for (k=j+1; k<=p; k++) m -= Sinv[j][k] * (xcur[k]-mu[k]) * condvar[j];
+      ltrunc[1]= -u; rtrunc[1]= -l;
+      ltrunc[2]= l; rtrunc[2]= u;
+      rnorm_truncMult(xcur+j, &pdfy, &one, ltrunc+1, rtrunc+1, 2, &m, condsd+j);
+      l= l/fabs(xcur[j]); u= u/fabs(xcur[j]);
+      ans[i+(j-1)*n]= xcur[j];
+    }
+  }
+  free_dvector(condvar,1,p); free_dvector(condsd,1,p);
+  free_dvector(xcur,1,p);
+  free_dvector(ltrunc,1,2); free_dvector(rtrunc,1,2);
+}
+
+//Only lower truncation on product. Input/output parameters as in rtmvnormProd_lowup
+void rtmvnormProd_low(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, int burnin) {
+  int i, j, kk, one=1;
+  double *condvar, *condsd, *xcur, l, m, *ltrunc, *rtrunc, pdfy;
+  //Pre-compute stuff & initialize
+  condvar= dvector(1,p); condsd= dvector(1,p);
+  xcur= dvector(1,p);
+  ltrunc= dvector(1,2); rtrunc= dvector(1,2);
+  l= pow(lower, 1.0/(k*p+.0));
+  for (i=1; i<=p; i++) { 
+    condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]);
+    if (mu[i]>l) xcur[i]= mu[i]; else xcur[i]= l + .1*condsd[i];
+  }
+  //Burn-in
+  l= pow(lower,1.0/(k+.0));
+  for (i=1; i<=p; i++) { l= l/fabs(xcur[i]); }
+  for (i=0; i<burnin; i++) {
+    for (j=1; j<=p; j++) {
+      l= l*fabs(xcur[j]);
+      m= mu[j];
+      for (kk=1; kk<j; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      for (kk=j+1; kk<=p; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      ltrunc[1]= -1.0e20; rtrunc[1]= -l;
+      ltrunc[2]= l; rtrunc[2]= 1.0e20;
+      rnorm_truncMult(xcur+j, &pdfy, &one, ltrunc+1, rtrunc+1, 2, &m, condsd+j);
+      l= l/fabs(xcur[j]);
+    }
+  }
+  //Gibbs
+  for (i=0; i<n; i++) {
+    for (j=1; j<=p; j++) {
+      l= l*fabs(xcur[j]);
+      m= mu[j];
+      for (kk=1; kk<j; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      for (kk=j+1; kk<=p; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      ltrunc[1]= -1.0e20; rtrunc[1]= -l;
+      ltrunc[2]= l; rtrunc[2]= 1.0e20;
+      rnorm_truncMult(xcur+j, &pdfy, &one, ltrunc+1, rtrunc+1, 2, &m, condsd+j);
+      l= l/fabs(xcur[j]);
+      ans[i+(j-1)*n]= xcur[j];
+    }
+  }
+  free_dvector(condvar,1,p); free_dvector(condsd,1,p);
+  free_dvector(xcur,1,p);
+  free_dvector(ltrunc,1,2); free_dvector(rtrunc,1,2);
+}
+
+//Only upper truncation on product. Input/output parameters as in rtmvnormProd_lowup
+void rtmvnormProd_up(double *ans, int n, int p, double *mu, double **Sinv, int k, double upper, int burnin) {
+  int i, j, kk;
+  double *condvar, *condsd, *xcur, u, m;
+  //Pre-compute stuff
+  condvar= dvector(1,p); condsd= dvector(1,p);
+  xcur= dvector(1,p);
+  u= pow(upper, 1.0/(k*p+.0));
+  for (i=1; i<=p; i++) { 
+    condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]); 
+    if (mu[i]<u) xcur[i]= mu[i]; else if (mu[i]>=u) xcur[i]= u - .1*condsd[i]; 
+  }
+  //Burn-in
+  u= pow(upper,1.0/(k+.0));
+  for (i=1; i<=p; i++) { u= u/fabs(xcur[i]); }
+  for (i=0; i<burnin; i++) {
+    for (j=1; j<=p; j++) {
+      u= u*fabs(xcur[j]);
+      m= mu[j];
+      for (kk=1; kk<j; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      for (kk=j+1; kk<=p; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      xcur[j]= rnorm_trunc(-u, u, m, condsd[j]);
+      u= u/fabs(xcur[j]);
+    }
+  }
+  //Gibbs
+  for (i=0; i<n; i++) {
+    for (j=1; j<=p; j++) {
+      u= u*fabs(xcur[j]);
+      m= mu[j];
+      for (kk=1; kk<j; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      for (kk=j+1; kk<=p; kk++) m -= Sinv[j][kk] * (xcur[kk]-mu[kk]) * condvar[j];
+      xcur[j]= rnorm_trunc(-u, u, m, condsd[j]);
+      u= u/fabs(xcur[j]);
+      ans[i+(j-1)*n]= xcur[j];
+    }
+  }
+  free_dvector(condvar,1,p); free_dvector(condsd,1,p);
+  free_dvector(xcur,1,p);
+}
+
+
 
 
 /*
@@ -4709,6 +5266,114 @@ double dmomNorm(double y,
           dnormC(y, m, sqrt(tau * phi), 1) - normct[r-1];
 
     return (logscale == 1) ? ans : exp(ans);
+}
+
+
+//Sample from product MOM posterior under a linear model
+// Input:
+// - niter: number of Gibbs iterations
+// - burnin: number of burn-in iterations
+// - thinning: only 1 out of each thinning iterations are saved in ans
+// - y: y[0..n-1] contains observed response
+// - x: covariates stored as a vector (in column order)
+// - n: number of observations
+// - p: number of variables
+// - r: MOM power parameter, i.e. penalty is th[i]^(2*r)
+// - tau: prior dispersion
+// - a_phi, b_phi: prior for residual variance phi ~ IG(a_phi/2, b_phi/2)
+void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi) {
+  int i, j, k, isave, nsave;
+  double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, sqrtphi, tauphi, th2sum, apost, bpost, *linpred, ssr;
+  //Pre-compute stuff
+  nsave= floor((niter - burnin +.0)/(thinning +.0));
+  m= dvector(1,p); mortho= dvector(1,p); alpha= dvector(1,p); thcur= dvector(1,p); linpred= dvector(0,n-1);
+  S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p); cholSinv= dmatrix(1,p,1,p); inv_cholSinv= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
+  D= dmatrix(1,p,1,p); 
+
+  AvectBvec(x, n, p, x, n, p, S); //S= t(x) %*% x + 1/tau
+  for (i=1; i<=p; i++) S[i][i] += tauinv;
+  inv_posdef(S, p, Sinv); 
+  choldc(Sinv, p, cholSinv);
+  choldc_inv(Sinv, p, inv_cholSinv); //inverse of chol(Sinv)
+
+  Xty= dvector(1,p);
+  Atvecx(x, y, Xty+1, 0, p-1, 0, n-1); //m= solve(S) %*% t(x) %*% y 
+  Ax(Sinv, Xty, m, 1, p, 1, p);
+  Ax(inv_cholSinv, m, mortho, 1, p, 1, p); 
+  free_dvector(Xty,1,p);
+
+  apost= .5*(a_phi + n + 3*p);
+  //Initialize
+  th2sum= 0; phicur= sqrtphi= 1.0;
+  for (j=1; j<=p; j++) { thcur[j]= m[j]; th2sum += thcur[j]*thcur[j]; }
+  //Ax(cholSinv, thcur, Dthcur, 1, p, 1, p);
+  isave= 0;
+  for (i=1; i<=niter; i++) {
+    //for (j=1; j<=p; j++) Dthcur[j] = Dthcur[j] / sqrtphi;
+    Avecx(x, thcur+1, linpred, 0, n-1, 0, p-1);
+    ssr=0;
+    for (j=0; j<n; j++) ssr += pow(y[j]-linpred[j],2.0);
+    bpost= .5*(b_phi + th2sum/tau + ssr);
+    phicur= 1.0/rgammaC(apost, bpost);
+    sqrtphi= sqrt(phicur);
+    for (j=1; j<=p; j++) { 
+      alpha[j]= mortho[j]/sqrtphi;
+      //Dthcur[j]= Dthcur[j] * sqrtphi;
+      for (k=1; k<=j; k++) { D[j][k]= cholSinv[j][k] * sqrtphi; K[j][k]= inv_cholSinv[j][k] / sqrtphi; }
+    }
+    tauphi= phicur * tau;
+    rmvmom_Gibbs(thcur, p, alpha, D, K, &tauphi, r);
+    if (i>burnin && ((i-burnin) % thinning)==0) {
+      for (j=1; j<=p; j++) ans[isave + (j-1)*nsave]= thcur[j];
+      ans[isave + p*nsave]= phicur;
+      isave++;
+    }
+  }
+  free_dvector(m,1,p); 
+  free_dvector(mortho,1,p); 
+  free_dvector(alpha,1,p); 
+  free_dvector(thcur,1,p); 
+  free_dvector(linpred,0,n-1);
+  free_dmatrix(S,1,p,1,p); free_dmatrix(Sinv,1,p,1,p); free_dmatrix(cholSinv,1,p,1,p); free_dmatrix(inv_cholSinv,1,p,1,p); free_dmatrix(K,1,p,1,p);
+  free_dmatrix(D,1,p,1,p);
+}
+
+//R interface for rmvmomPost
+SEXP rmvmomPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi) {
+  int n= LENGTH(y), nsave;
+  SEXP ans;
+  nsave= floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0);
+  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
+  rmvmomPost(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0]);
+  UNPROTECT(1);
+  return ans;
+}
+
+//Single Gibbs update (th,l) ~ N(th;m,S) * prod I(th[i]^2/ct)^r >l[i]
+//Input
+// - p: dimensionality of th (number of variables)
+// - m: m[1..p] is mean of Normal kernel
+// - cholS: cholS[1..p][1..p] is Cholesky decomp of covariance
+// - K: inverse of cholS
+// - ct: constant (typically obtained as current value of phi*tau)
+// - r: power parameter
+//Input-Output
+// - th: at input th[1..p] is current value of th; at output the updated value
+void rmvmom_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *ct, int r) {
+  int i;
+  double *lower, *upper, *l, *z;
+  lower= dvector(1,p); upper= dvector(1,p); l= dvector(1,p); z= dvector(1,p);
+  //Update l
+  for (i=1; i<=p; i++) {
+    l[i]= runif() * pow(th[i]*th[i] / (*ct), r + .0);
+    upper[i]= sqrt(l[i] * (*ct));
+    lower[i]= -upper[i];
+  }
+  //Update th, cholSth
+  Ax(K, th, z, 1, p, 1, p); //z= K th;
+  rtmvnormOutside_Gibbs(z, th, m, cholS, p, lower, upper);
+  Ax(cholS, z, th, 1, p, 1, p); //th= D z
+  free_dvector(lower,1,p); free_dvector(upper,1,p); free_dvector(l,1,p); free_dvector(z,1,p);
 }
 
 

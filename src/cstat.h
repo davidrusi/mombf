@@ -185,6 +185,7 @@ double quadratic_xseltAxsel(const double *x, double **A, int ini, const int *nse
 
 void Atx(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
 void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
+void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB, double **C); //same but input as 0-indexed vector
 void a_plus_b(const double *a, const double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
 void a_prod_b(const double *a, const double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
 void a_prod_b_sel(const double *a, const double *b, double *c, const int *lengtha, const int *nsel, const int *sel); //same but only using indexes in sel
@@ -258,9 +259,27 @@ double dmvnormC(const double *y, int n, const double *mu, double **cholsinv, dou
 double	qnormC(double cdf, double m, double s);  //quantile from Normal(m,s^2)
 double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
-double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given trunc points
-double rnorm_trunc_prob(double lprob, double rprob, double m, double s); //draw trunc Normal given trunc probs
 void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal
+
+// Truncated Normal
+double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given two truncation points
+double rnorm_trunc_prob(double lprob, double rprob, double m, double s); //draw trunc Normal given trunc probs
+void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rtrunc, int ntrunc, double *m, double *s); //n draws univ trunc Normal given multiple truncation points
+SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
+
+void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *lower, double *upper, int within, int method); //n draws multiv trunc Normal given rectangular constraints
+SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
+void rtmvnormMH(double *ansortho, double *paccept, int n, int p, double *alpha, double **D, double **K, double det, double *lower, double *upper, int within); //Indep prop MH
+void rtmvnormOutside(double *ans, int n, int p, double *alpha, double **D, double *lower, double *upper); //Gibbs sampling, truncation outside interval
+void rtmvnormOutside_Gibbs(double *z, double *Dj, double *alpha, double **D, int p, double *lower, double *upper); //Single Gibbs sampling step
+void rtmvnormWithin(double *ans, int n, int p, double *alpha, double **D, double *lower, double *upper);  //Gibbs sampling, truncation within interval
+void rtmvnormProp(double *z, double *propdens, int p, double *alpha, double **D, double *lower, double *upper, int within); //proposal for multiv trunc Normal
+
+void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int is_low_trunc, int is_up_trunc, int burnin); //multiv trunc Normal given constraint on product
+SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
+void rtmvnormProd_lowup(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int burnin); //lower and upper truncation on product
+void rtmvnormProd_low(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, int burnin); //only lower truncation on product
+void rtmvnormProd_up(double *ans, int n, int p, double *mu, double **Sinv, int k, double upper, int burnin); //only upper truncation on product
 
 // Moments
 double mnorm(double order, double m, double sd); //raw moment of N(m,sd) of order "order"
@@ -284,6 +303,12 @@ double dinvgammaC(double x, double a, double b); //a: shape; b: location; mean o
 
 // Non-local priors
 double dmomNorm(double y, double m, double tau, double phi, int r, int logscale); //Normal MOM prior (power is 2*r)
+
+void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi); //pMOM posterior samples under linear model
+SEXP rmvmomPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi); //R interface for rmvmomPost
+void rmvmom_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *ct, int r); //Gibbs update (th,l) ~ N(th;mu,phi*S) * prod (th[i]^2/tau*phi)>l[i]
+
+
 
 /* More random variate stuff (dcdflib, from CMU statlib "www.stat.cmu.edu") */
 double fifdint(double);

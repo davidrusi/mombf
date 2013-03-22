@@ -1822,7 +1822,7 @@ double ldoublefact(double x)
     double ans = 0.0;
 
     /* :TBD: converts from double to integer without noting rounding intent */
-    for (i = x; i >= 2; i -= 2) {
+    for (i = ((int) x); i >= 2; i -= 2) {
         ans += log(i);
     }
     return(ans);
@@ -1866,7 +1866,8 @@ S10:
     return gamln;
 S20:
     if(*a >= 10.0e0) goto S40;
-    n = (long)(*a - 1.25e0);
+    n = (int)(*a - 1.25e0);
+    //n = (long)(*a - 1.25e0);
     t = *a;
     w = 1.0e0;
     for(i=1; i<=n; i++) {
@@ -3691,7 +3692,7 @@ void samplei_wr(int *x,
     for (i = 0; i < n; i++) {
         int r;
 
-        r = i + (popsize - i - 1) * runif();
+        r = i + (int)((popsize - i - 1) * runif());
         {
             int temp;
 
@@ -3720,7 +3721,7 @@ void sampled_wr(double *x,
     for (i = 0; i < n; i++) {
         int r;
 
-        r = i + (popsize - i - 1) * runif();
+        r = i + (int)((popsize - i - 1) * runif());
         {
             double temp;
 
@@ -3773,7 +3774,7 @@ double dunifC(double x,
 int runifdisc(int min,
               int max)
 {
-    return(min + runif()*(max+1-min));
+    return(min + (int)(runif()*(max+1-min)));
 }
 
 
@@ -4849,7 +4850,7 @@ double mnorm(double order,
              double m,
              double sd)
 {
-    int n = order;
+    int n = (int) order;
     double ans;
 
     if (order == 0.0) {
@@ -5088,7 +5089,7 @@ double qtC(double p,
     P = 2.0 * p;
   }
 
-  if(abs(ndf - 2.0) < eps) {   /* df ~= 2 */
+  if(fabs(ndf - 2.0) < eps) {   /* df ~= 2 */
     q=sqrt(2.0 / (P * (2.0 - P)) - 2.0);
   }
   else if (ndf < 1 + eps) {   /* df ~= 1 */

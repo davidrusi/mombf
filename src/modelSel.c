@@ -268,7 +268,7 @@ void sample_latentProbit(double *y, double *res, double *sumres2, int *ybinary, 
 // - res: on input, vector with residuals given the current coefficient value. On output, residuals given the updated coefficient value.
 void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupdate, double *res, double *partialres, double *sumres2, double *sumpartialres2, int j, int *nsel, int *curModel, double *curCoef1, double *curPhi, struct modavgPars *pars) {
   int n= *(*pars).n, logscale=1, nsel0, nsel1, deltaprop, nu, i;
-  double m1, *xj, m0, logbf, logpratio, thetaprop, m, S, propPars[5], lhood, lprior, lprop, lambda, num, den, sqrtPhi=sqrt(*curPhi);
+  double m1, *xj, m0, logbf, logpratio, thetaprop, m, S, propPars[5], lhood, lprior, lprop, lambda=0.0, num, den, sqrtPhi=sqrt(*curPhi);
   pt2modavgPrior priorFunction= NULL;
   *resupdate= 0;
   xj= (*pars).x1+j*n; //pointer to variable j in x1
@@ -288,7 +288,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
   *pinclude= 1.0/(1.0+exp(logbf+logpratio));
   if (runif() < *pinclude) { deltaprop=1; } else { deltaprop=0; }
   //Propose coef
-  nu= sqrt(n);
+  nu= (int) sqrt(n);
   if ((curModel[j]==0) && (deltaprop==0)) {  //proposal is to keep variable out of the model
     *newdelta=0; *newcoef=0;
   } else {
@@ -951,7 +951,7 @@ void modelSelectionC(int *postSample, double *postOther, double *margpp, int *po
 
   //Initialize
   if (*verbose ==1) Rprintf("Running Gibbs sampler");
-  niterthin= floor((*niter - *burnin +.0)/(*thinning+.0));
+  niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
   for (j=0; j< *(*pars).p; j++) { margpp[j]= 0; }
   nsel= *ndeltaini;
@@ -1061,12 +1061,12 @@ void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew) {
 //Copy sel into selnew. 
 // - If j in sel, don't copy it in selnew and set nselnew=nsel-1. 
 // - If j not in sel, add it to selnew and set nselnew=nsel+1.
-  int i, found;
+  int i, ii, found;
   for (i=0, found=0; (i< *nsel) && (found==0); i++) { selnew[i]= sel[i]; found= (newelem==sel[i]); }
   if (found==0) { //add newelem
     selnew[i]= newelem; (*nselnew)= (*nsel)+1;
   } else {  //remove new elem
-    for (i=i; i< *nsel; i++) { selnew[i-1]= sel[i]; }
+    for (ii=i; ii< *nsel; ii++) { selnew[ii-1]= sel[ii]; }
     (*nselnew)= (*nsel)-1;
   }
 }
@@ -1222,7 +1222,7 @@ double rsumlogsq(double *th, int *r, int *nsel) {
 
 double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   int i,j;
-  double *m, s, **S, **Sinv, detS, num, den, logtau= log(*(*pars).tau), tauinv= 1.0/(*(*pars).tau), logphi= log(*(*pars).phi), ans, *thopt, **Voptinv, fopt;
+  double *m, s, **S, **Sinv, detS, num, den, logtau= log(*(*pars).tau), tauinv= 1.0/(*(*pars).tau), logphi= log(*(*pars).phi), ans=0.0, *thopt, **Voptinv, fopt;
 
   if (*nsel ==0) {
     m= dvector(1,1);
@@ -1273,7 +1273,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, nu;
-  double num, den, ans, term1, *m, **S, **Sinv, detS, *thopt, **Voptinv, fopt, phiadj, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda);
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, *thopt, **Voptinv, fopt, phiadj, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda);
   if (*nsel ==0) {
     term1= .5*(*(*pars).n + *(*pars).alpha);
     num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
@@ -1285,7 +1285,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);
-    nu= 2*nuhalf;
+    nu= (int) 2*nuhalf;
 
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2) - log(*(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel)));
     den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
@@ -1641,7 +1641,7 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   } else {
     if ((*(*pars).method)==1) {  //MC + Univariate integration
       set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
-      adj= (qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
+      ans= (qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
       if ((*(*pars).logscale)==1) ans= log(ans);
     } else {                     //Laplace or Hybrid-Laplace MC
       V= dmatrix(1,*nsel,1,*nsel); 

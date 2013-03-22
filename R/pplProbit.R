@@ -78,12 +78,18 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
               immediate.=TRUE)
     }
   }
-  nlpseq <- if (pp.pkgname %in% loadedNamespaces()) {
-              mclapply(as.list(tauseq),
+  nlpseq <- if ((pp.pkgname %in% loadedNamespaces()) & (pp.pkgname=='parallel'))  {
+                       parallel::mclapply(as.list(tauseq),
                        nlpfit,
                        mc.cores=mc.cores,
                        mc.preschedule=FALSE)
-            } else {
+            } else if ((pp.pkgname %in% loadedNamespaces()) & (pp.pkgname=='multicore'))  {
+                       multicore::mclapply(as.list(tauseq),
+                       nlpfit,
+                       mc.cores=mc.cores,
+                       mc.preschedule=FALSE)
+            }
+            else {
               lapply(as.list(tauseq), nlpfit)
             }
 

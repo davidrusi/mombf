@@ -5,6 +5,7 @@
 #include "cstat.h"
 #include "modelSel.h"
 #include "do_mombf.h"
+#include "modselIntegral.h"
 
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;
@@ -34,7 +35,7 @@ pt2margFun set_priorFunction(int *prDelta) {
   //Returns pointer to function to compute the prior probability of a model indicator
   // - prDelta: 0 for uniform, 1 for binomial, 2 for beta-binomial
   pt2margFun ans=NULL;
-  if (*prDelta==0) { ans= unifPrior; } else if ((*prDelta==1) || (*prDelta==2)) { ans= binomPrior; }
+  if (*prDelta==0) { ans= unifPrior; } else if (*prDelta==1) { ans= binomPrior; } else if (*prDelta==2) { ans= betabinPrior; }
   return ans;
 }
 
@@ -931,7 +932,7 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
   SEXP ans;
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale);
-  modelSelectionC(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
+  modelSelectionGibbs(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
 
   PROTECT(ans = allocVector(REALSXP, 1));
   *REAL(ans)= 1.0;
@@ -939,7 +940,7 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
   return ans;
 }
 
-void modelSelectionC(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
+void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
   int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, niter10, niterthin, savecnt, ilow, iupper;
   double currentJ, newM, newP, newJ, ppnew, u;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
@@ -997,18 +998,79 @@ void modelSelectionC(int *postSample, double *postOther, double *margpp, int *po
   free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
 }
 
+//Same as modelSelectionGibbs, but log(integrated likelihood) + log(prior) are managed through an object of class modselIntegrals
+void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
+  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, niter10, niterthin, savecnt, ilow, iupper;
+  double currentJ, newM, newP, newJ, ppnew, u;
+  pt2margFun jointFunction=NULL, marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
+
+  marginalFunction= set_marginalFunction(prCoef, knownphi);
+  priorFunction= set_priorFunction(prDelta);
+  double joint(int *sel, int *nsel, struct marginalPars *pars) return(marginalFunction(sel,&nsel,pars) + priorFunction(sel,&nsel,pars));
+  jointFunction= joint;
+  modselIntegral *integrals= new modselIntegral(jointFunction, *(*pars).p);
+ 
+  sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
+
+  //Initialize
+  if (*verbose ==1) Rprintf("Running Gibbs sampler");
+  niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
+  if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
+  for (j=0; j< *(*pars).p; j++) { margpp[j]= 0; }
+  nsel= *ndeltaini;
+  for (j=0; j< nsel; j++) { sel[j]= deltaini[j]; postSample[deltaini[j]*niterthin]= postMode[deltaini[j]]= 1; }
+  if ((*prDelta)==2) { postOther[0]= *(*pars).prDeltap; }
+  currentJ= jointFunction(sel,&nsel,pars);
+  postProb[0]= *postModeProb= currentJ;
+  if (*burnin >0) { ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; } else { ilow=1; savecnt=1; iupper= *niter; } //if no burnin, start at i==1 & save initial value
+
+  //Iterate
+  for (i=ilow; i< iupper; i++) {
+    for (j=0; j< *(*pars).p; j++) {
+      sel2selnew(j,sel,&nsel,selnew,&nselnew); //copy sel into selnew, adding/removing jth element
+      newJ= jointFunction(selnew,&nselnew,pars);
+      if (newJ > *postModeProb) {   //update posterior mode
+        *postModeProb= newJ;
+        for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
+        for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; } 
+      }
+      ppnew= 1.0/(1.0+exp(currentJ-newJ));
+      if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew; } else { margpp[j]+= (1-ppnew); } }
+      u= runif();
+      if (u<ppnew) {  //update model indicator
+        selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
+      }
+    }  //end j for
+    if ((i>0) && ((i%(*thinning))==0)) {
+      if ((*prDelta)==2) { 
+        *(*pars).prDeltap= rbetaC(nsel + (*pars).parprDeltap[0], *(*pars).p - nsel + (*pars).parprDeltap[1]);
+        postOther[savecnt]= *(*pars).prDeltap;
+      }
+      for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin+savecnt]= 1; }
+      postProb[savecnt]= currentJ;
+      savecnt++;
+    }
+    if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
+  }
+  if (iupper>ilow) { for (j=0; j< *(*pars).p; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
+  if (*verbose==1) Rprintf(" Done.\n");
+
+  free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
+  delete integrals;
+}
+
 //greedyVarSelC: greedy search for posterior mode in variable selection.
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
 
-SEXP greedyVarSelCI(SEXP SpostMode, SEXP SothersMode, SEXP SpostModeProb, SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP SpostMode, SEXP SpostModeProb, SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
   int logscale=1;
   struct marginalPars pars;
   SEXP ans;
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale);
-  greedyVarSelC(INTEGER(SpostMode),REAL(SothersMode),REAL(SpostModeProb),INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sverbose),&pars);
+  greedyVarSelC(INTEGER(SpostMode),REAL(SpostModeProb),INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sverbose),&pars);
   PROTECT(ans = allocVector(REALSXP, 1));
   *REAL(ans)= 1.0;
   UNPROTECT(1);
@@ -1016,9 +1078,9 @@ SEXP greedyVarSelCI(SEXP SpostMode, SEXP SothersMode, SEXP SpostModeProb, SEXP S
 
 }
 
-void greedyVarSelC(int *postMode, double *othersMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
   int i, j, *sel, *selnew, *selaux, nsel, nselnew, nchanges;
-  double newJ, a, b;
+  double newJ;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
   marginalFunction= set_marginalFunction(prCoef, knownphi);
@@ -1038,18 +1100,11 @@ void greedyVarSelC(int *postMode, double *othersMode, double *postModeProb, int 
       if (newJ > *postModeProb) {
         *postModeProb= newJ;  //update post mode prob
         if (postMode[j]==0) { postMode[j]= 1; } else { postMode[j]= 0; }  //update post mode
-        //for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
-        //for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; } 
         selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; //update model indicator
         nchanges++;
       }
     } //end j for
-    if ((*prDelta)==2) { 
-      a= nsel + (*pars).parprDeltap[0]; b= *(*pars).p - nsel + (*pars).parprDeltap[1];
-      if ((a>1) && (b>1)) { *(*pars).prDeltap= (a-1)/(a+b-2); } else { *(*pars).prDeltap= a/(a+b); }
-    }
   }
-  othersMode[0]= *(*pars).prDeltap;
   if (*verbose==1) Rprintf("Done.\n");
 
   free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
@@ -1088,6 +1143,9 @@ double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
 } 
 
 //nsel ~ Beta-Binomial(prModelpar[0],prModelPar[1])
+double betabinPrior(int *sel, int *nsel, struct marginalPars *pars) {
+  return bbPrior(*nsel,*(*pars).p,(*pars).parprDeltap[0],(*pars).parprDeltap[1],1);
+}
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
   return bbPrior(*nsel,*(*pars).p1,(*pars).prModelpar[0],(*pars).prModelpar[1],1);
 }

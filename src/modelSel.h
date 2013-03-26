@@ -26,7 +26,7 @@ struct marginalPars {
   double *tau;      //coefficients prior dispersion parameter
   int *r;           //MOM power parameter for prior on coefficients
   double *prDeltap; //For Binomial prior on model space, prDeltap is the prob of success
-  double *parprDeltap; //For Binomial prior on model space with unknown success prob, parprDeltap are the Beta hyper-parameters
+  double *parprDeltap; //For Beta-Binomial prior on model space, parprDeltap[0],parprDeltap[1] are the prior parameters
   int *logscale;
 };
 
@@ -116,7 +116,7 @@ double mvtexpect(const double* mu, const double* sigma, int n, int power, double
 //*************************************************************************************
 
 void modelSelectionC(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
-void greedyVarSelC(int *postMode, double *othersMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
 void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew);
 
 // Priors on Model Space (always return on log scale)
@@ -124,6 +124,7 @@ double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 double binomPrior(int *sel, int *nsel, struct marginalPars *pars);
 double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
+double betabinPrior(int *sel, int *nsel, struct marginalPars *pars);
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 
 //*************************************************************************************

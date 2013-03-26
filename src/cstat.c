@@ -1480,7 +1480,25 @@ int *ivector(int nl,
 }
 
 
-/* Allocate float vector with subscript range v[nl..nh] */
+/* Allocate char vector with subscript range v[nl..nh] */
+char *charvector(int nl,
+                int nh)
+{
+    char  *v;
+    size_t count = nh-nl+1;
+
+    assert(count > 0);
+
+    //v = malloc( sizeof(char) * ( count ) );
+    v = (char *) calloc(count, sizeof(char));
+    if (v == NULL) {
+        nrerror("charvector", "allocate a character vector", "");
+        /*NOTREACHED*/
+    }
+    return v-nl;
+}
+
+
 float *vector(int nl,
               int nh)
 {
@@ -1682,6 +1700,18 @@ double ***darray3(int n1,
     return a;
 }
 
+
+/* Free char vector allocated with charvector() */
+void free_charvector(char *v,
+                  int nl,
+                  int nh)
+{
+    assert(v != NULL);
+
+    if ((v+nl) != NULL) {
+        free((char  *) (v+nl));
+    }
+}
 
 /* Free int vector allocated with ivector() */
 void free_ivector(int *v,

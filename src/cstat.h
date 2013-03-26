@@ -121,6 +121,9 @@ void nrerror(const char *proc, const char *act, const char *what);
 /* Memory allocation                                          */
 /**************************************************************/
 
+
+
+char *charvector(int ,int);
 float   *vector(int, int);
 double  *dvector(int, int);
 double  **dmatrix(int, int, int, int);
@@ -133,6 +136,7 @@ int     **imatrix(int, int, int, int);
 //int ***iarray3(int p1, int p2, int p3);
 int ***iarray3(int n1, int n2, int n3);   //allocate 3-way int array [0..n1-1][0..n2-1][0..n3-1]
 
+void free_charvector(char *v,int nl,int nh);
 void free_vector(float *, int, int);
 void free_dvector(double *, int, int);
 void free_ivector(int *, int, int);

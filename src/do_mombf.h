@@ -94,7 +94,6 @@ extern SEXP modelSelectionCI(
 
 extern SEXP greedyVarSelCI(
   SEXP vnt_postMode,
-  SEXP vnt_othersMode,
   SEXP vnt_postModeProb,
   SEXP vnt_knownphi,
   SEXP vnt_priorCoef,

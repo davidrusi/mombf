@@ -5,7 +5,7 @@
 #include "cstat.h"
 #include "modelSel.h"
 #include "do_mombf.h"
-#include "modselIntegral.h"
+#include "modselIntegrals.h"
 
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;

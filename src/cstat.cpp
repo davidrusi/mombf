@@ -5316,7 +5316,7 @@ void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, dou
   int i, j, k, isave, nsave;
   double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, sqrtphi, tauphi, th2sum, apost, bpost, *linpred, ssr;
   //Pre-compute stuff
-  nsave= floor((niter - burnin +.0)/(thinning +.0));
+  nsave= (int) floor((niter - burnin +.0)/(thinning +.0));
   m= dvector(1,p); mortho= dvector(1,p); alpha= dvector(1,p); thcur= dvector(1,p); linpred= dvector(0,n-1);
   S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p); cholSinv= dmatrix(1,p,1,p); inv_cholSinv= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
   D= dmatrix(1,p,1,p); 
@@ -5373,7 +5373,7 @@ void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, dou
 SEXP rmvmomPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi) {
   int n= LENGTH(y), nsave;
   SEXP ans;
-  nsave= floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0);
+  nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
   ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
   rmvmomPost(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0]);
   UNPROTECT(1);
@@ -7251,7 +7251,7 @@ void setall(long iseed1,
 extern void gsrgs(long getset,long *qvalue);
 extern void gssst(long getset,long *qset);
 extern void gscgn(long getset,long *g);
-extern long Xm1,Xm2,Xa1vw,Xa2vw,Xig1[],Xig2[];
+extern long Xm1,Xm2,Xa1vw,Xa2vw,Xig1[32],Xig2[32];
 static long T1;
 static long g,ocgn;
 static long qrgnin;
@@ -7305,7 +7305,7 @@ void initgn(long isdtyp)
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
 extern void gscgn(long getset,long *g);
-extern long Xm1,Xm2,Xa1w,Xa2w,Xig1[],Xig2[],Xlg1[],Xlg2[],Xcg1[],Xcg2[];
+extern long Xm1,Xm2,Xa1w,Xa2w,Xig1[32],Xig2[32],Xlg1[32],Xlg2[32],Xcg1[32],Xcg2[32];
 static long g;
 static long qrgnin;
 /*
@@ -7363,8 +7363,8 @@ long ignlgi(void)
 extern void gsrgs(long getset,long *qvalue);
 extern void gssst(long getset,long *qset);
 extern void gscgn(long getset,long *g);
-extern long Xm1,Xm2,Xa1,Xa2,Xcg1[],Xcg2[];
-extern long Xqanti[];
+extern long Xm1,Xm2,Xa1,Xa2,Xcg1[32],Xcg2[32];
+extern long Xqanti[32];
 static long ignlgi,curntg,k,s1,s2,z;
 static long qqssd,qrgnin;
 /*
@@ -7414,7 +7414,7 @@ void inrgcm(void)
 #define numg 32L
 extern void gsrgs(long getset,long *qvalue);
 extern long Xm1,Xm2,Xa1,Xa2,Xa1w,Xa2w,Xa1vw,Xa2vw;
-extern long Xqanti[];
+extern long Xqanti[32];
 static long T1;
 static long i;
 /*

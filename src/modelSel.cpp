@@ -4,7 +4,7 @@
 #include <Rinternals.h>
 #include "cstat.h"
 #include "modelSel.h"
-#include "do_mombf.h"
+//#include "do_mombf.h"
 #include "modselIntegrals.h"
 
 //Global variables defined for minimization/integration routines
@@ -157,7 +157,7 @@ void pmomLM(int *postModel, double *margpp, double *postCoef1, double *postCoef2
   int i, j, k, ilow, iupper, savecnt, niterthin, niter10, nsel= *niniModel, *curModel, newdelta, n=*(*pars).n, p1=*(*pars).p1, p2=*(*pars).p2, psn, resupdate, isbinary=*(*pars).isbinary;
   double *res, *partialres, sumres2, sumpartialres2, newcoef, *curCoef1, *curCoef2, curPhi, *linpred1, *linpred2, pinclude, *temp;
   if (*verbose) Rprintf("Running MCMC");
-  niterthin= floor((*niter - *burnin +.0)/(*thinning +.0));
+  niterthin= (int) floor((*niter - *burnin +.0)/(*thinning +.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
   if (*burnin >0) { ilow= - *burnin; savecnt=0; iupper= *niter - *burnin +1; } else { ilow=0; savecnt=1; iupper= *niter; }
   //Initialize
@@ -908,7 +908,7 @@ double LogFactorial(int n) {
 // MODEL SELECTION ROUTINES
 //********************************************************************************************
 
-//modelSelectionC: Gibbs sampler for model selection in linear regression for several choices of prior distribution
+//modelSelectionGibbs: Gibbs sampler for model selection in linear regression for several choices of prior distribution
 //Input parameters
 // - knownphi: is residual variance phi known?
 // - priorCoef: 0 for product MOM, 1 for product iMOM, 2 for product eMOM
@@ -932,7 +932,7 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
   SEXP ans;
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale);
-  modelSelectionGibbs(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
+  modelSelectionGibbs2(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
 
   PROTECT(ans = allocVector(REALSXP, 1));
   *REAL(ans)= 1.0;
@@ -1001,14 +1001,13 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
 //Same as modelSelectionGibbs, but log(integrated likelihood) + log(prior) are managed through an object of class modselIntegrals
 void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
   int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, niter10, niterthin, savecnt, ilow, iupper;
-  double currentJ, newM, newP, newJ, ppnew, u;
-  pt2margFun jointFunction=NULL, marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
+  double currentJ, newJ, ppnew, u;
+  pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
   marginalFunction= set_marginalFunction(prCoef, knownphi);
   priorFunction= set_priorFunction(prDelta);
-  double joint(int *sel, int *nsel, struct marginalPars *pars) return(marginalFunction(sel,&nsel,pars) + priorFunction(sel,&nsel,pars));
-  jointFunction= joint;
-  modselIntegral *integrals= new modselIntegral(jointFunction, *(*pars).p);
+
+  modselIntegrals *integrals= new modselIntegrals(marginalFunction, priorFunction, *(*pars).p);
  
   sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
 
@@ -1020,7 +1019,7 @@ void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, in
   nsel= *ndeltaini;
   for (j=0; j< nsel; j++) { sel[j]= deltaini[j]; postSample[deltaini[j]*niterthin]= postMode[deltaini[j]]= 1; }
   if ((*prDelta)==2) { postOther[0]= *(*pars).prDeltap; }
-  currentJ= jointFunction(sel,&nsel,pars);
+  currentJ= integrals->getJoint(sel,&nsel,pars);
   postProb[0]= *postModeProb= currentJ;
   if (*burnin >0) { ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; } else { ilow=1; savecnt=1; iupper= *niter; } //if no burnin, start at i==1 & save initial value
 
@@ -1028,7 +1027,7 @@ void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, in
   for (i=ilow; i< iupper; i++) {
     for (j=0; j< *(*pars).p; j++) {
       sel2selnew(j,sel,&nsel,selnew,&nselnew); //copy sel into selnew, adding/removing jth element
-      newJ= jointFunction(selnew,&nselnew,pars);
+      newJ= integrals->getJoint(selnew,&nselnew,pars);
       if (newJ > *postModeProb) {   //update posterior mode
         *postModeProb= newJ;
         for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
@@ -1343,7 +1342,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);
-    nu= (int) 2*nuhalf;
+    nu= (int) (2.0*nuhalf);
 
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2) - log(*(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel)));
     den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);

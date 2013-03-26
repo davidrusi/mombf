@@ -348,6 +348,7 @@ double midpnt(double (* const func)(double), double a, double b, int n); //nth s
 double midinf(double (* const func)(double), double aa, double bb, int n); //nth stage refinement of integral of func from aa to bb (evenly spaced in 1/x)
 double qromo(double (* const func)(double), double a, double b, double (* const choose)(double(* const)(double), double, double, int)); //Romberg integr on open interval (a,b)
 
+
 /**************************************************************/
 /* Interpolation, extrapolation and splines                   */
 /**************************************************************/

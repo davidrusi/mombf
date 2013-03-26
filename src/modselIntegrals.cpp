@@ -1,11 +1,12 @@
-#include "modelIntegrals.h"
+#include "modselIntegrals.h"
 #include "cstat.h"
 using namespace std;
 
-modselIntegrals::modselIntegrals(pt2margFun fun, int nvars) {
+modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nvars) {
 
   this->maxVars= nvars;
-  this->logjoint= fun;
+  this->marginalFunction= marfun;
+  this->priorFunction= priorfun;
 
   this->selchar = (char *) calloc(nvars, sizeof(char));
   //this->selchar= charvector(0,maxVars-1);
@@ -33,7 +34,7 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
   if (logjointSaved.count(selchar) > 0) return logjointSaved[selchar];
 
   double ans;
-  ans= logjoint(sel,nsel,pars);
+  ans= marginalFunction(sel,nsel,pars) + priorFunction(sel,nsel,pars);
   logjointSaved[selchar]= ans;
   return ans;
 } 

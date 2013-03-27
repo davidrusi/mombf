@@ -4,7 +4,7 @@
 #include <Rinternals.h>
 #include "cstat.h"
 #include "modelSel.h"
-//#include "do_mombf.h"
+#include "do_mombf.h"
 #include "modselIntegrals.h"
 
 //Global variables defined for minimization/integration routines

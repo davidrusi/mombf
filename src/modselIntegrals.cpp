@@ -3,23 +3,27 @@
 using namespace std;
 
 modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nvars) {
+  int i;
 
   this->maxVars= nvars;
   this->marginalFunction= marfun;
   this->priorFunction= priorfun;
 
-  this->selchar = (char *) calloc(nvars, sizeof(char));
-  //this->selchar= charvector(0,maxVars-1);
+  this->maxIntegral= -1.0e250;
+
+  this->zerochar = (char *) calloc(nvars, sizeof(char));
+  for (i=0; i<nvars; i++) this->zerochar[i]= '0';
+
 }
 
 modselIntegrals::~modselIntegrals() {
 
-  free((char  *) this->selchar);
-  //free_charvector(this->selchar, 0, maxVars-1);
+  free((char  *) this->zerochar);
+  //free_charvector(this->zerochar, 0, maxVars-1);
 
 }
 
-//Return log(marginal likelihood) + log(prior). Uses logjointSaved if available, else adds result to logjointSaved
+//Return log(marginal likelihood) + log(prior). Uses logjointSaved if available, else adds result to logjointSaved. When maxVars>16, only models with a log-difference <=10 with the current mode are stores
 // Input: 
 //
 //   - sel: integer vector [0..maxVars-1], where 0's and 1's indicate covariates out/in the model (respectively)
@@ -29,12 +33,24 @@ modselIntegrals::~modselIntegrals() {
 // Output: evaluates log joint. It returns previously saved results in logjointSaved if available, else it performs the computation and saves the result in logjointSaved
 double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars) {
   int i;
-  for (i=0; i<= maxVars; i++) if (sel[i]==0) this->selchar[i]= '0'; else this->selchar[i]= '1';
-  
-  if (logjointSaved.count(selchar) > 0) return logjointSaved[selchar];
-
   double ans;
-  ans= marginalFunction(sel,nsel,pars) + priorFunction(sel,nsel,pars);
-  logjointSaved[selchar]= ans;
+
+  for (i=0; i< *nsel; i++) zerochar[sel[i]]= '1';
+  std::string s (zerochar);
+  
+  if (logjointSaved.count(s) > 0) { 
+    ans= logjointSaved[s];
+  } else {
+    ans= marginalFunction(sel,nsel,pars) + priorFunction(sel,nsel,pars);
+    double d= maxIntegral - ans;
+    if (d<10 || maxVars<=16) logjointSaved[s]= ans;
+    if (d<0) {
+      maxIntegral= ans;
+      maxModel= s;
+    }
+  }
+
+  for (i=0; i<= *nsel; i++) this->zerochar[sel[i]]= '0';
+
   return ans;
 } 

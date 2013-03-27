@@ -16,6 +16,7 @@
 #include <Rinternals.h>
 #include "cstat.h"
 
+
 static const char interface_c_sccs_id[] = "%W%";
 static const char mess_c_sccs_id[] = "%W%";
 static const char nrutil_c_sccs_id[] = "%W%";
@@ -66,9 +67,9 @@ static void _cstaterror(const char *proc,
                         const char *act,
                         const char *what)
 {
-    assert(proc != NULL);
-    assert(act != NULL);
-    assert(what != NULL);
+    //assert(proc != NULL);
+    //assert(act != NULL);
+    //assert(what != NULL);
 
     REprintf("\n ** Error ");
     if (proc[0] != '\0') {
@@ -101,8 +102,8 @@ double meani(const int *x,
     register int i;
     double value = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
 
     for (i = 0; i <= lim; i++) {
         value += x[i];
@@ -120,9 +121,9 @@ double wmeani(const int *x,
     double value = 0.0;
     double wtot = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(w != NULL);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * x[i];
@@ -140,8 +141,8 @@ double meanx(const double *x,
     register int i;
     double value = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
 
     for (i = 0; i <= lim; i++) {
         value += x[i];
@@ -159,9 +160,9 @@ double wmeanx(const double *x,
     double value = 0.0;
     double wtot = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(w != NULL);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * x[i];
@@ -180,12 +181,12 @@ double vari(const int *x,
     register int i;
     double value = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(unbiased == false || unbiased == true);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(unbiased == false || unbiased == true);
 
     for (i = 0; i <= lim; i++) {
-        value += pow(x[i], 2) / (1.0+lim);
+      value += pow((double) x[i], 2.0) / (1.0+lim);
     }
     value -= pow(meani(x, lim), 2);
     if (unbiased && lim>0) {
@@ -203,13 +204,13 @@ double wvari(const int *x,
     double value = 0.0;
     double wtot = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(w != NULL);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
-        value += w[i] * pow(x[i], 2);
-        wtot += w[i];
+      value += w[i] * pow((double) x[i], 2.0);
+      wtot += w[i];
     }
     value = value/wtot - pow(wmeani(x, lim, w), 2);
     return value;
@@ -224,9 +225,9 @@ double varx(const double *x,
     register int i;
     double value = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(unbiased == false || unbiased == true);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(unbiased == false || unbiased == true);
 
     for (i = 0; i <= lim; i++) {
         value += pow(x[i], 2) / (1.0+lim);
@@ -247,9 +248,9 @@ double wvarx(const double *x,
     double value = 0.0;
     double wtot = 0.0;
 
-    assert(x != NULL);
-    assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    assert(w != NULL);
+    //assert(x != NULL);
+    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
+    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * pow(x[i], 2);
@@ -270,7 +271,7 @@ double cv(const double *x,
     double s = 0.0;
     double ans;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     for (i = ini; i <= fi; i++) {
         double value;
@@ -296,7 +297,7 @@ double cvinv(const double *x,
     double s = 0.0;
     double ans;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     for (i = ini; i <= fi; i++) {
         double value;
@@ -322,8 +323,8 @@ void colMeans(double *m,
     register int i;
     register int j;
 
-    assert(m != NULL);
-    assert(x != NULL);
+    //assert(m != NULL);
+    //assert(x != NULL);
 
     for (j = 0; j < ncol; j++) {
         m[j] = 0.0;
@@ -350,8 +351,8 @@ void colVar(double *v,
     double *m;
     double *m2;
 
-    assert(v != NULL);
-    assert(x != NULL);
+    //assert(v != NULL);
+    //assert(x != NULL);
 
     m  = dvector(0, ncol-1);
     m2 = dvector(0, ncol-1);
@@ -389,8 +390,8 @@ void colCV(double *cv,
     double *m;
     double *s;
 
-    assert(cv != NULL);
-    assert(x != NULL);
+    //assert(cv != NULL);
+    //assert(x != NULL);
 
     m = dvector(0, ncol);
     s = dvector(0, ncol);
@@ -429,8 +430,8 @@ void colCVinv(double *cv,
     double *m;
     double *s;
 
-    assert(cv != NULL);
-    assert(x != NULL);
+    //assert(cv != NULL);
+    //assert(x != NULL);
 
     m = dvector(0, ncol);
     s = dvector(0, ncol);
@@ -487,13 +488,13 @@ void nn_bayes(double *mpo,
 {
     double *z;
 
-    assert(mpo != NULL);
-    assert(mpr != NULL);
-    assert(Spo != NULL);
-    assert(y != NULL);
-    assert(Spo_inv != NULL);
-    assert(Spr_inv != NULL);
-    assert(Slik_inv != NULL);
+    //assert(mpo != NULL);
+    //assert(mpr != NULL);
+    //assert(Spo != NULL);
+    //assert(y != NULL);
+    //assert(Spo_inv != NULL);
+    //assert(Spr_inv != NULL);
+    //assert(Slik_inv != NULL);
 
     z = dvector(1, p);
 
@@ -526,11 +527,11 @@ void nn_bayes_rand(double *theta,
     double **S_inv;
     double **cholS;
 
-    assert(theta != NULL);
-    assert(Spr_inv != NULL);
-    assert(mpr != NULL);
-    assert(Slik_inv != NULL);
-    assert(y != NULL);
+    //assert(theta != NULL);
+    //assert(Spr_inv != NULL);
+    //assert(mpr != NULL);
+    //assert(Slik_inv != NULL);
+    //assert(y != NULL);
 
     /* Allocate memory */
     z = dvector(0, p-1);
@@ -582,17 +583,17 @@ double nn_integral(const double *x,
     double *m;
     double ans;
 
-    assert(x != NULL);
-    assert(rx != NULL);
-    assert(Vxinv != NULL);
-    assert(detVx != NULL);
-    assert(mpr != NULL);
-    assert(rpr != NULL);
-    assert(Vprinv != NULL);
-    assert(detVpr != NULL);
-    assert(p != NULL);
-    assert(logscale != NULL);
-    assert((*logscale == 0) || (*logscale == 1));
+    //assert(x != NULL);
+    //assert(rx != NULL);
+    //assert(Vxinv != NULL);
+    //assert(detVx != NULL);
+    //assert(mpr != NULL);
+    //assert(rpr != NULL);
+    //assert(Vprinv != NULL);
+    //assert(detVpr != NULL);
+    //assert(p != NULL);
+    //assert(logscale != NULL);
+    //assert((*logscale == 0) || (*logscale == 1));
 
     m = dvector(1, *p);
     Vsum = dmatrix(1, *p, 1, *p);
@@ -656,17 +657,17 @@ void lm(double *b,
 {
     register int i;
 
-    assert(b != NULL);
-    assert(XtX != NULL);
-    assert(invXtX != NULL);
-    assert(Xty != NULL);
-    assert(s != NULL);
-    assert(ypred != NULL);
-    assert(y != NULL);
-    assert(X != NULL);
-    assert(n != NULL);
-    assert(p != NULL);
-    assert(useXtX != NULL);
+    //assert(b != NULL);
+    //assert(XtX != NULL);
+    //assert(invXtX != NULL);
+    //assert(Xty != NULL);
+    //assert(s != NULL);
+    //assert(ypred != NULL);
+    //assert(y != NULL);
+    //assert(X != NULL);
+    //assert(n != NULL);
+    //assert(p != NULL);
+    //assert(useXtX != NULL);
 
     if (*n < *p) {
         errorC("lm", "linear model with more variables than observations", 0);
@@ -746,26 +747,26 @@ void lmbayes(double *bpost,
     double s_ls;
     double **Vb_inv;
 
-    assert(bpost != NULL);
-    assert(spost != NULL);
-    assert(b != NULL);
-    assert(Vb != NULL);
-    assert(a_s != NULL);
-    assert(b_s != NULL);
-    assert(XtX != NULL);
-    assert(invXtX != NULL);
-    assert(Xty != NULL);
-    assert(B != NULL);
-    assert(y != NULL);
-    assert(X != NULL);
-    assert(n != NULL);
-    assert(p != NULL);
-    assert(useXtX != NULL);
-    assert(mpr != NULL);
-    assert(Spr_inv != NULL);
-    assert(tauprior != NULL);
-    assert(nu0 != NULL);
-    assert(s0 != NULL);
+    //assert(bpost != NULL);
+    //assert(spost != NULL);
+    //assert(b != NULL);
+    //assert(Vb != NULL);
+    //assert(a_s != NULL);
+    //assert(b_s != NULL);
+    //assert(XtX != NULL);
+    //assert(invXtX != NULL);
+    //assert(Xty != NULL);
+    //assert(B != NULL);
+    //assert(y != NULL);
+    //assert(X != NULL);
+    //assert(n != NULL);
+    //assert(p != NULL);
+    //assert(useXtX != NULL);
+    //assert(mpr != NULL);
+    //assert(Spr_inv != NULL);
+    //assert(tauprior != NULL);
+    //assert(nu0 != NULL);
+    //assert(s0 != NULL);
 
     if (*useXtX == 0) {
         AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
@@ -869,22 +870,22 @@ void lmbayes_knownvar(double *bpost,
     double s_ls;
     double **Vb_inv;
 
-    assert(bpost != NULL);
-    assert(b != NULL);
-    assert(Vb != NULL);
-    assert(XtX != NULL);
-    assert(invXtX != NULL);
-    assert(Xty != NULL);
-    assert(sigma != NULL);
-    assert(B != NULL);
-    assert(y != NULL);
-    assert(X != NULL);
-    assert(n != NULL);
-    assert(p != NULL);
-    assert(useXtX != NULL);
-    assert(mpr != NULL);
-    assert(Spr_inv != NULL);
-    assert(tauprior != NULL);
+    //assert(bpost != NULL);
+    //assert(b != NULL);
+    //assert(Vb != NULL);
+    //assert(XtX != NULL);
+    //assert(invXtX != NULL);
+    //assert(Xty != NULL);
+    //assert(sigma != NULL);
+    //assert(B != NULL);
+    //assert(y != NULL);
+    //assert(X != NULL);
+    //assert(n != NULL);
+    //assert(p != NULL);
+    //assert(useXtX != NULL);
+    //assert(mpr != NULL);
+    //assert(Spr_inv != NULL);
+    //assert(tauprior != NULL);
 
     if (*useXtX == 0) {
         AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
@@ -945,7 +946,7 @@ void lmbayes_knownvar(double *bpost,
 /* open file for input */
 FILE *openIn(const char *filename)
 {
-    assert(filename != NULL);
+    //assert(filename != NULL);
     if ((ifile = fopen(filename, "r")) == NULL) {
         fserror("openIn", "open file for read", filename);
         /*NOTREACHED*/
@@ -957,7 +958,7 @@ FILE *openIn(const char *filename)
 /* open file for output */
 FILE *openOut(const char *filename)
 {
-    assert(filename != NULL);
+    //assert(filename != NULL);
     if ((ofile = fopen(filename, "w")) == NULL) {
         fserror("openOut", "open file for write", filename);
         /*NOTREACHED*/
@@ -1171,8 +1172,8 @@ void fwriteDoubleArray(FILE *f,
     int s1 = 0;
     int s2 = 0;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
@@ -1209,8 +1210,8 @@ void fwriteIntArray(FILE *f,
     int s1 = 0;
     int s2 = 0;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
@@ -1246,8 +1247,8 @@ void fwriteIntMatrix(FILE *f,
     register int j;
     int s = 0;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
@@ -1280,8 +1281,8 @@ void fwriteDoubleMatrix(FILE *f,
     register int j;
     int s;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         int c;
@@ -1318,8 +1319,8 @@ void fwriteDoubleMatrix2(FILE *f,
     register int j;
     int s = 0;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         for (j = 0; j < cols; j++) {
@@ -1352,8 +1353,8 @@ void fwriteFloatArray(FILE *f,
     register int j;
     int s = 0;
 
-    assert(f != NULL);
-    assert(x != NULL);
+    //assert(f != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         int c;
@@ -1389,7 +1390,7 @@ void writeArray(float *x,
     register int j;
     int s = 0;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < rows; i++) {
         int c;
@@ -1468,7 +1469,7 @@ int *ivector(int nl,
     int *v;
     size_t count = nh-nl+1;
 
-    assert(count > 0);
+    //assert(count >= 0);
 
     nv += count;
     v = (int *) calloc(count, sizeof(int));
@@ -1487,7 +1488,7 @@ char *charvector(int nl,
     char  *v;
     size_t count = nh-nl+1;
 
-    assert(count > 0);
+    //assert(count >= 0);
 
     //v = malloc( sizeof(char) * ( count ) );
     v = (char *) calloc(count, sizeof(char));
@@ -1505,7 +1506,7 @@ float *vector(int nl,
     float *v;
     size_t count = nh-nl+1;
 
-    assert(count > 0);
+    //assert(count >= 0);
 
     v = (float *) calloc(count, sizeof(float));
     if (v == NULL) {
@@ -1523,7 +1524,7 @@ double *dvector(int nl,
     double  *v;
     size_t count = nh-nl+1;
 
-    assert(count > 0);
+    //assert(count >= 0);
 
     nv += count;
     v = (double *) calloc(count, sizeof(double));
@@ -1546,8 +1547,8 @@ int **imatrix(int nrl,
     size_t ncol = nch-ncl+1;
     register int i;
 
-    assert(nrow > 0);
-    assert(ncol > 0);
+    //assert(nrow >= 0);
+    //assert(ncol >= 0);
 
     nv += nrow * ncol;
 
@@ -1584,8 +1585,8 @@ double **dmatrix(int nrl,
     size_t ncol = nch-ncl+1;
     register int i;
 
-    assert(nrow > 0);
-    assert(ncol > 0);
+    //assert(nrow >= 0);
+    //assert(ncol >= 0);
 
     nv += nrow * ncol;
 
@@ -1620,9 +1621,9 @@ int ***iarray3(int n1,
     register int i;
     register int j;
 
-    assert(n1 > 0);
-    assert(n2 > 0);
-    assert(n3 > 0);
+    //assert(n1 >= 0);
+    //assert(n2 >= 0);
+    //assert(n3 >= 0);
 
     /* Allocate pointers to first dimension */
     a = (int ***) calloc(n1, sizeof(int **));
@@ -1665,9 +1666,9 @@ double ***darray3(int n1,
     register int i;
     register int j;
 
-    assert(n1 > 0);
-    assert(n2 > 0);
-    assert(n3 > 0);
+    //assert(n1 >= 0);
+    //assert(n2 >= 0);
+    //assert(n3 >= 0);
 
     /* Allocate pointers to first dimension */
     a = (double ***) calloc(n1, sizeof(double **));
@@ -1706,7 +1707,7 @@ void free_charvector(char *v,
                   int nl,
                   int nh)
 {
-    assert(v != NULL);
+    //assert(v != NULL);
 
     if ((v+nl) != NULL) {
         free((char  *) (v+nl));
@@ -1718,7 +1719,7 @@ void free_ivector(int *v,
                   int nl,
                   int nh)
 {
-    assert(v != NULL);
+    //assert(v != NULL);
 
     if ((v+nl) != NULL) {
         free((char  *) (v+nl));
@@ -1732,7 +1733,7 @@ void free_vector(float *v,
                  int nl,
                  int nh)
 {
-    assert(v != NULL);
+    //assert(v != NULL);
 
     if ((v+nl) != NULL) {
         free((char  *) (v+nl));
@@ -1746,7 +1747,7 @@ void free_dvector(double *v,
                   int nl,
                   int nh)
 {
-    assert(v != NULL);
+    //assert(v != NULL);
 
     if ((v+nl) != NULL) {
         free((char  *) (v+nl));
@@ -1766,7 +1767,7 @@ void free_imatrix(int **m,
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
-    assert(m != NULL);
+    //assert(m != NULL);
 
     for (i = nrh; i >= nrl; i--) {
         if ((m[i]+ncl) != NULL) {
@@ -1791,7 +1792,7 @@ void free_dmatrix(double **m,
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
-    assert(m != NULL);
+    //assert(m != NULL);
 
     for (i = nrh; i >= nrl; i--) {
         if ((m[i]+ncl) != NULL) {
@@ -1811,9 +1812,9 @@ void free_iarray3(int ***a,
                   int n2,
                   int n3)
 {
-    assert(a != NULL);
-    assert(a[0] != NULL);
-    assert(a[0][0] != NULL);
+    //assert(a != NULL);
+    //assert(a[0] != NULL);
+    //assert(a[0][0] != NULL);
 
     free((char*) (a[0][0]));
     free((char*) (a[0]));
@@ -1827,9 +1828,9 @@ void free_darray3(double ***a,
                   int n2,
                   int n3)
 {
-    assert(a != NULL);
-    assert(a[0] != NULL);
-    assert(a[0][0] != NULL);
+    //assert(a != NULL);
+    //assert(a[0] != NULL);
+    //assert(a[0][0] != NULL);
 
     free((char*) (a[0][0]));
     free((char*) (a[0]));
@@ -1853,7 +1854,7 @@ double ldoublefact(double x)
 
     /* :TBD: converts from double to integer without noting rounding intent */
     for (i = ((int) x); i >= 2; i -= 2) {
-        ans += log(i);
+      ans += log((double) i);
     }
     return(ans);
 }
@@ -2064,7 +2065,7 @@ double trigamma(double x)
                1 / ((x+2) * (x+2)) +
                1 / (x+3) +
                0.5 / ((x+3) * (x+3)) +
-               1 / (6.0 * pow(x+3, 3)));
+               1 / (6.0 * pow(x+3.0, 3.0)));
     } else {
         /* slower computation */
         return(polygamma(x, 1, 0.0001, 100, 5, 1));
@@ -2259,7 +2260,7 @@ void grid(double x0,
     double dx;
     double xi;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     dx = (xn - x0) / (n - 1.0);
     xi = x0;
@@ -2285,8 +2286,8 @@ void rA(double r,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(B != NULL);
+    //assert(A != NULL);
+    //assert(B != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         for (j = colini; j <= colfi; j++) {
@@ -2311,9 +2312,9 @@ void A_plus_B(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(B != NULL);
-    assert(C != NULL);
+    //assert(A != NULL);
+    //assert(B != NULL);
+    //assert(C != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         for (j = colini; j <= colfi; j++) {
@@ -2341,9 +2342,9 @@ void rA_plus_sB(double r,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(B != NULL);
-    assert(C != NULL);
+    //assert(A != NULL);
+    //assert(B != NULL);
+    //assert(C != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         for (j = colini; j <= colfi; j++) {
@@ -2374,11 +2375,11 @@ void rAx_plus_sBy(double r,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(B != NULL);
-    assert(y != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(B != NULL);
+    //assert(y != NULL);
+    //assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
@@ -2404,10 +2405,10 @@ void Ax_plus_y(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(y != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(y != NULL);
+    //assert(z != NULL);
 
     for (i = ini; i <= fi; i++) {
         z[i] = y[i];
@@ -2431,9 +2432,9 @@ void xA(const double *x,
     register int i;
     register int j;
 
-    assert(x != NULL);
-    assert(A != NULL);
-    assert(z != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
+    //assert(z != NULL);
 
     for (i = ini; i <= fi; i++) {
         z[i] = 0.0;
@@ -2459,9 +2460,9 @@ void Ax(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
@@ -2488,9 +2489,9 @@ void Avecx(const double *A,
     register int j;
     int nrow = rowfi - rowini + 1;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
@@ -2517,9 +2518,9 @@ void Atvecx(const double *A,
     register int j;
     int ncol = colfi - colini + 1;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(z != NULL);
 
     for (i = rowini; i <= rowfi; i++) {
         z[i] = 0.0;
@@ -2544,9 +2545,9 @@ double xtAy(const double *x,
     register int j;
     double z = 0.0;
 
-    assert(x != NULL);
-    assert(A != NULL);
-    assert(y != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
+    //assert(y != NULL);
 
     for (i = ini; i <= fi; i++) {
         for (j = ini; j <= fi; j++) {
@@ -2572,8 +2573,8 @@ double quadratic_xtAx(const double *x,
     register int j;
     double z = 0.0;
 
-    assert(x != NULL);
-    assert(A != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
 
     for (i = ini; i <= fi; i++) {
         z += A[i][i] * x[i] * x[i];
@@ -2605,11 +2606,11 @@ double quadratic_xseltAselxsel(const double *x,
     register int j;
     double z = 0.0;
 
-    assert(x != NULL);
-    assert(A != NULL);
-    assert(ncolA != NULL);
-    assert(nsel != NULL);
-    assert(sel != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
+    //assert(ncolA != NULL);
+    //assert(nsel != NULL);
+    //assert(sel != NULL);
 
     for (i = 0; i <= (*nsel)-1; i++) {
         int i_sel;
@@ -2647,11 +2648,11 @@ double quadratic_xtAselx(const double *x,
     register int j;
     double z = 0.0;
 
-    assert(x != NULL);
-    assert(A != NULL);
-    assert(ncolA != NULL);
-    assert(nsel != NULL);
-    assert(sel != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
+    //assert(ncolA != NULL);
+    //assert(nsel != NULL);
+    //assert(sel != NULL);
 
     for (i = 0; i <= (*nsel)-1; i++) {
         int i_sel;
@@ -2687,10 +2688,10 @@ double quadratic_xseltAxsel(const double *x,
     register int j;
     double z = 0.0;
 
-    assert(x != NULL);
-    assert(A != NULL);
-    assert(nsel != NULL);
-    assert(sel != NULL);
+    //assert(x != NULL);
+    //assert(A != NULL);
+    //assert(nsel != NULL);
+    //assert(sel != NULL);
 
     for (i = 0; i <= (*nsel)-1; i++) {
         int rowA;
@@ -2723,9 +2724,9 @@ void Atx(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
-    assert(x != NULL);
-    assert(z != NULL);
+    //assert(A != NULL);
+    //assert(x != NULL);
+    //assert(z != NULL);
 
     for (i = colini; i <= colfi; i++) {
         z[i] = 0.0;
@@ -2757,9 +2758,9 @@ void AtB(double **A,
     register int j;
     register int k;
 
-    assert(A != NULL);
-    assert(B != NULL);
-    assert(C != NULL);
+    //assert(A != NULL);
+    //assert(B != NULL);
+    //assert(C != NULL);
 
     if ((rowfiA-rowiniA) != (rowfiB-rowiniB)) {
         errorC("AtB", "dimensions don't match", 1);
@@ -2781,9 +2782,9 @@ void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB,
     register int j;
     register int k;
 
-    assert(A != NULL);
-    assert(B != NULL);
-    assert(C != NULL);
+    //assert(A != NULL);
+    //assert(B != NULL);
+    //assert(C != NULL);
 
     if (nrowA != nrowB) {
         errorC("AvectBvec", "dimensions don't match", 1);
@@ -2810,9 +2811,9 @@ void a_plus_b(const double *a,
 {
     register int i;
 
-    assert(a != NULL);
-    assert(b != NULL);
-    assert(c != NULL);
+    //assert(a != NULL);
+    //assert(b != NULL);
+    //assert(c != NULL);
 
     for (i = ini; i <= fi; i++) {
         c[i] = a[i] + b[i];
@@ -2828,9 +2829,9 @@ void a_prod_b(const double *a,
 {
     register int i;
 
-    assert(a != NULL);
-    assert(b != NULL);
-    assert(c != NULL);
+    //assert(a != NULL);
+    //assert(b != NULL);
+    //assert(c != NULL);
 
     for (i = ini; i <= fi; i++) {
         c[i] = a[i] * b[i];
@@ -2847,9 +2848,9 @@ void a_prod_b_sel(const double *a,
 {
     register int i;
 
-    assert(a != NULL);
-    assert(b != NULL);
-    assert(c != NULL);
+    //assert(a != NULL);
+    //assert(b != NULL);
+    //assert(c != NULL);
 
     for (i = 0; i <= (*nsel-1); i++) {
         int idx;
@@ -2865,7 +2866,7 @@ void a_zero(double *a,
 {
     register int i;
 
-    assert(a != NULL);
+    //assert(a != NULL);
 
     for (i = 0; i < p; i++) {
         a[i] = 0.0;
@@ -2880,7 +2881,7 @@ void R_zero(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
+    //assert(A != NULL);
 
     for (i = 0; i < p; i++) {
         for (j = 0; j < q; j++) {
@@ -2898,7 +2899,7 @@ void ddiag(double **A,
     register int i;
     register int j;
 
-    assert(A != NULL);
+    //assert(A != NULL);
 
     for (i = ini; i <= fi; i++) {
         for (j = ini; j <= fi; j++) {
@@ -2956,9 +2957,9 @@ void minvec(const double *x,
 {
     register int i;
 
-    assert(x != NULL);
-    assert(xmin != NULL);
-    assert(minpos != NULL);
+    //assert(x != NULL);
+    //assert(xmin != NULL);
+    //assert(minpos != NULL);
 
     *xmin = x[ini];
     *minpos = ini;
@@ -2984,9 +2985,9 @@ void maxvec(const double *x,
 {
     register int i;
 
-    assert(x != NULL);
-    assert(xmax != NULL);
-    assert(maxpos != NULL);
+    //assert(x != NULL);
+    //assert(xmax != NULL);
+    //assert(maxpos != NULL);
 
     *xmax = x[ini];
     *maxpos = ini;
@@ -3014,9 +3015,9 @@ void choldc(double **a,
     register int j;
     double *p;
 
-    assert(a != NULL);
-    assert(n > 0);
-    assert(aout != NULL);
+    //assert(a != NULL);
+    //assert(n > 0);
+    //assert(aout != NULL);
 
     /* Copy a into aout */
     for (i = 1; i <= n; i++) {
@@ -3070,9 +3071,9 @@ void choldc_inv(double **a,
 {
     register int i;
 
-    assert(a != NULL);
-    assert(n > 0);
-    assert(aout != NULL);
+    //assert(a != NULL);
+    //assert(n > 0);
+    //assert(aout != NULL);
 
     choldc(a, n, aout);
     for (i = 1; i <= n; i++) {
@@ -3110,7 +3111,7 @@ double choldc_det(double **chols,
     register int i;
     double det = 1.0;
 
-    assert(chols != NULL);
+    //assert(chols != NULL);
 
     for (i = 1; i <= n; i++) {
         double value;
@@ -3134,8 +3135,8 @@ void inv_posdef(double **a,
     register int j;
     double **b;
 
-    assert(a != NULL);
-    assert(aout != NULL);
+    //assert(a != NULL);
+    //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
     choldc_inv(a, n, b);
@@ -3175,8 +3176,8 @@ void inv_posdef_upper(double **a,
     register int j;
     double **b;
 
-    assert(a != NULL);
-    assert(aout != NULL);
+    //assert(a != NULL);
+    //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
     choldc_inv(a, n, b);
@@ -3209,9 +3210,9 @@ void invdet_posdef(double **a,
     register int j;
     double **b;
 
-    assert(a != NULL);
-    assert(aout != NULL);
-    assert(det_a != NULL);
+    //assert(a != NULL);
+    //assert(aout != NULL);
+    //assert(det_a != NULL);
 
     b = dmatrix(1, n, 1, n);
     choldc_inv(a, n, b);
@@ -3261,8 +3262,8 @@ void inv_posdef_chol(double **invchol,
     register int i;
     register int j;
 
-    assert(invchol != NULL);
-    assert(aout != NULL);
+    //assert(invchol != NULL);
+    //assert(aout != NULL);
 
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
@@ -3309,9 +3310,9 @@ void ludc(double **a,
     double big;
     double *vv;                       /* Stores implicit scaling of each row */
 
-    assert(a != NULL);
-    assert(indx != NULL);
-    assert(d != NULL);
+    //assert(a != NULL);
+    //assert(indx != NULL);
+    //assert(d != NULL);
 
     vv = dvector(1, n);
     *d = 1.0;                          /* No row interchanges yet */
@@ -3427,8 +3428,8 @@ void lu_solve(double **a,
     int ii = 0;
     double sum;
 
-    assert(a != NULL);
-    assert(indx != NULL);
+    //assert(a != NULL);
+    //assert(indx != NULL);
 
     for (i = 1; i <= n; i++) {
         int ip;
@@ -3479,8 +3480,8 @@ void lu_inverse(double **a,
     double *col;
     int *indx;
 
-    assert(a != NULL);
-    assert(aout != NULL);
+    //assert(a != NULL);
+    //assert(aout != NULL);
 
     col  = dvector(1, n);
     indx = ivector(1, n);
@@ -3519,7 +3520,7 @@ double lu_det(double **a,
     int j;
     int *indx;
 
-    assert(a != NULL);
+    //assert(a != NULL);
 
     indx = ivector(1, n);
     ludc(a, n, indx, &d); /* returns d as +/-1 */
@@ -3538,8 +3539,8 @@ int dcompare(const void *a,
     const double *da = (const double *) a;
     const double *db = (const double *) b;
 
-    assert(da != NULL);
-    assert(db != NULL);
+    //assert(da != NULL);
+    //assert(db != NULL);
 
     return (*da > *db) - (*da < *db);
 }
@@ -3549,8 +3550,8 @@ int dcompare(const void *a,
 void dvecsort(double *v,
               int size)
 {
-    assert(v != NULL);
-    assert(size >= 0);
+    //assert(v != NULL);
+    //assert(size >= 0);
 
     qsort(v, size, sizeof(double), dcompare);
 }
@@ -3583,8 +3584,8 @@ void dindexsort(double *x,
     bool sortup, sortlo;    /* indicate if sub-vectors are sorted so
                              * no further subdivision is needed        */
 
-    assert(x != NULL);
-    assert(index != NULL);
+    //assert(x != NULL);
+    //assert(index != NULL);
 
     if (ilo >= ihi) {
         return;
@@ -3717,7 +3718,7 @@ void samplei_wr(int *x,
 {
     register int i;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < n; i++) {
         int r;
@@ -3746,7 +3747,7 @@ void sampled_wr(double *x,
 {
     register int i;
 
-    assert(x != NULL);
+    //assert(x != NULL);
 
     for (i = 0; i < n; i++) {
         int r;
@@ -3820,7 +3821,7 @@ int rdisc(const double *probs,
     double u;
     double pcum;
 
-    assert(probs != NULL);
+    //assert(probs != NULL);
 
     u = runif();
     pcum = probs[0];
@@ -3891,9 +3892,9 @@ void rdirichlet(double *w,
     double b;
     register int j;
 
-    assert(w != NULL);
-    assert(alpha != NULL);
-    assert(p != NULL);
+    //assert(w != NULL);
+    //assert(alpha != NULL);
+    //assert(p != NULL);
 
     for (j = 0; j < *p; j++) {
         s += alpha[j];
@@ -3926,9 +3927,9 @@ double ddirichlet(const double *w,
     double ans = 0.0;
     double sumalpha = 0.0;
 
-    assert(w != NULL);
-    assert(alpha != NULL);
-    assert(p != NULL);
+    //assert(w != NULL);
+    //assert(alpha != NULL);
+    //assert(p != NULL);
 
     for (i = 0; i < *p; i++) {
         ans += (alpha[i] - 1) * log(w[i]) - gamln(alpha+i);
@@ -3990,7 +3991,7 @@ double dnormC(double y,
               double s,
               int logscale)
 {
-    assert((logscale == 0) || (logscale == 1));
+    //assert((logscale == 0) || (logscale == 1));
 
     if (logscale == 1) {
         return(-log(SQ_M_PI_2) - log(s) - 0.5 * (y - m) * (y - m) / (s * s));
@@ -4011,8 +4012,8 @@ double dnormC_jvec(const double *y,
     register int i;
     double ans = 0.0;
 
-    assert(y != NULL);
-    assert((logscale == 0) || (logscale == 1));
+    //assert(y != NULL);
+    //assert((logscale == 0) || (logscale == 1));
 
     for (i = 0; i < n; i++) {
         ans += dnormC(y[i], m, s, 1);
@@ -4045,10 +4046,10 @@ double dmvnormC(const double *y,
     double res = 0.0;
     double ans;
 
-    assert(y != NULL);
-    assert(mu != NULL);
-    assert(cholsinv != NULL);
-    assert((logscale == 0) || (logscale == 1));
+    //assert(y != NULL);
+    //assert(mu != NULL);
+    //assert(cholsinv != NULL);
+    //assert((logscale == 0) || (logscale == 1));
 
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     z  = dvector(1, n);
@@ -4125,7 +4126,7 @@ double dbinomial(int x,
 {
     double ans;
 
-    assert((logscale == 0) || (logscale == 1));
+    //assert((logscale == 0) || (logscale == 1));
 
     ans= lnchoose((double) n, (double) x) + (x+.0)*log(p) + (n-x+.0)*log(1-p);
     return (logscale == 1) ? ans : exp(ans);
@@ -4163,8 +4164,8 @@ void rmultinomial(int ndraws,
     register int j;
     double *cum_p;
 
-    assert(pr != NULL);
-    assert(x != NULL);
+    //assert(pr != NULL);
+    //assert(x != NULL);
 
     cum_p = dvector(0, ncells);
 
@@ -4197,7 +4198,7 @@ double bbPrior(int k,
 {
     double ans;
 
-    assert((logscale == 0) || (logscale == 1));
+    //assert((logscale == 0) || (logscale == 1));
 
     ans = lnbeta(alpha + k, beta + p - k) - lnbeta(alpha, beta);
     return (logscale == 1) ? ans : exp(ans);
@@ -4857,9 +4858,9 @@ void rmvnormC(double *y,
     register int i;
     double *z;
 
-    assert(y != NULL);
-    assert(mu != NULL);
-    assert(chols != NULL);
+    //assert(y != NULL);
+    //assert(mu != NULL);
+    //assert(chols != NULL);
 
     z = dvector(1, n);
     /* Generate n independent draws from a univariate Normal */
@@ -4899,8 +4900,8 @@ double mnorm(double order,
         for (i = 0; i <= n/2; i++) {
             temp1 = i+1;
             temp2 = order-2*i+1;
-            res += pow(sd, 2*i) * pow(m, n-2*i) /
-                   (pow(2, i) * exp(gamln(&temp1)) * exp(gamln(&temp2)));
+            res += pow(sd, (double) (2*i)) * pow(m, (double) (n-2*i)) /
+	      (pow(2.0, (double) i) * exp(gamln(&temp1)) * exp(gamln(&temp2)));
         }
         temp1 = order+1;
         ans = exp(gamln(&temp1)) * res;
@@ -4922,7 +4923,7 @@ double dtC(double y,
     t2 = 0.5 * nu;
     t1 = t2 + 0.5;
     normk = exp(gamln(&t1) - gamln(&t2)) / (sqrt(nu*M_PI) * s);
-    return(normk * pow(1+(y-mu)*(y-mu) / (s*s*(nu+0.0)), -t1));
+    return(normk * pow(1.0+(y-mu)*(y-mu) / (s*s*(nu+0.0)), -t1));
 }
 
 
@@ -4941,10 +4942,10 @@ double dtmixC(double y,
     register int i;
     double ans = 0.0;
 
-    assert(mu != NULL);
-    assert(s != NULL);
-    assert(probs != NULL);
-    assert((logscale == 0) || (logscale == 1));
+    //assert(mu != NULL);
+    //assert(s != NULL);
+    //assert(probs != NULL);
+    //assert((logscale == 0) || (logscale == 1));
 
     for (i = 0; i < ncomp; i++) {
         ans += dtC(y, mu[i], s[i], nu) * probs[i];
@@ -4977,10 +4978,10 @@ double dmvtC(const double *y,
     double t2;
     double normk;
 
-    assert(y != NULL);
-    assert(mu != NULL);
-    assert(cholsinv != NULL);
-    assert((logscale == 0) || (logscale == 1));
+    //assert(y != NULL);
+    //assert(mu != NULL);
+    //assert(cholsinv != NULL);
+    //assert((logscale == 0) || (logscale == 1));
 
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     {
@@ -5010,7 +5011,7 @@ double dmvtC(const double *y,
     if (logscale == 1)
         return(normk -t1*log(1+res/(nu+0.0)));
     else
-        return(exp(normk) * pow(1+res/(nu+0.0), -t1));
+        return(exp(normk) * pow(1.0+res/(nu+0.0), -t1));
 }
 
 
@@ -5035,9 +5036,9 @@ double rtmixC(const double *mu,
 {
     int comp;
 
-    assert(mu != NULL);
-    assert(s != NULL);
-    assert(probs != NULL);
+    //assert(mu != NULL);
+    //assert(s != NULL);
+    //assert(probs != NULL);
 
     comp = rdisc(probs, ncomp);
     return(mu[comp] + s[comp]*rtC(nu));
@@ -5194,9 +5195,9 @@ void rmvtC(double *y,
     double x;
     double *z;
 
-    assert(y != NULL);
-    assert(mu != NULL);
-    assert(chols != NULL);
+    //assert(y != NULL);
+    //assert(mu != NULL);
+    //assert(chols != NULL);
 
     /* Draw from chi-square with nu degrees of freedom */
     x = sqrt(nu / gengam(0.5, nu / 2.0));
@@ -5291,7 +5292,7 @@ double dmomNorm(double y,
     };
     double ans;
 
-    assert((logscale == 0) || (logscale == 1));
+    //assert((logscale == 0) || (logscale == 1));
 
     ans = r * log((y - m) * (y - m) / (tau * phi)) +
           dnormC(y, m, sqrt(tau * phi), 1) - normct[r-1];
@@ -7464,7 +7465,7 @@ double midpnt(double (* const func)(double),
 
     static double s;
 
-    assert(func != NULL);
+    //assert(func != NULL);
 
     if (n == 1) {
         s = (b - a) * FUNC(0.5 * (a + b));
@@ -7518,7 +7519,7 @@ double midinf(double (* const func)(double),
     double a;
     double b;
 
-    assert(func != NULL);
+    //assert(func != NULL);
 
     if (SIGN(aa) != SIGN(bb)) {
         nrerror("midinf", "", "aa and bb must have same sign");
@@ -7603,8 +7604,8 @@ double qromo(double (* const func)(double),
     double h[JMAXP+1];
     double s[JMAXP];
 
-    assert(func != NULL);
-    assert(choose != NULL);
+    //assert(func != NULL);
+    //assert(choose != NULL);
 
     h[1] = 1.0;
     for (j = 1; j <= JMAX; j++) {
@@ -7647,8 +7648,8 @@ void polint(double xa[],
     double *c;
     double *d;
 
-    assert(y != NULL);
-    assert(dy != NULL);
+    //assert(y != NULL);
+    //assert(dy != NULL);
 
     dif = fabs(x - xa[1]);
     c = dvector(1, n);
@@ -7725,7 +7726,7 @@ double bspline_singlex(double x,
 {
     double ans;
 
-    assert(knots != NULL);
+    //assert(knots != NULL);
 
     if (degree == 0) {
         ans = (knots[j] <= x && x < knots[j+1]) ? 1.0 : 0.0;
@@ -7759,12 +7760,12 @@ void bspline(double **W,
              const double *knots,
              const int *nknots)
 {
-    assert(W != NULL);
-    assert(x != NULL);
-    assert(nx != NULL);
-    assert(degree != NULL);
-    assert(knots != NULL);
-    assert(nknots != NULL);
+    //assert(W != NULL);
+    //assert(x != NULL);
+    //assert(nx != NULL);
+    //assert(degree != NULL);
+    //assert(knots != NULL);
+    //assert(nknots != NULL);
 
     if (*nknots < (*degree + 2)) {
         REprintf("bspline: number of knots must be >= degree+2\n");
@@ -7800,12 +7801,12 @@ void bspline_vec(double *W,
     double **Wtemp;
     int ncols;
 
-    assert(W != NULL);
-    assert(x != NULL);
-    assert(nx != NULL);
-    assert(degree != NULL);
-    assert(knots != NULL);
-    assert(nknots != NULL);
+    //assert(W != NULL);
+    //assert(x != NULL);
+    //assert(nx != NULL);
+    //assert(degree != NULL);
+    //assert(knots != NULL);
+    //assert(nknots != NULL);
 
     ncols = *nknots - *degree - 1;
     Wtemp = dmatrix(0, *nx, 0, ncols);
@@ -7830,12 +7831,12 @@ void mspline(double **W,
              const double *knots,
              const int *nknots)
 {
-    assert(W != NULL);
-    assert(x != NULL);
-    assert(nx != NULL);
-    assert(degree != NULL);
-    assert(knots != NULL);
-    assert(nknots != NULL);
+    //assert(W != NULL);
+    //assert(x != NULL);
+    //assert(nx != NULL);
+    //assert(degree != NULL);
+    //assert(knots != NULL);
+    //assert(nknots != NULL);
 
     if (*nknots < (*degree + 2)) {
         REprintf("mspline: number of knots must be >= degree+2\n");
@@ -7872,12 +7873,12 @@ void mspline_vec(double *W,
     double **Wtemp;
     int ncols;
 
-    assert(W != NULL);
-    assert(x != NULL);
-    assert(nx != NULL);
-    assert(degree != NULL);
-    assert(knots != NULL);
-    assert(nknots != NULL);
+    //assert(W != NULL);
+    //assert(x != NULL);
+    //assert(nx != NULL);
+    //assert(degree != NULL);
+    //assert(knots != NULL);
+    //assert(nknots != NULL);
 
     ncols = *nknots - *degree - 1;
     Wtemp = dmatrix(0, *nx, 0, ncols);
@@ -7921,8 +7922,8 @@ double univmin(double ax,
   double a,b,d=1,etemp,fu,fv,fw,fx,p,q,r,eps1,eps2,u,v,w,x,xm;
   double e=0.0;
 
-  assert(f != NULL);
-  assert(xmin != NULL);
+  //assert(f != NULL);
+  //assert(xmin != NULL);
 
   a=(ax < cx ? ax : cx);     //a,b must be in ascending order but input abscissas need not be
   b=(ax > cx ? ax : cx);
@@ -8009,9 +8010,9 @@ double dunivmin(double ax,
   double a,b,d=1,d1,d2,du,dv,dw,dx,e=0.0;
   double fu,fv,fw,fx,olde,eps1,eps2,u,u1,u2,v,w,x,xm;
 
-  assert(f != NULL);
-  assert(df != NULL);
-  assert(xmin != NULL);
+  //assert(f != NULL);
+  //assert(df != NULL);
+  //assert(xmin != NULL);
 
   a=(ax < cx ? ax : cx);
   b=(ax > cx ? ax : cx);
@@ -8132,10 +8133,10 @@ void minimize(double th[],
     double *dirinit;
     bool converged = false;
 
-    assert(dirini != NULL);
-    assert(iter != NULL);
-    assert(fret != NULL);
-    assert(f != NULL);
+    //assert(dirini != NULL);
+    //assert(iter != NULL);
+    //assert(fret != NULL);
+    //assert(f != NULL);
 
     tht     = dvector(1, n);
     thtt    = dvector(1, n);
@@ -8250,8 +8251,8 @@ void dirmin(double p[],
     double ax = 0.0;
     double xx = 1.0;
 
-    assert(fret != NULL);
-    assert(func != NULL);
+    //assert(fret != NULL);
+    //assert(func != NULL);
 
     /* Set the global variables */
     ncom = n;
@@ -8303,13 +8304,13 @@ void mnbrak(double *ax,
     const double GLIMIT = 100.0;   /* maximum magnification allowed for a parabolic-fit step */
     const double TINY = 1.0e-25;
 
-    assert(ax != NULL);
-    assert(bx != NULL);
-    assert(cx != NULL);
-    assert(fa != NULL);
-    assert(fb != NULL);
-    assert(fc != NULL);
-    assert(func != NULL);
+    //assert(ax != NULL);
+    //assert(bx != NULL);
+    //assert(cx != NULL);
+    //assert(fa != NULL);
+    //assert(fb != NULL);
+    //assert(fc != NULL);
+    //assert(func != NULL);
 
     *fa = (*func)(*ax);
     *fb = (*func)(*bx);

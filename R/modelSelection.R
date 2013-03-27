@@ -93,10 +93,10 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   }
 
   #Initialize
-  postMode <- rep(as.integer(0),p); othersMode <- double(1); postModeProb <- double(1)
+  postMode <- rep(as.integer(0),p); postModeProb <- double(1)
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
-    ans <- .Call("greedyVarSelCI", postMode,othersMode,postModeProb,knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
   } else if (initSearch=='SCAD') {
     require(ncvreg)

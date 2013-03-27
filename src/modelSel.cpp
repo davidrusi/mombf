@@ -289,7 +289,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
   *pinclude= 1.0/(1.0+exp(logbf+logpratio));
   if (runif() < *pinclude) { deltaprop=1; } else { deltaprop=0; }
   //Propose coef
-  nu= (int) sqrt(n);
+  nu= (int) sqrt((double) n);
   if ((curModel[j]==0) && (deltaprop==0)) {  //proposal is to keep variable out of the model
     *newdelta=0; *newcoef=0;
   } else {
@@ -366,7 +366,7 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
   propPars[2]= sqrt(1.0/(temp + doubler/(propPars[0]*propPars[0]))); propPars[3]= sqrt(1.0/(temp + doubler/(propPars[1]*propPars[1])));
   temp2= .5*(*nu); temp= temp2+.5;
   //Weights
-  ct2= exp(gamln(&temp) - .5*log(*nu) - gamln(&temp2) - .5*log(M_PI*propPars[3]*propPars[3]));
+  ct2= exp(gamln(&temp) - .5*log((double) (*nu)) - gamln(&temp2) - .5*log(M_PI*propPars[3]*propPars[3]));
   propPars[4]= max_xy(0,(fmode-ct2)/(dnormC(propPars[1],propPars[0],propPars[2],0) - ct2));
   propPars[5]= 1-propPars[4];
 }
@@ -1344,7 +1344,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);
     nu= (int) (2.0*nuhalf);
 
-    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2) - log(*(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel)));
+    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(*(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel)));
     den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
     if (*(*pars).method ==0) { //Laplace
       thopt= dvector(1,*nsel); Voptinv= dmatrix(1,*nsel,1,*nsel);

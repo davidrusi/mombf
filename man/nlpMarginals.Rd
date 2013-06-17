@@ -21,10 +21,10 @@
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) 
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
 method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
-pmomMarginalK(sel, y, x, phi, tau, r=1, method='Laplace', B=10^5,
+pmomMarginalK(sel, y, x, phi, tau, r=1, method='auto', B=10^5,
 logscale=TRUE, XtX, ytX)
 pmomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
-r=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
+r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -40,8 +40,10 @@ r=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
   \code{lambda/2}}
 \item{tau}{Prior dispersion parameter for MOM and iMOM priors (see details)}
 \item{r}{Prior power parameter for MOM prior is \code{2*r}}
-\item{method}{Method to approximate the integral. 'Laplace' for Laplace
-approx. 'MC' for Monte Carlo. 'Plug-in' for plug-in estimate. 'Hybrid'
+\item{method}{Method to approximate the integral. method=='auto' uses exact
+  calculation when p<=10 and pMOM priors are specified, else uses
+  Laplace approx. method=='Laplace' for Laplace
+approx. method=='MC' for Monte Carlo. method=='Plug-in' for plug-in estimate. method=='Hybrid'
 for hybrid Laplace-MC (only available for \code{pimomMarginalU}). See
 help for \code{modelSelection} for details.}
 \item{B}{Number of Monte Carlo samples to use (ignored unless

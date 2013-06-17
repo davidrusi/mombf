@@ -28,6 +28,7 @@ struct marginalPars {
   double *prDeltap; //For Binomial prior on model space, prDeltap is the prob of success
   double *parprDeltap; //For Beta-Binomial prior on model space, parprDeltap[0],parprDeltap[1] are the prior parameters
   int *logscale;
+  double *offset;
 };
 
 struct modavgPars {
@@ -106,8 +107,6 @@ void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double 
 void set_f2opt_pars(double *m, double **S, double *sumy2, double *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
 void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
-//Function by John D. Cook
-double mvtexpect(const double* mu, const double* sigma, int n, int power, double dof); //mean of prod (x_i)^(2*power) when x_i ~ T_dof(mu,sigma). Set dof=-1 for N(mu,sigma)
 
 
 //*************************************************************************************

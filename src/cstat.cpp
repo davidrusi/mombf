@@ -1842,6 +1842,281 @@ void free_darray3(double ***a,
                           MATHEMATICAL FUNCTIONS
 ************************************************************************/
 
+
+
+double lfact(int n)
+{
+
+    if (n > 254)
+    {
+        double x = n + 1.0;
+        return (x - 0.5)*log(x) - x + 0.5*log(2.0*M_PI) + 1.0/(12.0*x);
+    }
+    else
+    {
+        double lf[] =        
+        {
+            0.000000000000000,
+            0.000000000000000,
+            0.693147180559945,
+            1.791759469228055,
+            3.178053830347946,
+            4.787491742782046,
+            6.579251212010101,
+            8.525161361065415,
+            10.604602902745251,
+            12.801827480081469,
+            15.104412573075516,
+            17.502307845873887,
+            19.987214495661885,
+            22.552163853123421,
+            25.191221182738683,
+            27.899271383840894,
+            30.671860106080675,
+            33.505073450136891,
+            36.395445208033053,
+            39.339884187199495,
+            42.335616460753485,
+            45.380138898476908,
+            48.471181351835227,
+            51.606675567764377,
+            54.784729398112319,
+            58.003605222980518,
+            61.261701761002001,
+            64.557538627006323,
+            67.889743137181526,
+            71.257038967168000,
+            74.658236348830158,
+            78.092223553315307,
+            81.557959456115029,
+            85.054467017581516,
+            88.580827542197682,
+            92.136175603687079,
+            95.719694542143202,
+            99.330612454787428,
+            102.968198614513810,
+            106.631760260643450,
+            110.320639714757390,
+            114.034211781461690,
+            117.771881399745060,
+            121.533081515438640,
+            125.317271149356880,
+            129.123933639127240,
+            132.952575035616290,
+            136.802722637326350,
+            140.673923648234250,
+            144.565743946344900,
+            148.477766951773020,
+            152.409592584497350,
+            156.360836303078800,
+            160.331128216630930,
+            164.320112263195170,
+            168.327445448427650,
+            172.352797139162820,
+            176.395848406997370,
+            180.456291417543780,
+            184.533828861449510,
+            188.628173423671600,
+            192.739047287844900,
+            196.866181672889980,
+            201.009316399281570,
+            205.168199482641200,
+            209.342586752536820,
+            213.532241494563270,
+            217.736934113954250,
+            221.956441819130360,
+            226.190548323727570,
+            230.439043565776930,
+            234.701723442818260,
+            238.978389561834350,
+            243.268849002982730,
+            247.572914096186910,
+            251.890402209723190,
+            256.221135550009480,
+            260.564940971863220,
+            264.921649798552780,
+            269.291097651019810,
+            273.673124285693690,
+            278.067573440366120,
+            282.474292687630400,
+            286.893133295426990,
+            291.323950094270290,
+            295.766601350760600,
+            300.220948647014100,
+            304.686856765668720,
+            309.164193580146900,
+            313.652829949878990,
+            318.152639620209300,
+            322.663499126726210,
+            327.185287703775200,
+            331.717887196928470,
+            336.261181979198450,
+            340.815058870798960,
+            345.379407062266860,
+            349.954118040770250,
+            354.539085519440790,
+            359.134205369575340,
+            363.739375555563470,
+            368.354496072404690,
+            372.979468885689020,
+            377.614197873918670,
+            382.258588773060010,
+            386.912549123217560,
+            391.575988217329610,
+            396.248817051791490,
+            400.930948278915760,
+            405.622296161144900,
+            410.322776526937280,
+            415.032306728249580,
+            419.750805599544780,
+            424.478193418257090,
+            429.214391866651570,
+            433.959323995014870,
+            438.712914186121170,
+            443.475088120918940,
+            448.245772745384610,
+            453.024896238496130,
+            457.812387981278110,
+            462.608178526874890,
+            467.412199571608080,
+            472.224383926980520,
+            477.044665492585580,
+            481.872979229887900,
+            486.709261136839360,
+            491.553448223298010,
+            496.405478487217580,
+            501.265290891579240,
+            506.132825342034830,
+            511.008022665236070,
+            515.890824587822520,
+            520.781173716044240,
+            525.679013515995050,
+            530.584288294433580,
+            535.496943180169520,
+            540.416924105997740,
+            545.344177791154950,
+            550.278651724285620,
+            555.220294146894960,
+            560.169054037273100,
+            565.124881094874350,
+            570.087725725134190,
+            575.057539024710200,
+            580.034272767130800,
+            585.017879388839220,
+            590.008311975617860,
+            595.005524249382010,
+            600.009470555327430,
+            605.020105849423770,
+            610.037385686238740,
+            615.061266207084940,
+            620.091704128477430,
+            625.128656730891070,
+            630.172081847810200,
+            635.221937855059760,
+            640.278183660408100,
+            645.340778693435030,
+            650.409682895655240,
+            655.484856710889060,
+            660.566261075873510,
+            665.653857411105950,
+            670.747607611912710,
+            675.847474039736880,
+            680.953419513637530,
+            686.065407301994010,
+            691.183401114410800,
+            696.307365093814040,
+            701.437263808737160,
+            706.573062245787470,
+            711.714725802289990,
+            716.862220279103440,
+            722.015511873601330,
+            727.174567172815840,
+            732.339353146739310,
+            737.509837141777440,
+            742.685986874351220,
+            747.867770424643370,
+            753.055156230484160,
+            758.248113081374300,
+            763.446610112640200,
+            768.650616799717000,
+            773.860102952558460,
+            779.075038710167410,
+            784.295394535245690,
+            789.521141208958970,
+            794.752249825813460,
+            799.988691788643450,
+            805.230438803703120,
+            810.477462875863580,
+            815.729736303910160,
+            820.987231675937890,
+            826.249921864842800,
+            831.517780023906310,
+            836.790779582469900,
+            842.068894241700490,
+            847.352097970438420,
+            852.640365001133090,
+            857.933669825857460,
+            863.231987192405430,
+            868.535292100464630,
+            873.843559797865740,
+            879.156765776907600,
+            884.474885770751830,
+            889.797895749890240,
+            895.125771918679900,
+            900.458490711945270,
+            905.796028791646340,
+            911.138363043611210,
+            916.485470574328820,
+            921.837328707804890,
+            927.193914982476710,
+            932.555207148186240,
+            937.921183163208070,
+            943.291821191335660,
+            948.667099599019820,
+            954.046996952560450,
+            959.431492015349480,
+            964.820563745165940,
+            970.214191291518320,
+            975.612353993036210,
+            981.015031374908400,
+            986.422203146368590,
+            991.833849198223450,
+            997.249949600427840,
+            1002.670484599700300,
+            1008.095434617181700,
+            1013.524780246136200,
+            1018.958502249690200,
+            1024.396581558613400,
+            1029.838999269135500,
+            1035.285736640801600,
+            1040.736775094367400,
+            1046.192096209724900,
+            1051.651681723869200,
+            1057.115513528895000,
+            1062.583573670030100,
+            1068.055844343701400,
+            1073.532307895632800,
+            1079.012946818975000,
+            1084.497743752465600,
+            1089.986681478622400,
+            1095.479742921962700,
+            1100.976911147256000,
+            1106.478169357800900,
+            1111.983500893733000,
+            1117.492889230361000,
+            1123.006317976526100,
+            1128.523770872990800,
+            1134.045231790853000,
+            1139.570684729984800,
+            1145.100113817496100,
+            1150.633503306223700,
+            1156.170837573242400,
+        };
+        return lf[n];
+    }
+}
+
+
 /*
  * log-double factorial
  * Returns x*(x-2)*...*k, where k is the first term <2.
@@ -4910,6 +5185,202 @@ double mnorm(double order,
 }
 
 
+
+/* Get the next n-tuple in lexicographical order with values 0, 1, ..., base-1.
+   Return true if successful, false if unable to increment further. */
+int GetNextTuple(int* tuple, int n, int base)
+{
+  int j = 0;
+  while (j < n && tuple[j] == base-1)
+    {
+      tuple[j] = 0;
+      j++;
+    }
+  if (j < n)
+    tuple[j]++;
+  return (j < n);
+}
+
+int BinomialCoefficient(int power, int nu) {
+  int ans;
+  /* power can only be 2 or 4 */
+  /* 0 <= nu <= power */
+  if (power == 2) {
+    ans= 1 + nu%2;
+  } else if (power == 4) {
+      if (nu == 0 || nu == 4)
+	ans= 1;
+      if (nu == 1 || nu == 3)
+	ans= 4;
+      if (nu == 2)
+	ans= 6;
+  } else ans= 0; /* should never happen */
+  return ans;
+}
+
+/* NB: The equation in the paper is off by one.
+   The following code, taken from the paper's definition of kappa,
+   acually computes kappa + 1. */
+double one_plus_kappa
+(
+ double dof, /* degrees of freedom */
+ int r/* summation index */
+ )
+{
+  double product = 1.0;
+  int i;
+
+  if (r == 0)
+    return 1.0;
+
+  for (i = 1; i <= r; i++)
+    product *= 0.5*dof - i;
+  return pow(0.5*dof- 1.0, r) / product;
+}
+
+
+/*
+    Expectation of prod (x_i)^(2*power), where x_i ~ multivariate T_dof(mu,sigma). Set dof= -1 for x_i ~ N(mu,sigma)
+    mu[1..n]    = mean, a vector of length n
+    sigma[1..n][1..n] = covariance, n by n matrix
+    dof   = degrees of freedom, -1 signals normal case
+    power = 2 or 4, exponent on components
+    Note: This function was written by John D. Cook
+*/
+
+double mvtexpect(double* mu, double** sigma, int n, int power, double dof)
+{
+  double product = 1.0;
+  double sum = 0.0;
+  double covariance_term, mean_term, temp;
+  int index_sum;
+
+  int s = power*n;
+  int half_s = s/2; 
+  int j, k, r, half_power;
+
+  int* nu_index; /* indices nu_0 through nu_{n-1} */
+  nu_index = ivector(0,n);
+
+  for (r = 0; r <= half_s; r++)
+    {
+
+      for (j = 0; j < n; j++)
+	nu_index[j] = 0;
+
+      do
+	{
+	  product = 1.0;
+
+	  index_sum = 0;
+	  for (j = 0; j < n; j++)
+	    index_sum += nu_index[j];
+	  if (index_sum % 2)
+	    product *= -1;
+
+	  for (j = 0; j < n; j++)
+	    product *= BinomialCoefficient(power, nu_index[j]); 
+
+	  if (dof > 0.0)
+	    product *= one_plus_kappa(dof, r);
+	  /* else normal case and multiplicative term is 1 */
+
+	  covariance_term = 0.0;
+	  half_power = power/2;
+	  for (j = 0; j < n; j++)
+	    {
+	      temp = 0.0; /* double_sum accumulates the product sigma*h */
+	      for (k = 0; k < n; k++)
+		{
+		  /* sigma is stored by columns, so sigma_{ij} = sigma[i + j*n] */
+		  temp += sigma[j+1][k+1] * (half_power - nu_index[k]);
+		}
+	      covariance_term += (half_power - nu_index[j])*temp;
+	    }
+	  product *= pow(0.5*covariance_term, r);
+
+	  mean_term = 0.0;
+	  for (j = 0; j < n; j++)
+	    mean_term += (half_power - nu_index[j])*mu[j+1];
+	  product *= pow(mean_term, s - 2*r); 
+	  product /= exp(lfact(r) + lfact(s - 2*r));
+
+	  sum += product;
+
+	} while( GetNextTuple(nu_index, n, power+1) );
+    }
+  free_ivector(nu_index,0,n);
+  return sum;
+}
+
+//save as mvtexpect but mu is vector [0..n-1] and sigma is 0-indexed vector instead of matrix
+double mvtexpect_vec(double* mu, double* sigma, int n, int power, double dof)
+{
+  double product = 1.0;
+  double sum = 0.0;
+  double covariance_term, mean_term, temp;
+  int index_sum;
+
+  int s = power*n;
+  int half_s = s/2; 
+  int j, k, r, half_power;
+
+  int* nu_index; /* indices nu_0 through nu_{n-1} */
+  nu_index = ivector(0,n);
+
+  for (r = 0; r <= half_s; r++)
+    {
+
+      for (j = 0; j < n; j++)
+	nu_index[j] = 0;
+
+      do
+	{
+	  product = 1.0;
+
+	  index_sum = 0;
+	  for (j = 0; j < n; j++)
+	    index_sum += nu_index[j];
+	  if (index_sum % 2)
+	    product *= -1;
+
+	  for (j = 0; j < n; j++)
+	    product *= BinomialCoefficient(power, nu_index[j]); 
+
+	  if (dof > 0.0)
+	    product *= one_plus_kappa(dof, r);
+	  /* else normal case and multiplicative term is 1 */
+
+	  covariance_term = 0.0;
+	  half_power = power/2;
+	  for (j = 0; j < n; j++)
+	    {
+	      temp = 0.0; /* double_sum accumulates the product sigma*h */
+	      for (k = 0; k < n; k++)
+		{
+		  /* sigma is stored by columns, so sigma_{ij} = sigma[i + j*n] */
+		  temp += sigma[j + k*n]*(half_power - nu_index[k]);
+		}
+	      covariance_term += (half_power - nu_index[j])*temp;
+	    }
+	  product *= pow(0.5*covariance_term, r);
+
+	  mean_term = 0.0;
+	  for (j = 0; j < n; j++)
+	    mean_term += (half_power - nu_index[j])*mu[j];
+	  product *= pow(mean_term, s - 2*r); 
+	  product /= exp(lfact(r) + lfact(s - 2*r));
+
+	  sum += product;
+
+	} while( GetNextTuple(nu_index, n, power+1) );
+    }
+  free_ivector(nu_index,0,n);
+  return sum;
+}
+
+
+
 /* Density of t with nu df, location mu and scale s^2 */
 double dtC(double y,
            double mu,
@@ -5251,12 +5722,14 @@ double dgammaC(double x,
  */
 double dinvgammaC(double x,
                   double a,
-                  double b)
+                  double b,
+                  int logscale)
 {
     double ans = 0.0;
 
     if (x != 0.0) {
-        ans = exp(a * log(b) - gamln(&a) - (a + 1) * log(x) - b / x);
+        ans = a * log(b) - gamln(&a) - (a + 1) * log(x) - b / x;
+        if (logscale==0) ans= exp(ans);
     }
     return ans;
 }
@@ -5301,6 +5774,18 @@ double dmomNorm(double y,
 }
 
 
+//Univariate iMOM prior
+double dimom(double y, double m, double tau, double phi, int logscale) {
+  double y2, ans;
+  y2= (y-m)*(y-m);
+  ans= .5*(log(tau)+log(phi)) - .5*LOG_M_PI - log(y2) - tau*phi/y2;
+  if (logscale==0) ans= exp(ans);
+  return(ans);
+}
+
+
+
+
 //Sample from product MOM posterior under a linear model
 // Input:
 // - niter: number of Gibbs iterations
@@ -5313,9 +5798,10 @@ double dmomNorm(double y,
 // - r: MOM power parameter, i.e. penalty is th[i]^(2*r)
 // - tau: prior dispersion
 // - a_phi, b_phi: prior for residual variance phi ~ IG(a_phi/2, b_phi/2)
-void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi) {
+// - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
+void rnlpPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior) {
   int i, j, k, isave, nsave;
-  double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, sqrtphi, tauphi, th2sum, apost, bpost, *linpred, ssr;
+  double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, phinew, sqrtphi, th2sum, th2invsum, apost, bpost, *linpred, ssr;
   //Pre-compute stuff
   nsave= (int) floor((niter - burnin +.0)/(thinning +.0));
   m= dvector(1,p); mortho= dvector(1,p); alpha= dvector(1,p); thcur= dvector(1,p); linpred= dvector(0,n-1);
@@ -5334,7 +5820,7 @@ void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, dou
   Ax(inv_cholSinv, m, mortho, 1, p, 1, p); 
   free_dvector(Xty,1,p);
 
-  apost= .5*(a_phi + n + 3*p);
+  if (prior==0) apost= .5*(a_phi+n+3*p); else if (prior==1) apost= .5*(a_phi+n-p); else apost= .5*(a_phi+n+p);
   //Initialize
   th2sum= 0; phicur= sqrtphi= 1.0;
   for (j=1; j<=p; j++) { thcur[j]= m[j]; th2sum += thcur[j]*thcur[j]; }
@@ -5345,16 +5831,23 @@ void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, dou
     Avecx(x, thcur+1, linpred, 0, n-1, 0, p-1);
     ssr=0;
     for (j=0; j<n; j++) ssr += pow(y[j]-linpred[j],2.0);
-    bpost= .5*(b_phi + th2sum/tau + ssr);
-    phicur= 1.0/rgammaC(apost, bpost);
-    sqrtphi= sqrt(phicur);
+    if (prior==0) {
+      bpost= .5*(b_phi + th2sum/tau + ssr);
+      phicur= 1.0/rgammaC(apost, bpost);
+      sqrtphi= sqrt(phicur);
+    } else {
+      if (prior==1) bpost= .5*(b_phi + ssr); else bpost= .5*(b_phi + th2sum/tau + ssr);
+      phinew= 1.0/rgammaC(apost, bpost);
+      th2invsum= 0;
+      for (j=1; j<=p; j++) th2invsum += 1/(thcur[j]*thcur[j]);
+      if (runif() < exp((phicur-phinew)*tau*th2invsum)) { phicur= phinew; sqrtphi= sqrt(phicur); }
+    }
     for (j=1; j<=p; j++) { 
       alpha[j]= mortho[j]/sqrtphi;
       //Dthcur[j]= Dthcur[j] * sqrtphi;
       for (k=1; k<=j; k++) { D[j][k]= cholSinv[j][k] * sqrtphi; K[j][k]= inv_cholSinv[j][k] / sqrtphi; }
     }
-    tauphi= phicur * tau;
-    rmvmom_Gibbs(thcur, p, alpha, D, K, &tauphi, r);
+    rnlp_Gibbs(thcur, p, alpha, D, K, &tau, &phicur, r, prior);
     if (i>burnin && ((i-burnin) % thinning)==0) {
       for (j=1; j<=p; j++) ans[isave + (j-1)*nsave]= thcur[j];
       ans[isave + p*nsave]= phicur;
@@ -5371,41 +5864,151 @@ void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, dou
 }
 
 //R interface for rmvmomPost
-SEXP rmvmomPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi) {
+
+SEXP rnlpPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior) {
   int n= LENGTH(y), nsave;
   SEXP ans;
   nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
   ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
-  rmvmomPost(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0]);
+  rnlpPost(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0], INTEGER(prior)[0]);
   UNPROTECT(1);
   return ans;
 }
 
-//Single Gibbs update (th,l) ~ N(th;m,S) * prod I(th[i]^2/ct)^r >l[i]
+//Single Gibbs update (th,l) ~ N(th;m,S) * prod g(th[i]) >l[i]
 //Input
 // - p: dimensionality of th (number of variables)
 // - m: m[1..p] is mean of Normal kernel
 // - cholS: cholS[1..p][1..p] is Cholesky decomp of covariance
 // - K: inverse of cholS
-// - ct: constant (typically obtained as current value of phi*tau)
-// - r: power parameter
+// - tau: value of tau (prior dispersion)
+// - phi: value of phi (residual variance)
+// - r: power parameter is 2*r
+// - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
 //Input-Output
 // - th: at input th[1..p] is current value of th; at output the updated value
-void rmvmom_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *ct, int r) {
+void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior) {
   int i;
-  double *lower, *upper, *l, *z;
+  double *lower, *upper, *l, *z, upperb;
   lower= dvector(1,p); upper= dvector(1,p); l= dvector(1,p); z= dvector(1,p);
   //Update l
-  for (i=1; i<=p; i++) {
-    l[i]= runif() * pow(th[i]*th[i] / (*ct), r + .0);
-    upper[i]= sqrt(l[i] * (*ct));
-    lower[i]= -upper[i];
+  if (prior==0) {
+    for (i=1; i<=p; i++) {
+      upperb= pen_mom(th+i, phi, tau, r);
+      l[i]= runif() * upperb;  //l[i]= runif() * pow(th[i]*th[i] / (phi*tau), r + .0);
+      if (r==1) { upper[i]= sqrt(l[i] * (*tau) * (*phi)); } else { upper[i]= pow(l[i] * (*tau) * (*phi), 1.0/(2.0*r)); }
+      lower[i]= -upper[i];
+    }
+  } else if (prior==1) {
+    for (i=1; i<=p; i++) {
+      upperb= pen_imom(th+i, phi, tau, 1);
+      l[i]= log(runif()) + upperb;
+      upper[i]= invpen_imom_sandwich(l+i, phi, tau);
+      lower[i]= -upper[i];
+    }
+  } else if (prior==2) {
+    for (i=1; i<=p; i++) {
+      upperb= pen_emom(th+i, phi, tau, 1);
+      l[i]= runif() * exp(upperb);  //l[i]= runif() * exp(sqrt(2) + tau*phi/th[i]^2)
+      upper[i]= sqrt(fabs((*tau) * (*phi)/(log(l[i])-sqrt(2.0))));
+      lower[i]= -upper[i];
+    }
   }
   //Update th, cholSth
   Ax(K, th, z, 1, p, 1, p); //z= K th;
   rtmvnormOutside_Gibbs(z, th, m, cholS, p, lower, upper);
   Ax(cholS, z, th, 1, p, 1, p); //th= D z
   free_dvector(lower,1,p); free_dvector(upper,1,p); free_dvector(l,1,p); free_dvector(z,1,p);
+}
+
+
+//Evaluates MOM prior penalty, i.e. (th^2 / (phi*tau))^r
+double pen_mom(double *th, double *phi, double *tau, int r) {
+  double ans;
+  ans= pow(th[0]*th[0] / ((*phi) * (*tau)), r + .0);
+  return ans;
+}
+
+//Evaluates eMOM prior penalty, i.e. exp(-sqrt(2)*tau*phi/th^2)
+double pen_emom(double *th, double *phi, double *tau, int logscale) {
+  double ans;
+  ans= sqrt(2.0) - (*tau) * (*phi) / (th[0]*th[0]);
+  if (logscale==0) ans= exp(ans);
+  return ans;  
+}
+
+//Evaluates iMOM prior penalty, i.e. dimom(th) / dnorm(th)
+double pen_imom(double *th, double *phi, double *tau, int logscale) {
+  double ans;
+  ans= dimom(*th, 0, *tau, *phi, 1) - dnormC(*th, 0, sqrt((*tau)*(*phi)), 1);
+  if (logscale==0) ans= exp(ans);
+  return(ans);
+}
+
+//Evaluates inverse of iMOM penalty, i.e. find th s.t. pen_imom(th,phi,tau) = lambda 
+//Refines initial search using Newton's algorithm
+double invpen_imom_newton(double *loglambda, double *phi, double *tau) {
+  int i, maxiter=50;
+  double b, d, zcur, thcur, fcur, fpcur, err, ftol=1.0e-5, tauphi= (*tau)*(*phi), halftauphi;
+  //Initial guess
+  halftauphi= .5*tauphi;
+  b= .5*(log((*tau)*(*tau)) + 2.0*log(*phi) + log(2.0)) - (*loglambda);
+  d= sqrt(b*b + 2.0);
+  zcur= (*tau)*(*phi)*(-b+d);
+  thcur= sqrt(zcur);
+  fcur= pen_imom(&thcur, phi, tau, 1);
+  //Newton search
+  err= *loglambda - fcur; i= 1;
+  while ((i<maxiter) && (fabs(err) > ftol)) {
+    fpcur= -1/zcur + tauphi/(zcur*zcur) + halftauphi;
+    zcur += err/fpcur;
+    thcur= sqrt(zcur);
+    fcur= pen_imom(&thcur, phi, tau, 1);
+    err= *loglambda - fcur;
+    i++;
+  }
+  return thcur;
+}
+
+
+// Uses an initial guess to bound the solution. Then uses a sandwhich approach based on recursive linear interpolation 
+double invpen_imom_sandwich(double *loglambda, double *phi, double *tau) {
+  int i, maxiter=50;
+  double b, d, zcur, thcur, fcur, zlow, thlow, flow, zup, thup, fup, err, ftol=1.0e-5;
+  //Initial guess
+  b= .5*(log((*tau)*(*tau)) + 2.0*log(*phi) + log(2.0)) - (*loglambda);
+  d= sqrt(b*b + 2.0);
+  zcur= (*tau)*(*phi)*(-b+d);
+  thcur= sqrt(zcur);
+  fcur= pen_imom(&thcur, phi, tau, 1);  //log-penalty at zcur
+  //Lower & upper bound
+  if (fcur >= (*loglambda)) {
+    zlow= .8*.8*zcur; thlow= sqrt(zlow); flow= pen_imom(&thlow, phi, tau, 1);
+    while (flow >= (*loglambda)) {
+      zcur= zlow; thcur= thlow; fcur= flow;
+      zlow= .8*.8*zcur; thlow= sqrt(zlow); flow= pen_imom(&thlow, phi, tau, 1);
+    }
+    zup= zcur; thup= thcur; fup= fcur;
+  } else {
+    zup= 1.2*1.2*zcur; thup= sqrt(zup); fup= pen_imom(&thup, phi, tau, 1);
+    while (fup <= (*loglambda)) {
+      zcur= zup; thcur= thup; fcur= fup;
+      zup= 1.2*1.2*zcur; thup= sqrt(zup); fup= pen_imom(&thup, phi, tau, 1);
+    }
+    zlow= zcur; thlow= thcur; flow= fcur;
+  }
+  //Search by sandwich linear interpolation
+  err= fcur - *loglambda; i= 1;
+  while ((i<maxiter) && (fabs(err) > ftol)) {
+    b= (fup-flow)/(zup-zlow);
+    zcur= zlow + ((*loglambda)-flow)/b; //approx is flow + b*(z-zlow)= loglambda
+    thcur= sqrt(zcur);
+    fcur= pen_imom(&thcur, phi, tau, 1);
+    err= fcur - *loglambda;
+    if (err > 0) { zup= zcur; fup= fcur; } else { zlow= zcur; flow= fcur; }
+    i++;
+  }
+  return thcur;
 }
 
 

@@ -69,22 +69,13 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
     stop('prior on coefficients not recognized. Currently only pMOM and peMOM are implemented')
   }
 
-  pp.pkgname <- if (getRversion() >= "2.14.0") 'parallel' else 'multicore'
   if (mc.cores > 1) {
-    ## Load parallel processing package, if possible
-    if (!require(pp.pkgname, character.only=TRUE)) {
-      warning(sprintf("cannot load '%s' package - continuing without it...",
-                      pp.pkgname),
-              immediate.=TRUE)
+    if (!require("parallel", character.only=TRUE)) {
+      warning("cannot load parallel package - continuing without it...")
     }
   }
-  nlpseq <- if ((pp.pkgname %in% loadedNamespaces()) & (pp.pkgname=='parallel'))  {
+  nlpseq <- if ("parallel" %in% loadedNamespaces())  {
                        parallel::mclapply(as.list(tauseq),
-                       nlpfit,
-                       mc.cores=mc.cores,
-                       mc.preschedule=FALSE)
-            } else if ((pp.pkgname %in% loadedNamespaces()) & (pp.pkgname=='multicore'))  {
-                       multicore::mclapply(as.list(tauseq),
                        nlpfit,
                        mc.cores=mc.cores,
                        mc.preschedule=FALSE)

@@ -150,7 +150,7 @@ is.msPriorSpec <- function(x) {
 
 
 ##-----------------------------------------------------------------------------
-## Generator for this object.
+## Generators for this object.
 msPriorSpec <- function(priorType=c("coefficients",
                                     "modelIndicator",
                                     "nuisancePars"),
@@ -168,3 +168,32 @@ msPriorSpec <- function(priorType=c("coefficients",
         priorPars=priorPars)
 }
 
+
+momprior <- function(tau, tau.adj=10^6, r=1) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="pMOM", priorPars=c(tau=tau,tau.adj=tau.adj,r=r))
+}
+
+imomprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="piMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+emomprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="peMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+modelunifprior <- function() {
+    new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0))
+}
+
+modelbinomprior <- function(p=0.5) {
+    new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(p=p))
+}
+
+modelbbprior <- function(alpha.p=1, beta.p=1) {
+    new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=alpha.p,beta.p=beta.p))
+}
+
+
+igprior <- function(alpha=.01, lambda=.01) {
+    new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=alpha,lambda=lambda))
+}

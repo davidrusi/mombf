@@ -564,12 +564,14 @@ Regarding the model space, we use a Beta-binomial prior (binomial prior on the n
 with a beta hyper-prior on the Binomial success probability)
 as then posterior probabilities automatically adjust for multiple comparisons \citep{scott:2010}.
 Finally, for the residual variance we set a fairly non-informative inverse gamma prior.
+For defining other prior distributions see the help for \texttt{msPriorSpec}
+({\it e.g.} \texttt{momprior} and \texttt{emomprior} can be used to define MOM and eMOM priors, respectively).
 
 \footnotesize
 <<varsel2>>=
-priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='piMOM',priorPars=c(tau=.131))
-priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=1,beta.p=1))
-priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
+priorCoef <- imomprior(tau=.131)
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
+priorVar <- igprior(alpha=.01,lambda=.01)
 @
 \normalsize
 

@@ -33,3 +33,12 @@ if (!isGeneric("demom")) {
                         logscale=FALSE) standardGeneric("demom"))
 }
 
+
+if (!isGeneric("postProb")) {
+  setGeneric("postProb", function(object, nmax) standardGeneric("postProb"))
+}
+
+if (!isGeneric("rnlp")) {
+  setGeneric("rnlp", function(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) standardGeneric("rnlp"))
+}
+

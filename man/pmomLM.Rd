@@ -22,11 +22,13 @@
   \code{ppmodel} returns the proportion of visits to each model.
 }
 \usage{
-pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), 
+priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
 pmomPM(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10),
 priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
 
-emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), 
+priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
 emomPM(y, x, xadj, niter=10^4, thinning=1, burnin =round(niter/10),
 priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
 
@@ -77,7 +79,7 @@ parameters 'alpha.p','beta.p'.}
   observed data and yhat is E(yp|yobs).
 }
 \item{mc.cores}{Allows for parallel computing. \code{mc.cores} is the number of processors to use. 
-  Setting \code{mc.cores>1} requires the \code{multicore} package.}
+  Setting \code{mc.cores>1} requires the \code{parallel} package.}
 \item{nlpfit}{Non-local prior model fit, as returned by \code{pmomLM},
   \code{pmomPM}, \code{emomLM} or \code{emomPM}.}
 }
@@ -155,16 +157,14 @@ theta <- matrix(c(1,1,0),ncol=1)
 y <- 10*xadj + x \%*\% theta + rnorm(100)
 
 #Beta-binomial prior on model space
-priorDelta <-
-new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=1,beta.p=1))
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 
 #Non-informative prior on residual variance
-priorVar <-
-new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
+priorVar <- igprior(alpha=.01,lambda=.01)
 
 #Product MOM prior with tau=0.3 on x coefficients
 #Non-informative prior on xadj coefficients
-priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='pMOM',priorPars=c(tau=.3,tau.adj=10^6,r=1))
+priorCoef <- momprior(tau=0.3, tau.adj=10^6)
 
 mom0 <- pmomLM(y=y,x=x,xadj=xadj,center=FALSE,scale=FALSE,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar)
 round(colMeans(mom0$postModel),2)

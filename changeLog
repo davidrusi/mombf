@@ -1,3 +1,13 @@
+CHANGES IN VERSION 1.5.0
+- Added function rnlp to sample from MOM, eMOM and iMOM posteriors under Normal linear models
+- Added class msfit and several basic methods
+- Added momprior, imomprior, emomprior, modelunifprior, modelbinomprior, modelbbprior, igprior functions to facilitate creating objects of class msPriorSpec
+- Prevented numerical overflow in computing iMOM integrated likelihood with method=='Hybrid' and method=='MC'. Improves pimomMarginalU and modelSelection for both these methods.
+
+CHANGES IN VERSION 1.4.1
+- Fixed bug in modelSelection that caused to report the wrong model (only) at the first Gibbs iteration
+- Increased precision of Laplace approximation to compute MOM and iMOM integrated likelihood
+
 CHANGES IN VERSION 1.4.0
 - Fixed C++ bug in Solaris caused by overloading of 'log' and 'sqrt' functions
 

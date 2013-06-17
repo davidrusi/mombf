@@ -1,7 +1,15 @@
 \name{msPriorSpec-class}
 \Rdversion{1.1}
 \docType{class}
+\alias{msPriorSpec}
 \alias{msPriorSpec-class}
+\alias{momprior}
+\alias{imomprior}
+\alias{emomprior}
+\alias{modelunifprior}
+\alias{modelbinomprior}
+\alias{modelbbprior}
+\alias{igprior}
 
 \title{Class "msPriorSpec"}
 \description{
@@ -10,8 +18,36 @@ in normal regression models.
 This class can be used to specify the prior on non-zero regression coefficients,
 the model indicator or the nuisance parameters.
 }
+\usage{
+momprior(tau, tau.adj=10^6, r=1)
+imomprior(tau, tau.adj=10^6)
+emomprior(tau, tau.adj=10^6)
+
+modelunifprior()
+modelbinomprior(p=0.5)
+modelbbprior(alpha.p=1, beta.p=1)
+
+igprior(alpha=.01, lambda=.01)
+}
+\arguments{
+  \item{tau}{Prior dispersion parameter for covariates undergoing selection}
+  \item{tau.adj}{Prior variance in Normal prior for covariates not undergoing selection}
+  \item{r}{MOM prior parameter is \code{2*r}}
+  \item{p}{Prior inclusion probability for binomial prior on model space}
+  \item{alpha.p}{Beta-binomial prior on model space has parameters alpha.p, beta.p}
+  \item{beta.p}{Beta-binomial prior on model space has parameters alpha.p, beta.p}
+  \item{alpha}{Inverse gamma prior has parameters alpha/2, lambda/2}
+  \item{lambda}{Inverse gamma prior has parameters alpha/2, lambda/2}
+}
 \section{Objects from the Class}{
-Objects can be created by calls of the form \code{new("msPriorSpec", ...)}.
+Objects can be created by calls of the form \code{new("msPriorSpec",
+  ...)}, but it is easier to use creator functions.
+
+For priors on regression coefficients use \code{momprior},
+\code{imomprior} or \code{emomprior}.
+For prior on model space \code{modelunifprior}, \code{modelbinomprior}
+or \code{modelbbprior}.
+For prior on residual variance use \code{igprior}.
 }
 \section{Slots}{
   \describe{
@@ -55,10 +91,13 @@ is an inverse gamma with parameteres \code{.5*alpha} and \code{.5*lambda}.
 No methods defined with class "msPriorSpec" in the signature.
 }
 \references{
-Prior Densities for Default Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B, 2010, 72, 143-170
+Johnson VE, Rossell D. Non-Local Prior Densities for Default Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B, 2010, 72, 143-170
+
+Johnson VE, Rossell D. Bayesian model selection in high-dimensional
+settings. Journal of the American Statistical Association, 107, 498:649-660.
 }
 \author{
-David Rossell.
+David Rossell
 }
 \note{
 When new instances of the class are created a series of check are performed to ensure that a valid prior

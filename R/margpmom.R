@@ -7,7 +7,7 @@ fpmomNeg <- function(th, m, S, phi, tau, r) S %*% matrix(th-m, ncol=1)/phi - 2*r
 fppmomNeg <- function(th, m, S, phi, tau, r) S/phi + 2*r*diag(1/th^2,nrow=length(th))
 
 pmomIntegralApproxR <- function(m, S, phi, tau, r, logscale=TRUE) {
-  #Laplace approx to integral N(th; m, phi*solve(S)) prod(exp(-tau*phi/th^2)) wrt th
+  #Laplace approx to integral N(th; m, phi*solve(S)) prod (th/(phi*tau))^2r wrt th
   opt <- nlminb(m, objective=fmomNeg, gradient=fpmomNeg, m=m, S=S, phi=phi, tau=tau, r=r)$par
   fopt <- -fmomNeg(opt,m=m,S=S,phi=phi,tau=tau,r=r)
   hess <- fppmomNeg(opt,m=m,S=S,phi=phi,tau=tau,r=r)
@@ -16,7 +16,7 @@ pmomIntegralApproxR <- function(m, S, phi, tau, r, logscale=TRUE) {
   return(ans)
 }
 
-pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) {
+pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX) {
 #Marginal density of the data y~N(x*theta,phi*I) under a product mom prior (known variance)
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
@@ -24,7 +24,7 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='Laplace', B=10^5, lo
 # - phi: residual variance
 # - tau: prior dispersion parameter
 # - r: prior power parameter is 2*r
-# - method: method to approximate the integral. 'Laplace' for Laplace approx. 'MC' for Monte Carlo. 'Plug-in' for plug-in estimate.
+# - method: method to approximate the integral. 'Laplace' for Laplace approx. 'MC' for Monte Carlo. 'Plug-in' for plug-in estimate. 'auto' for exact calculation if p<=10, else Laplace approx
 # - B: number of Monte Carlo samples to use (ignored unless method=='MC')
 # - XtX, ytX: optionally, X'X and y'X can be specified to speed up computations
   if (is.matrix(y)) y <- as.vector(y)
@@ -37,7 +37,7 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='Laplace', B=10^5, lo
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau); r <- as.integer(r)
-  method <- as.integer(ifelse(method=='Laplace',0,ifelse(method=='MC',1,2)))
+  method <- as.integer(ifelse(method=='auto',-1,ifelse(method=='Laplace',0,ifelse(method=='MC',1,2))))
   B <- as.integer(B); logscale <- as.integer(logscale)
   ans <- .Call("pmomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale)
   return(ans)
@@ -73,7 +73,7 @@ pmomMarginalKR <- function(y, x, phi, tau, r=1, method='Laplace', B=10^5, logsca
 }
 
 
-pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) {
+pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX) {
 #Marginal density of the data y~N(x*theta,phi*I) under a product imom prior (unknown variance)
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
@@ -93,7 +93,7 @@ pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, meth
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau); r <- as.integer(r)
-  method <- as.integer(ifelse(method=='Laplace',0,ifelse(method=='MC',1,2)))
+  method <- as.integer(ifelse(method=='auto',-1,ifelse(method=='Laplace',0,ifelse(method=='MC',1,2))))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ans <- .Call("pmomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda)

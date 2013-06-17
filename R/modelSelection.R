@@ -2,6 +2,29 @@
 ### modelSelection.R
 ###
 
+### Methods for msfit objects
+
+setMethod("show", signature(object='msfit'), function(object) {
+  cat('msfit object with',ncol(object$postSample),'variables\n')
+  ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
+  cat("Use postprob() to get posterior model probabilities\n")
+  cat("Elements $margpp, $postMode, $postSample and $coef contain further information (see help('msfit') and help('modelSelection') for details)\n")
+}
+)
+
+setMethod("postProb", signature(object='msfit'), function(object, nmax) {
+  modelpp <- unique(data.frame(object$postSample==1, logpp=object$postProb))
+  modelpp <- data.frame(modelid= apply(modelpp[,1:(ncol(modelpp)-1)], 1, function(z) paste(which(z),collapse=',')), logpp=modelpp$logpp)
+  modelpp$logpp <- modelpp$logpp - modelpp$logpp[1]
+  modelpp$pp <- exp(modelpp$logpp)/sum(exp(modelpp$logpp))
+  modelpp <- modelpp[order(modelpp$pp,decreasing=TRUE),]
+  if (!missing(nmax)) modelpp <- modelpp[1:nmax,]
+  modelpp[,c('modelid','pp')]
+}
+)
+
+
+
 #### General model selection routines
 modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method, B=10^5, verbose=TRUE) {
 # Input
@@ -56,6 +79,15 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     } else {
       method <- as.integer(2)
     }
+  } else if (method=='auto') {
+    if (priorCoef@priorDistr!='pMOM') { 
+      warning("method=='auto' is only available for 'pMOM' priors. Using method=='Laplace' instead")
+      method <- as.integer(-1)
+    } else {
+      method <- as.integer(2)
+    }
+  } else {
+    stop('Invalid argument method')
   }
 
   #Format arguments for .Call
@@ -120,7 +152,8 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     pm <- postMode(y=y,x=x[,postMode==1,drop=FALSE],priorCoef=priorCoef)
     coef[postMode==1] <- pm$coef
   }
-  return(list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef))
+  ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef)
+  new("msfit",ans)
 }
 
 modelSelectionR <- function(y, x, niter=10^4, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
@@ -194,7 +227,9 @@ for (i in 1:niter) {
   if (verbose && ((i%%niter10)==0)) cat('.')
 }
 if (verbose) cat('\n')
-return(list(postSample=postSample,postOther=postOther,margpp=margpp/niter,postMode=postMode,postModeProb=postModeProb,postProb=postProb))
+ans <- list(postSample=postSample,postOther=postOther,margpp=margpp/niter,postMode=postMode,postModeProb=postModeProb,postProb=postProb)
+#new("msfit",ans)
+return(ans)
 }
 
 
@@ -256,7 +291,6 @@ modelselBIC <- function(y, x, xadj, family, niter=1000, burnin= round(.1*niter),
   #Return output
   if (burnin>0) { postModel <- postModel[-1:-burnin,,drop=FALSE]; postCoef1 <- postCoef1[-1:-burnin,,drop=FALSE]; postCoef2 <- postCoef2[-1:-burnin,,drop=FALSE] }
   ans <- list(postModel=postModel, postCoef1=postCoef1, postCoef2=postCoef2, margpp=colMeans(postModel))
-  return(ans)
 }
 
 

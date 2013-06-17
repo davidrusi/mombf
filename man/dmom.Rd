@@ -22,7 +22,8 @@
   moment and inverse moment priors.
 }
 \usage{
-dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, logscale=FALSE, penalty='product')
+dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, 
+logscale=FALSE, penalty='product')
 dimom(x, tau=1, phi=1, V1, logscale=FALSE, penalty='product')
 demom(x, tau, a.tau, b.tau, phi=1, logscale=FALSE)
 

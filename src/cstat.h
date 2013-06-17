@@ -32,6 +32,24 @@
 #define LOG_M_PI (1.1447298858494)
 #endif
 
+
+
+/**************************************************************/
+/* Functions interfacing with R                               */
+/**************************************************************/
+
+extern "C" {
+
+  //Non-local prior sampling
+  SEXP rnlpPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
+
+  //Truncated multivariate Normal sampling
+  SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
+  SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
+  SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
+
+}
+
 /**************************************************************/
 /* Functions to compute means & variances                     */
 /**************************************************************/
@@ -151,6 +169,7 @@ void free_iarray3(int ***a, int n1, int n2, int n3);
 
 double gamln(double*);  //log-Gamma function
 double gamln1(double*);  //auxiliary function called by gamln
+double lfact(int);  //log-factorial
 double ldoublefact(double x);  //log-double factorial(x)
 double digamma(double x);                          //from S Poetry (by Patrick J. Burns)
 double trigamma(double x);
@@ -269,10 +288,8 @@ void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from m
 double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given two truncation points
 double rnorm_trunc_prob(double lprob, double rprob, double m, double s); //draw trunc Normal given trunc probs
 void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rtrunc, int ntrunc, double *m, double *s); //n draws univ trunc Normal given multiple truncation points
-SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
 
 void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *lower, double *upper, int within, int method); //n draws multiv trunc Normal given rectangular constraints
-SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
 void rtmvnormMH(double *ansortho, double *paccept, int n, int p, double *alpha, double **D, double **K, double det, double *lower, double *upper, int within); //Indep prop MH
 void rtmvnormOutside(double *ans, int n, int p, double *alpha, double **D, double *lower, double *upper); //Gibbs sampling, truncation outside interval
 void rtmvnormOutside_Gibbs(double *z, double *Dj, double *alpha, double **D, int p, double *lower, double *upper); //Single Gibbs sampling step
@@ -280,13 +297,15 @@ void rtmvnormWithin(double *ans, int n, int p, double *alpha, double **D, double
 void rtmvnormProp(double *z, double *propdens, int p, double *alpha, double **D, double *lower, double *upper, int within); //proposal for multiv trunc Normal
 
 void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int is_low_trunc, int is_up_trunc, int burnin); //multiv trunc Normal given constraint on product
-SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
 void rtmvnormProd_lowup(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int burnin); //lower and upper truncation on product
 void rtmvnormProd_low(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, int burnin); //only lower truncation on product
 void rtmvnormProd_up(double *ans, int n, int p, double *mu, double **Sinv, int k, double upper, int burnin); //only upper truncation on product
 
 // Moments
 double mnorm(double order, double m, double sd); //raw moment of N(m,sd) of order "order"
+
+double mvtexpect(double* mu, double** sigma, int n, int power, double dof); //mean of prod (x_i)^(2*power) when x_i ~ T_dof(mu,sigma). Set dof=-1 for N(mu,sigma). Written by John Cook
+double mvtexpect_vec(double* mu, double* sigma, int n, int power, double dof); //same but input args are 0-indexed vectors
 
 // T Student
 double dtC(double y, double mu, double s, int nu); //density of t with nu df
@@ -303,16 +322,19 @@ void rmvtC(double *y, int n, const double *mu, double **chols, int nu); //draw f
 // Gamma & Inverse gamma
 double rgammaC(double a, double b); //a: shape; b: location; mean=a/b
 double dgammaC(double x, double a, double b); //a: shape; b: location; mean=a/b
-double dinvgammaC(double x, double a, double b); //a: shape; b: location; mean of x= b/(a-1)
+double dinvgammaC(double x, double a, double b, int logscale); //a: shape; b: location; mean of x= b/(a-1)
 
 // Non-local priors
 double dmomNorm(double y, double m, double tau, double phi, int r, int logscale); //Normal MOM prior (power is 2*r)
+double dimom(double y, double m, double tau, double phi, int logscale); //Univariate iMOM prior
 
-void rmvmomPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi); //pMOM posterior samples under linear model
-SEXP rmvmomPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi); //R interface for rmvmomPost
-void rmvmom_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *ct, int r); //Gibbs update (th,l) ~ N(th;mu,phi*S) * prod (th[i]^2/tau*phi)>l[i]
-
-
+void rnlpPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior); //NLP posterior samples under linear model
+void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //Gibbs update (th,l) ~ N(th;mu,phi*S) * g(th[i])>l[i]
+double pen_mom(double *th, double *phi, double *tau, int r); //MOM penalty (th^2 / (phi*tau))^r
+double pen_emom(double *th, double *phi, double *tau, int logscale); //eMOM penalty exp(-sqrt(2)*tau*phi/th^2)
+double pen_imom(double *th, double *phi, double *tau, int logscale); //iMOM penalty dimom(th,tau*phi) / dnorm(th,0,tau*phi)
+double invpen_imom_newton(double *lambda, double *phi, double *tau); //inverse of iMOM penalty using Newton's method
+double invpen_imom_sandwich(double *lambda, double *phi, double *tau); //inverse of iMOM penalty using Sandwich method
 
 /* More random variate stuff (dcdflib, from CMU statlib "www.stat.cmu.edu") */
 double fifdint(double);

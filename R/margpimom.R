@@ -48,8 +48,8 @@ pimomMarginalK <- function(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logs
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau)
-  method <- as.integer(ifelse(method=='Laplace',0,1))
-  B <- as.integer(B); logscale <- as.integer(logscale)
+  if (method=='Laplace') method=0 else if (method=='MC') method=1 else stop("Invalid argument 'method'")
+  method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   ans <- .Call("pimomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale)
   return(ans)
 }
@@ -117,8 +117,8 @@ pimomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau)
-  method <- as.integer(ifelse(method=='Laplace',0,ifelse(method=='MC',1,2)))
-  B <- as.integer(B); logscale <- as.integer(logscale)
+  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='Hybrid') method=2 else stop("Invalid argument 'method'")
+  method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ans <- .Call("pimomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda)
   return(ans);

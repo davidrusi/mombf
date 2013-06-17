@@ -2,21 +2,52 @@
 ## Routines to simulate from MOM prior and posterior
 ##################################################################################
 
+setMethod("rnlp", signature(y='numeric',x='matrix',msfit='msfit'), function(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+  #Draw model
+  pp <- postProb(msfit)
+  modelid <- strsplit(as.character(pp$modelid), split=',')
+  ndraws <- as.numeric(rmultinom(1, size=niter, prob=pp$pp))
+  sel <- ndraws>0; modelid <- modelid[sel]; ndraws <- ndraws[sel]
+  #Draw coefficients
+  idx <- c(0,cumsum(ndraws))
+  ans <- matrix(0, nrow=niter, ncol=ncol(x)+1)
+  for (i in 1:length(modelid)) {
+    b <- min(50, ceiling((burnin/niter) * ndraws[i]))
+    colsel <- as.numeric(modelid[[i]])
+    ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+  }
+  if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+  return(ans)
+}
+)
 
-rmvmomPost <- function(y, x, niter=10^3, burnin=round(niter/10), thinning=1, priorCoef, priorVar) {
+
+setMethod("rnlp", signature(y='numeric',x='matrix',msfit='missing'), function(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
   p <- ncol(x); n <- length(y)
   if (nrow(x) != n) stop('Dimensions of y and x do not match')
   tau <- as.double(priorCoef@priorPars['tau'])
-  r <- as.integer(ifelse(priorCoef@priorDistr=='pMOM', priorCoef@priorPars['r'], 0))
+  if (priorCoef@priorDistr=='pMOM') {
+    prior <- as.integer(0); r <- as.integer(priorCoef@priorPars['r'])
+  } else if (priorCoef@priorDistr=='piMOM') {
+    prior <- as.integer(1); r <- as.integer(0)
+  } else if (priorCoef@priorDistr=='peMOM') {
+    prior <- as.integer(2); r <- as.integer(0)
+  } else stop("This kind of prior is not implemented")
   if (priorVar@priorDistr=='invgamma') {
     a_phi <- as.double(priorVar@priorPars['alpha'])
     b_phi <- as.double(priorVar@priorPars['lambda'])
   } else stop("Only invgamma prior for residual variance is currently implemented")
-  ans <- .Call("rmvmomPostCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi)
-  ans <- matrix(ans,ncol=p+1)
-  if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+  if (p==0) {
+    ans <- matrix(1/rgamma(niter-burnin, .5*(a_phi+n), .5*(b_phi+sum(y^2))), ncol=1)
+    colnames(ans) <- 'phi'
+  } else {
+    ans <- .Call("rnlpPostCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
+    ans <- matrix(ans,ncol=p+1)
+    if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+  }
   return(ans)
 }
+)
 
 
 

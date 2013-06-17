@@ -24,14 +24,17 @@ verbose = TRUE)
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
   \code{.1*niter}. Set to 0 for no burn-in}
-\item{priorCoef}{Prior distribution for the coefficients. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'coefficients'. Possible values for slot \code{priorDistr} are 'pMOM', 'piMOM' and 'peMOM'}
+\item{priorCoef}{Prior distribution for the coefficients. Object
+  of class \code{msPriorSpec}, e.g. created with \code{momprior}, \code{imomprior} or \code{emomprior}}
 \item{priorDelta}{Prior on model indicator space. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'modelIndicator'. Possible values for slot \code{priorDistr} are 'uniform' and 'binomial'}
 \item{priorVar}{Prior on residual variance. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'nuisancePars'. Slot \code{priorDistr} must be equal to 'invgamma'}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
 \item{method}{Method to compute marginal
-  densities. \code{method=='Laplace'} for Laplace approx,
+  densities. \code{method=='auto'} for exact calculation for up to 10
+  covariates and Laplace approx otherwise (only available for pMOM priors).
+  \code{method=='Laplace'} for Laplace approx,
   \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
   for Hybrid Laplace-IS (the latter method is only used for piMOM prior
   with unknown residual variance \code{phi}). See Details.}
@@ -71,7 +74,7 @@ verbose = TRUE)
   Johnson & Rossell (2011).
 }
 \value{
-A list with elements
+Object of class \code{msfit}, which extends a list with elements
 \item{postSample}{\code{matrix} with posterior samples for the model
   indicator. \code{postSample[i,j]==1}
   indicates that variable j was included in the model in the MCMC
@@ -101,6 +104,8 @@ A list with elements
 }
 \author{ David Rossell }
 \seealso{
+ See \code{\link{msfit-class}} for details on the output, postProb to
+  extract posterior model probabilities.
  For more details on the prior specification see \code{\link{msPriorSpec-class}}
  To compute marginal densities for a given model see
   \code{\link{pmomMarginalK}}, \code{\link{pmomMarginalU}},
@@ -113,18 +118,15 @@ theta <- matrix(c(1,1,0),ncol=1)
 y <- x \%*\% theta + rnorm(100)
 
 #Specify prior parameters
-priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='piMOM',priorPars=c(tau=1))
-priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0))
-priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
+priorCoef <- imomprior(tau=1)
+priorDelta <- modelunifprior()
+priorVar <- igprior(alpha=.01,lambda=.01)
 
 #Alternative prior for model space: 0.5 prior prob for including any covariate
-priorDelta <-
-new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(p=.5))
+priorDelta <- modelbinomprior(p=0.5)
 
 #Alternative prior for model space: Beta hyper-prior for prob of inclusion
-priorDelta <-
-new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=1,beta.p=1))
-
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 
 #Model selection
 fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
@@ -132,6 +134,8 @@ priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, phi=1,
 method='Laplace')
 fit1$postMode
 fit1$margpp
+postProb(fit1)
+
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

@@ -22,13 +22,15 @@
   \code{ppmodel} returns the proportion of visits to each model.
 }
 \usage{
-pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), 
-priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+pmomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, 
+burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', 
+verbose=TRUE)
 pmomPM(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10),
 priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
 
-emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), 
-priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE)
+emomLM(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, 
+burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', 
+verbose=TRUE)
 emomPM(y, x, xadj, niter=10^4, thinning=1, burnin =round(niter/10),
 priorCoef, priorDelta, initSearch='greedy', verbose=TRUE)
 
@@ -166,15 +168,18 @@ priorVar <- igprior(alpha=.01,lambda=.01)
 #Non-informative prior on xadj coefficients
 priorCoef <- momprior(tau=0.3, tau.adj=10^6)
 
-mom0 <- pmomLM(y=y,x=x,xadj=xadj,center=FALSE,scale=FALSE,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar)
+mom0 <- pmomLM(y=y,x=x,xadj=xadj,center=FALSE,scale=FALSE,niter=1000,
+priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar)
 round(colMeans(mom0$postModel),2)
 round(colMeans(mom0$postCoef1),2)
 round(colMeans(mom0$postCoef2),2)
 
 #Alternative prior: hyper-prior on tau
-priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='pMOM',priorPars=c(a.tau=1,b.tau=.135,tau.adj=10^6,r=1)) #hyper-prior
+priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='pMOM',
+priorPars=c(a.tau=1,b.tau=.135,tau.adj=10^6,r=1)) #hyper-prior
 mom1 <-
-pmomLM(y=y,x=x,xadj=xadj,center=FALSE,scale=FALSE,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar)
+pmomLM(y=y,x=x,xadj=xadj,center=FALSE,scale=FALSE,niter=1000,
+priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar)
 mean(mom1$postOther)  #posterior mean for tau
 
 #Probit model
@@ -186,7 +191,8 @@ lpred <- as.vector(x \%*\% matrix(theta,ncol=1) + xadj \%*\% matrix(theta.adj,nc
 p <- pnorm(lpred)
 y <- runif(n)<p
 
-mom2 <- pmomPM(y=y,x=x,xadj=xadj,niter=1000,priorCoef=priorCoef,priorDelta=priorDelta,initSearch='greedy')
+mom2 <- pmomPM(y=y,x=x,xadj=xadj,niter=1000,priorCoef=priorCoef,
+priorDelta=priorDelta,initSearch='greedy')
 colMeans(mom2$postCoef1)
 coef(glm(y ~ x + xadj -1, family=binomial(link='probit')))
 }

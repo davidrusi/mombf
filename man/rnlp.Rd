@@ -15,7 +15,8 @@ Both sampling conditional on a model and Bayesian model averaging are
 implemented (see Details).
 }
 \usage{
-rnlp(y, x, msfit, priorCoef, priorVar, niter = 10^3, burnin = round(niter/10), thinning = 1)
+rnlp(y, x, msfit, priorCoef, priorVar, niter = 10^3, burnin = round(niter/10), 
+thinning = 1)
 }
 \arguments{
   \item{y}{Vector with observed responses}
@@ -67,8 +68,8 @@ thtrue <- c(0.5,1); phitrue <- 1
 y <- thtrue[1]*x[,1] + thtrue[2]*x[,2] + rnorm(n,sd=sqrt(phitrue))
 
 #Specify prior parameters
-priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='piMOM',priorPars=c(tau=1))
-priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01))
+priorCoef <- imomprior(tau=1)
+priorVar <- igprior(alpha=.01,lambda=.01)
 
 th <- rnlp(y=y, x=x, niter=100, priorCoef=priorCoef, priorVar=priorVar)
 colMeans(th)

@@ -17,12 +17,12 @@
 #include "cstat.h"
 
 
-static const char interface_c_sccs_id[] = "%W%";
-static const char mess_c_sccs_id[] = "%W%";
-static const char nrutil_c_sccs_id[] = "%W%";
-static const char vector_c_sccs_id[] = "%W%";
-static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
-static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-12-10$";
+//static const char interface_c_sccs_id[] = "%W%";
+//static const char mess_c_sccs_id[] = "%W%";
+//static const char nrutil_c_sccs_id[] = "%W%";
+//static const char vector_c_sccs_id[] = "%W%";
+//static const char rand_c_sccs_id[] = "@(#)$Workfile: rand.c$ $Revision: 5$";
+//static const char cstat_c_sccs_id[] = "@(#)$Workfile: cstat.c$ $Revision: 2011-12-10$";
 
 
 /*

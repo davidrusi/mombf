@@ -9,7 +9,12 @@
   See \code{rnlp} to obtain posterior samples for the coefficients.
 }
 \usage{
-modelSelection(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
+modelSelection(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1,
+burnin=round(niter/10), priorCoef=momprior(tau=0.348),
+priorDelta=modelbbprior(alpha.p=1,beta.p=1),
+priorVar=igprior(alpha=.01,lambda=.01), phi,
+deltaini=rep(FALSE,ncol(x)),
+initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}

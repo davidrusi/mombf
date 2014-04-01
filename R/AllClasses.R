@@ -2,7 +2,7 @@
 ### AllClasses.R
 ###
 
-require(methods)
+#require(methods)
 
 ##=============================================================================
 setClass("msPriorSpec",

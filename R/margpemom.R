@@ -23,7 +23,7 @@ pemomMarginalKR <- function(y, x, phi, tau, method='Laplace', B=10^5, logscale=T
   # - Likelihood: y ~ N(x %*% th, phi * I)
   # - Prior proportional to N(th; 0, tau*phi*I) * prod(exp(-tau*phi/th^2)^r
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  require(mvtnorm)
+  #require(mvtnorm)
   n <- length(y); p <- ncol(x)
   if (p==0) {
     ans <- sum(dnorm(y,0,sd=sqrt(phi),log=TRUE))
@@ -55,7 +55,7 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   # - Prior for th proportional to N(th; 0, tau*phi*I) * prod(exp(-tau*phi/th^2)^r
   # - Prior for phi: IGamma(alpha/2,lambda/2)
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  require(mvtnorm)
+  #require(mvtnorm)
   if (is.vector(x)) x <- matrix(x,ncol=1)
   n <- length(y); p <- ncol(x)
   S <- t(x) %*% x + diag(p)/tau
@@ -65,7 +65,7 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   #
   if (method=='Laplace') {
     pen <- lpost*tau*sum(1/m^2)
-    I <- log(2) - lgamma(.5*apost) + .25*apost*log(.5*pen) + mombf:::lbesselK(sqrt(2*pen),nu=.5*apost)
+    I <- log(2) - lgamma(.5*apost) + .25*apost*log(.5*pen) + lbesselK(sqrt(2*pen),nu=.5*apost)
   } else if (method=='1storder') {
     phi <- lpost/apost
     I <- - tau*phi*sum(1/m^2)

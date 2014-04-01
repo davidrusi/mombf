@@ -68,7 +68,7 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
     msfit <- modelSelection(y=y,x=x,center=center,scale=scale,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE) 
     ndeltaini <- as.integer(sum(msfit$postMode)); deltaini <- as.integer(msfit$postMode)
   } else if (initSearch=='SCAD') {
-    require(ncvreg)
+    #require(ncvreg)
     if (verbose) cat("Initializing via SCAD cross-validation...")
     deltaini <- rep(TRUE,ncol(x))
     cvscad <- cv.ncvreg(X=x[,!ct],y=y-mean(y),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
@@ -127,7 +127,7 @@ pmomLMR <- function(y, x, xadj, phi, r=1, tau, tau.adj=10^6, alpha.phi=.01, lamb
 # Output: list with 2 elements
 # - postSample: posterior samples
 # - margpp: marginal posterior probability for inclusion of each covariate (approx by averaging marginal post prob for inclusion in each Gibbs iteration. This approx is more accurate than simply taking colMeans(postSample)).
-require(mvtnorm)
+#require(mvtnorm)
 if (missing(phi)) { unknownPhi <- TRUE } else { unknownPhi <- FALSE }
 if (missing(tau)) { unknownTau <- TRUE } else { unknownTau <- FALSE }
 if (is.vector(y)) y <- matrix(y,ncol=1)
@@ -148,7 +148,7 @@ if (initSearch=='none') {
   postDelta[1,] <- sel
   postTheta1[1,] <- rep(0,p1)
 } else if (initSearch=='SCAD') {
-  require(ncvreg)
+  #require(ncvreg)
   cvscad <- cv.ncvreg(X=x,y=y,family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
   postTheta1[1,] <- ncvreg(X=x,y=y,penalty="SCAD",dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1, 1]
   postDelta[1,] <- postTheta1[1,]!=0
@@ -218,7 +218,7 @@ proposalpmom <- function(m,S,phi,r,tau,e,xj,m1,nu) {
 # Output: named vector with parameters of approximating mixture
   mu <- .5*(m + c(-1,1)*sqrt(m^2+8*r*phi/S)) #Posterior mode
   fmode <- exp(sum(dnorm(e, mu[2]*xj, sd=sqrt(phi), log=TRUE)) + dmom(mu[2],tau=tau,phi=phi,r=r,logscale=TRUE) - m1) #Value at mode
-  sigma2 <- 1/diag(mombf:::fppmomNeg(mu,m=m,S=S,phi=phi,tau=tau,r=r)) #Proposal variances
+  sigma2 <- 1/diag(fppmomNeg(mu,m=m,S=S,phi=phi,tau=tau,r=r)) #Proposal variances
   ct2 <- exp(lgamma(.5*nu+.5) - .5*log(nu) - lgamma(.5*nu) - .5*log(pi*sigma2[2]))
   w1 <- max(0,(fmode - ct2)/(dnorm(mu[2],mu[1],sd=sqrt(sigma2[1])) - ct2)) #Weight
   ans <- c(mu,sigma2,w1)
@@ -322,7 +322,7 @@ pmomMargKuniv <- function(y,x,phi,tau=1,r=1,logscale=TRUE) {
 # - phi: residual variance
 # - tau: prior variance parameter (defaults to length(y))
 # - logscale: if set to TRUE the log of the integral is returned
-  require(actuar)
+  #require(actuar)
   n <- length(y)
   if (n != length(y)) stop("Dimensions of x and y don't match")
   if (missing(tau)) tau <- n

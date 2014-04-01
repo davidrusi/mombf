@@ -12,7 +12,7 @@ zellnerPM <- function(y, x, xadj, tau, tau.adj=10^6, a.tau=1, b.tau=.135, niter=
 # Output: list with 2 elements
 # - postSample: posterior samples
 # - margpp: marginal posterior probability for inclusion of each covariate (approx by averaging marginal post prob for inclusion in each Gibbs iteration. This approx is more accurate than simply taking colMeans(postSample)).
-require(mvtnorm)
+#require(mvtnorm)
 if (missing(tau)) { unknownTau <- TRUE; stop("Case with unknown tau is currently not implemented. Please specify tau") } else { unknownTau <- FALSE }
 if (is.character(y)) { y <- as.numeric(factor(y))-1 } else if (is.factor(y)) { y <- as.numeric(y)-1 }
 if (length(unique(y))>2) stop('y has more than 2 levels')
@@ -34,7 +34,7 @@ if (initSearch=='none') {
   postTheta1[1,] <- rep(0,p1)
 } else if (initSearch=='SCAD') {
   if (verbose) cat("Initializing via SCAD cross-validation")
-  require(ncvreg)
+  #require(ncvreg)
   warn <- options('warn')$warn; options(warn= -1)
   cvscad <- cv.ncvreg(X=x,y=y,family="binomial",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
   postTheta1[1,] <- ncvreg(X=x,y=y,penalty="SCAD",dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1, 1]
@@ -65,7 +65,7 @@ for (i in 2:niter) {
   linpred1 <- x %*% matrix(curTheta1,ncol=1)
   #Sample theta2
   e <- e+linpred2
-  postTheta2[i,] <- mombf:::simTheta2(e=e, xadj=xadj, S2inv=S2inv, cholS2inv=cholS2inv, phi=1)
+  postTheta2[i,] <- simTheta2(e=e, xadj=xadj, S2inv=S2inv, cholS2inv=cholS2inv, phi=1)
   linpred2 <- xadj %*% t(postTheta2[i,,drop=FALSE])
   #Sample tau
   postTau[i] <- tau

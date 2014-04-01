@@ -1,3 +1,16 @@
+CHANGES IN VERSION 1.5.5
+- Implemented faster Laplace approx for piMOM marginal likelihood (now uses gradient algorithm to find posterior mode)
+- Implemented p>n case in modelSelection
+- Changed default to method=='auto' in modelSelection
+- Changed default priorCoef, priorModel, priorVar in modelSelection to recommendations in Johnson & Rossell (2010)
+- Fixed bug in modelSelection when method=='auto' and a prior different from MOM was used.
+
+CHANGES IN VERSION 1.5.4
+- Fixed R CMD CHECK warnings
+
+CHANGES IN VERSION 1.5.3
+- Fixed compiler warnings
+
 CHANGES IN VERSION 1.5.0
 - Added function rnlp to sample from MOM, eMOM and iMOM posteriors under Normal linear models
 - Added class msfit and several basic methods

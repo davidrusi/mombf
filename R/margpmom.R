@@ -49,7 +49,7 @@ pmomMarginalKR <- function(y, x, phi, tau, r=1, method='Laplace', B=10^5, logsca
   # - Likelihood: y ~ N(x %*% th, phi * I)
   # - Prior proportional to N(th; 0, tau*phi*I) * prod(th^2/(phi*tau))^r
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  require(mvtnorm)
+  #require(mvtnorm)
   n <- length(y); p <- ncol(x)
   if (p==0) {
     ans <- sum(dnorm(y,0,sd=sqrt(phi),log=TRUE))
@@ -106,7 +106,7 @@ pmomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lapl
   # - Prior for th proportional to N(th; 0, tau*phi*I) * prod(th^2/(phi*tau))^r
   # - Prior for phi: IGamma(alpha/2,lambda/2)
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  require(mvtnorm)
+  #require(mvtnorm)
   n <- length(y); p <- ncol(x)
   S <- t(x) %*% x + diag(p)/tau
   m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)

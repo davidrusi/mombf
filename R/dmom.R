@@ -70,7 +70,7 @@ if (is.vector(V1)) {
     ans <- qtheta*normct*(1+qtheta/nu)^(-.5*(nu+1))*(nu-2)/nu
   }
 } else {
-  require(mvtnorm)
+  #require(mvtnorm)
   qtheta <- mahalanobis(x,center=theta0,cov=n*g*V1)
   if (baseDensity=='normal') {
     ans <- qtheta*dmvnorm(x,mean=theta0,sigma=n*g*V1)/ncol(V1)

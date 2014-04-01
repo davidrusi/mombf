@@ -4,7 +4,7 @@
 
 emomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, initSearch='greedy', verbose=TRUE) {
 
-require(mvtnorm)
+#require(mvtnorm)
 unknownPhi <- TRUE; phi <- 0
 #if (missing(phi)) { unknownPhi <- TRUE } else { unknownPhi <- FALSE }
 if (is.vector(y)) y <- matrix(y,ncol=1)
@@ -117,7 +117,7 @@ return(ans)
 }
 
 emomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, initSearch='greedy', verbose=TRUE) {
-require(mvtnorm)
+#require(mvtnorm)
 if (is.character(y)) { y <- as.numeric(factor(y))-1 } else if (is.factor(y)) { y <- as.numeric(y)-1 }
 if (length(unique(y))>2) stop('y has more than 2 levels')
 if (missing(xadj)) xadj <- matrix(1,nrow=nrow(y),ncol=1)

@@ -26,7 +26,7 @@ setMethod("postProb", signature(object='msfit'), function(object, nmax) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef, priorDelta, priorVar, phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method, B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors
@@ -56,9 +56,6 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   if (!is.matrix(x)) x <- as.matrix(x)
   ct <- (colMeans(x^2)-colMeans(x)^2)==0
   y <- scale(y,center=center,scale=scale); x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
-  if (missing(priorCoef)) { priorCoef <- new("msPriorSpec",priorType='coefficients',priorDistr='pMOM',priorPars=c(tau=1,r=1)) }
-  if (missing(priorDelta)) { priorDelta <- new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0)) }
-  if (missing(priorVar)) { priorVar <- new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=.01,lambda=.01)) }
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) } 
   p <- ncol(x); n <- length(y)
   if (missing(deltaini)) { 
@@ -81,8 +78,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     }
   } else if (method=='auto') {
     if (priorCoef@priorDistr!='pMOM') { 
-      warning("method=='auto' is only available for 'pMOM' priors. Using method=='Laplace' instead")
-      method <- as.integer(-1)
+      method <- as.integer(0)
     } else {
       method <- as.integer(2)
     }
@@ -131,7 +127,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
   } else if (initSearch=='SCAD') {
-    require(ncvreg)
+    #require(ncvreg)
     if (verbose) cat("Initializing via SCAD cross-validation...")
     deltaini <- rep(TRUE,ncol(x))
     cvscad <- cv.ncvreg(X=x[,!ct],y=y-mean(y),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)

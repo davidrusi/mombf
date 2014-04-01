@@ -3,18 +3,14 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Bayesian variable selection for linear models via non-local priors. }
 \description{
-  \code{modelSelection} implements Bayesian model selection for several
-  non-local prior formulations such as the (product) MOM and iMOM. The
-  implemented algorithm uses a Gibbs scheme, so that a posterior sample
-  reflecting the uncertainty in model selection is obtained.
+  Bayesian model selection for linear models using
+  non-local priors. The
+  algorithm uses a Gibbs scheme and can handle p>>n cases.
+  See \code{rnlp} to obtain posterior samples for the coefficients.
 }
 \usage{
-modelSelection(y, x, center = TRUE, scale = TRUE, niter = 10^4, thinning
-= 1, burnin = round(niter/10), priorCoef, priorDelta, priorVar, phi,
-deltaini = rep(FALSE, ncol(x)), initSearch = "greedy", method, B = 10^5,
-verbose = TRUE) 
+modelSelection(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
 \item{y}{Vector with observed responses}
 \item{x}{Design matrix with all potential predictors}
@@ -24,54 +20,43 @@ verbose = TRUE)
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
   \code{.1*niter}. Set to 0 for no burn-in}
-\item{priorCoef}{Prior distribution for the coefficients. Object
-  of class \code{msPriorSpec}, e.g. created with \code{momprior}, \code{imomprior} or \code{emomprior}}
-\item{priorDelta}{Prior on model indicator space. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'modelIndicator'. Possible values for slot \code{priorDistr} are 'uniform' and 'binomial'}
-\item{priorVar}{Prior on residual variance. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'nuisancePars'. Slot \code{priorDistr} must be equal to 'invgamma'}
+\item{priorCoef}{Prior distribution for the coefficients. Object created with \code{momprior}, \code{imomprior} or \code{emomprior}}
+\item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
+\item{priorVar}{Inverse gamma prior on residual variance, created with \code{igprior()}}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
-\item{method}{Method to compute marginal
-  densities. \code{method=='auto'} for exact calculation for up to 10
-  covariates and Laplace approx otherwise (only available for pMOM priors).
-  \code{method=='Laplace'} for Laplace approx,
-  \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
-  for Hybrid Laplace-IS (the latter method is only used for piMOM prior
-  with unknown residual variance \code{phi}). See Details.}
+\item{method}{Method to compute marginal likelihood. The default is to
+  used closed-form expressions whenever possible (only available for
+  pMOM priors with up to 15 covariates) and Laplace approximations otherwise.
+  \code{method=='Laplace'} for Laplace approx, \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
+  for Hybrid Laplace-IS (only available for piMOM prior). See Details.}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
 }
 \details{
   Let delta be the vector indicating inclusion/exclusion of each
-  column of x in the model. The algorithm sequentially samples from the
+  column of x in the model. The Gibbs algorithm sequentially samples from the
   posterior of each element in delta conditional on all the remaining
   elements in delta and the data.
-  To perform this step it is necessary to evaluate the marginal density for any
-  given delta, i.e. to integrate the likelihood of the data given
-  (beta,delta) wrt the prior on beta given (delta,phi) times the prior
-  on the residual variance phi.
-  
-  As these marginal densities are not available in closed form we
-  implement Laplace-like approximations and exact evaluation via Importance
-  Sampling. For the iMOM prior we also implement a Hybrid Laplace-IS
+  To do this it is necessary to evaluate the marginal likelihood for any
+  given model. These have closed-form expression for the MOM prior, but
+  for models with >15 variables these are expensive to compute and
+  Laplace approximations are used instead (for the residual variance a
+  log change of variables is used, which improves the approximation).
+  For other priors closed forms
+  are not available, so by default Laplace approximations are used.
+  For the iMOM prior we also implement a Hybrid Laplace-IS
   which uses a Laplace approximation to evaluate the integral wrt beta
-  and integrates wrt phi numerically.
+  and integrates wrt phi (residual variance) numerically.
 
-  Regular Laplace approximations are used to compute marginals when the
-  residual variance phi is known. In the more typical case where the
-  variance is unknown, direct Laplace approximations can be poor due to
-  the posterior for phi being highly non-normal.
-  For MOM priors we integrate phi analytically and use a Laplace
-  approximation. For iMOM priors we re-parameterize to log(phi) and then
-  use a regular Laplace approximation.
-  
   It should be noted that Laplace approximations tend to under-estimate
   the marginal densities when the MLE for some parameter is very close
   to 0. That is, it tends to be conservative in the sense of excluding
-  more variables from the model than the exact calculations.
+  more variables from the model than an exact calculation would.
 
   For more details on the methods used to compute marginal densities see
-  Johnson & Rossell (2011).
+  Johnson & Rossell (2012).
 }
 \value{
 Object of class \code{msfit}, which extends a list with elements
@@ -99,14 +84,13 @@ Object of class \code{msfit}, which extends a list with elements
   Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B,
   2010, 72, 143-170.
   Johnson V.E., Rossell D. Bayesian model selection in high-dimensional
-  settings. Technical report. 2011
-  See http://rosselldavid.googlepages.com for technical reports.
+  settings. Journal of the American Statistical Association, 2012, 107, 649-660.
 }
 \author{ David Rossell }
 \seealso{
  See \code{\link{msfit-class}} for details on the output, postProb to
-  extract posterior model probabilities.
- For more details on the prior specification see \code{\link{msPriorSpec-class}}
+ extract posterior model probabilities.
+ See \code{\link{rnlp}} to obtain posterior samples for the coefficients.
  To compute marginal densities for a given model see
   \code{\link{pmomMarginalK}}, \code{\link{pmomMarginalU}},
   \code{\link{pimomMarginalK}}, \code{\link{pimomMarginalU}}.

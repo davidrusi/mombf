@@ -15,8 +15,7 @@ Both sampling conditional on a model and Bayesian model averaging are
 implemented (see Details).
 }
 \usage{
-rnlp(y, x, msfit, priorCoef, priorVar, niter = 10^3, burnin = round(niter/10), 
-thinning = 1)
+rnlp(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1)
 }
 \arguments{
   \item{y}{Vector with observed responses}

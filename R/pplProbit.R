@@ -86,7 +86,7 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
 
   PPL <- data.frame(tauseq, do.call(rbind, lapply(nlpseq, '[[', 'ppl')))
   colnames(PPL) <- c('tau', 'PPL', 'G', 'P', 'msize')
-  require(mgcv)
+  #require(mgcv)
   gam1 <- gam(PPL ~ s(tau, k=min(10, length(tauseq))),
               family=Gamma(link="log"),
               data=PPL,

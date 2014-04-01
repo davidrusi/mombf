@@ -169,6 +169,10 @@ msPriorSpec <- function(priorType=c("coefficients",
 }
 
 
+igprior <- function(alpha=.01, lambda=.01) {
+    new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=alpha,lambda=lambda))
+}
+
 momprior <- function(tau, tau.adj=10^6, r=1) {
     new("msPriorSpec", priorType="coefficients", priorDistr="pMOM", priorPars=c(tau=tau,tau.adj=tau.adj,r=r))
 }

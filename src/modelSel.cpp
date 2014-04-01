@@ -1099,7 +1099,7 @@ void imomModeK(double *th, PolynomialRootFinder::RootStatus_T *status, double *X
       while ((!found) & (j<=4)) {
 	if (fabs(imag_vector[j])<1.0e-5) {
 	  if (((real_vector[j]>0) & (th[i]>0)) | ((real_vector[j]<0) & (th[i]<0))) {
-	    err += fabs(th[i] - real_vector[j]);
+	    err= max_xy(err,fabs(th[i] - real_vector[j]));
 	    th[i]= real_vector[j];
 	    found= true;
 	  }
@@ -1339,7 +1339,7 @@ void imomModeU(double *th, PolynomialRootFinder::RootStatus_T *status, double *s
       while ((!found) & (j<=4)) {
 	if (fabs(imag_vector[j])<1.0e-5) {
 	  if (((real_vector[j]>0) & (th[i]>0)) | ((real_vector[j]<0) & (th[i]<0))) {
-	    err += fabs(th[i] - real_vector[j]);
+	    err= max_xy(err, fabs(th[i] - real_vector[j]));
 	    th[i]= real_vector[j];
 	    suminvth2 += 1.0/(th[i]*th[i]);
 	    found= true;
@@ -1358,7 +1358,7 @@ void imomModeU(double *th, PolynomialRootFinder::RootStatus_T *status, double *s
     d= sqrt(b2 - 4.0*a*c);
 
     if (-b > d) { phinew= (-b-d)/(2.0*a); } else { phinew= (-b+d)/(2.0*a); }
-    err+= err + fabs(phi-phinew);
+    err= max_xy(err,fabs(phi-phinew));
     phi= phinew;
 
     niter++;

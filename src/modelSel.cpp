@@ -1383,7 +1383,7 @@ void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, 
   set_f2opt_pars(&emptydouble,emptymatrix,sumy2,XtX,ytX,alpha,lambda,&emptydouble,tau,&emptyint,n,p,sel,nsel);
 
   //Minimization
-  //imomModeU(thopt,&status,sumy2,XtX,ytX,tau,alpha,lambda,sel,nsel,n,p);
+  imomModeU(thopt,&status,sumy2,XtX,ytX,tau,alpha,lambda,sel,nsel,n,p);
   set_f2opt_pars(&emptydouble,emptymatrix,sumy2,XtX,ytX,alpha,lambda,&emptydouble,tau,&emptyint,n,p,sel,nsel);
   if (status == PolynomialRootFinder::SUCCESS) {
     fopt= f2opt_imomU(thopt);

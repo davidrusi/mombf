@@ -1448,7 +1448,7 @@ SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
 
 double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, zero=0, one=1, *inputlog;
-  double ans, er, sumer2, **V, **Vinv, *thest, ypred, phiest, intmc, intlapl, *inputphi, num, den, term1, alphahalf=.5*(*(*pars).alpha);
+  double ans=0, er, sumer2, **V, **Vinv, *thest, ypred, phiest, intmc, intlapl, *inputphi, num, den, term1, alphahalf=.5*(*(*pars).alpha);
 
   if (*nsel ==0) {
     term1= .5*(*(*pars).n + *(*pars).alpha);

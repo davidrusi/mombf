@@ -189,7 +189,7 @@ imomModeU <- function(thini, phiini, XtX, ytX, sumy2, tau, alpha, lambda, n) {
       th[i] <- thnew
     }
     a <- tau*sum(1/th^2)
-    b <- .5*(n-p+alpha)
+    b <- .5*(n-ncol(XtX)+alpha)
     c <- -.5*(lambda + sumy2 - 2*ytX %*% matrix(th,ncol=1) + matrix(th,nrow=1) %*% XtX %*% matrix(th,ncol=1))
     d <- sqrt(b^2 - 4*a*c)
     if (-b > d) { phinew <- (-b-d)/(2*a) } else { phinew <- (-b+d)/(2*a) }

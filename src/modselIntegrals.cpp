@@ -11,7 +11,7 @@ modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nva
 
   this->maxIntegral= -1.0e250;
 
-  this->zerochar = (char *) calloc(nvars, sizeof(char));
+  this->zerochar = (char *) calloc(nvars+1, sizeof(char));
   for (i=0; i<nvars; i++) this->zerochar[i]= '0';
 
 }

@@ -157,7 +157,7 @@ SEXP pmomLM_I(SEXP postModel, SEXP margpp, SEXP postCoef1, SEXP postCoef2, SEXP 
 
 void pmomLM(int *postModel, double *margpp, double *postCoef1, double *postCoef2, double *postPhi, double *postOther, struct modavgPars *pars, int *niter, int *thinning, int *burnin, int *niniModel, int *iniModel, double *iniCoef1, double *iniCoef2, double *iniPhi, double *iniOthers, int *verbose) {
   int i, j, k, ilow, iupper, savecnt, niterthin, niter10, nsel= *niniModel, *curModel, newdelta, n=*(*pars).n, p1=*(*pars).p1, p2=*(*pars).p2, psn, resupdate, isbinary=*(*pars).isbinary;
-  double *res, *partialres, sumres2, sumpartialres2, newcoef, *curCoef1, *curCoef2, curPhi, *linpred1, *linpred2, pinclude, *temp;
+  double *res, *partialres, sumres2, sumpartialres2, newcoef, *curCoef1, *curCoef2, curPhi=1.0, *linpred1, *linpred2, pinclude, *temp;
   if (*verbose) Rprintf("Running MCMC");
   niterthin= (int) floor((*niter - *burnin +.0)/(*thinning +.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
@@ -271,7 +271,7 @@ void sample_latentProbit(double *y, double *res, double *sumres2, int *ybinary, 
 // - res: on input, vector with residuals given the current coefficient value. On output, residuals given the updated coefficient value.
 void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupdate, double *res, double *partialres, double *sumres2, double *sumpartialres2, int j, int *nsel, int *curModel, double *curCoef1, double *curPhi, struct modavgPars *pars) {
   int n= *(*pars).n, logscale=1, nsel0, nsel1, deltaprop, nu, i;
-  double m1, *xj, m0, logbf, logpratio, thetaprop, m, S, propPars[5], lhood, lprior, lprop, lambda=0.0, num, den, sqrtPhi=sqrt(*curPhi);
+  double m1, *xj, m0, logbf, logpratio, thetaprop, m, S, propPars[6], lhood, lprior, lprop, lambda=0.0, num, den, sqrtPhi=sqrt(*curPhi);
   pt2modavgPrior priorFunction= NULL;
   *resupdate= 0;
   xj= (*pars).x1+j*n; //pointer to variable j in x1

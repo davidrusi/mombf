@@ -2,6 +2,12 @@
 ### margpmom.R
 ###
 
+eprod <- function(m, S, power=1, dof= -1) {
+  #Mean of prod (x_i)^(2*power) when x_i ~ T_dof(mu,sigma). Set dof=-1 for N(mu,sigma). Written by John Cook
+  ans <- .Call("eprod_I",as.double(m),as.double(S), as.integer(length(m)), as.integer(power), as.double(dof))
+  ans
+}
+
 fmomNeg <- function(th, m, S, phi, tau, r, logscale=TRUE) .5*mahalanobis(th, center=m, cov=S, inverted=TRUE)/phi - r*sum(log(th^2))
 fpmomNeg <- function(th, m, S, phi, tau, r) S %*% matrix(th-m, ncol=1)/phi - 2*r/th
 fppmomNeg <- function(th, m, S, phi, tau, r) S/phi + 2*r*diag(1/th^2,nrow=length(th))

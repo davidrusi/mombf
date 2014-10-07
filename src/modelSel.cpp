@@ -373,6 +373,25 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
   propPars[5]= 1-propPars[4];
 }
 
+//Expectation of prod_j th_j^{2*power} under multivariate Normal/T with mean m, covariance S, dimension n, degrees of freedom dof (dof=-1 for Normal)
+SEXP eprod_I(SEXP m, SEXP S, SEXP n, SEXP power, SEXP dof) {
+  SEXP ans;
+  PROTECT(ans = allocVector(REALSXP, 1));
+  //int i,j,nn=INTEGER(n)[0]; double **sigma;
+  //sigma= dmatrix(1,nn,1,nn);
+  //for (i=1; i<=nn; i++) {
+  //  for (j=1; j<i; j++) { sigma[i][j]= sigma[j][i]= REAL(S)[(j-1)*nn+(i-1)]; }
+  //  sigma[i][i]= REAL(S)[(i-1)*nn+(i-1)];
+  //}
+  //*REAL(ans)= mvtexpect(REAL(m)-1, sigma, nn, INTEGER(power)[0], REAL(dof)[0]);
+  //free_dmatrix(sigma, 1,nn,1,nn);
+  *REAL(ans)= mvtexpect_vec(REAL(m), REAL(S), INTEGER(n)[0], INTEGER(power)[0], REAL(dof)[0]);
+  UNPROTECT(1);
+  return ans;
+}
+
+
+
 //Univariate marginal density under a product MOM prior (known variance case)
 // integral N(y; x*theta, phi*I) * (theta^2/(tau*phi))^r * N(theta; 0; tau*phi) / (2r-1)!! d theta
 // - y: response variable (must be a vector)

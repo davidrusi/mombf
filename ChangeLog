@@ -1,4 +1,5 @@
 CHANGES IN VERSION 1.5.8
+- Added pmomCoxMarginalR
 - Added function eprod
 
 CHANGES IN VERSION 1.5.7

@@ -3,6 +3,7 @@
 ###
 
 import(methods, mvtnorm, ncvreg, actuar, mgcv)
+importFrom(survival, Surv, coxph)
 
 useDynLib(mombf)
 

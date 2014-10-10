@@ -1,25 +1,33 @@
 \name{rnlp}
 \alias{rnlp}
 \alias{rnlp-methods}
-\alias{rnlp,numeric,matrix,missing-method}
-\alias{rnlp,numeric,matrix,msfit-method}
+\alias{rnlp,ANY,matrix,missing,missing,missing-method}
+\alias{rnlp,ANY,matrix,missing,missing,msfit-method}
+\alias{rnlp,missing,missing,numeric,matrix,missing-method}
 \title{
 Posterior sampling for Non-Local Priors
 }
 \description{
-Gibbs sampler to draw posterior samples for linear model
-regression coefficients and residual variance when the coefficient prior
-is a product non-local prior.
-
+Gibbs sampler for linear and Cox proportional hazards model
+under product non-local priors.
 Both sampling conditional on a model and Bayesian model averaging are
 implemented (see Details).
+
+If x and y not specified samples from non-local priors/posteriors with
+density proportional to d(theta) N(theta; m, V) are produced,
+where d(theta) is the non-local penalty term.
 }
 \usage{
-rnlp(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1)
+rnlp(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3,
+burnin=round(niter/10), thinning=1)
 }
 \arguments{
-  \item{y}{Vector with observed responses}
+  \item{y}{Vector with observed responses. When \code{class(y)=='Surv'}
+    sampling is based on the Cox partial likelihood, else a linear model
+  is assumed.}
   \item{x}{Design matrix with all potential predictors}
+  \item{m}{Mean for the Normal kernel}
+  \item{V}{Covariance for the Normal kernel}
   \item{msfit}{Object of class \code{msfit}, e.g. as returned by
     \code{modelSelection}. If left missing sampling under the full model
     \code{y ~ x} is performed, otherwise posterior model samples in
@@ -37,19 +45,25 @@ rnlp(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinn
   orthogonalization that provides low serial correlation
   with a latent truncation representation that allows fast sampling.
 
+  When \code{y} and \code{x} are specified sampling is for the linear
+  regression posterior.
   When argument \code{msfit} is left missing, posterior sampling is for
   the full model regressing \code{y} on all covariates in \code{x}.
-  
   When \code{msfit} is specified each model is drawn with
   probability given by \code{postProb(msfit)}. In this case, a Bayesian
   Model Averaging estimate of the regression coefficients can be
   obtained by applying \code{colMeans} to the \code{rnlp} ouput matrix.
+
+  When \code{y} and \code{x} are left missing, sampling is from a
+  density proportional to d(theta) N(theta; m,V), where d(theta) is the
+  non-local penalty (e.g. d(theta)=prod(theta^(2r)) for the pMOM prior).
 }
 \value{
 Matrix with posterior samples
 }
 \references{
-D. Telesca and D. Rossell. Technical report. 2013
+  D. Rossell and D. Telesca. Non-local priors for high-dimensional
+  estimation, 2014. http://arxiv.org/pdf/1402.5107v2.pdf
 }
 \author{
 David Rossell

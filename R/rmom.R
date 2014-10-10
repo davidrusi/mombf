@@ -2,7 +2,8 @@
 ## Routines to simulate from MOM prior and posterior
 ##################################################################################
 
-setMethod("rnlp", signature(y='numeric',x='matrix',msfit='msfit'), function(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+  if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
   #Draw model
   pp <- postProb(msfit)
   modelid <- strsplit(as.character(pp$modelid), split=',')
@@ -10,21 +11,76 @@ setMethod("rnlp", signature(y='numeric',x='matrix',msfit='msfit'), function(y, x
   sel <- ndraws>0; modelid <- modelid[sel]; ndraws <- ndraws[sel]
   #Draw coefficients
   idx <- c(0,cumsum(ndraws))
-  ans <- matrix(0, nrow=niter, ncol=ncol(x)+1)
-  for (i in 1:length(modelid)) {
-    b <- min(50, ceiling((burnin/niter) * ndraws[i]))
-    colsel <- as.numeric(modelid[[i]])
-    ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+  if (class(y) == 'numeric') { ##Linear model   
+    ans <- matrix(0, nrow=niter, ncol=ncol(x)+1)
+    for (i in 1:length(modelid)) {
+      b <- min(50, ceiling((burnin/niter) * ndraws[i]))
+      colsel <- as.numeric(modelid[[i]])
+      ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+    }
+    if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+  } else if (class(y) == 'Surv') {
+    ans <- matrix(0, nrow=niter, ncol=ncol(x))
+    for (i in 1:length(modelid)) {
+      b <- min(50, ceiling((burnin/niter) * ndraws[i]))
+      colsel <- as.numeric(modelid[[i]])
+      if (length(colsel)>0) {
+        ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+      }
+    }
+    if (is.null(colnames(x))) colnames(ans) <- paste('beta',1:ncol(x),sep='') else colnames(ans) <- colnames(x)
   }
-  if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
   return(ans)
 }
 )
 
 
-setMethod("rnlp", signature(y='numeric',x='matrix',msfit='missing'), function(y, x, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
-  p <- ncol(x); n <- length(y)
-  if (nrow(x) != n) stop('Dimensions of y and x do not match')
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+  if (class(y) == 'numeric') {  ##Linear model
+    p <- ncol(x); n <- length(y)
+    if (nrow(x) != n) stop('Dimensions of y and x do not match')
+    tau <- as.double(priorCoef@priorPars['tau'])
+    if (priorCoef@priorDistr=='pMOM') {
+      prior <- as.integer(0); r <- as.integer(priorCoef@priorPars['r'])
+    } else if (priorCoef@priorDistr=='piMOM') {
+      prior <- as.integer(1); r <- as.integer(0)
+    } else if (priorCoef@priorDistr=='peMOM') {
+      prior <- as.integer(2); r <- as.integer(0)
+    } else stop("This kind of prior is not implemented")
+    if (priorVar@priorDistr=='invgamma') {
+      a_phi <- as.double(priorVar@priorPars['alpha'])
+      b_phi <- as.double(priorVar@priorPars['lambda'])
+    } else stop("Only invgamma prior for residual variance is currently implemented")
+    if (p==0) {
+      ans <- matrix(1/rgamma((niter-burnin)/thinning, .5*(a_phi+n), .5*(b_phi+sum(y^2))), ncol=1)
+      colnames(ans) <- 'phi'
+    } else {
+      ans <- .Call("rnlpPostCI_lm",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
+      ans <- matrix(ans,ncol=p+1)
+      if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+    }
+  } else if (class(y)=='Surv') {  #Cox model
+    p <- ncol(x)
+    if (p==0) {
+      ans <- matrix(double(0),nrow=(niter-burnin)/thinning,ncol=0)
+    } else {
+      fit <- coxph(y ~ ., data=data.frame(x))
+      thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
+      Sinv <- Vinv + diag(p)/tau; S <- solve(Sinv)
+      m <- S %*% Vinv %*% thhat
+      ans <- rnlp(m=as.vector(m), V=S, priorCoef=priorCoef, niter=niter, burnin=burnin, thinning=thinning)
+      if (is.null(colnames(x))) colnames(ans) <- paste('beta',1:ncol(x),sep='') else colnames(ans) <- colnames(x)
+    }
+  } else {
+    stop("y must be of class 'numeric' or 'Surv'")
+  }
+  return(ans)
+}
+)
+
+
+setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+  p <- ncol(V)
   tau <- as.double(priorCoef@priorPars['tau'])
   if (priorCoef@priorDistr=='pMOM') {
     prior <- as.integer(0); r <- as.integer(priorCoef@priorPars['r'])
@@ -33,18 +89,9 @@ setMethod("rnlp", signature(y='numeric',x='matrix',msfit='missing'), function(y,
   } else if (priorCoef@priorDistr=='peMOM') {
     prior <- as.integer(2); r <- as.integer(0)
   } else stop("This kind of prior is not implemented")
-  if (priorVar@priorDistr=='invgamma') {
-    a_phi <- as.double(priorVar@priorPars['alpha'])
-    b_phi <- as.double(priorVar@priorPars['lambda'])
-  } else stop("Only invgamma prior for residual variance is currently implemented")
-  if (p==0) {
-    ans <- matrix(1/rgamma(niter-burnin, .5*(a_phi+n), .5*(b_phi+sum(y^2))), ncol=1)
-    colnames(ans) <- 'phi'
-  } else {
-    ans <- .Call("rnlpPostCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
-    ans <- matrix(ans,ncol=p+1)
-    if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
-  }
+  ans <- .Call("rnlpCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(m),as.double(V),as.integer(p),as.integer(r),tau,prior)
+  ans <- matrix(ans,ncol=p)
+  if (is.null(names(m))) colnames(ans) <- paste('beta',1:length(m),sep='') else colnames(ans) <- names(m)
   return(ans)
 }
 )

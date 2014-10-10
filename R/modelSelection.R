@@ -7,7 +7,7 @@
 setMethod("show", signature(object='msfit'), function(object) {
   cat('msfit object with',ncol(object$postSample),'variables\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
-  cat("Use postprob() to get posterior model probabilities\n")
+  cat("Use postProb() to get posterior model probabilities\n")
   cat("Elements $margpp, $postMode, $postSample and $coef contain further information (see help('msfit') and help('modelSelection') for details)\n")
 }
 )
@@ -152,6 +152,39 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   new("msfit",ans)
 }
 
+greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
+  #Greedy version of modelSelectionR where variables with prob>0.5 at current iteration are included deterministically (prob<.5 excluded)
+  p <- ncol(x)
+  if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
+  if (!missing(betaBinPrior)) {
+    #Initialize probBin
+    if ((betaBinPrior['alpha.p']>1) && (betaBinPrior['beta.p']>1)) {
+      probBin <- (betaBinPrior['alpha.p']-1)/(betaBinPrior['alpha.p']+betaBinPrior['beta.p']-2)
+    } else {
+      probBin <- (betaBinPrior['alpha.p'])/(betaBinPrior['alpha.p']+betaBinPrior['beta.p'])
+    }
+    postOther <- matrix(NA,nrow=niter,ncol=1); colnames(postOther) <- c('probBin')
+    priorFunction <- function(sel, logscale=TRUE) dbinom(x=sum(sel),size=length(sel),prob=probBin,log=logscale)
+  } else {
+    postOther <- matrix(NA,nrow=niter,ncol=0)
+  }
+  #Greedy iterations
+  sel <- rep(FALSE,ncol(x))
+  mcur <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...) + priorFunction(sel,logscale=TRUE)
+  nchanges <- 1; itcur <- 1
+  nn <- names(x)
+  #browser()
+  while (nchanges>0 & itcur<niter) {
+    nchanges <- 0; itcur <- itcur+1
+    for (i in 1:ncol(x)) {
+      selnew <- sel; selnew[i] <- !selnew[i]
+      mnew <- marginalFunction(y=y,x=x[,selnew,drop=FALSE],logscale=TRUE,...) + priorFunction(selnew,logscale=TRUE)
+      if (mnew>mcur) { sel[i]=selnew[i]; mcur=mnew; nchanges=nchanges+1; if (verbose) cat(paste(ifelse(sel[i],"Added","Dropped"),nn[i],"\n",collapse=" ")) }
+    }
+  }
+  return(sel)
+}
+
 modelSelectionR <- function(y, x, niter=10^4, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
 # Input
 # - y: vector with response variable
@@ -224,7 +257,7 @@ for (i in 1:niter) {
 }
 if (verbose) cat('\n')
 ans <- list(postSample=postSample,postOther=postOther,margpp=margpp/niter,postMode=postMode,postModeProb=postModeProb,postProb=postProb)
-#new("msfit",ans)
+ans <- new("msfit",ans)
 return(ans)
 }
 

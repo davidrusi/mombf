@@ -5785,8 +5785,7 @@ double dimom(double y, double m, double tau, double phi, int logscale) {
 
 
 
-
-//Sample from product MOM posterior under a linear model
+//Sample from posterior for several non-local priors under a linear model
 // Input:
 // - niter: number of Gibbs iterations
 // - burnin: number of burn-in iterations
@@ -5799,7 +5798,19 @@ double dimom(double y, double m, double tau, double phi, int logscale) {
 // - tau: prior dispersion
 // - a_phi, b_phi: prior for residual variance phi ~ IG(a_phi/2, b_phi/2)
 // - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
-void rnlpPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior) {
+
+//R interface of rnlp for linear models
+SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior) {
+  int n= LENGTH(y), nsave;
+  SEXP ans;
+  nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
+  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
+  rnlpPost_lm(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0], INTEGER(prior)[0]);
+  UNPROTECT(1);
+  return ans;
+}
+
+void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior) {
   int i, j, k, isave, nsave;
   double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, phinew, sqrtphi, th2sum, th2invsum, apost, bpost, *linpred, ssr;
   //Pre-compute stuff
@@ -5863,18 +5874,6 @@ void rnlpPost(double *ans, int niter, int burnin, int thinning, double *y, doubl
   free_dmatrix(D,1,p,1,p);
 }
 
-//R interface for rmvmomPost
-
-SEXP rnlpPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior) {
-  int n= LENGTH(y), nsave;
-  SEXP ans;
-  nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
-  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
-  rnlpPost(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0], INTEGER(prior)[0]);
-  UNPROTECT(1);
-  return ans;
-}
-
 //Single Gibbs update (th,l) ~ N(th;m,S) * prod g(th[i]) >l[i]
 //Input
 // - p: dimensionality of th (number of variables)
@@ -5919,6 +5918,113 @@ void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double
   rtmvnormOutside_Gibbs(z, th, m, cholS, p, lower, upper);
   Ax(cholS, z, th, 1, p, 1, p); //th= D z
   free_dvector(lower,1,p); free_dvector(upper,1,p); free_dvector(l,1,p); free_dvector(z,1,p);
+}
+
+
+
+//Sample from posterior for several non-local priors given mean and variance. Density prop to d(theta) N(theta;m,V)
+// Input:
+// - niter: number of Gibbs iterations
+// - burnin: number of burn-in iterations
+// - thinning: only 1 out of each thinning iterations are saved in ans
+// - m: mean
+// - V: covariance
+// - p: number of variables
+// - r: MOM power parameter, i.e. penalty is th[i]^(2*r)
+// - tau: prior dispersion
+// - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
+
+//R interface of rnlp for posterior determined by mean and covariance
+SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior) {
+  int nsave;
+  SEXP ans;
+  nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
+  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0])));
+  rnlp(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(m), REAL(V), INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], INTEGER(prior)[0]);
+  UNPROTECT(1);
+  return ans;
+}
+
+//Draw from density proportional to d(theta) * N(theta; m, V), where d(theta) is the non-local prior penalty
+void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *Vvec, int p, int r, double tau, int prior) {
+  int i, j;
+  double **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D;
+  //Pre-compute stuff
+  S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p); cholSinv= dmatrix(1,p,1,p); inv_cholSinv= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
+  D= dmatrix(1,p,1,p); 
+
+  for (i=1; i<=p; i++) {
+    Sinv[i][i]= Vvec[i-1+p*(i-1)];
+    for (j=1; j<i; j++) { Sinv[i][j]= Sinv[j][i]= Vvec[i-1+p*(j-1)]; }
+  }
+  inv_posdef(Sinv, p, S);
+  choldc(Sinv, p, cholSinv);
+  choldc_inv(Sinv, p, inv_cholSinv); //inverse of chol(Sinv)
+
+  rnlp_Gibbs_multiple(ans, m-1, p, m-1, cholSinv, inv_cholSinv, &tau, r, prior, niter, burnin, thinning);
+
+  free_dmatrix(S,1,p,1,p); free_dmatrix(Sinv,1,p,1,p); free_dmatrix(cholSinv,1,p,1,p); free_dmatrix(inv_cholSinv,1,p,1,p); free_dmatrix(K,1,p,1,p);
+  free_dmatrix(D,1,p,1,p);
+}
+
+
+
+//Multiple Gibbs draws (th,l) ~ N(th;m,S) * prod g(th[i]) >l[i]
+//Input
+// - thini: thini[1..p] contains initial value for th
+// - B: number of draws
+// - p: dimensionality of th (number of variables)
+// - m: m[1..p] is mean of Normal kernel
+// - cholS: cholS[1..p][1..p] is Cholesky decomp of covariance S
+// - K: inverse of cholS
+// - tau: value of tau (prior dispersion)
+// - r: power parameter for MOM is 2*r
+// - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
+//Output
+// - th: matrix with B rows and p columns (in th[0..(B*p-1)] vector format) with drawn values of th
+void rnlp_Gibbs_multiple(double *th, double *thini, int p, double *m, double **cholS, double **K, double *tau, int r, int prior, int niter, int burnin, int thinning) {
+  int i, isave, nsave, b;
+  double *thcur, *lower, *upper, *l, *z, upperb, phi=1, *alpha;
+  nsave= (int) floor((niter - burnin +.0)/(thinning +.0));
+  thcur= dvector(1,p); alpha= dvector(1,p);
+  lower= dvector(1,p); upper= dvector(1,p); l= dvector(1,p); z= dvector(1,p);
+  Ax(K, m, alpha, 1, p, 1, p); //alpha= K %*% mu
+  for (i=1; i<=p; i++) { thcur[i]= thini[i]; }
+  isave= 0;
+  for (b=1; b<=niter; b++) {
+    //Update l
+    if (prior==0) {
+      for (i=1; i<=p; i++) {
+        upperb= pen_mom(thcur+i, &phi, tau, r);
+        l[i]= runif() * upperb;
+        if (r==1) { upper[i]= sqrt(l[i] * (*tau) * phi); } else { upper[i]= pow(l[i] * (*tau) * phi, 1.0/(2.0*r)); }
+        lower[i]= -upper[i];
+      }
+    } else if (prior==1) {
+      for (i=1; i<=p; i++) {
+        upperb= pen_imom(thcur+i, &phi, tau, 1);
+        l[i]= log(runif()) + upperb;
+        upper[i]= invpen_imom_sandwich(l+i, &phi, tau);
+        lower[i]= -upper[i];
+      }
+    } else if (prior==2) {
+      for (i=1; i<=p; i++) {
+        upperb= pen_emom(thcur+i, &phi, tau, 1);
+        l[i]= runif() * exp(upperb); 
+        upper[i]= sqrt(fabs((*tau) * phi/(log(l[i])-sqrt(2.0))));
+        lower[i]= -upper[i];
+      }
+    }
+    //Update th, cholSth
+    Ax(K, thcur, z, 1, p, 1, p); //z= K th;
+    rtmvnormOutside_Gibbs(z, thcur, alpha, cholS, p, lower, upper);
+    Ax(cholS, z, thcur, 1, p, 1, p); //th= D z
+    if (b>burnin && ((b-burnin) % thinning)==0) {
+      for (i=1; i<=p; i++) th[isave + (i-1)*nsave]= thcur[i];
+      isave++;
+    }
+  }
+  free_dvector(thcur,1,p); free_dvector(alpha,1,p); free_dvector(lower,1,p); free_dvector(upper,1,p); free_dvector(l,1,p); free_dvector(z,1,p);
 }
 
 

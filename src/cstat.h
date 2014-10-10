@@ -41,7 +41,8 @@
 extern "C" {
 
   //Non-local prior sampling
-  SEXP rnlpPostCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
+  SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
+  SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);
 
   //Truncated multivariate Normal sampling
   SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
@@ -328,8 +329,10 @@ double dinvgammaC(double x, double a, double b, int logscale); //a: shape; b: lo
 double dmomNorm(double y, double m, double tau, double phi, int r, int logscale); //Normal MOM prior (power is 2*r)
 double dimom(double y, double m, double tau, double phi, int logscale); //Univariate iMOM prior
 
-void rnlpPost(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior); //NLP posterior samples under linear model
-void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //Gibbs update (th,l) ~ N(th;mu,phi*S) * g(th[i])>l[i]
+void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior); //NLP posterior samples under linear model
+void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *Vvec, int p, int r, double tau, int prior); //NLP samples based on mean & covar
+void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //single Gibbs update 
+void rnlp_Gibbs_multiple(double *th, double *thini, int p, double *m, double **cholS, double **K, double *tau, int r, int prior, int niter, int burnin, int thinning); //multiple updates
 double pen_mom(double *th, double *phi, double *tau, int r); //MOM penalty (th^2 / (phi*tau))^r
 double pen_emom(double *th, double *phi, double *tau, int logscale); //eMOM penalty exp(-sqrt(2)*tau*phi/th^2)
 double pen_imom(double *th, double *phi, double *tau, int logscale); //iMOM penalty dimom(th,tau*phi) / dnorm(th,0,tau*phi)

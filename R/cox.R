@@ -1,10 +1,17 @@
 ## Routines for Cox proportional hazards model
 
-pmomCoxMarginalR <- function(y, x, tau, r=1, logscale=TRUE) {
+pmomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Normal','plugin'), logscale=TRUE) {
   #Integrated Cox partial likelihood (Normal approximation) wrt product moment prior
   # - Partial Likelihood: f(y|th)= exp(-.5 (th-thhat)' solve(V) (th-thhat))
   # - Prior proportional to N(th; 0, tau*I) * prod(th^2/tau)^r
+  # Input
+  # - y: Surv object
+  # - x: covariates
+  # - tau: prior dispersion
+  # - r: prior power parameter
+  # - method: set to 'Normal' to compute E(prod(th^2)^i) exactly, to 'plugin' to use prod(E(th)^2). By default 'Normal' is used for up to 10 dimensions
   if (class(y)!="Surv") stop("y must be of class 'Surv'")
+  if (r != 1) stop("Only r=1 currently implemented")
   if (missing(x)) {
     p <- 0
   } else {
@@ -18,8 +25,12 @@ pmomCoxMarginalR <- function(y, x, tau, r=1, logscale=TRUE) {
     thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
     Sinv <- Vinv + diag(p)/tau; S <- solve(Sinv)
     m <- S %*% Vinv %*% thhat
-    ans <- fit$loglik[2] - (p+p/2)*log(tau) - .5*(t(thhat) %*% Vinv %*% thhat - t(m) %*% Sinv %*% m) + .5*as.numeric(determinant(S,logarith=TRUE)$modulus)
-    ans <- as.numeric(ans + log(eprod(m, S, power=2*r, dof=-1)))
+    ans <- as.numeric(fit$loglik[2] - (p+p/2)*log(tau) - .5*(t(thhat) %*% Vinv %*% thhat - t(m) %*% Sinv %*% m) + .5*as.numeric(determinant(S,logarith=TRUE)$modulus))
+    if (method=='Normal') {
+      ans <- ans + log(eprod(m, S, power=2*r, dof=-1))
+    } else {
+      ans <- ans + prod(m^2+diag(S))
+    }
   }
   if (!logscale) ans <- exp(ans)
   return(ans)

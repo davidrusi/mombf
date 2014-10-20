@@ -331,3 +331,16 @@ bbPrior <- function(sel, alpha=1, beta=1, logscale=TRUE) {
   ans <- lbeta(sum(sel) + alpha, sum(!sel) + beta) - lbeta(alpha,beta)
   ifelse(logscale,ans,exp(ans))
 }
+
+
+bbPriorTrunc <- function (sel, logscale=TRUE, maxvars=10) {
+  #Same as bbPrior with prob=0 when variables > maxvars
+  if (sum(sel)<=maxvars) { ans <- bbPrior(sel, logscale=logscale) } else { ans <- ifelse(logscale, -Inf, 0) }
+  return(ans)
+}
+
+unifPriorTrunc <- function (sel, logscale=TRUE, maxvars=10) {
+  #Same as unifPrior with prob=0 when variables > maxvars
+  if (sum(sel)<=maxvars) { ans <- unifPrior(sel, logscale=logscale) } else { ans <- ifelse(logscale, -Inf, 0) }
+  return(ans)
+}

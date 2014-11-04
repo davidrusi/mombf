@@ -169,7 +169,7 @@ greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFuncti
     postOther <- matrix(NA,nrow=niter,ncol=0)
   }
   #Greedy iterations
-  sel <- rep(FALSE,ncol(x))
+  sel <- deltaini
   mcur <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...) + priorFunction(sel,logscale=TRUE)
   nchanges <- 1; itcur <- 1
   nn <- names(x)

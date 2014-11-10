@@ -25,7 +25,7 @@ pmomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Normal',
     thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
     Sinv <- Vinv + diag(p)/tau; S <- solve(Sinv)
     m <- S %*% Vinv %*% thhat
-    ans <- as.numeric(fit$loglik[2] - (p+p/2)*log(tau) - .5*(t(thhat) %*% Vinv %*% thhat - t(m) %*% Sinv %*% m) + .5*as.numeric(determinant(S,logarith=TRUE)$modulus))
+    ans <- as.numeric(fit$loglik[2] - (p+p/2)*log(tau) - .5*(t(thhat) %*% Vinv %*% thhat - t(m) %*% Sinv %*% m) + .5*as.numeric(determinant(S,logarithm=TRUE)$modulus))
     if (method=='Normal') {
       ans <- ans + log(eprod(m, S, power=2*r, dof=-1))
     } else {

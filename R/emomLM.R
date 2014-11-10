@@ -357,11 +357,15 @@ simPhiemom <- function(phiCurrent, alpha.phi, lambda.phi, n, delta, p2, theta1, 
  # - other params which define the posterior
   a <- alpha.phi + n + sum(delta) + p2
   l <- lambda.phi + sum(theta1^2)/tau + sum(theta2^2)/tau.adj + ssr
-  t <- -tau*sum(1/theta1^2)
-  approxpar <- postPhiemomApprox(a=a,l=l,t=t)
-  phiProp <- 1/rgamma(1,shape=approxpar['shape'],rate=approxpar['scale'])
-  accprob <- exp(postPhiemom(phiProp,a=a,l=l,t=t,logscale=TRUE) - postPhiemom(phiCurrent,a=a,l=l,t=t,logscale=TRUE) + dinvgamma(phiCurrent,shape=approxpar['shape'],scale=approxpar['scale'],log=TRUE) - dinvgamma(phiProp,shape=approxpar['shape'],scale=approxpar['scale'],log=TRUE))
-  if (runif(1)< accprob) phiCurrent <- phiProp
+  if (length(theta1)>0) {
+    t <- -tau*sum(1/theta1^2)
+    approxpar <- postPhiemomApprox(a=a,l=l,t=t)
+    phiProp <- 1/rgamma(1,shape=approxpar['shape'],rate=approxpar['scale'])
+    accprob <- exp(postPhiemom(phiProp,a=a,l=l,t=t,logscale=TRUE) - postPhiemom(phiCurrent,a=a,l=l,t=t,logscale=TRUE) + dinvgamma(phiCurrent,shape=approxpar['shape'],scale=approxpar['scale'],log=TRUE) - dinvgamma(phiProp,shape=approxpar['shape'],scale=approxpar['scale'],log=TRUE))
+    if (runif(1)< accprob) phiCurrent <- phiProp
+  } else {
+    phiCurrent <- 1/rgamma(1,shape=a,rate=l)
+  }
   return(phiCurrent)
 }
 

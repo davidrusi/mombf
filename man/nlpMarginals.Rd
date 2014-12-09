@@ -42,8 +42,9 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 \item{r}{Prior power parameter for MOM prior is \code{2*r}}
 \item{method}{Method to approximate the integral. method=='auto' uses exact
   calculation when p<=10 and pMOM priors are specified, else uses
-  Laplace approx. method=='Laplace' for Laplace
-approx. method=='MC' for Monte Carlo. method=='Plug-in' for plug-in estimate. method=='Hybrid'
+  Laplace approx. method=='Laplace' for Laplace approx.
+  method=='plugin' for BIC-type approx.
+  method=='MC' for Monte Carlo. method=='Plug-in' for plug-in estimate. method=='Hybrid'
 for hybrid Laplace-MC (only available for \code{pimomMarginalU}). See
 help for \code{modelSelection} for details.}
 \item{B}{Number of Monte Carlo samples to use (ignored unless

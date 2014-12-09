@@ -41,7 +41,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
 # - phi: residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored.
 # - deltaini: logical vector of length ncol(x) indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model
 # - initSearch: algorithm to refine deltaini. initSearch=='greedy' uses a greedy Gibbs sampling search. initSearch=='SCAD' sets deltaini to the non-zero elements in a SCAD fit with cross-validated regularization parameter. initSearch=='none' leaves deltaini unmodified.
-# - method: method to compute marginal densities. method=='Laplace' for Laplace approx, method=='MC' for Importance Sampling, method=='Hybrid' for Hybrid Laplace-IS (the latter method is only used for piMOM prior with unknown residual variance phi)
+# - method: method to compute marginal densities. method=='Laplace' for Laplace approx, method=='MC' for Importance Sampling, method=='Hybrid' for Hybrid Laplace-IS (the latter method is only used for piMOM prior with unknown residual variance phi), method='plugin'
 # - B: number of samples to use in Importance Sampling scheme. Ignored if method=='Laplace'.
 # - verbose: set verbose==TRUE to print iteration progress
 # Output: list
@@ -82,8 +82,10 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     } else {
       method <- as.integer(2)
     }
+  } else if (method=='plugin') {
+    method <- as.integer(2)
   } else {
-    stop('Invalid argument method')
+    stop("Invalid 'method'")
   }
 
   #Format arguments for .Call
@@ -96,6 +98,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     r <- as.integer(1); prior <- as.integer(1)
   } else if (priorCoef@priorDistr=='peMOM') {
     r <- as.integer(1); prior <- as.integer(2)
+    stop('eMOM prior not currently implemented. Try function emomLM instead')
   } else {
     stop('Prior specified in priorDistr not recognized')
   }

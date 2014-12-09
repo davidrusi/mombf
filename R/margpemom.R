@@ -55,35 +55,42 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   # - Prior for th proportional to N(th; 0, tau*phi*I) * prod(exp(-tau*phi/th^2)^r
   # - Prior for phi: IGamma(alpha/2,lambda/2)
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  #require(mvtnorm)
+  #require(mvtnorm) 
   if (is.vector(x)) x <- matrix(x,ncol=1)
   n <- length(y); p <- ncol(x)
-  S <- t(x) %*% x + diag(p)/tau
-  m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-  apost <- n + alpha
-  lpost <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
-  #
-  if (method=='Laplace') {
-    pen <- lpost*tau*sum(1/m^2)
-    I <- log(2) - lgamma(.5*apost) + .25*apost*log(.5*pen) + lbesselK(sqrt(2*pen),nu=.5*apost)
-  } else if (method=='1storder') {
-    phi <- lpost/apost
-    I <- - tau*phi*sum(1/m^2)
-  } else if (method=='MC') {
-    phisim <- 1/rgamma(B, apost, lpost)
-    cholV <- t(chol(solve(S)))
-    z <- rmvnorm(B,rep(0,p),diag(p))
-    thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(phisim)
-    eprod <- -tau*phisim*colSums(1/thsim^2)
-    offset <- max(eprod)
-    I <- log(mean(exp(eprod-offset))) + offset
+  if (ncol(x)==0) {
+    term1 <- .5*(n + alpha)
+    num <- .5*alpha*log(lambda) + lgamma(term1)
+    den <- .5*n*log(pi) + lgamma(alpha/2)
+    ans <- num -den - term1*log(lambda + sum(y^2))
   } else {
-    stop("Only 'Laplace', '1storder' and 'MC' methods are implemented")
+    S <- t(x) %*% x + diag(p)/tau
+    m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
+    apost <- n + alpha
+    lpost <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
+    #
+    if (method=='Laplace') {
+      pen <- lpost*tau*sum(1/m^2)
+      I <- log(2) - lgamma(.5*apost) + .25*apost*log(.5*pen) + lbesselK(sqrt(2*pen),nu=.5*apost)
+    } else if (method=='1storder') {
+      phi <- lpost/apost
+      I <- - tau*phi*sum(1/m^2)
+    } else if (method=='MC') {
+      phisim <- 1/rgamma(B, apost, lpost)
+      cholV <- t(chol(solve(S)))
+      z <- rmvnorm(B,rep(0,p),diag(p))
+      thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(phisim)
+      eprod <- -tau*phisim*colSums(1/thsim^2)
+      offset <- max(eprod)
+      I <- log(mean(exp(eprod-offset))) + offset
+    } else {
+      stop("Only 'Laplace', '1storder' and 'MC' methods are implemented")
+    }
+    #
+    num <- p*sqrt(2) + .5*alpha*log(lambda/2) + lgamma(apost/2)
+    den <- .5*n*log(2*pi) + .5*log(det(S)) + .5*p*log(tau) + lgamma(alpha/2) + .5*apost*log(lpost/2)
+    ans <- I + num - den
   }
-  #
-  num <- p*sqrt(2) + .5*alpha*log(lambda/2) + lgamma(apost/2)
-  den <- .5*n*log(2*pi) + .5*log(det(S)) + .5*p*log(tau) + lgamma(alpha/2) + .5*apost*log(lpost/2)
-  ans <- I + num - den
   if (!logscale) ans <- exp(ans)
   return(ans)
 }

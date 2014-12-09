@@ -43,7 +43,8 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logsc
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau); r <- as.integer(r)
-  method <- as.integer(ifelse(method=='auto',-1,ifelse(method=='Laplace',0,ifelse(method=='MC',1,2))))
+  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
+  method <- as.integer(method)
   B <- as.integer(B); logscale <- as.integer(logscale)
   ans <- .Call("pmomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale)
   return(ans)
@@ -99,7 +100,8 @@ pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, meth
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau); r <- as.integer(r)
-  method <- as.integer(ifelse(method=='auto',-1,ifelse(method=='Laplace',0,ifelse(method=='MC',1,2))))
+  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
+  method <- as.integer(method)
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ans <- .Call("pmomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda)
@@ -114,30 +116,37 @@ pmomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lapl
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
   #require(mvtnorm)
   n <- length(y); p <- ncol(x)
-  S <- t(x) %*% x + diag(p)/tau
-  m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-  nu <- 2*r*p + n + alpha
-  ss <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
-  V <- S*nu/ss
-  #
-  if (method=='Laplace') {
-    I <- pmomIntegralApproxR(m=m, S=S, phi=nu/(nu-2), tau=tau, r=r, logscale=TRUE)
-  } else if (method=='1storder') {
-    I <- r*sum(log(m^2))
-  } else if (method=='MC') {
-    cholV <- t(chol(solve(V)))
-    z <- rmvnorm(B,rep(0,p),diag(p))
-    thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(nu/rchisq(B,df=nu))
-    eprod <- exp(colSums(log(thsim^(2*r))))
-    seprod <- sd(eprod)/sqrt(length(eprod))
-    I <- log(mean(eprod))
+  if (ncol(x)==0) {
+    term1 <- .5*(n + alpha)
+    num <- .5*alpha*log(lambda) + lgamma(term1)
+    den <- .5*n*log(pi) + lgamma(alpha/2)
+    ans <- num -den - term1*log(lambda + sum(y^2))
   } else {
-    stop("Only 'Laplace', '1storder' and 'MC' methods are implemented")
+    S <- t(x) %*% x + diag(p)/tau
+    m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
+    nu <- 2*r*p + n + alpha
+    ss <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
+    V <- S*nu/ss
+    #
+    if (method=='Laplace') {
+      I <- pmomIntegralApproxR(m=m, S=S, phi=nu/(nu-2), tau=tau, r=r, logscale=TRUE)
+    } else if (method=='1storder') {
+      I <- r*sum(log(m^2))
+    } else if (method=='MC') {
+      cholV <- t(chol(solve(V)))
+      z <- rmvnorm(B,rep(0,p),diag(p))
+      thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(nu/rchisq(B,df=nu))
+      eprod <- exp(colSums(log(thsim^(2*r))))
+      seprod <- sd(eprod)/sqrt(length(eprod))
+      I <- log(mean(eprod))
+    } else {
+      stop("Only 'Laplace', '1storder' and 'MC' methods are implemented")
+    }
+    #
+    num <- lgamma(nu/2) + .5*alpha*log(lambda/2) + .5*nu*log(2) - .5*nu*log(ss)
+    den <- p*(sum(log(seq(1,2*r-1,by=2)))) + .5*n*log(2*pi) + .5*log(det(S)) + (.5*p+r*p)*log(tau) + lgamma(alpha/2)
+    ans <- I + num - den
   }
-  #
-  num <- lgamma(nu/2) + .5*alpha*log(lambda/2) + .5*nu*log(2) - .5*nu*log(ss)
-  den <- p*(sum(log(seq(1,2*r-1,by=2)))) + .5*n*log(2*pi) + .5*log(det(S)) + (.5*p+r*p)*log(tau) + lgamma(alpha/2)
-  ans <- I + num - den
   if (!logscale) ans <- exp(ans)
   return(ans)
 }

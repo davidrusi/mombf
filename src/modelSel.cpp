@@ -932,20 +932,29 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 
     num= -.5*(*(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel))/(*(*pars).phi);
     den= .5*((*(*pars).n +.0)*(LOG_M_2PI+logphi) + log(detS) + (*nsel)*logtau) + (*nsel)*(*(*pars).r)*(logtau+logphi+ldoublefact(2*(*(*pars).r)-1));
+
     if ((*(*pars).method ==0) | ((*(*pars).method == -1) & ((*nsel)>10)))  { //Laplace
+
       thopt= dvector(1,*nsel); Voptinv= dmatrix(1,*nsel,1,*nsel);
       momIntegralApproxC(&ans,thopt,Voptinv,&fopt,(*pars).n,nsel,m,S,&detS,(*pars).phi,(*pars).tau,(*pars).r,(*pars).logscale);
       free_dvector(thopt,1,*nsel); free_dmatrix(Voptinv,1,*nsel,1,*nsel);
+
     } else if (*(*pars).method ==1) { //MC
+
       for (i=1; i<=(*nsel); i++) { Sinv[i][i]= (*(*pars).phi)*Sinv[i][i]; for (j=i+1; j<=(*nsel); j++) { Sinv[i][j]=Sinv[j][i]= (*(*pars).phi)*Sinv[i][j]; } }
       ans= MC_mom_normal(m,Sinv,(*pars).r,nsel,(*pars).B);
+
     } else if (*(*pars).method ==2) { //Plug-in
+
       ans= rsumlogsq(m,(*pars).r,nsel);
+
     } else if ((*(*pars).method == -1) & ((*nsel)<=10)) { //Exact
+
       Voptinv= dmatrix(1,*nsel,1,*nsel);
       for (i=1; i<= *nsel; i++) for (j=i; j<= *nsel; j++) Voptinv[i][j]= Voptinv[j][i]= Sinv[i][j] * (*(*pars).phi);
       ans= log(mvtexpect(m, Voptinv, *nsel, 2, -1));
       free_dmatrix(Voptinv,1,*nsel,1,*nsel);
+
     }
     ans+= num - den;
     free_dvector(m,1,*nsel);
@@ -976,7 +985,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   if (*nsel ==0) {
     term1= .5*(*(*pars).n + *(*pars).alpha);
     num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
-    den= .5*(*(*pars).n)*LOG_M_PI + gamln(&alphahalf);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
     ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
   } else {
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
@@ -989,22 +998,31 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
     den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
+
     if ((*(*pars).method ==0) | ((*(*pars).method == -1) & ((*nsel)>10)))  { //Laplace
+
       thopt= dvector(1,*nsel); Voptinv= dmatrix(1,*nsel,1,*nsel);
       phiadj= (nu+.0)/(nu-2.0);
       momIntegralApproxC(&ans,thopt,Voptinv,&fopt,(*pars).n,nsel,m,S,&detS,&phiadj,(*pars).tau,(*pars).r,(*pars).logscale);
       free_dvector(thopt,1,*nsel); free_dmatrix(Voptinv,1,*nsel,1,*nsel);
+
     } else if (*(*pars).method ==1) {  //MC
+
       term1= (*(*pars).lambda + *(*pars).sumy2 - quadratic_xseltAxsel((*pars).ytX,Sinv,1,nsel,sel))/(nu+.0);
       for (i=1; i<= *nsel; i++) { for (j=i; j<= *nsel; j++) { Sinv[i][j]= Sinv[j][i]= Sinv[i][j]*term1; } } //Vinv matrix
       ans= MC_mom_T(m,Sinv,&nu,(*pars).r,nsel,(*pars).B);
+
     } else if (*(*pars).method ==2) {  //Plug-in
+
       ans= rsumlogsq(m,(*pars).r,nsel);
+
     } else if ((*(*pars).method == -1) & ((*nsel)<=10)) { //Exact
+
       Voptinv= dmatrix(1,*nsel,1,*nsel);
       for (i=1; i<= *nsel; i++) for (j=i; j<= *nsel; j++) Voptinv[i][j]= Voptinv[j][i]= Sinv[i][j] * ss / (nu+.0);
       ans= log(mvtexpect(m, Voptinv, *nsel, 2, nu));
       free_dmatrix(Voptinv,1,*nsel,1,*nsel);
+
     }
     ans+= num - den;
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
@@ -1134,7 +1152,7 @@ void imomModeK(double *th, PolynomialRootFinder::RootStatus_T *status, double *X
 }
 
 
-void imomIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, double *fopt, int *sel, int *nsel, int *n, int *p, double *XtX, double *ytX, double *phi, double *tau, int *logscale) {
+void imomIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, double *fopt, int *sel, int *nsel, int *n, int *p, double *XtX, double *ytX, double *phi, double *tau, int *logscale, int *hessian) {
   int iter, maxit=100, emptyint;
   double **V, **Vinv, ftol= 1.0e-5, **dirth, **Vopt, detVopt, emptydouble=0, **emptymatrix;
   PolynomialRootFinder::RootStatus_T status;
@@ -1155,10 +1173,14 @@ void imomIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, doub
     minimize(thopt, dirth, *nsel, ftol, &iter, fopt, f2opt_imom, maxit);
   }
 
-  //Laplace approx
-  fppimomNegC_non0(Vopt,thopt,XtX,ytX,phi,tau,n,p,sel,nsel);
-  invdet_posdef(Vopt,*nsel,Voptinv,&detVopt);
-  (*ILaplace)= -(*fopt) - 0.5*log(detVopt);
+  if (*hessian == 1) {
+    //Laplace approx
+    fppimomNegC_non0(Vopt,thopt,XtX,ytX,phi,tau,n,p,sel,nsel);
+    invdet_posdef(Vopt,*nsel,Voptinv,&detVopt);
+    (*ILaplace)= -(*fopt) - 0.5*log(detVopt);
+  } else {
+    (*ILaplace)= -(*fopt) - 0.5*(*nsel)*log(*n +.0);  //BIC-type approximation
+  }
 
   free_dmatrix(V,1,*nsel,1,*nsel); free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vopt,1,*nsel,1,*nsel); free_dmatrix(dirth,1,*nsel,1,*nsel);
   free_dmatrix(emptymatrix,1,1,1,1);
@@ -1198,7 +1220,7 @@ SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
 
 
 double pimomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
-  int one=1;
+  int one=1, hessian;
   double k, ans, m, s, ILaplace, *thopt, **Voptinv, fopt;
   thopt= dvector(1,*nsel);
   Voptinv= dmatrix(1,*nsel,1,*nsel);
@@ -1207,9 +1229,10 @@ double pimomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
     s= sqrt(*(*pars).phi);
     ans= dnormC_jvec((*pars).y,*(*pars).n,m,s,1);
   } else {
-    imomIntegralApproxC(&ILaplace,thopt,Voptinv,&fopt,sel,nsel,(*pars).n,(*pars).p,(*pars).XtX,(*pars).ytX,(*pars).phi,(*pars).tau,&one);
+    if (*(*pars).method == 2) { hessian=0; } else { hessian=1; }
+    imomIntegralApproxC(&ILaplace,thopt,Voptinv,&fopt,sel,nsel,(*pars).n,(*pars).p,(*pars).XtX,(*pars).ytX,(*pars).phi,(*pars).tau,&one,&hessian);
     k= .5*((*nsel)*log(*(*pars).tau) - (*(*pars).sumy2)/(*(*pars).phi) - (*(*pars).n +.0) *LOG_M_2PI - (*(*pars).n - *nsel)*log(*(*pars).phi) - (*nsel)*LOG_M_PI);
-    if ((*(*pars).method)==0) {
+    if (((*(*pars).method)==0) || ((*(*pars).method)==2)) {
       ans= k + ILaplace;
     } else {
       ans= k + IS_imom(thopt,Voptinv,sel,nsel,(*pars).n,(*pars).p,(*pars).XtX,(*pars).ytX,(*pars).phi,(*pars).tau,(*pars).B);
@@ -1390,7 +1413,7 @@ void imomModeU(double *th, PolynomialRootFinder::RootStatus_T *status, double *s
 }
 
 
-void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, int *n, int *p, double *sumy2, double *XtX, double *ytX, double *alpha, double *lambda, double *tau, int *logscale) {
+void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, int *n, int *p, double *sumy2, double *XtX, double *ytX, double *alpha, double *lambda, double *tau, int *logscale, int *hessian) {
   int iter, maxit=100, emptyint;
   double ftol= 1.0e-10, **dirth, **Vopt, **Voptinv, detVopt, emptydouble=0, **emptymatrix, fopt;
   PolynomialRootFinder::RootStatus_T status;
@@ -1411,10 +1434,14 @@ void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, 
     minimize(thopt, dirth, *nsel +1, ftol, &iter, &fopt, f2opt_imomU, maxit);
   }
 
-  //Laplace approx
-  fppimomUNegC_non0(Vopt,thopt,sumy2,XtX,ytX,alpha,lambda,tau,n,p,sel,nsel);
-  invdet_posdef(Vopt,*nsel +1,Voptinv,&detVopt);
-  (*ILaplace)= -fopt - 0.5*log(detVopt) + .5*(*nsel)*log(2.0*(*tau));
+  if (*hessian ==1) {
+    //Laplace approx
+    fppimomUNegC_non0(Vopt,thopt,sumy2,XtX,ytX,alpha,lambda,tau,n,p,sel,nsel);
+    invdet_posdef(Vopt,*nsel +1,Voptinv,&detVopt);
+    (*ILaplace)= -fopt - 0.5*log(detVopt) + .5*(*nsel)*log(2.0*(*tau));
+  } else {
+    (*ILaplace)= -fopt - 0.5*(*nsel)*log(*n +.0) + .5*(*nsel)*log(2.0*(*tau));  //BIC-type approximation 
+  }
 
   free_dmatrix(Vopt,1,*nsel +1,1,*nsel +1); free_dmatrix(Voptinv,1,*nsel +1,1,*nsel +1); 
   free_dmatrix(dirth,1,*nsel +1,1,*nsel+1); free_dmatrix(emptymatrix,1,1,1,1);
@@ -1466,7 +1493,7 @@ SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
 
 
 double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, zero=0, one=1, *inputlog;
+  int i, j, zero=0, one=1, *inputlog, hessian;
   double ans=0, er, sumer2, **V, **Vinv, *thest, ypred, phiest, intmc, intlapl, *inputphi, num, den, term1, alphahalf=.5*(*(*pars).alpha);
 
   if (*nsel ==0) {
@@ -1489,11 +1516,14 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
       sumer2+= er*er;
     }
     phiest= (sumer2 + (*(*pars).lambda))/(*(*pars).alpha + *(*pars).n);
-    if ((*(*pars).method)==0) {  //Laplace
+    if (((*(*pars).method)==0) || ((*(*pars).method)==2)) {  //Laplace or Plug-in
+
+      if (*(*pars).method == 2) { hessian=0; } else { hessian=1; }
       thest[*nsel +1]= log(phiest);
-      imomUIntegralApproxC(&ans,thest,sel,nsel,(*pars).n,(*pars).p,(*pars).sumy2,(*pars).XtX,(*pars).ytX,(*pars).alpha,(*pars).lambda,(*pars).tau,&one);
+      imomUIntegralApproxC(&ans,thest,sel,nsel,(*pars).n,(*pars).p,(*pars).sumy2,(*pars).XtX,(*pars).ytX,(*pars).alpha,(*pars).lambda,(*pars).tau,&one,&hessian);
       ans= ans + alphahalf*log(.5*(*(*pars).lambda)) - .5*(*(*pars).n)*LOG_M_2PI - gamln(&alphahalf);
       if ((*(*pars).logscale)!=1) ans= exp(ans);
+
     } else if ((*(*pars).method)==1) {  //MC for each fixed phi + univariate integration
       set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
       inputphi= (*pars).phi; (*pars).phi= &phiest; 
@@ -1503,7 +1533,8 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
       f2int_pars.offset= &intlapl; //f2int_imom returns result divided by exp(intlapl) to avoid numerical overflow
       ans= intlapl + log(qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
       if ((*(*pars).logscale)==0) ans= exp(ans);
-    } else if ((*(*pars).method)==2) {  //Hybrid Laplace - MC - Univariate integration
+
+    } else if ((*(*pars).method)==3) {  //Hybrid Laplace - MC - Univariate integration
       set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
       inputphi= (*pars).phi; (*pars).phi= &phiest; 
       (*(*pars).method)= 1; //IS evaluation of marginal for phi=phiest
@@ -1523,43 +1554,6 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   }
   return(ans);
 }
-
-/*
-double pimomMarginalUC(int *sel, int *nsel, int *n, int *p, double *y, double *sumy2, double *x, double *XtX, double *ytX, double *tau, int *method, int *B, int *logscale, double *alpha, double *lambda) {
-  int i, j, zero=0, one=1;
-  double ans, er, sumer2, **V, **Vinv, *thest, ypred, phiest, intmc, intlapl, adj;
-
-  set_f2int_pars(XtX,ytX,tau,n,p,sel,nsel,y,sumy2,method,B,alpha,lambda);
-  if ((*method)==2) {
-    V= dmatrix(1,*nsel,1,*nsel); Vinv= dmatrix(1,*nsel,1,*nsel);
-    thest= dvector(1,*nsel);
-
-    addct2XtX(tau,XtX,sel,nsel,p,V); //add tau to diagonal elem of XtX
-    inv_posdef_upper(V,*nsel,Vinv);
-    Asym_xsel(Vinv,*nsel,ytX,sel,thest);
-    for (i=0, sumer2=0; i<(*n); i++) {
-      for (j=1, ypred=0; j<=(*nsel); j++) { ypred += x[i + (*n)*sel[j-1]] * thest[j]; }
-      er= y[i] - ypred;
-      sumer2+= er*er;
-    }
-    phiest= (sumer2 + (*lambda))/(*alpha + *n);
-    intmc= pimomMarginalKC(sel,nsel,n,p,y,sumy2,XtX,ytX,&phiest,tau,&one,B,&zero); //IS evaluation of marginal for phi=phiest
-    intlapl= pimomMarginalKC(sel,nsel,n,p,y,sumy2,XtX,ytX,&phiest,tau,&zero,B,&zero); //Laplace approx for phi=phiest
-    if (intlapl==0) { intmc+= 1.0e-300; intlapl+= 1.0e-300; } //avoid numerical zero
-    adj= intmc/intlapl;
-    f2int_pars.method= &zero;  //set method to eval marginal for known phi to Laplace approx
-
-    free_dmatrix(V,1,*nsel,1,*nsel); free_dmatrix(Vinv,1,*nsel,1,*nsel);
-    free_dvector(thest,1,*nsel);
-  } else {
-    adj= 1.0;
-  }
-
-  ans= adj * (qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
-  if ((*logscale)==1) ans= log(ans);
-  return(ans);
-}
-*/
 
 
 

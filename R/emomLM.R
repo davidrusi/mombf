@@ -69,6 +69,16 @@ if (initSearch=='none') {
   cvscad <- cv.ncvreg(X=x,y=y,family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
   postTheta1[1,] <- ncvreg(X=x,y=y,penalty="SCAD",dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1, 1]
   postDelta[1,] <- postTheta1[1,]!=0
+} else if (initSearch=='greedy') {
+  marginalFunction <- function(y, x, logscale=TRUE) { pemomMarginalUR(y, x=x, tau=tau, logscale=logscale) }
+  postDelta[1,] <- greedymodelSelectionR(y=y,x=x,niter=10,marginalFunction=marginalFunction, priorFunction=modelPrior, verbose=FALSE)
+  if (any(postDelta[1,])) {
+    postTheta1[1,] <- as.vector(coef(lm(y ~ -1 + x[,postDelta[1,]])))
+  } else {
+    postTheta1[1,] <- rep(0,p1)
+  }
+} else {
+  stop("Value specified for initSearch is not implemented")
 }
 postTheta2[1,] <- S2inv %*% t(xadj) %*% y
 linpred1 <- x %*% t(postTheta1[1,,drop=FALSE])

@@ -78,7 +78,7 @@ pimomMarginalK <- function(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logs
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau)
-  if (method=='Laplace') method=0 else if (method=='MC') method=1 else stop("Invalid argument 'method'")
+  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   ans <- .Call("pimomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale)
   return(ans)
@@ -147,7 +147,7 @@ pimomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau)
-  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='Hybrid') method=2 else stop("Invalid argument 'method'")
+  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else if (method=='Hybrid') method=3 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ans <- .Call("pimomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda)
@@ -231,28 +231,36 @@ pimomMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau=1, method='Lapl
   #require(actuar)
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) x <- matrix(x,ncol=1)
-  if (missing(XtX)) { XtX <- t(x) %*% x }
-  if (missing(ytX)) { ytX <- t(y) %*% x }
-  if (method=='Hybrid') {
-    f2int <- function(z,method, adj=1) {
-      ans <- double(length(z))
-      for (i in 1:length(ans)) ans[i] <- pimomMarginalKR(y=y,x=x,phi=z[i],tau=tau,method=method,B=B,logscale=FALSE,XtX=XtX,ytX=ytX)
-      ans <- ans * dinvgamma(z, alpha/2, scale=lambda/2) * adj
-      return(ans)
-    }
-    #Compute adjustment factor
-    e <- y - x %*% solve(XtX + diag(tau,nrow=nrow(XtX))) %*% t(ytX)
-    phiest <- (sum(e^2)+lambda)/(length(y)+alpha)
-    intmc <- f2int(phiest,method='MC')
-    intlapl <- f2int(phiest,method='Laplace')
-    adj <- intmc/intlapl
-    ans <- log(integrate(f2int, 0, Inf, method='Laplace', adj=adj)$value)
+  if (ncol(x)==0) {
+    n <- length(y)
+    term1 <- .5*(n + alpha)
+    num <- .5*alpha*log(lambda) + lgamma(term1)
+    den <- .5*n*log(pi) + lgamma(alpha/2)
+    ans <- num -den - term1*log(lambda + sum(y^2))
   } else {
-    thini <- as.vector(solve(XtX + tau*diag(nrow(XtX))) %*% t(ytX))
-    e <- y - x %*% matrix(thini,ncol=1)
-    etaini <- log((sum(e^2)+lambda)/(length(y)+alpha))
-    ans <- imomUIntegralApprox(thini=thini,etaini=etaini,XtX=XtX,ytX=ytX,sumy2=sum(y^2),tau=tau,alpha=alpha,lambda=lambda,n=nrow(x),logscale=TRUE)
-    ans <- ans$ans + .5*alpha*log(.5*lambda) - .5*nrow(x)*log(2*pi) - lgamma(.5*alpha)
+    if (missing(XtX)) { XtX <- t(x) %*% x }
+    if (missing(ytX)) { ytX <- t(y) %*% x }
+    if (method=='Hybrid') {
+      f2int <- function(z,method, adj=1) {
+        ans <- double(length(z))
+        for (i in 1:length(ans)) ans[i] <- pimomMarginalKR(y=y,x=x,phi=z[i],tau=tau,method=method,B=B,logscale=FALSE,XtX=XtX,ytX=ytX)
+        ans <- ans * dinvgamma(z, alpha/2, scale=lambda/2) * adj
+        return(ans)
+      }
+      #Compute adjustment factor
+      e <- y - x %*% solve(XtX + diag(tau,nrow=nrow(XtX))) %*% t(ytX)
+      phiest <- (sum(e^2)+lambda)/(length(y)+alpha)
+      intmc <- f2int(phiest,method='MC')
+      intlapl <- f2int(phiest,method='Laplace')
+      adj <- intmc/intlapl
+      ans <- log(integrate(f2int, 0, Inf, method='Laplace', adj=adj)$value)
+    } else {
+      thini <- as.vector(solve(XtX + tau*diag(nrow(XtX))) %*% t(ytX))
+      e <- y - x %*% matrix(thini,ncol=1)
+      etaini <- log((sum(e^2)+lambda)/(length(y)+alpha))
+      ans <- imomUIntegralApprox(thini=thini,etaini=etaini,XtX=XtX,ytX=ytX,sumy2=sum(y^2),tau=tau,alpha=alpha,lambda=lambda,n=nrow(x),logscale=TRUE)
+      ans <- ans$ans + .5*alpha*log(.5*lambda) - .5*nrow(x)*log(2*pi) - lgamma(.5*alpha)
+    }
   }
   if (!logscale) ans <- exp(ans)
   return(ans)

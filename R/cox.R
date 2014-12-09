@@ -44,7 +44,7 @@ logPL <- function(beta, time, event, x, mc.cores=1) {
   # - time: survival times (censored or uncensored)
   # - event: event indicator
   # - x: covariate values
-  # - mc.cores: number of cores, passed on to mclapply
+  # - mc.cores: number of cores, passed on to parallel::mclapply
   if (mc.cores > 1) {
     if (!require("parallel", character.only=TRUE)) {
       warning("cannot load parallel package - continuing without it...")
@@ -59,13 +59,13 @@ logPL <- function(beta, time, event, x, mc.cores=1) {
   if (is.vector(beta)) {
     if (ncol(x)!=1) stop('beta should be a matrix for ncol(x)>1')
     if ("parallel" %in% loadedNamespaces())  {
-      ans <- mclapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i]) }, mc.cores=mc.cores)
+      ans <- parallel::mclapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i]) }, mc.cores=mc.cores)
     } else {
       ans <- lapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i]) })
     }
   } else {
     if ("parallel" %in% loadedNamespaces())  {
-      ans <- mclapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i,]) }, mc.cores=mc.cores)
+      ans <- parallel::mclapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i,]) }, mc.cores=mc.cores)
     } else {
       ans <- lapply(1:length(beta), function(i) { logPLSingle(length(time), event=event, x=x, beta[i,]) })
     }

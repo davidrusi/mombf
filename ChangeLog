@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.6.0
+- Added method=='plugin' to modelSelection, pimomMarginalK, pimomMarginalU
+
+CHANGES IN VERSION 1.5.9
+- Fixed warning in logPL about not found mclapply
+- Fixed R functions computing pMOM, piMOM, and peMOM marginal likelihood when input model has no covariates
+
 CHANGES IN VERSION 1.5.8
 - Fixed bug in emomLM when sampling residual variance under model with no covariates
 - Added rnlp method for objects of type 'Surv'

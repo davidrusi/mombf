@@ -1,6 +1,6 @@
 Package: mombf
-Version: 1.5.8
-Date: 2014-10-10
+Version: 1.6.0
+Date: 2014-12-09
 Title: Moment and Inverse Moment Bayes factors
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck
 Maintainer: David Rossell <rosselldavid@gmail.com>

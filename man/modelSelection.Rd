@@ -34,7 +34,9 @@ initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 \item{method}{Method to compute marginal likelihood. The default is to
   used closed-form expressions whenever possible (only available for
   pMOM priors with up to 15 covariates) and Laplace approximations otherwise.
-  \code{method=='Laplace'} for Laplace approx, \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
+  \code{method=='Laplace'} for Laplace approx, \code{method=='plugin'}
+  for BIC-type approximation,
+  \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
   for Hybrid Laplace-IS (only available for piMOM prior). See Details.}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
@@ -60,6 +62,12 @@ initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
   to 0. That is, it tends to be conservative in the sense of excluding
   more variables from the model than an exact calculation would.
 
+  Finally, method=='plugin' provides a BIC-type approximation that is
+  faster than exact or Laplace methods, at the expense of some
+  accuracy. In non-sparse situations where models with many variables
+  have large posterior probability method=='plugin' can be substantially
+  faster.
+  
   For more details on the methods used to compute marginal densities see
   Johnson & Rossell (2012).
 }

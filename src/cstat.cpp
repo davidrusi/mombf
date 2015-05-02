@@ -5736,7 +5736,7 @@ double dinvgammaC(double x,
 
 
 /************************************************************************
-                       NON-LOCAL PRIORS
+                       NON-LOCAL PRIOR DENSITIES
 ************************************************************************/
 
 /*
@@ -5744,7 +5744,7 @@ double dinvgammaC(double x,
  * Density is proportional to (y-m)^(2*r) N(y;m,tau*phi), where tau*phi
  * is the variance.
  */
-double dmomNorm(double y,
+double dmom(double y,
                 double m,
                 double tau,
                 double phi,
@@ -5773,6 +5773,11 @@ double dmomNorm(double y,
     return (logscale == 1) ? ans : exp(ans);
 }
 
+//Multivariate MOM prior
+void dmomvec(double *y, int n, double m, double tau, double phi, int r, int logscale) {
+  int i;
+  for (i=0; i<n; i++) { y[i]= dmom(y[i],m,tau,phi,r,logscale); }
+}
 
 //Univariate iMOM prior
 double dimom(double y, double m, double tau, double phi, int logscale) {
@@ -5783,6 +5788,184 @@ double dimom(double y, double m, double tau, double phi, int logscale) {
   return(ans);
 }
 
+//Multivariate iMOM prior
+void dimomvec(double *y, int n, double m, double tau, double phi, int logscale) {
+  int i;
+  for (i=0; i<n; i++) { y[i]= dimom(y[i],m,tau,phi,logscale); }
+}
+
+//Univariate eMOM prior
+double demom(double y, double tau, double phi, int logscale) {
+  double pen, ans;
+  pen= -tau * phi / (y*y);
+  ans= pen + dnormC(y,0,sqrt(tau*phi),1) + sqrt(2.0);
+  if (logscale==0) ans= exp(ans);
+  return(ans);
+}
+
+//Multivariate eMOM prior
+void demomvec(double *y, int n, double tau, double phi, int logscale) {
+  int i;
+  for (i=0; i<n; i++) { y[i]= demom(y[i],tau,phi,logscale); }
+}
+
+
+/************************************************************************
+               NON-LOCAL PRIOR DENSITY DERIVATIVES
+************************************************************************/
+
+//Gradient of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i;
+  for (i=0; i<(*n); i++) {
+    ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));
+  } 
+}
+
+//Hessian of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+//Output ans is a vector, as non-diagonal elements are 0
+void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i;
+  for (i=0; i<(*n); i++) { ans[i]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); }
+}
+
+//Gradient of log-pMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, p=(*n)-1; 
+  double sumth2=0;
+  if (p>0) {  //th has some elements
+    for (i=0; i<p; i++) {
+      ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));  //same as in dmomgrad
+      sumth2 += (th[i]*th[i]); 
+    }
+    ans[*n]= -1.5*p - 0.5*(*alpha) -1.0 + 0.5*(sumth2/(*tau) + (*lambda)) * exp(-(*logphi));
+    } else {  //th is empty
+    ans[0]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
+  }
+}
+
+//Hessian of log-pMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, j, p=(*n)-1;
+  double sumth2=0;
+  for (i=0; i<p; i++) { 
+    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][i]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
+    sumth2 += (th[i]*th[i]); 
+    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n]= ans[*n][i]= th[i] / (exp(*logphi)*(*tau));
+  }
+  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
+}
+
+
+//Gradient of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i;
+  for (i=0; i< (*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / (th[i]*th[i]*th[i]) - 2.0 / th[i]; }
+}
+
+//Hessian of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+//Output ans is a vector, as non-diagonal elements are 0
+void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i; double th2;
+  for (i=0; i< (*n); i++) { 
+    th2= th[i]*th[i];
+    ans[i]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; 
+  }
+}
+
+//Gradient of log-piMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, p=(*n)-1; 
+  double th2, suminvth2=0;
+  if (p>0) {  //th is non-empty
+    for (i=0; i<p; i++) { 
+      th2= th[i]*th[i];
+      ans[i]= 2.0 * (*tau) * exp(*logphi) / (th2*th[i]) - 2.0 / th[i]; //same as dimomgrad
+      suminvth2+= 1.0/th2;
+      ans[p]= 0.5*p - 0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi)) - exp(*logphi)*(*tau) * suminvth2;
+    }
+  } else {  //th is empty
+    ans[p]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
+  }
+}
+
+//Hessian of log-piMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, j, p=(*n)-1;
+  double th2, suminvth2=0;
+  for (i=0; i<p; i++) { 
+    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
+    th2= th[i]*th[i];
+    suminvth2+= 1.0/th2;
+    ans[i][i]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; //same as in dimomhess
+    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n]= ans[*n][i]= 2.0 * (*tau) * exp(*logphi) / (th2 * th[i]);
+  }
+  ans[*n][*n]= -0.5*exp(-(*logphi))*(*lambda) - (*tau) * exp(*logphi) * suminvth2;
+}
+
+//Gradient of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i;
+  for (i=0; i< (*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) /(th[i]*th[i]*th[i]) - th[i]*exp(-(*logphi))/(*tau); }
+}
+
+//Hessian of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
+//Output ans is a vector, as non-diagonal elements are 0
+void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+  int i;
+  double th2;
+  for (i=0; i< (*n); i++) { 
+    th2= th[i]*th[i];
+    ans[i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau);
+  }
+}
+
+//Gradient of log-peMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, p=(*n)-1; 
+  double th2, suminvth2=0, sumth2=0;
+  if (p>0) {  //th is non-empty
+    for (i=0; i<p; i++) {
+      th2= th[i]*th[i];
+      sumth2+= th2;
+      suminvth2+= 1.0/th2;
+      ans[i]= 2.0 * (*tau) * exp(*logphi) /(th2*th[i]) - th[i]*exp(-(*logphi))/(*tau);
+    }
+    ans[*n]= -0.5*p - 0.5*(*alpha) -1.0 + 0.5*(sumth2/(*tau) + (*lambda)) * exp(-(*logphi)) - exp(*logphi)*(*tau)*suminvth2;
+  } else {  //th is empty
+    ans[*n]= -0.5*(*alpha) -1.0 + 0.5*(*lambda) * exp(-(*logphi));
+  }
+}
+
+//Hessian of log-peMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
+//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
+  int i, j, p=(*n)-1;
+  double th2, sumth2=0, suminvth2=0;
+  for (i=0; i<p; i++) { 
+    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
+    th2= th[i]*th[i];
+    sumth2+= th2;
+    suminvth2+= 1.0/th2;
+    ans[i][i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
+    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n]= ans[*n][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
+  }
+  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
+}
+
+
+/************************************************************************
+               POSTERIOR SAMPLING UNDER NON-LOCAL PRIORS
+************************************************************************/
 
 
 //Sample from posterior for several non-local priors under a linear model

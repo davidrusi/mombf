@@ -325,10 +325,32 @@ double rgammaC(double a, double b); //a: shape; b: location; mean=a/b
 double dgammaC(double x, double a, double b); //a: shape; b: location; mean=a/b
 double dinvgammaC(double x, double a, double b, int logscale); //a: shape; b: location; mean of x= b/(a-1)
 
-// Non-local priors
-double dmomNorm(double y, double m, double tau, double phi, int r, int logscale); //Normal MOM prior (power is 2*r)
+// Non-local prior densities
+double dmom(double y, double m, double tau, double phi, int r, int logscale); //Univariate MOM prior (power is 2*r)
+void dmomvec(double *y, int n, double m, double tau, double phi, int r, int logscale); //Multivariate MOM prior
 double dimom(double y, double m, double tau, double phi, int logscale); //Univariate iMOM prior
+void dimomvec(double *y, int n, double m, double tau, double phi, int logscale); //Multivariate iMOM prior
+double demom(double y, double tau, double phi, int logscale); //Univariate eMOM prior
+void demomvec(double *y, int n, double tau, double phi, int logscale); //Multivariate eMOM prior
 
+// Non-local prior density derivatives
+void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-pMOM density wrt th
+void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-pMOM density wrt th
+void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-pMOM + log-IG wrt (th,logphi)
+void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Hess log-pMOM + log-IG wrt (th,logphi)
+
+void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-piMOM density wrt th
+void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-piMOM density wrt th
+void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-piMOM + log-IG wrt (th,logphi)
+void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda);//Hess log-piMOM + log-IG wrt (th,logphi)
+
+void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-peMOM density wrt th
+void demomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-peMOM density wrt th
+void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-peMOM + log-IG wrt (th,logphi)
+void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda);//Hess log-peMOM + log-IG wrt (th,logphi)
+
+
+// Posterior sampling under non-local priors
 void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior); //NLP posterior samples under linear model
 void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *Vvec, int p, int r, double tau, int prior); //NLP samples based on mean & covar
 void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //single Gibbs update 

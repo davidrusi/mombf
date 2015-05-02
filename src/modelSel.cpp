@@ -311,7 +311,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
         partialres[i]-= thetaprop*xj[i];
         lhood+= dnormC(partialres[i],0,sqrtPhi,1) - dnormC(res[i],0,sqrtPhi,1);
       }
-      lprior= dmomNorm(thetaprop,0,*(*pars).tau1,*curPhi,*(*pars).r,1) - dmomNorm(curCoef1[j],0,*(*pars).tau1,*curPhi,*(*pars).r,1);
+      lprior= dmom(thetaprop,0,*(*pars).tau1,*curPhi,*(*pars).r,1) - dmom(curCoef1[j],0,*(*pars).tau1,*curPhi,*(*pars).r,1);
       lprop= dtmixC(curCoef1[j],propPars,propPars+2,propPars+4,nu,2,1) - dtmixC(thetaprop,propPars,propPars+2,propPars+4,nu,2,1);
       lambda= exp(lhood+lprior+lprop);
     } else if ((curModel[j]==0) && deltaprop) { //proposal is to add variable to the model
@@ -320,14 +320,14 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
         partialres[i]= res[i] - thetaprop*xj[i];
         num+= dnormC(partialres[i],0,sqrtPhi,1);
       }
-      num+= dmomNorm(thetaprop,0,*(*pars).tau1,*curPhi,*(*pars).r,1);
+      num+= dmom(thetaprop,0,*(*pars).tau1,*curPhi,*(*pars).r,1);
       den= dtmixC(thetaprop,propPars,propPars+2,propPars+4,nu,2,1) + m1;
       lambda= exp(num-den);
     } else {    //(curModel[j] && (deltaprop==0)), i.e. proposal is to drop variable from the model
       thetaprop=0;
       num= dtmixC(curCoef1[j],propPars,propPars+2,propPars+4,nu,2,1) + m1;
       for (i=0, den=0; i<n; i++) { den+= dnormC(res[i],0,sqrtPhi,1); }
-      den+= dmomNorm(curCoef1[j],0,*(*pars).tau1,*curPhi,*(*pars).r,1);
+      den+= dmom(curCoef1[j],0,*(*pars).tau1,*curPhi,*(*pars).r,1);
       lambda= exp(num-den);
     }
     if (runif()<lambda) {
@@ -361,7 +361,7 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
   propPars[0]= .5*(*m - eps); propPars[1]= .5*(*m + eps);
   //Find density at the mode
   for (i=0, fmode=0; i< *n; i++) fmode+= dnormC(e[i],propPars[1]*xj[i],sqrtPhi,1);
-  fmode+= dmomNorm(propPars[1],0,*tau1,*phi,*r,1) - *m1;
+  fmode+= dmom(propPars[1],0,*tau1,*phi,*r,1) - *m1;
   fmode= exp(fmode);
   //Proposal variances
   temp= (*S)/(*phi);

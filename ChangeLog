@@ -1,4 +1,5 @@
 CHANGES IN VERSION 1.6.0
+- Added pimomCoxMarginalR
 - Added method=='plugin' to modelSelection, pimomMarginalK, pimomMarginalU
 
 CHANGES IN VERSION 1.5.9

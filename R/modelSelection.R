@@ -26,7 +26,7 @@ setMethod("postProb", signature(object='msfit'), function(object, nmax) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors
@@ -35,9 +35,11 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
 # - niter: number of Gibbs sampling iterations
 # - thinning: MCMC thinning factor, i.e. only one out of each thinning iterations are reported. Defaults to thinning=1, i.e. no thinning
 # - burnin: number of burn-in MCMC iterations. Defaults to 10% of niter. Set to 0 for no burn-in.
+# - family: assumed residual distribution ('normal','twopiecenormal','laplace','twopiecelaplace')
 # - priorCoef: prior distribution for the coefficients. Must be object of class 'msPriorSpec' with slot priorType set to 'coefficients'. Possible values for slot priorDistr are 'pMOM', 'piMOM' and 'peMOM'.
 # - priorDelta: prior on model indicator space. Must be object of class 'msPriorSpec' with slot priorType set to 'modelIndicator'. Possible values for slot priorDistr are 'uniform' and 'binomial'
 # - priorVar: prior on residual variance. Must be object of class 'msPriorSpec' with slot priorType set to 'nuisancePars'. Slot priorDistr must be equal to 'invgamma'.
+# - priorSkew: prior on residual skewness parameter. Ignored unless family=='twopiecenormal' or 'twopiecelaplace'
 # - phi: residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored.
 # - deltaini: logical vector of length ncol(x) indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model
 # - initSearch: algorithm to refine deltaini. initSearch=='greedy' uses a greedy Gibbs sampling search. initSearch=='SCAD' sets deltaini to the non-zero elements in a SCAD fit with cross-validated regularization parameter. initSearch=='none' leaves deltaini unmodified.
@@ -103,7 +105,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     stop('Prior specified in priorDistr not recognized')
   }
   tau <- as.double(priorCoef@priorPars['tau'])
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda']) 
+  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
+
+  family <- as.integer(family)
+  taualpha <- as.double(priorSkew@priorPars['tau'])
+  if (family=='auto') { family <- 0 } else if (family=='normal') { family <- 1 } else if (family=='twopiecenormal') { family <- 2 } else if (family=='laplace') { family <- 3 } else if (family=='twopiecelaplace') { family <- 4 } else stop("family not available")
+  
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)
     prDeltap <- as.double(0)
@@ -123,11 +130,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     stop('Prior specified in priorDelta not recognized')
   }
 
+  
   #Initialize
   postMode <- rep(as.integer(0),p); postModeProb <- double(1)
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
-    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,family,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
   } else if (initSearch=='SCAD') {
     #require(ncvreg)
@@ -144,7 +152,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   postSample <- rep(as.integer(0),p*mcmc2save)
   if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
   margpp <- double(p); postProb <- double(mcmc2save)
-  ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,B,alpha,lambda,phi,tau,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+  ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
   postSample <- matrix(postSample,ncol=p)
   coef <- rep(0,ncol(x))
   if (any(postMode)) {

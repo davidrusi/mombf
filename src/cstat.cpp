@@ -521,6 +521,7 @@ void nn_bayes_rand(double *theta,
                    double **Slik_inv,
                    double *y)
 {
+    bool posdef; 
     double *z;
     double *m;
     double **S;
@@ -545,7 +546,7 @@ void nn_bayes_rand(double *theta,
     rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
     Ax(S, z, m, 1, p, 1, p);
 
-    choldc(S, p, cholS);
+    choldc(S, p, cholS, &posdef);
     rmvnormC(theta, p, m, cholS);
 
     free_dvector(z, 0, p-1);
@@ -576,6 +577,7 @@ double nn_integral(const double *x,
                    const int *p,
                    const int *logscale)
 {
+    bool posdef;
     double detsum;
     double **Vsum;
     double **Vsuminv;
@@ -601,7 +603,7 @@ double nn_integral(const double *x,
     cholVsum = dmatrix(1, *p, 1, *p);
 
     rA_plus_sB(1.0/(*rx), Vxinv, 1.0/(*rpr), Vprinv, Vsuminv, 1, *p, 1, *p);
-    choldc_inv(Vsuminv, *p, cholVsum);
+    choldc_inv(Vsuminv, *p, cholVsum, &posdef);
     detsum = choldc_det(cholVsum, *p);
     inv_posdef_chol(cholVsum, *p, Vsum);
     rAx_plus_sBy(1.0/(*rx), Vxinv, x, 1.0/(*rpr), Vprinv, mpr, m, 1, *p, 1, *p);
@@ -798,13 +800,14 @@ void lmbayes(double *bpost,
     }
 
     if (*B > 0) {             //posterior samples
+        bool posdef;
         double *zeroes;
         double **cholVb;
         register int i;
         register int j;
 
         cholVb = dmatrix(1, *p, 1, *p);
-        choldc(Vb, *p, cholVb); //cholesky decomp of posterior covar for beta
+        choldc(Vb, *p, cholVb,&posdef); //cholesky decomp of posterior covar for beta
         zeroes = dvector(1, *p);
         for (i = 1; i <= (*p); i++) {
             zeroes[i] = 0.0;
@@ -912,12 +915,13 @@ void lmbayes_knownvar(double *bpost,
     }
 
     if (*B > 0) {             //posterior samples
+        bool posdef;         
         double *zeroes;
         double **cholVb;
         register int i;
 
         cholVb = dmatrix(1, *p, 1, *p);
-        choldc(Vb, *p, cholVb); //cholesky decomp of posterior covar for beta
+        choldc(Vb, *p, cholVb, &posdef); //cholesky decomp of posterior covar for beta
         zeroes = dvector(1, *p);
         for (i = 1; i <= (*p); i++) {
             zeroes[i] = 0.0;
@@ -2752,14 +2756,7 @@ void Ax(double **A,
  * Multiply (implicit matrix) vector A by vector x[colini..colfi].
  * Store result in vector z.
  */
-void Avecx(const double *A,
-           const double *x,
-           double *z,
-           int rowini,
-           int rowfi,
-           int colini,
-           int colfi)
-{
+void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi) {
     register int i;
     register int j;
     int nrow = rowfi - rowini + 1;
@@ -2774,6 +2771,42 @@ void Avecx(const double *A,
             z[i] += A[i + j*nrow] * x[j];
         }
     }
+}
+
+
+/*
+ * Multiply z= A[,sel] %*% x, i.e. choose elements indicated by sel[0],...,sel[*nsel-1]
+ */
+void Aselvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int *sel, int *nsel) {
+  register int i;
+  register int j;
+  int nrow = rowfi - rowini + 1;
+
+  for (i = rowini; i <= rowfi; i++) {
+    z[i] = 0.0;
+    for (j = 0; j < (*nsel); j++) {
+      z[i] += A[i + sel[j]*nrow] * x[j];
+    }
+  }
+}
+
+
+/*
+ * Multiply z= t(A[,sel]) %*% x, i.e. choose columns in A indicated by sel[0],...,sel[*nsel-1]
+ */
+void Atselvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int *sel, int *nsel) {
+  register int i;
+  register int j;
+  int nrow = rowfi - rowini + 1, idx;
+
+  for (j=0; j<(*nsel); j++) {
+    z[j]= 0.0;
+    idx= sel[j]*nrow;
+    for (i=rowini; i<=rowfi; i++) {
+      z[j] += A[i + idx] * x[i];
+    }
+  }
+
 }
 
 
@@ -2981,6 +3014,7 @@ double quadratic_xseltAxsel(const double *x,
     }
     return(z);
 }
+
 
 
 /*
@@ -3275,97 +3309,65 @@ void maxvec(const double *x,
 }
 
 
-/*
- * Given a positive-definite symmetric matrix a[1..n][1..n], this routine
- * constructs its Cholesky decomposition, A = L * L'.
- * On input, only the upper triangle of a need be given;
- * The Cholesky factor L is returned in the lower triangle of aout
- * (upper-diag elem are set to 0)
- */
-void choldc(double **a,
-            int n,
-            double **aout)
-{
-    register int i;
-    register int j;
-    double *p;
 
-    //assert(a != NULL);
-    //assert(n > 0);
-    //assert(aout != NULL);
+void choldc(double **a, int n, double **aout, bool *posdef) {
+/* Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
+decomposition, A = L * L' . On input, only the upper triangle of a need be given; 
+ The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) */
+  int i,j,k;
+  double sum, *p, max_a;
 
-    /* Copy a into aout */
-    for (i = 1; i <= n; i++) {
-        for (j = i; j <= n; j++) {
-            aout[i][j] = a[i][j];
-        }
+  *posdef= true;
+  for (i=1;i<=n;i++) { for (j=i;j<=n;j++) { aout[i][j]= a[i][j]; } }  //copy a into aout
+  p= dvector(1,n);
+  for (i=1;i<=n;i++) {
+    for (j=i;j<=n;j++) {
+      for (sum=aout[i][j],k=i-1;k>=1;k--) sum -= aout[i][k]*aout[j][k];
+      if (i == j) {
+	if (sum <= 0.0) *posdef= false;
+	aout[i][i]=sqrt(sum);
+      } else {
+	max_a=max_xy(fabs(aout[i][i]), 1e-10);
+	aout[j][i]=sum/max_a;
+      }
     }
+  }
+  free_dvector(p,1,n);
+  for (i=1;i<=n;i++) { for (j=i+1;j<=n;j++) { aout[i][j]= 0; } }  //set upper-diagonal elem to 0
+}
 
-    p = dvector(1, n);
-    for (i = 1; i <= n; i++) {
-        for (j = i; j <= n; j++) {
-            double sum;
-            register int k;
-
-            sum = aout[i][j];
-            for (k = i-1; k >= 1; k--) {
-                sum -= aout[i][k] * aout[j][k];
-            }
-            if (i == j) {
-                if (sum <= 0.0) {
-                    nrerror("choldc",
-                            "",
-                            "matrix is not positive definite");
-                    /*NOTREACHED*/
-                }
-                aout[i][i] = sqrt(sum);
-            } else {
-                aout[j][i] = sum / aout[i][i];
-            }
-        }
-    }
-    free_dvector(p, 1, n);
-
-    /* Set upper-diagonal elem to 0 */
-    for (i = 1; i <= n; i++) {
-        for (j = i+1; j <= n; j++) {
-            aout[i][j] = 0.0;
-        }
-    }
+void choldc_inv(double **a, int n, double **aout, bool *posdef) {
+  /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
+   of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
+   (note that inv(A)= inv(L)' * inv(L)) */
+  choldc(a,n,aout,posdef);
+  if (*posdef) {
+    choldc_inv_internal(aout, n);
+  }
 }
 
 
-/*
- * Given a positive-definite symmetric matrix a[1..n][1..n], this routine
- * computes the inverse of its Cholesky matrix. That is, if A=L * L' it
- * returns the inverse of L (note that inv(A)= inv(L)' * inv(L))
- */
-void choldc_inv(double **a,
-                int n,
-                double **aout)
-{
-    register int i;
+void cholS_inv(double **cholS, int n, double **cholSinv) {
+  /*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
+  int i,j;
+  for (i=1;i<=n;i++) for (j=i+1;j<=n;j++) cholSinv[i][j]= cholS[i][j];
+  choldc_inv_internal(cholSinv,n);
+}
 
-    //assert(a != NULL);
-    //assert(n > 0);
-    //assert(aout != NULL);
-
-    choldc(a, n, aout);
-    for (i = 1; i <= n; i++) {
-        register int j;
-
-        aout[i][i] = 1.0 / aout[i][i];
-        for (j = i+1; j <= n; j++) {
-            double sum;
-            register int k;
-
-            sum = 0.0;
-            for (k = i; k < j; k++) {
-                sum -= aout[j][k] * aout[k][i];
-            }
-            aout[j][i] = sum / aout[j][j];
-        }
+void choldc_inv_internal(double **cholS, int n) {
+  /*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
+  int i,j,k;
+  double sum, max_a;
+  for (i=1;i<=n;i++) {
+    max_a=max_xy(cholS[i][i], 1e-10);
+    cholS[i][i]=1.0/max_a;
+    for (j=i+1;j<=n;j++) {
+      sum=0.0;
+      for (k=i;k<j;k++) sum -= cholS[j][k]*cholS[k][i];
+      max_a=max_xy(cholS[j][j], 1e-10);
+      cholS[j][i]=sum/max_a;
     }
+  }
 }
 
 
@@ -3373,11 +3375,11 @@ void choldc_inv(double **a,
  * Find determinant of the matrix having chols as its Cholesky decomposition.
  *
  * Example:
- *   choldc(S, n, cholS);
+ *   choldc(S, n, cholS, posdef);
  *   det = choldc_det(cholS, n);
  *
  * Another example:
- *   choldc_inv(S, n, cholSinv);
+ *   choldc_inv(S, n, cholSinv, posdef);
  *   det = 1.0 / choldc_det(cholSinv, n);
  */
 double choldc_det(double **chols,
@@ -3406,6 +3408,7 @@ void inv_posdef(double **a,
                 int n,
                 double **aout)
 {
+    bool posdef;
     register int i;
     register int j;
     double **b;
@@ -3414,7 +3417,7 @@ void inv_posdef(double **a,
     //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b);
+    choldc_inv(a, n, b, &posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
             register int k;
@@ -3447,6 +3450,7 @@ void inv_posdef_upper(double **a,
                       int n,
                       double **aout)
 {
+    bool posdef;
     register int i;
     register int j;
     double **b;
@@ -3455,7 +3459,7 @@ void inv_posdef_upper(double **a,
     //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b);
+    choldc_inv(a, n, b, &posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
             register int k;
@@ -3481,6 +3485,7 @@ void invdet_posdef(double **a,
                    double **aout,
                    double *det_a)
 {
+    bool posdef; 
     register int i;
     register int j;
     double **b;
@@ -3490,7 +3495,7 @@ void invdet_posdef(double **a,
     //assert(det_a != NULL);
 
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b);
+    choldc_inv(a, n, b, &posdef);
     *det_a = 1.0;
     for (i = 1; i <= n; i++) {
         double value;
@@ -3527,7 +3532,7 @@ void invdet_posdef(double **a,
  * Result is returned in aout.
  *
  * Example:
- *   choldc_inv(a,n,invchol);
+ *   choldc_inv(a,n,invchol,posdef);
  *   inv_posdef_chol(invchol,n,ainv);
  */
 void inv_posdef_chol(double **invchol,
@@ -3805,6 +3810,162 @@ double lu_det(double **a,
     free_ivector(indx, 1, n);
     return(d);
 }
+
+
+void eigenvals(double **a, int n, double *vals) {
+  //Computes eigenvalues of a real, symmetric matrix a[1..n][1..n]
+  int i,j;
+  double *e, **z, **b;
+
+  b= dmatrix(1,n,1,n);
+  for (i=1; i<=n; i++) for (j=1; j<=n; j++) b[i][j]= a[i][j];
+
+  e= dvector(1,n);
+  z= dmatrix(1,n,1,n);
+
+  tred2(b, n, vals, e, false);
+  tqli(vals, e, n, z, false);
+
+  free_dmatrix(b,1,n,1,n);
+  free_dmatrix(z,1,n,1,n);
+  free_dvector(e,1,n);
+}
+
+
+
+
+void tred2(double **a, int n, double d[], double e[], bool getVecs) {
+  /*  Householder reduction of a real, symmetric matrix a[1..n][1..n]. On output, a is replaced by the orthogonal matrix Q effecting the transformation. d[1..n] returns the diagonal ele- ments of the tridiagonal matrix, and e[1..n] the off-diagonal elements, with e[1]=0. 
+      Set getVecs=true to obtain eigenvectors, getVecs=false to get only eigenvalues */
+  int l,k,j,i; 
+  double scale,hh,h,g,f;
+  for (i=n;i>=2;i--) { 
+    l=i-1;
+    h=scale=0.0; 
+    if (l > 1) {
+      for (k=1;k<=l;k++) scale += fabs(a[i][k]);
+      if (scale == 0.0) {  //Skip transformation
+	e[i]=a[i][l];
+      } else { 
+	for (k=1;k<=l;k++) {
+	  a[i][k] /= scale; //Use scaled a's for transformation
+	  h += a[i][k]*a[i][k]; //Form sigma in h.
+	} 
+	f=a[i][l]; 
+	g=(f >= 0.0 ? -sqrt(h) : sqrt(h)); 
+	e[i]=scale*g;
+	h -= f*g; //Now h is equation (11.2.4)
+	a[i][l]=f-g; //Store u/H in the ith row of a. 
+	f=0.0; 
+	for (j=1;j<=l;j++) {
+	  a[j][i]=a[i][j]/h;   // This line could be omitted if getVecs=false
+	  g=0.0; 
+	  for (k=1;k<=j;k++) g += a[j][k]*a[i][k]; 
+	  for (k=j+1;k<=l;k++) g += a[k][j]*a[i][k];
+	  e[j]=g/h;  //Form element of p in temporarily unused element of e
+	  f += e[j]*a[i][j];
+	} 
+	hh=f/(h+h); 
+	for (j=1;j<=l;j++) {
+	  f=a[i][j]; 
+	  e[j]=g=e[j]-hh*f; 
+	  for (k=1;k<=j;k++) a[j][k] -= (f*e[k]+g*a[i][k]);
+	}
+      }
+    } else e[i]=a[i][l]; 
+    d[i]=h;
+  }
+  d[1]=0.0;   // This line could be omitted if getEigen=false
+  e[1]=0.0; 
+  if (getVecs) {
+    for (i=1;i<=n;i++) { //Begin accumulation of transformation matrices.
+      l=i-1; 
+      //This block skipped when i=1. 
+      //Use u and u/H stored in a to form QQQQQQQ.
+      if (d[i]) {
+        for (j=1;j<=l;j++) {
+	  g=0.0;
+	  for (k=1;k<=l;k++) g += a[i][k]*a[k][j];
+	  for (k=1;k<=l;k++) a[k][j] -= g*a[k][i];
+        }
+      }
+      d[i]=a[i][i];
+      a[i][i]=1.0;
+      for (j=1;j<=l;j++) a[j][i]=a[i][j]=0.0;
+    }
+  } else {
+    for (i=1;i<=n;i++) d[i]=a[i][i];
+  }
+}
+
+
+void tqli(double d[], double e[], int n, double **z, bool getVecs) {
+  int m,l,iter,i,k;
+  double s,r,p,g,f,dd,c,b;
+
+  for (i=2;i<=n;i++) e[i-1]=e[i];
+  e[n]=0.0;
+  for (l=1;l<=n;l++) {
+    iter=0;
+    do {
+      for (m=l;m<=n-1;m++) {
+	dd=fabs(d[m])+fabs(d[m+1]);
+	if ((double)(fabs(e[m])+dd) == dd) break;
+      }
+      if (m != l) {
+	iter++;
+	g=(d[l+1]-d[l])/(2.0*e[l]);
+	r=pythag(g,1.0);
+	g=d[m]-d[l]+e[l]/(g+SETSIGN(r,g));
+	s=c=1.0;
+	p=0.0;
+	for (i=m-1;i>=l;i--) {
+	  f=s*e[i];
+	  b=c*e[i];
+	  e[i+1]=(r=pythag(f,g));
+	  if (r == 0.0) {
+	    d[i+1] -= p;
+	    e[m]=0.0;
+	    break;
+	  }
+	  s=f/r;
+	  c=g/r;
+	  g=d[i+1]-p;
+	  r=(d[i]-g)*s+2.0*c*b;
+	  d[i+1]=g+(p=s*r);
+	  g=c*r-b;
+	  /* calc eigenvectors iff getVecs=true */
+	  if (getVecs) {
+	    for (k=1;k<=n;k++) {
+	      f=z[k][i+1];
+	      z[k][i+1]=s*z[k][i]+c*f;
+	      z[k][i]=c*z[k][i]-s*f;
+	     }
+	  }
+	}
+	if (r == 0.0 && i >= l) continue;
+	d[l] -= p;
+	e[l]=g;
+	e[m]=0.0;
+      }
+    } while ((m != l) && (iter<=30));
+  }
+}
+
+double pythag(double a, double b) {
+  //Note: DSQR and dsqrarg definition used to be in cstat.h, moved here to avoid compiler warning of dsqrarg being defined but not used
+  #if !defined(DSQR)
+  static double dsqrarg;
+  #define DSQR(a) ((dsqrarg=(a)) == 0.0 ? 0.0 : dsqrarg*dsqrarg)
+  #endif
+
+  double absa,absb;
+  absa=fabs(a);
+  absb=fabs(b);
+  if (absa > absb) return absa*sqrt(1.0+DSQR(absb/absa));
+  else return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+DSQR(absa/absb)));
+}
+
 
 
 /* Comparison function used by qsort() for doubles */
@@ -4304,7 +4465,7 @@ double dnormC_jvec(const double *y,
  * determinant of the inverse covariance matrix.
  *
  * Example:
- *   choldc_inv(s,n,cholsinv);
+ *   choldc_inv(s,n,cholsinv,posdef);
  *   det= choldc_det(cholsinv,n);
  *   dmvnormC(y,n,mu,cholsinv,det,0);
  */
@@ -4626,12 +4787,13 @@ SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s) {
 // - within: if within==1 random draws are restricted so that lower[i] <= x[i] <= upper[i]. Else, x[i] <= lower[i] or x[i] >= upper[i]
 // - method: if method==1 Gibbs sampling is used. Else independent proposal Metropolis-Hastings is used.
 void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *lower, double *upper, int within, int method) {
+  bool posdef;
   int i, j, k;
   double **D, **K, *alpha, *ansortho, paccept;
   D= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
   alpha= dvector(1,p); ansortho= dvector(0,n*p -1);
-  choldc(Sigma, p, D); 
-  choldc_inv(Sigma, p, K);
+  choldc(Sigma, p, D, &posdef); 
+  choldc_inv(Sigma, p, K, &posdef);
   //Draws from orthogonal transformation
   Ax(K, mu, alpha, 1, p, 1, p); //alpha= K %*% mu
   if (method==1) {
@@ -4928,10 +5090,11 @@ void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, d
   } else if (is_low_trunc==1 && is_up_trunc==1) {
     rtmvnormProd_lowup(ans, n, p, mu, Sinv, k, lower, upper, burnin);
   } else {
+    bool posdef;
     double *y, **S, **cholS;
     y= dvector(1,p); S= dmatrix(1,p,1,p); cholS= dmatrix(1,p,1,p);
     inv_posdef(Sinv,p,S);
-    choldc(S,p,cholS);
+    choldc(S,p,cholS,&posdef);
     rmvnormC(y, p, mu, cholS);
     free_dvector(y,1,p); free_dmatrix(S,1,p,1,p); free_dmatrix(cholS,1,p,1,p);
   }
@@ -5122,7 +5285,7 @@ void rtmvnormProd_up(double *ans, int n, int p, double *mu, double **Sinv, int k
  * The routine doesn't check it.
  *
  * Example:
- *   choldc(s,n,chols); //compute cholesky decomposition
+ *   choldc(s,n,chols,posdef); //compute cholesky decomposition
  *   rmvnormC(y,n,mu,chols); //generate random variate
  */
 void rmvnormC(double *y,
@@ -5432,7 +5595,7 @@ double dtmixC(double y,
  *    logscale: set to 1 to return density in log-scale
  *
  * Example:
- *     choldc_inv(s, n, cholsinv);
+ *     choldc_inv(s, n, cholsinv,posdef);
  *     det = choldc_det(cholsinv, n);
  *     dmvtC(y, n, mu, cholsinv, det, nu, 0);
  */
@@ -5653,7 +5816,7 @@ double ptC(double x,
  * The routine doesn't check it.
  *
  * Example:
- *   choldc(s,n,chols); //compute cholesky decomposition
+ *   choldc(s,n,chols,posdef); //compute cholesky decomposition
  *   rmvtC(y,n,mu,chols,nu); //generate random variate
  */
 void rmvtC(double *y,
@@ -5744,13 +5907,7 @@ double dinvgammaC(double x,
  * Density is proportional to (y-m)^(2*r) N(y;m,tau*phi), where tau*phi
  * is the variance.
  */
-double dmom(double y,
-                double m,
-                double tau,
-                double phi,
-                int r,
-                int logscale)
-{
+double dmom(double y, double m, double tau, double phi, int r, int logscale) {
     double normct[] = {
          0,
          1.098612,
@@ -5774,9 +5931,11 @@ double dmom(double y,
 }
 
 //Multivariate MOM prior
-void dmomvec(double *y, int n, double m, double tau, double phi, int r, int logscale) {
+double dmomvec(double *y, int n, double m, double tau, double phi, int r, int logscale) {
   int i;
-  for (i=0; i<n; i++) { y[i]= dmom(y[i],m,tau,phi,r,logscale); }
+  double ans=0;
+  for (i=0; i<n; i++) { ans+= dmom(y[i],m,tau,phi,r,1); }
+  return (logscale == 1) ? ans : exp(ans);
 }
 
 //Univariate iMOM prior
@@ -5789,9 +5948,11 @@ double dimom(double y, double m, double tau, double phi, int logscale) {
 }
 
 //Multivariate iMOM prior
-void dimomvec(double *y, int n, double m, double tau, double phi, int logscale) {
+double dimomvec(double *y, int n, double m, double tau, double phi, int logscale) {
   int i;
-  for (i=0; i<n; i++) { y[i]= dimom(y[i],m,tau,phi,logscale); }
+  double ans=0;
+  for (i=0; i<n; i++) { ans+= dimom(y[i],m,tau,phi,logscale); }
+  return (logscale == 1) ? ans : exp(ans);
 }
 
 //Univariate eMOM prior
@@ -5804,9 +5965,11 @@ double demom(double y, double tau, double phi, int logscale) {
 }
 
 //Multivariate eMOM prior
-void demomvec(double *y, int n, double tau, double phi, int logscale) {
+double demomvec(double *y, int n, double tau, double phi, int logscale) {
   int i;
-  for (i=0; i<n; i++) { y[i]= demom(y[i],tau,phi,logscale); }
+  double ans=0;
+  for (i=0; i<n; i++) { ans+= demom(y[i],tau,phi,logscale); }
+  return (logscale == 1) ? ans : exp(ans);
 }
 
 
@@ -5846,18 +6009,18 @@ void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, do
 }
 
 //Hessian of log-pMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is matrix [1..n][1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double sumth2=0;
   for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][i]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
+    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+    ans[i+1][i+1]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
     sumth2 += (th[i]*th[i]); 
-    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n]= ans[*n][i]= th[i] / (exp(*logphi)*(*tau));
+    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+    ans[i+1][*n +1]= ans[*n +1][i+1]= th[i] / (exp(*logphi)*(*tau));
   }
-  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
+  ans[*n +1][*n +1]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
 }
 
 
@@ -5895,19 +6058,19 @@ void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 }
 
 //Hessian of log-piMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is matrix [1..n][1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, suminvth2=0;
   for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
+    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
     th2= th[i]*th[i];
     suminvth2+= 1.0/th2;
-    ans[i][i]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; //same as in dimomhess
-    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n]= ans[*n][i]= 2.0 * (*tau) * exp(*logphi) / (th2 * th[i]);
+    ans[i+1][i+1]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; //same as in dimomhess
+    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+    ans[i+1][*n +1]= ans[*n +1][i+1]= 2.0 * (*tau) * exp(*logphi) / (th2 * th[i]);
   }
-  ans[*n][*n]= -0.5*exp(-(*logphi))*(*lambda) - (*tau) * exp(*logphi) * suminvth2;
+  ans[*n +1][*n +1]= -0.5*exp(-(*logphi))*(*lambda) - (*tau) * exp(*logphi) * suminvth2;
 }
 
 //Gradient of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
@@ -5946,20 +6109,20 @@ void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 }
 
 //Hessian of log-peMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is matrix [0..n-1][0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is matrix [1..n][1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, sumth2=0, suminvth2=0;
   for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i][j]= ans[j][i]=0; }
+    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
     th2= th[i]*th[i];
     sumth2+= th2;
     suminvth2+= 1.0/th2;
-    ans[i][i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
-    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n]= ans[*n][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
+    ans[i+1][i+1]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
+    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+    ans[i+1][*n +1]= ans[*n +1][i+1]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
   }
-  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
+  ans[*n +1][*n +1]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
 }
 
 
@@ -5994,6 +6157,7 @@ SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP 
 }
 
 void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior) {
+  bool posdef;
   int i, j, k, isave, nsave;
   double *m, *mortho, *alpha, **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D, tauinv= 1.0/tau, *Xty, *thcur, phicur, phinew, sqrtphi, th2sum, th2invsum, apost, bpost, *linpred, ssr;
   //Pre-compute stuff
@@ -6005,8 +6169,8 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
   AvectBvec(x, n, p, x, n, p, S); //S= t(x) %*% x + 1/tau
   for (i=1; i<=p; i++) S[i][i] += tauinv;
   inv_posdef(S, p, Sinv); 
-  choldc(Sinv, p, cholSinv);
-  choldc_inv(Sinv, p, inv_cholSinv); //inverse of chol(Sinv)
+  choldc(Sinv, p, cholSinv, &posdef);
+  choldc_inv(Sinv, p, inv_cholSinv, &posdef); //inverse of chol(Sinv)
 
   Xty= dvector(1,p);
   Atvecx(x, y, Xty+1, 0, p-1, 0, n-1); //m= solve(S) %*% t(x) %*% y 
@@ -6130,6 +6294,7 @@ SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP
 
 //Draw from density proportional to d(theta) * N(theta; m, V), where d(theta) is the non-local prior penalty
 void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *Vvec, int p, int r, double tau, int prior) {
+  bool posdef;
   int i, j;
   double **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D;
   //Pre-compute stuff
@@ -6141,8 +6306,8 @@ void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *V
     for (j=1; j<i; j++) { Sinv[i][j]= Sinv[j][i]= Vvec[i-1+p*(j-1)]; }
   }
   inv_posdef(Sinv, p, S);
-  choldc(Sinv, p, cholSinv);
-  choldc_inv(Sinv, p, inv_cholSinv); //inverse of chol(Sinv)
+  choldc(Sinv, p, cholSinv, &posdef);
+  choldc_inv(Sinv, p, inv_cholSinv, &posdef); //inverse of chol(Sinv)
 
   rnlp_Gibbs_multiple(ans, m-1, p, m-1, cholSinv, inv_cholSinv, &tau, r, prior, niter, burnin, thinning);
 
@@ -8405,7 +8570,6 @@ double midinf(double (* const func)(double),
               int n)
 {
 #define FUNC(x) ((*func)(1.0 / (x)) / ((x) * (x)))
-#define SIGN(x) (((x) > 0.0) ? 1 : (((x) < 0.0) ? -1 : 0))
 
     static double s;
     double a;
@@ -8456,7 +8620,6 @@ double midinf(double (* const func)(double),
     }
     return s;
 #undef FUNC
-#undef SIGN
 }
 
 
@@ -8806,7 +8969,6 @@ double univmin(double ax,
                int itmax)
 {
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);
-#define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
   const double CGOLD = 0.3819660;  //golden ratio
   const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
@@ -8845,12 +9007,12 @@ double univmin(double ax,
       } else {
 	d=p/q;                            //take the parabolic step
 	u= x+d;
-	if (u-a < eps2 || b-u < eps2) d=SIGN(eps1,xm-x);
+	if (u-a < eps2 || b-u < eps2) d=SETSIGN(eps1,xm-x);
       }
     } else {
       d= CGOLD*(e=(x >= xm ? a-x : b-x));
     }
-    u= (fabs(d) >= eps1 ? x+d : x+SIGN(eps1,d));
+    u= (fabs(d) >= eps1 ? x+d : x+SETSIGN(eps1,d));
     fu= (*f)(u);                         //this is the one function evaluation per iteration
     if (fu <= fx) {                      //now decide what to do with our function evaluation
       if (u >= x) a=x; else b=x;
@@ -8873,7 +9035,6 @@ double univmin(double ax,
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
 #undef SHFT
-#undef SIGN
 }
 
 
@@ -8895,7 +9056,6 @@ double dunivmin(double ax,
                 int itmax)
 {
 #define MOV3(a,b,c,d,e,f) (a)=(d);(b)=(e);(c)=(f)
-#define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
   const double ZEPS = 1.0e-10;   //protects against trying to achieve fractional accuracy when min is exactly zero
   int iter,ok1,ok2; //Will be used as flags for whether proposed steps are acceptable or not.
@@ -8942,7 +9102,7 @@ double dunivmin(double ax,
 	if (fabs(d) <= fabs(0.5*olde)) {
 	  u=x+d;
 	  if (u-a < eps2 || b-u < eps2)
-	    d=SIGN(eps1,xm-x);
+	    d=SETSIGN(eps1,xm-x);
 	} else { //Bisect, not golden section.
 	  d=0.5*(e=(dx >= 0.0 ? a-x : b-x));
 	  //Decide which segment by the sign of the derivative.
@@ -8957,7 +9117,7 @@ double dunivmin(double ax,
       u=x+d;
       fu=(*f)(u);
     } else {
-      u=x+SIGN(eps1,d);
+      u=x+SETSIGN(eps1,d);
       fu=(*f)(u);
       if (fu > fx) { //If the minimum step in the downhill direction takes us uphill, then we are done.
 	*xmin=x;
@@ -8984,7 +9144,6 @@ double dunivmin(double ax,
   *xmin= x;                             //only get here if iteration limit is reached
   return fx;
 #undef MOV3
-#undef SIGN
 }
 
 
@@ -9190,7 +9349,6 @@ void mnbrak(double *ax,
             double (* const func)(double))
 {
 #define SHFT(a,b,c,d) (a)=(b);(b)=(c);(c)=(d)
-#define SIGN(a,b) ((b)>=0.0 ? fabs(a) : -fabs(a))
 
     const double GOLD = 1.618034;  /* default ratio by which successive intervals are magnified */
     const double GLIMIT = 100.0;   /* maximum magnification allowed for a parabolic-fit step */
@@ -9234,7 +9392,7 @@ void mnbrak(double *ax,
         r = (*bx - *ax) * (*fb - *fc);
         q = (*bx - *cx) * (*fb - *fa);
         u = (*bx) - ((*bx - *cx) * q - (*bx - *ax) * r) /
-                (2.0 * SIGN(FMAX(fabs(q-r), TINY), q-r));
+                (2.0 * SETSIGN(FMAX(fabs(q-r), TINY), q-r));
         ulim = (*bx) + GLIMIT * (*cx - *bx); /* Go no farther than this. */
 
         /* Test various possibilities */
@@ -9283,6 +9441,5 @@ void mnbrak(double *ax,
         SHFT(*fa, *fb, *fc, fu);
     }
 #undef SHFT
-#undef SIGN
 }
 

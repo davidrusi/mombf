@@ -10,10 +10,10 @@
 }
 \usage{
 modelSelection(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1,
-burnin=round(niter/10), priorCoef=momprior(tau=0.348),
+burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
-priorVar=igprior(alpha=.01,lambda=.01), phi,
-deltaini=rep(FALSE,ncol(x)),
+priorVar=igprior(alpha=.01,lambda=.01),
+priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 }
 \arguments{
@@ -25,9 +25,15 @@ initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
   \code{.1*niter}. Set to 0 for no burn-in}
+\item{family}{Residual distribution. Possible values are
+  'normal','twopiecenormal','laplace', 'twopiecelaplace', or 'auto'. For
+  the latter the residual distribution is inferred from the data.}
 \item{priorCoef}{Prior distribution for the coefficients. Object created with \code{momprior}, \code{imomprior} or \code{emomprior}}
 \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
-\item{priorVar}{Inverse gamma prior on residual variance, created with \code{igprior()}}
+\item{priorVar}{Inverse gamma prior on residual variance, created with
+  \code{igprior()}}
+\item{priorSkew}{prior on residual skewness parameter, assumed to be of
+  the same family as priorCoef. Ignored if \code{family} is 'normal' or 'laplace'.}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}

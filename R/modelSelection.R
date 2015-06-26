@@ -213,6 +213,12 @@ modelSelectionR <- function(y, x, niter=10^4, marginalFunction, priorFunction, b
 # - postMode: model with highest posterior probability amongst all those visited
 # - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 # - postProb: unnormalized posterior prob of each visited model (log scale)
+if (class(y)=='Surv') {
+  if ((length(y)/2) != nrow(x)) stop("Dimensions of y and x do not match")
+} else {
+  if (length(y) != nrow(x)) stop("Dimensions of y and x do not match")
+}
+if (any(is.na(x))) stop("x cannot have missing values")
 p <- ncol(x)
 if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
 if (!missing(betaBinPrior)) {
@@ -227,47 +233,68 @@ if (!missing(betaBinPrior)) {
 } else {
   postOther <- matrix(NA,nrow=niter,ncol=0)
 }
-sel <- postMode <- deltaini
-currentM <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...)
-currentP <- priorFunction(sel,logscale=TRUE)
-postModeProb <- currentM + currentP
-postSample <- matrix(NA,nrow=niter,ncol=p)
-margpp <- double(p)
-postProb <- double(niter)
-postProb[1] <- postModeProb
-niter10 <- ceiling(niter/10)
-for (i in 1:niter) {
-  for (j in 1:p) {
-    selnew <- sel; selnew[j] <- !sel[j]
-    newM <- marginalFunction(y=y,x=x[,selnew,drop=FALSE],logscale=TRUE,...)
-    newP <- priorFunction(selnew,logscale=TRUE)
-    if (newM+newP>postModeProb) {
-      postModeProb <- newM+newP
-      postMode <- selnew
+if (ncol(x)>12) {
+  sel <- postMode <- deltaini
+  currentJ <- postModeProb <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...) + priorFunction(sel,logscale=TRUE)
+  postSample <- matrix(NA,nrow=niter,ncol=p)
+  margpp <- double(p)
+  postProb <- double(niter)
+  k <- 1; postProb[k] <- postModeProb
+  names(postProb)[k] <- paste("V",which(sel),collapse=',',sep='')
+  niter10 <- ceiling(niter/10)
+  for (i in 1:niter) {
+    for (j in 1:p) {
+      selnew <- sel; selnew[j] <- !sel[j]
+      namenew <- paste(which(selnew),collapse=',')
+      newJ <- postProb[namenew]
+      if (is.na(newJ)) {
+        newJ <- marginalFunction(y=y,x=x[,selnew,drop=FALSE],logscale=TRUE,...) + priorFunction(selnew,logscale=TRUE)
+        k <- k+1; postProb[k] <- newJ
+        names(postProb)[k] <- paste("V",which(selnew),collapse=',',sep='')
+      }
+      if (newJ>postModeProb) {
+        postModeProb <- newJ
+        postMode <- selnew
+      }
+      pp <- 1/(1+exp(-currentJ+newJ))
+      if (sel[j]) {  #if variable in the model
+        sel[j] <- runif(1)<pp
+        margpp[j] <- margpp[j]+pp
+      } else {       #if variable not in the model
+        sel[j] <- runif(1)>pp
+        margpp[j] <- margpp[j]+1-pp
+      }
+      if (sel[j]==selnew[j]) {  #if value was updated, update marginal and prior densities
+        currentJ <- newJ
+      }
     }
-    pp <- 1/(1+exp(-currentM+newM-currentP+newP))
-    if (sel[j]) {  #if variable in the model
-      sel[j] <- runif(1)<pp
-      margpp[j] <- margpp[j]+pp
-    } else {       #if variable not in the model
-      sel[j] <- runif(1)>pp
-      margpp[j] <- margpp[j]+1-pp
+    if (!missing(betaBinPrior)) {
+      probBin <- rbeta(1,betaBinPrior['alpha.p']+sum(sel), betaBinPrior['beta.p']+sum(!sel))
+      postOther[i,'probBin'] <- probBin
     }
-    if (sel[j]==selnew[j]) {  #if value was updated, update marginal and prior densities
-      currentM <- newM
-      currentP <- newP
-    }
+    postSample[i,] <- sel
+    postProb[i] <- currentJ
+    if (verbose && ((i%%niter10)==0)) cat('.')
   }
-  if (!missing(betaBinPrior)) {
-    probBin <- rbeta(1,betaBinPrior['alpha.p']+sum(sel), betaBinPrior['beta.p']+sum(!sel))
-    postOther[i,'probBin'] <- probBin
-  }
-  postSample[i,] <- sel
-  postProb[i] <- currentM + currentP
-  if (verbose && ((i%%niter10)==0)) cat('.')
+  margpp <- margpp/niter
+  if (verbose) cat('\n')
+  #Format postProb
+  modelid <- sapply(apply(postSample,1,which),function(z) paste("V",z,collapse=',',sep=''))
+  postProb <- postProb[modelid]
+} else {
+  if (verbose) cat(paste("Computing posterior probabilities for all",2^ncol(x),"models..."))
+  models <- expand.grid(lapply(1:ncol(x),function(z) c(FALSE,TRUE)))
+  postProb <- apply(models,1, function(z) marginalFunction(y=y,x=x[,z,drop=FALSE],logscale=TRUE,...) + priorFunction(z,logscale=TRUE))
+  if (verbose) cat('\n')
+  postMode <- models[which.max(postProb),]
+  postModeProb <- max(postProb)
+  pp <- postProb - postModeProb; pp <- exp(pp)/sum(exp(pp))
+  sampledmodels <- rep(1:nrow(models), rmultinom(1,size=niter,prob=pp)[,1])
+  postSample <- models[sampledmodels,]
+  postProb <- postProb[sampledmodels]
+  margpp <- as.vector(t(models) %*% matrix(pp,ncol=1))
 }
-if (verbose) cat('\n')
-ans <- list(postSample=postSample,postOther=postOther,margpp=margpp/niter,postMode=postMode,postModeProb=postModeProb,postProb=postProb)
+ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb)
 ans <- new("msfit",ans)
 return(ans)
 }

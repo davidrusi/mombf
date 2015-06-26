@@ -36,10 +36,10 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='ms
 
 
 setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+  tau <- as.double(priorCoef@priorPars['tau'])
   if (class(y) == 'numeric') {  ##Linear model
     p <- ncol(x); n <- length(y)
     if (nrow(x) != n) stop('Dimensions of y and x do not match')
-    tau <- as.double(priorCoef@priorPars['tau'])
     if (priorCoef@priorDistr=='pMOM') {
       prior <- as.integer(0); r <- as.integer(priorCoef@priorPars['r'])
     } else if (priorCoef@priorDistr=='piMOM') {

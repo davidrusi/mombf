@@ -101,6 +101,8 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   } else if (priorCoef@priorDistr=='peMOM') {
     r <- as.integer(1); prior <- as.integer(2)
     stop('eMOM prior not currently implemented. Try function emomLM instead')
+  } else if (priorCoef@priorDistr=='zellner') {
+    r <- as.integer(1); prior <- as.integer(3)
   } else {
     stop('Prior specified in priorDistr not recognized')
   }

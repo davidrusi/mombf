@@ -4,6 +4,10 @@
 
 ##-----------------------------------------------------------------------------
 postMode <- function(y, x, priorCoef) {
+
+tau <- as.double(priorCoef@priorPars['tau'])
+
+if (priorCoef@priorDistr %in% c('pMOM','piMOM','peMOM')) {
   f2min <- function(th) {
     phi <- exp(th[length(th)])
     logl <- sum(dnorm(y,
@@ -15,7 +19,6 @@ postMode <- function(y, x, priorCoef) {
   }
 
   ## Set up priorFun
-  tau <- as.double(priorCoef@priorPars['tau'])
   priorFun <- switch(EXPR=priorCoef@priorDistr,
                      'pMOM' = {
                        r <- as.integer(priorCoef@priorPars['r'])
@@ -53,7 +56,14 @@ postMode <- function(y, x, priorCoef) {
   lm1 <- lm(y~-1+x)
   thini <- c(coef(lm1), log(sum(residuals(lm1)^2/(n-p))))
   opt <- nlminb(thini, objective=f2min)$par
-  list(coef=opt[-length(opt)],
-       sigma2=exp(opt[length(opt)]))
+  ans <- list(coef=opt[-length(opt)],sigma2=exp(opt[length(opt)]))
+} else if (priorCoef@priorDistr=='zellner') {
+  lm1 <- lm(y~-1+x)
+  thopt <- coef(lm1)*tau/(1+tau)
+  ans <- list(coef=thopt, sigma2= sum((y - x %*% thopt)^2)/n)
+} else {
+  stop('Prior specified in priorDistr not recognized')
+}
+return(ans)
 }
 

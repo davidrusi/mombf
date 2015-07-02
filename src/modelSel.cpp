@@ -2270,7 +2270,7 @@ double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
     adj= (tau+1)/tau;
     for (i=1; i<=(*nsel); i++) { 
       S[i][i]= S[i][i] * adj;
-      for (j=1; j<i; j++) { S[i][j]= S[i][j] * adj; S[j][i]= S[i][j]; }
+      for (j=i+1; j<=(*nsel); j++) { S[i][j]= S[i][j] * adj; }
     }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
@@ -2302,7 +2302,7 @@ SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
 }
 
 double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, nu;
+  int i, j;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
   if (*nsel ==0) {
 
@@ -2318,12 +2318,11 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     adj= (tau+1)/tau;
     for (i=1; i<=(*nsel); i++) { 
       S[i][i]= S[i][i] * adj;
-      for (j=1; j<i; j++) { S[i][j]= S[i][j] * adj; S[j][i]= S[i][j]; }
+      for (j=i+1; j<=(*nsel); j++) { S[i][j]= S[i][j] * adj; }
     }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= .5*(*(*pars).n + *(*pars).alpha);
-    nu= (int) (2.0*nuhalf);
 
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));

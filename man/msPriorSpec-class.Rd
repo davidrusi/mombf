@@ -6,6 +6,7 @@
 \alias{momprior}
 \alias{imomprior}
 \alias{emomprior}
+\alias{zellnerprior}
 \alias{modelunifprior}
 \alias{modelbinomprior}
 \alias{modelbbprior}
@@ -22,6 +23,7 @@ the model indicator or the nuisance parameters.
 momprior(tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)
+zellnerprior(tau, tau.adj=10^6)
 
 modelunifprior()
 modelbinomprior(p=0.5)
@@ -59,8 +61,9 @@ Several prior distributions are available for each choice of \code{priorType},
 and these can be speicified in the slot \code{priorDist}. }
 
     \item{\code{priorDistr}:}{Object of class \code{"character"}.
-If \code{priorType=="coefficients"}, \code{priorDistr} can be equal to "pMOM", "piMOM", or "peMOM"
-(product moment, product inverse moment or product exponential moment prior, respectively).
+If \code{priorType=="coefficients"}, \code{priorDistr} can be equal to
+"pMOM", "piMOM", "peMOM" or "zellner"
+(product moment, product inverse moment, product exponential moment or Zellner prior, respectively).
 If \code{priorType=="modelIndicator"}, \code{priorDistr} can be equal to "uniform" or "binomial"
 to specify a uniform prior (all models equaly likely a priori) or a binomial prior. For a binomial prior,
 the prior inclusion probability for any single variable must be

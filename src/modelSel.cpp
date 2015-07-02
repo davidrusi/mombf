@@ -19,7 +19,7 @@ struct marginalPars f2opt_pars, f2int_pars;
 
 pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
   //Returns pointer to function to compute the marginal density of the data for a given model indicator
-  // - prCoef: 0 for product MOM, 1 for product iMOM, 2 for product eMOM
+  // - prCoef: 0 for product MOM, 1 for product iMOM, 2 for product eMOM, 3 for Zellner's prior
   // - knownphi: 1 if residual variance phi is known, 0 otherwise. knownphi==1 currently only allowed for Normal residuals
   // - family: distribution of residuals. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace
   // Note: if phi known, when actually calling the returned pt2margFun, phi must be set in the parameter of type struct marginalPars *
@@ -31,6 +31,8 @@ pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
       if (*knownphi==1) { ans= pimomMarginalKC; } else { ans= pimomMarginalUC; }
     } else if (*prCoef==2) {
       if (*knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
+    } else if (*prCoef==3) {
+      if (*knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
     }
   } else if ((*family)==2) { //Two-piece Normal residuals
     if (*prCoef==0) {
@@ -39,6 +41,8 @@ pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
       ans= pimomMargSkewNormU;
     } else if (*prCoef==2) {
       ans= pemomMargSkewNormU;
+    } else if (*prCoef==3) {
+      Rprintf("Zellner prior with two-piece Normal residuals not currently implemented");
     }
   } else {
     Rf_error("This error distribution is not available");
@@ -2212,3 +2216,16 @@ double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   return 0.0;
 }
 
+
+
+//*************************************************************************************
+// Zellner's prior routines
+//*************************************************************************************
+
+double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
+  return 0.0;
+}
+
+double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
+  return 0.0;
+}

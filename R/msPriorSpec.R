@@ -49,7 +49,8 @@ valid_msPriorSpec <- function(object) {
            coefficients = {
                valid_coef_prior_distrs <- c("pMOM",
                                             "piMOM",
-                                            "peMOM")
+                                            "peMOM",
+                                            "zellner")
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
                    msg <- c(msg,
@@ -183,6 +184,10 @@ imomprior <- function(tau, tau.adj=10^6) {
 
 emomprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="peMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+zellnerprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="zellner", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
 modelunifprior <- function() {

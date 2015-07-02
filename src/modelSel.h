@@ -174,6 +174,9 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double MC_mom(double *m,double **Sinv,int *r,int *nsel, int *B);  //MC evaluation of E(prod(th^2r)) for th ~ N(m,Sinv)
 double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B); //MC evaluation of E(prod(th^2r)) for th ~ T_nu(m,Sinv)
 
+double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
 //*************************************************************************************
 // Product iMOM routines
 //*************************************************************************************
@@ -195,13 +198,6 @@ double f2int_imom(double phi);
 double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 
-//*************************************************************************************
-// Product MOM routines
-//*************************************************************************************
-
-double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
-
 
 //*************************************************************************************
 // Product eMOM routines
@@ -209,6 +205,15 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+
+//*************************************************************************************
+// Zellner's prior routines
+//*************************************************************************************
+
+double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
 
 #endif /* MODELSEL_H */
 

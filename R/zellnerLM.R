@@ -158,17 +158,8 @@ zellnerMargKuniv <- function(y,x,phi,tau=1,logscale=TRUE) {
 
 ####### MARGINAL LIKELIHOOD FOR ZELLNER'S PRIOR
 
-zellnerMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data y~N(x*theta,phi*I) under a product mom prior (known variance)
-# - sel: vector with indexes of variables included in the model
-# - y: response variable
-# - x: design matrix
-# - phi: residual variance
-# - tau: prior dispersion parameter
-# - r: prior power parameter is 2*r
-# - method: method to approximate the integral. 'Laplace' for Laplace approx. 'MC' for Monte Carlo. 'Plug-in' for plug-in estimate. 'auto' for exact calculation if p<=10, else Laplace approx
-# - B: number of Monte Carlo samples to use (ignored unless method=='MC')
-# - XtX, ytX: optionally, X'X and y'X can be specified to speed up computations
+zellnerMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
+#Marginal density of the data y~N(x*theta,phi*I) under Zellner's prior
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) x <- matrix(x,ncol=1)
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
@@ -178,44 +169,30 @@ zellnerMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, lo
   sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
-  phi <- as.double(phi); tau <- as.double(tau); r <- as.integer(r)
-  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
-  method <- as.integer(method)
+  phi <- as.double(phi); tau <- as.double(tau)
   B <- as.integer(B); logscale <- as.integer(logscale)
-  ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale)
+  ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale)
   return(ans)
 }
 
 
-zellnerMarginalKR <- function(y, x, phi, tau, r=1, method='Laplace', B=10^5, logscale=TRUE) {
-  #Marginal likelihood for product moment prior (variance phi known)
-  # - Likelihood: y ~ N(x %*% th, phi * I)
-  # - Prior proportional to N(th; 0, tau*phi*I) * prod(th^2/(phi*tau))^r
-  #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  #require(mvtnorm)
+zellnerMarginalKR <- function(y, x, phi, tau, logscale=TRUE) {
+  #Marginal likelihood for Zellner's prior 
   n <- length(y); p <- ncol(x)
   if (p==0) {
     ans <- sum(dnorm(y,0,sd=sqrt(phi),log=TRUE))
   } else {
     S <- (1+1/tau) * t(x) %*% x
     m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-    ans <- -.5*(sum(y^2) - t(m) %*% S %*% m)/phi - .5*n*log(2*pi*phi) - .5*p*log(tau) - log(sqrt(det(S))) - r*p*log(tau*phi)
+    ans <- -.5*(sum(y^2) - t(m) %*% S %*% m)/phi - .5*n*log(2*pi*phi) - .5*p*log(tau) - log(sqrt(det(S)))
   }
   if (!logscale) ans <- exp(ans)
   return(ans)
 }
 
 
-zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data y~N(x*theta,phi*I) under a product imom prior (unknown variance)
-# - sel: vector with indexes of variables included in the model
-# - y: response variable
-# - x: design matrix
-# - alpha, lambda: prior for phi is IGamma(alpha/2,lambda/2)
-# - tau: prior dispersion parameter
-# - r: prior power parameter is 2*r
-# - method: method to approximate the integral. 'Laplace' for Laplace approx. 'MC' for Monte Carlo. 'Plug-in' for plug-in estimate.
-# - B: number of Monte Carlo samples to use (ignored unless method=='MC')
+zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logscale=TRUE, XtX, ytX) {
+#Marginal density of the data y~N(x*theta,phi*I) under Zellner's prior (unknown variance)
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
@@ -225,22 +202,15 @@ zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, m
   sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
-  tau <- as.double(tau); r <- as.integer(r)
-  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
-  method <- as.integer(method)
+  tau <- as.double(tau)
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda)
+  ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda)
   return(ans);
 }
 
-zellnerMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Laplace', B=10^5, logscale=TRUE) {
-  #Marginal likelihood for product moment prior (variance phi unknown)
-  # - Likelihood: y ~ N(x %*% th, phi * I)
-  # - Prior for th proportional to N(th; 0, tau*phi*I) * prod(th^2/(phi*tau))^r
-  # - Prior for phi: IGamma(alpha/2,lambda/2)
-  #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  #require(mvtnorm)
+zellnerMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau, logscale=TRUE) {
+  #Marginal likelihood for Zellner's prior
   n <- length(y); p <- ncol(x)
   if (ncol(x)==0) {
     term1 <- .5*(n + alpha)
@@ -250,12 +220,12 @@ zellnerMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='L
   } else {
     S <- (1+1/tau) * (t(x) %*% x)
     m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-    nu <- 2*r*p + n + alpha
+    nu <- n + alpha
     ss <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
     V <- S*nu/ss
     #
     num <- lgamma(nu/2) + .5*alpha*log(lambda/2) + .5*nu*log(2) - .5*nu*log(ss)
-    den <- .5*n*log(2*pi) + .5*log(det(S)) + (.5*p+r*p)*log(tau) + lgamma(alpha/2)
+    den <- .5*n*log(2*pi) + .5*log(det(S)) + (.5*p)*log(tau) + lgamma(alpha/2)
     ans <- num - den
   }
   if (!logscale) ans <- exp(ans)
@@ -310,6 +280,40 @@ zellnerbf.lm <- function(lm1,
                            ssr=ssr,
                            logbf=logbf)
   bf.zellner
+}
+
+
+###
+### zbfunknown.R
+###
+
+zbfunknown <- function(theta1hat, V1, n, nuisance.theta, g=1, theta0, ssr, logbf=FALSE) {
+  if (missing(theta0)) { theta0 <- rep(0, length(theta1hat)) }
+  p1 <- length(theta1hat); p <- p1 + nuisance.theta
+  l <- theta1hat-theta0; l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)  
+  sigma2hat <- (ssr + l/(1+n*g))/(n-nuisance.theta)
+  muk <- p1+ l* n*g/((1+n*g)*sigma2hat)
+  bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)
+  if (!logbf) { bf <- exp(bf) }
+  bf
+}
+
+
+###
+### zbfknown.R
+###
+
+zbfknown <- function(theta1hat, V1, n, g=1, theta0, sigma, logbf=FALSE) {
+  if (missing(sigma)) { stop("'sigma' must be specified") }
+  if (missing(theta0)) { theta0 <- rep(0, length(theta1hat)) }
+  p1 <- length(theta1hat)
+  l <- theta1hat-theta0
+  l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1) * n*g/((1+n*g)*sigma^2) #noncentr param
+  muk <- p1+l
+  t1 <- matrix(theta1hat-theta0, nrow=1) %*% solve(V1) %*% matrix(theta1hat-theta0, ncol=1) * n*g/((1+n*g)*sigma^2)
+  bf <- .5*t1 - .5*p1*log(1+n*g)
+  if (!logbf) { bf <- exp(bf) }
+  bf
 }
 
 

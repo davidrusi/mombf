@@ -69,11 +69,6 @@ pplPM <- function(tauseq=exp(seq(log(.01), log(2), length=20)),
     stop('prior on coefficients not recognized. Currently only pMOM and peMOM are implemented')
   }
 
-  if (mc.cores > 1) {
-    if (!require("parallel", character.only=TRUE)) {
-      warning("cannot load parallel package - continuing without it...")
-    }
-  }
   nlpseq <- if ("parallel" %in% loadedNamespaces())  {
                        parallel::mclapply(as.list(tauseq),
                        nlpfit,

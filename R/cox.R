@@ -88,11 +88,6 @@ logPL <- function(beta, time, event, x, mc.cores=1) {
   # - event: event indicator
   # - x: covariate values
   # - mc.cores: number of cores, passed on to parallel::mclapply
-  if (mc.cores > 1) {
-    if (!require("parallel", character.only=TRUE)) {
-      warning("cannot load parallel package - continuing without it...")
-    }
-  }
   event <- as.numeric(event)
   if (!all(event %in% c(0,1))) stop("event must contain only 0's and 1's")
   if (!is.matrix(x) & !is.data.frame(x)) stop("x must be a matrix or data.frame")

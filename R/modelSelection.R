@@ -107,9 +107,9 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   tau <- as.double(priorCoef@priorPars['tau'])
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
 
-  family <- as.integer(family)
   taualpha <- as.double(priorSkew@priorPars['tau'])
   if (family=='auto') { family <- 0 } else if (family=='normal') { family <- 1 } else if (family=='twopiecenormal') { family <- 2 } else if (family=='laplace') { family <- 3 } else if (family=='twopiecelaplace') { family <- 4 } else stop("family not available")
+  family <- as.integer(family)
   
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)

@@ -147,7 +147,7 @@ zellnerMargKuniv <- function(y,x,phi,tau=1,logscale=TRUE) {
   n <- length(y)
   if (n != length(y)) stop("Dimensions of x and y don't match")
   if (missing(tau)) tau <- n
-  s <- sum(x^2) + 1/tau
+  s <- sum(x^2) * (1+1/tau)
   m <- sum(x*y)/s
   ans <- -.5*(sum(y^2) - s*m^2)/phi - .5*n*log(2*pi*phi) - .5*(log(s)+log(tau)) 
   if (!logscale) ans <- exp(ans)
@@ -170,7 +170,7 @@ zellnerMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau)
-  B <- as.integer(B); logscale <- as.integer(logscale)
+  logscale <- as.integer(logscale)
   ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale)
   return(ans)
 }
@@ -203,7 +203,7 @@ zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logsca
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau)
-  B <- as.integer(B); logscale <- as.integer(logscale)
+  logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda)
   return(ans);
@@ -222,7 +222,6 @@ zellnerMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau, logscale=TRU
     m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
     nu <- n + alpha
     ss <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
-    V <- S*nu/ss
     #
     num <- lgamma(nu/2) + .5*alpha*log(lambda/2) + .5*nu*log(2) - .5*nu*log(ss)
     den <- .5*n*log(2*pi) + .5*log(det(S)) + (.5*p)*log(tau) + lgamma(alpha/2)
@@ -250,35 +249,22 @@ zellnerbf <- function(lm1, coef, g, theta0, logbf=FALSE) {
 ### zellnerbf.lm.R
 ###
 
-zellnerbf.lm <- function(lm1,
-                         coef,
-                         g,
-                         theta0,
-                         logbf=FALSE) {
-  if (missing(g)) {
-    stop("'g' must be specified")
-  }
+zellnerbf.lm <- function(lm1, coef, g, theta0, logbf=FALSE) {
+  if (missing(g)) { stop("'g' must be specified") }
   if (missing(theta0)) {
     theta0 <- rep(0, length(coef))
   } else if (length(theta0) != length(coef)) {
     stop("'theta0' must have the same length as 'coef'")
   }
   
-  thetahat <- coef(lm1)
-  V <- summary(lm1)$cov.unscaled
+  thetahat <- coef(lm1) * g/(g+1)
+  V <- summary(lm1)$cov.unscaled * g/(g+1)
   n <- length(lm1$residuals); p <- length(thetahat); p1 <- length(coef)
   if ((min(coef)<1) | (max(coef)>p)) {
     stop("'coef' values must be between 1 and the number of coefficients in 'lm1'")
   }
   ssr <- sum(residuals(lm1)^2); sr <- sqrt(ssr/(n-p))
-  bf.zellner <- zbfunknown(thetahat[coef],
-                           V[coef, coef],
-                           n=n,
-                           nuisance.theta=p-p1,
-                           g=g,
-                           theta0=theta0,
-                           ssr=ssr,
-                           logbf=logbf)
+  bf.zellner <- zbfunknown(thetahat[coef], V[coef, coef], n=n, nuisance.theta=p-p1, g=g, theta0=theta0, ssr=ssr, logbf=logbf)
   bf.zellner
 }
 
@@ -292,7 +278,6 @@ zbfunknown <- function(theta1hat, V1, n, nuisance.theta, g=1, theta0, ssr, logbf
   p1 <- length(theta1hat); p <- p1 + nuisance.theta
   l <- theta1hat-theta0; l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)  
   sigma2hat <- (ssr + l/(1+n*g))/(n-nuisance.theta)
-  muk <- p1+ l* n*g/((1+n*g)*sigma2hat)
   bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)
   if (!logbf) { bf <- exp(bf) }
   bf

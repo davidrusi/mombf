@@ -2222,10 +2222,117 @@ double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // Zellner's prior routines
 //*************************************************************************************
 
+// Marginal likelihood for linear models under Zellner's prior
+// Input:
+// - sel: model indicator. Vector of length p indicating the index of the variables in the model (starting the indexing at 0)
+// - nsel: length of sel
+// - n: sample size (length of y)
+// - p: number of columns in XtX
+// - y: observed response vector (length n)
+// - sumy2: sum of y*y
+// - XtX: X'X where X is the design matrix (includes all covariates, even those excluded under the current model)
+// - ytX: vector of length p containing y'X (where y is the length n response vector)
+// - phi: residual variance
+// - tau: prior dispersion parameter
+// - logscale: if set to 1 result is returned in log scale
+
+SEXP zellnerMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale) {
+  struct marginalPars pars;
+  int emptyint=0;
+  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
+  SEXP ans;
+
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),&emptydouble,REAL(SXtX),REAL(SytX),&emptyint,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset);
+  PROTECT(ans = allocVector(REALSXP, 1));
+  rans = REAL(ans);
+  *rans= zellnerMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
+  UNPROTECT(1);
+  return ans;
+}
+
+
 double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
-  return 0.0;
+  int i,j;
+  double *m, s, **S, **Sinv, detS, num, den, adj, tau= *(*pars).tau, logtau= log(*(*pars).tau), logphi= log(*(*pars).phi), ans=0.0, zero=0;
+
+  if (*nsel ==0) {
+
+    m= dvector(1,1);
+    m[1]=0; s= sqrt(*(*pars).phi);
+    ans= dnormC_jvec((*pars).y,*(*pars).n,m[1],s,1);
+    free_dvector(m,1,1);
+
+  } else {
+
+    m= dvector(1,*nsel);
+    S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX into S
+    adj= (tau+1)/tau;
+    for (i=1; i<=(*nsel); i++) { 
+      S[i][i]= S[i][i] * adj;
+      for (j=1; j<i; j++) { S[i][j]= S[i][j] * adj; S[j][i]= S[i][j]; }
+    }
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+
+    num= -.5*(*(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel))/(*(*pars).phi);
+    den= .5*((*(*pars).n +.0)*(LOG_M_2PI+logphi) + log(detS) + (*nsel)*logtau);
+    ans= num - den;
+
+    free_dvector(m,1,*nsel);
+    free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;  
+}
+
+
+SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda) {
+  int emptyint=0;
+  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
+  struct marginalPars pars;
+  SEXP ans;
+
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),&emptyint,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset);
+  PROTECT(ans = allocVector(REALSXP, 1));
+  rans = REAL(ans);
+  *rans= zellnerMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  UNPROTECT(1);
+  return ans;
 }
 
 double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  return 0.0;
+  int i, j, nu;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
+  if (*nsel ==0) {
+
+    term1= .5*(*(*pars).n + *(*pars).alpha);
+    num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
+    ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
+
+  } else {
+
+    m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    adj= (tau+1)/tau;
+    for (i=1; i<=(*nsel); i++) { 
+      S[i][i]= S[i][i] * adj;
+      for (j=1; j<i; j++) { S[i][j]= S[i][j] * adj; S[j][i]= S[i][j]; }
+    }
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+    nuhalf= .5*(*(*pars).n + *(*pars).alpha);
+    nu= (int) (2.0*nuhalf);
+
+    ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
+    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS)) + .5 * (*nsel) *log(*(*pars).tau) + gamln(&alphahalf);
+    ans= num - den;
+
+    free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
 }

@@ -2,7 +2,7 @@
 ### NAMESPACE
 ###
 
-import(methods, mvtnorm, ncvreg, actuar, mgcv)
+import(methods, actuar, mvtnorm, mgcv, ncvreg, stats)
 importFrom(survival, Surv, coxph)
 
 useDynLib(mombf)

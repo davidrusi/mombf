@@ -78,8 +78,8 @@ Section \ref{sec:bfglm} shows the analysis of some simulated logistic regression
 \section{Mom and iMom priors}
 \label{sec:priors}
 
-We implement both product and quadratic non-local priors.
-Quadratic non-local priors are historically the first form of non-local priors that were introduced,
+We implement both product and additive non-local priors.
+Additive non-local priors are historically the first form of non-local priors that were introduced,
 and are primarily targeted to the comparison of only two hypotheses.
 Instead, product priors focus on the more general variable selection problem,
 where one wants de determine which coefficients are zero within a vector of $p$ coefficients.
@@ -112,8 +112,8 @@ N(\bm{\theta}; {\bf 0}, \tau \phi I),
 where $I$ is the $p\times p$ identity matrix and $\tau$ is a prior dispersion parameter
 and $!!$ denotes the double factorial.
 
-\subsection{Quadratic non-local priors}
-\label{ssec:quadpriors}
+\subsection{Additive non-local priors}
+\label{ssec:additivepriors}
 
 Suppose that the goal is to test $H_0: \bm{\theta}_1=\bm{\theta}_0$ versus $H_1=\bm{\theta}_1 \neq \bm{\theta}_0$.
 Consider the quadratic distance
@@ -134,7 +134,7 @@ an independent improper prior on $\phi$ proportional to $1/\sqrt{\phi}$.
 
 Let $\pi_Z(\bm{\theta}_1)$ be a prior density for $\bm{\theta}_1$
 for which $E_{\pi_Z}[Q(\bm{\theta}_1)^k]$ is finite.
-We define the quadratic MOM prior as
+We define the additive MOM prior as
 \begin{equation}
 \pi_M(\bm{\theta}_1)= \frac{Q(\bm{\theta}_1)^k}{E_{\pi_Z}[Q(\bm{\theta}_1)^k]}  \pi_Z(\bm{\theta}_1).
 \label{multimoment}
@@ -156,7 +156,7 @@ $E_{\pi_Z}(Q(\bm{\theta})^k)= d \frac{\nu}{\nu-2}$.
 \subsubsection{iMom prior}
 \label{ssec:imomprior}
 
-The quadratic iMom prior on $\bm{\theta}_1$ is
+The additive iMom prior on $\bm{\theta}_1$ is
 \begin{equation}\label{eq:napd}
 \pi_I(\bm{\theta}_1) = c_I \ Q(\bm{\theta}_1)^{-\frac{\nu+p_1}{2}} \exp\left[ Q(\bm{\theta}_1)^{-k} \right],
 \end{equation}
@@ -177,7 +177,7 @@ Currently the library only implements the case $k=1$.
 The functions \texttt{dmom} and \texttt{dimom} evaluate the Mom and iMom priors,
 respectively.
 Set the argument \texttt{penalty=='product'} for the product priors and
-\texttt{penalty=='quadratic'} for the quadratic priors.
+\texttt{penalty=='quadratic'} for the additive priors.
 Setting the argument \texttt{baseDensity='normal'} in \texttt{dmom} (the default) returns
 the normal MOM density, \texttt{baseDensity='t'} returns the t MOM density.
 The functions \texttt{pmom} and \texttt{pimom} evaluate the distribution functions,
@@ -185,7 +185,7 @@ and \texttt{qmom} and \texttt{qimom} return quantiles.
 Currently \texttt{pmom} and \texttt{qmom} are only implemented for the normal MOM.
 Let's set the prior parameter $tau=1$ and plot the Mom and iMom priors in a univariate setting
 for $\theta_1 \in (-3,3)$.
-Notice that in the univariate case the product and quadratic priors are equivalent.
+Notice that in the univariate case the product and additive priors are equivalent.
 
 \footnotesize
 \setkeys{Gin}{width=0.5\textwidth} 
@@ -237,7 +237,7 @@ We can also plot the corresponding distribution functions.
 \label{sec:bflm}
 
 This section focuses on computing Bayes factors to compare two models.
-The examples use quadratic non-local priors.
+The examples use additive non-local priors.
 For examples using product non-local priors see Section \ref{sec:varsellm}.
 
 \subsection{Linear model fit and prior elicitation}
@@ -390,7 +390,7 @@ and compute Bayes factors.
 Note that \texttt{mombf}, \texttt{imombf} and \texttt{zellnerbf} accept $g$ to be a vector
 instead of a single value.
 For large $g$ vectors setting the option \texttt{method='MC'} in \texttt{imombf} can
-save considerable computing time, as the Monte Carlo samples need only be generated
+save computing time, as the Monte Carlo samples need only be generated
 once for all $g$ values.
 
 \footnotesize
@@ -400,7 +400,7 @@ prior.mode <- seq(.01,1,length=100)^2
 taumom <- mode2g(prior.mode,prior='normalMom')
 bf1 <- mombf(lm1,coef=2,g=taumom)
 bf2 <- zellnerbf(lm1,coef=2,g=taumom)
-plot(prior.mode,bf1,type='l',ylab='BF')
+plot(prior.mode,bf1,type='l',ylab='BF',ylim=range(c(bf1,bf2)))
 lines(prior.mode,bf2,lty=2,col=2)
 abline(v=thest,lty=2)
 @
@@ -428,7 +428,7 @@ evidence in favor of including the variable in the model.
 \label{sec:bfglm}
 
 This section focuses on obtaining Bayes factors to compare two models.
-In the examples we use quadratic non-local priors.
+In the examples we use additive non-local priors.
 For examples using product non-local priors see Section \ref{sec:varsellm}.
 
 As an illustration, we simulate data with 50 observations from a probit regression model.
@@ -565,7 +565,7 @@ with a beta hyper-prior on the Binomial success probability)
 as then posterior probabilities automatically adjust for multiple comparisons \citep{scott:2010}.
 Finally, for the residual variance we set a fairly non-informative inverse gamma prior.
 For defining other prior distributions see the help for \texttt{msPriorSpec}
-({\it e.g.} \texttt{momprior} and \texttt{emomprior} can be used to define MOM and eMOM priors, respectively).
+({\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} can be used to define MOM, eMOM and Zellner priors, respectively).
 
 \footnotesize
 <<varsel2>>=

@@ -9,7 +9,7 @@ Posterior sampling for Non-Local Priors
 }
 \description{
 Gibbs sampler for linear and Cox proportional hazards model
-under product non-local priors.
+under product non-local priors and Zellner's prior.
 Both sampling conditional on a model and Bayesian model averaging are
 implemented (see Details).
 
@@ -18,7 +18,7 @@ density proportional to d(theta) N(theta; m, V) are produced,
 where d(theta) is the non-local penalty term.
 }
 \usage{
-rnlp(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3,
+rnlp(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3,
 burnin=round(niter/10), thinning=1)
 }
 \arguments{
@@ -32,7 +32,10 @@ burnin=round(niter/10), thinning=1)
     \code{modelSelection}. If left missing sampling under the full model
     \code{y ~ x} is performed, otherwise posterior model samples in
     \code{msfit} are used.}
-  \item{priorCoef}{Prior distribution for the coefficients. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'coefficients'. Possible values for slot \code{priorDistr} are 'pMOM', 'piMOM' and 'peMOM'}
+  \item{priorCoef}{Prior distribution for the coefficients. Must be
+    object of class \code{msPriorSpec} with slot \code{priorType} set to
+    'coefficients'. Possible values for slot \code{priorDistr} are
+    'pMOM', 'piMOM', 'peMOM' and 'zellner'}
   \item{priorVar}{Prior on residual variance. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'nuisancePars'. Slot \code{priorDistr} must be equal to 'invgamma'}
   \item{niter}{Number of MCMC iterations}
   \item{burnin}{Number of burn-in MCMC iterations. Defaults to \code{.1*niter}. Set to 0 for no burn-in}

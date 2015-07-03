@@ -28,7 +28,8 @@ initSearch='greedy', method='auto', B=10^5, verbose=TRUE)
 \item{family}{Residual distribution. Possible values are
   'normal','twopiecenormal','laplace', 'twopiecelaplace', or 'auto'. For
   the latter the residual distribution is inferred from the data.}
-\item{priorCoef}{Prior distribution for the coefficients. Object created with \code{momprior}, \code{imomprior} or \code{emomprior}}
+\item{priorCoef}{Prior distribution for the coefficients. Object created
+  with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
 \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
 \item{priorVar}{Inverse gamma prior on residual variance, created with
   \code{igprior()}}

@@ -256,15 +256,14 @@ zellnerbf.lm <- function(lm1, coef, g, theta0, logbf=FALSE) {
   } else if (length(theta0) != length(coef)) {
     stop("'theta0' must have the same length as 'coef'")
   }
-  
-  thetahat <- coef(lm1) * g/(g+1)
-  V <- summary(lm1)$cov.unscaled * g/(g+1)
-  n <- length(lm1$residuals); p <- length(thetahat); p1 <- length(coef)
+  thetahat <- lapply(g, function(gg) coef(lm1) * gg/(gg+1))
+  V <- lapply(g, function(gg) summary(lm1)$cov.unscaled * gg/(gg+1))
+  n <- length(lm1$residuals); p <- length(thetahat[[1]]); p1 <- length(coef)
   if ((min(coef)<1) | (max(coef)>p)) {
     stop("'coef' values must be between 1 and the number of coefficients in 'lm1'")
   }
   ssr <- sum(residuals(lm1)^2); sr <- sqrt(ssr/(n-p))
-  bf.zellner <- zbfunknown(thetahat[coef], V[coef, coef], n=n, nuisance.theta=p-p1, g=g, theta0=theta0, ssr=ssr, logbf=logbf)
+  bf.zellner <- mapply(function(tt,VV,gg) zbfunknown(tt[coef],VV[coef,coef],n=n,nuisance.theta=p-p1,g=gg,theta0=theta0,ssr=ssr,logbf=logbf), thetahat,V,g)
   bf.zellner
 }
 

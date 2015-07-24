@@ -37,7 +37,7 @@ if (priorCoef@priorDistr %in% c('pMOM','piMOM','peMOM')) {
                                tau=tau,
                                phi=exp(th[length(th)]),
                                logscale=TRUE,
-                               penalty="product") 
+                               penalty="product")
                        }
                      },
                      'peMOM' = {
@@ -60,7 +60,7 @@ if (priorCoef@priorDistr %in% c('pMOM','piMOM','peMOM')) {
 } else if (priorCoef@priorDistr=='zellner') {
   lm1 <- lm(y~-1+x)
   thopt <- coef(lm1)*tau/(1+tau)
-  ans <- list(coef=thopt, sigma2= sum((y - x %*% thopt)^2)/n)
+  ans <- list(coef=thopt, sigma2= sum((y - x %*% thopt)^2)/length(y))
 } else {
   stop('Prior specified in priorDistr not recognized')
 }

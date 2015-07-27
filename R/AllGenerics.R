@@ -39,6 +39,6 @@ if (!isGeneric("postProb")) {
 }
 
 if (!isGeneric("rnlp")) {
-  setGeneric("rnlp", function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1) standardGeneric("rnlp"))
+  setGeneric("rnlp", function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') standardGeneric("rnlp"))
 }
 

@@ -19,7 +19,7 @@ where d(theta) is the non-local penalty term.
 }
 \usage{
 rnlp(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3,
-burnin=round(niter/10), thinning=1)
+burnin=round(niter/10), thinning=1, pp='norm')
 }
 \arguments{
   \item{y}{Vector with observed responses. When \code{class(y)=='Surv'}
@@ -40,6 +40,8 @@ burnin=round(niter/10), thinning=1)
   \item{niter}{Number of MCMC iterations}
   \item{burnin}{Number of burn-in MCMC iterations. Defaults to \code{.1*niter}. Set to 0 for no burn-in}
   \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to no thinning}
+  \item{pp}{When \code{msfit} is provided this is the method to compute posterior model probabilities,
+  which determine the sampled models. Can be 'norm' or 'exact', see \code{postProb} for details. }
 }
 \details{
   The algorithm is implemented for product MOM (pMOM), product iMOM

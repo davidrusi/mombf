@@ -2,16 +2,16 @@
 ## Routines to simulate from MOM prior and posterior
 ##################################################################################
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1) {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
   #Draw model
-  pp <- postProb(msfit)
+  pp <- postProb(msfit,method=pp)
   modelid <- strsplit(as.character(pp$modelid), split=',')
   ndraws <- as.numeric(rmultinom(1, size=niter, prob=pp$pp))
   sel <- ndraws>0; modelid <- modelid[sel]; ndraws <- ndraws[sel]
   #Draw coefficients
   idx <- c(0,cumsum(ndraws))
-  if (class(y) == 'numeric') { ##Linear model   
+  if (class(y) == 'numeric') { ##Linear model
     ans <- matrix(0, nrow=niter, ncol=ncol(x)+1)
     for (i in 1:length(modelid)) {
       b <- min(50, ceiling((burnin/niter) * ndraws[i]))
@@ -35,7 +35,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='ms
 )
 
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1) {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   tau <- as.double(priorCoef@priorPars['tau'])
   if (class(y) == 'numeric') {  ##Linear model
     p <- ncol(x); n <- length(y)
@@ -100,7 +100,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 )
 
 
-setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1) {
+setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   p <- ncol(V)
   tau <- as.double(priorCoef@priorPars['tau'])
   if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {

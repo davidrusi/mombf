@@ -10,11 +10,15 @@ Obtain posterior model probabilities
   Obtain posterior model probabilities after running Bayesian model selection
 }
 \usage{
-  postProb(object, nmax)
+  postProb(object, nmax, method='norm')
 }
 \arguments{
   \item{object}{Object of class msfit, e.g. as returned by \code{modelSelection}}
   \item{nmax}{Maximum number of models to report (defaults to no max)}
+  \item{method}{For 'norm' probabilities are obtained by renormalizing the
+  stored integrated likelihoods, for 'exact' they are given by the proportion
+  of MCMC visits to each model. 'norm' has less variability but can be biased
+  if the chain has not converged.}
 }
 \value{
   A \code{data.frame} with posterior model probabilities in column pp.

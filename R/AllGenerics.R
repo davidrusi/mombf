@@ -35,7 +35,7 @@ if (!isGeneric("demom")) {
 
 
 if (!isGeneric("postProb")) {
-  setGeneric("postProb", function(object, nmax) standardGeneric("postProb"))
+  setGeneric("postProb", function(object, nmax, method='norm') standardGeneric("postProb"))
 }
 
 if (!isGeneric("rnlp")) {

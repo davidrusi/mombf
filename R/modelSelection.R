@@ -12,11 +12,19 @@ setMethod("show", signature(object='msfit'), function(object) {
 }
 )
 
-setMethod("postProb", signature(object='msfit'), function(object, nmax) {
-  modelpp <- unique(data.frame(object$postSample==1, logpp=object$postProb))
-  modelpp <- data.frame(modelid= apply(modelpp[,1:(ncol(modelpp)-1)], 1, function(z) paste(which(z),collapse=',')), logpp=modelpp$logpp)
-  modelpp$logpp <- modelpp$logpp - modelpp$logpp[1]
-  modelpp$pp <- exp(modelpp$logpp)/sum(exp(modelpp$logpp))
+setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
+  if (method=='norm') {
+    modelpp <- unique(data.frame(object$postSample==1, logpp=object$postProb))
+    modelpp <- data.frame(modelid= apply(modelpp[,1:(ncol(modelpp)-1)], 1, function(z) paste(which(z),collapse=',')), logpp=modelpp$logpp)
+    modelpp$logpp <- modelpp$logpp - modelpp$logpp[1]
+    modelpp$pp <- exp(modelpp$logpp)/sum(exp(modelpp$logpp))
+  } else if (method=='exact') {
+    modelpp <- apply(object$postSample==1, 1, function(z) paste(which(z),collapse=','))
+    modelpp <- table(modelpp)/length(modelpp)
+    modelpp <- data.frame(modelid=names(modelpp), pp=as.numeric(modelpp))
+  } else {
+    stop("Argument 'method' not recognized")
+  }
   modelpp <- modelpp[order(modelpp$pp,decreasing=TRUE),]
   if (!missing(nmax)) modelpp <- modelpp[1:nmax,]
   modelpp[,c('modelid','pp')]
@@ -58,11 +66,11 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   if (!is.matrix(x)) x <- as.matrix(x)
   ct <- (colMeans(x^2)-colMeans(x)^2)==0
   y <- scale(y,center=center,scale=scale); x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
-  if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) } 
+  if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   p <- ncol(x); n <- length(y)
-  if (missing(deltaini)) { 
-    deltaini <- integer(0); ndeltaini= as.integer(0) 
-  } else { 
+  if (missing(deltaini)) {
+    deltaini <- integer(0); ndeltaini= as.integer(0)
+  } else {
     if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1) }
   }
@@ -72,14 +80,14 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   } else if (method=='MC') {
     method <- as.integer(1)
   } else if (method=='Hybrid') {
-    if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) { 
+    if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) {
       warning("method=='Hybrid' is only available for 'piMOM' priors with unknown phi. Using method=='Laplace' instead")
       method <- as.integer(0)
     } else {
       method <- as.integer(2)
     }
   } else if (method=='auto') {
-    if (priorCoef@priorDistr!='pMOM') { 
+    if (priorCoef@priorDistr!='pMOM') {
       method <- as.integer(0)
     } else {
       method <- as.integer(2)
@@ -112,7 +120,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   taualpha <- as.double(priorSkew@priorPars['tau'])
   if (family=='auto') { family <- 0 } else if (family=='normal') { family <- 1 } else if (family=='twopiecenormal') { family <- 2 } else if (family=='laplace') { family <- 3 } else if (family=='twopiecelaplace') { family <- 4 } else stop("family not available")
   family <- as.integer(family)
-  
+
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)
     prDeltap <- as.double(0)
@@ -132,7 +140,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     stop('Prior specified in priorDelta not recognized')
   }
 
-  
+
   #Initialize
   postMode <- rep(as.integer(0),p); postModeProb <- double(1)
   if (initSearch=='greedy') {
@@ -148,7 +156,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1)
     if (verbose) cat(" Done\n")
   }
-  
+
   #Run MCMC
   mcmc2save <- floor((niter-burnin)/thinning)
   postSample <- rep(as.integer(0),p*mcmc2save)

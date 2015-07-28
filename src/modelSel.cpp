@@ -826,7 +826,7 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
   //Output
   // - theta: least squares estimate for theta
   // - phi: MLE for residual variance (i.e. SSR/n). If <1.0e-10 then phi=1.0e-10 is returned
-  // - ypred: predicted y, i.e. x[,sel] %*% theta where theta is the least squares estimate
+  // - ypred[0..n-1]: predicted y, i.e. x[,sel] %*% theta where theta is the least squares estimate
   int i;
   double zero=0, **S, **Sinv, detS, e;
 
@@ -860,6 +860,30 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 //*************************************************************************************
 // TWO-PIECE NORMAL ROUTINES
 //*************************************************************************************
+
+SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef) {
+  int prCoef= INTEGER(SprCoef)[0];
+  double *rans, emptydouble=0, offset=0;
+  struct marginalPars pars;
+  SEXP ans;
+
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset);
+
+  PROTECT(ans = allocVector(REALSXP, 1));
+  rans = REAL(ans);
+  if (prCoef==0) {
+    *rans= pmomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  } else if (prCoef==1) {
+    *rans= pimomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  } else if (prCoef==2) {
+    *rans= pemomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  } else {
+    Rf_error("Wrong prior specified\n");
+  }
+  UNPROTECT(1);
+  return ans;
+}
+
 
 double pmomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars) {
   int prior=1;
@@ -895,7 +919,7 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
 
   postmodeSkewNorm(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior);
 
-  if ((*(*pars).method ==0) | (*(*pars).method ==0)) { //Laplace or MC
+  if ((*(*pars).method ==0) | (*(*pars).method ==1)) { //Laplace or MC
 
     cholhess= dmatrix(1,p,1,p);
     d= p + 2.0;
@@ -917,7 +941,7 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
 
       ans= -fmode + 0.5 * d * LOG_M_2PI - 0.5*log(det);
 
-    } else if (*(*pars).method ==0) { //Monte Carlo
+    } else if (*(*pars).method ==1) { //Monte Carlo
 
       int i, j, nu=3;
       double *thsim, **cholV, **cholVinv, ctnu= (nu+2.0)/(nu+.0), detVinv, term1, term2;
@@ -971,7 +995,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   // - alpha, lambda: prior on vartheta ~ IG(alpha/2,lambda/2)
   // - init: init=='mle' to initialize at MLE, else initialize at least squares
   // Ouput
-  // - thmode: posterior mode for (theta,vartheta,alpha) (i.e. in original parameterization)
+  // - thmode[1..nsel]: posterior mode for (theta,vartheta,alpha) (i.e. in original parameterization)
   // - fmode: minus log-joint evaluated at thmode
   // - hess: hessian evaluated at thmode
 
@@ -983,7 +1007,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
   if (*initmle) {  //Initialize at MLE
 
-    mleSkewnorm(thmode, y, x, maxit);
+    mleSkewnorm(thmode, sel, nsel, n, y, x, XtX, ytX, maxit);
 
   } else {  //Initialize at least-squares for theta; set (phi,alpha)= argmax likelihood for given theta
 
@@ -1422,9 +1446,86 @@ void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, do
 }
 
 
-//TO DO: mleSkewnorm NEEDS TO BE ADAPTED FROM R CODE
-void mleSkewnorm(double *thmode, double *y, double *x, int *maxit) {
-  thmode[1]= 0.0;
+void mleSkewnorm(double *thmode, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit) {
+  //Find MLE for linear regression with skew-normal residuals
+  //Output: thmode[1..nsel+2] contains MLE for regression parameters, residual dispersion and asymmetry
+  int i, ii=1, j, k, idxi, idxj;
+  double *ypred, *Xtwy, **XtwX, **XtwXinv, *thnew, err=1.0, s1=0, s2=0, s1pow, s2pow, w, w1, w2;
+
+  ypred= dvector(0,*n -1);
+  Xtwy= dvector(1,*nsel);
+  XtwX= dmatrix(1,*nsel,1,*nsel);
+  XtwXinv= dmatrix(1,*nsel,1,*nsel);
+  thnew= dvector(1,*nsel);
+  if ((*nsel)>0) {  //There are covariates
+
+    leastsquares(thmode,thmode+(*nsel),ypred,y,x,XtX,ytX, n,sel,nsel);
+
+    while ((err>0.0001) && (ii<(*maxit))) {
+
+      for (i=0; i< *n; i++) { 
+	if (y[i]<=ypred[i]) { s1 += pow(y[i]-ypred[i],2.0); } else { s2 += pow(y[i]-ypred[i],2.0); }
+      }
+
+      s1pow= pow(s1,1.0/3.0); s2pow= pow(s2,1.0/3.0);
+      thmode[*nsel +2]= (s1pow-s2pow)/(s1pow+s2pow); //alpha
+
+      w1= 1.0/pow(1.0+thmode[*nsel +2],2.0); w2= 1.0/pow(1.0-thmode[*nsel +2],2.0);
+
+      //Compute t(X) %*% W %*% y, t(X) %*% W %*% X
+      for (i=1; i<=(*nsel); i++) {
+        idxi= (*n)*i;
+	//Find t(X) %*% W %*% y
+	Xtwy[i]= 0;
+	for (k=0; k<(*n); k++) {
+	  if (y[i]<ypred[i]) { w= w1; } else { w= w2; }
+          Xtwy[i] += x[k+ idxi] * y[*n] * w;  //x[k][i] * y[k] * w
+	}
+	//Find t(X) %*% W %*% X
+        for (j=i; j<=(*nsel); j++) {
+	  idxj= (*n)*j;
+	  XtwX[i][j]= 0;
+	  for (k=0; k<(*n); k++) {
+	    if (y[i]<ypred[i]) { w= w1; } else { w= w2; }
+	    XtwX[i][j] += x[k+ idxi] * x[k +idxj] * w;  //x[k][i] * x[k][j] * w
+	  }
+        }
+        for (j=1; j<i; j++) { XtwX[i][j]= XtwX[j][i]; }
+      }
+
+      inv_posdef(XtwX, *nsel, XtwXinv);
+      Ax(XtwXinv, Xtwy,thnew,1,*nsel,1,*nsel);  //thmode[1..nsel]= (t(X) * W * X)^{-1} t(X) * W * y
+
+      err= fabs(thnew[1]-thmode[i]);
+      thmode[1]= thnew[1];
+      for (j=2; j<= (*nsel); j++) { 
+	err= max_xy(err,fabs(thnew[i]-thmode[i]));
+	thmode[i]= thnew[i];
+      }
+      ii++;
+      if ((err<=0.0001) || (i>=(*maxit))) {
+        Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
+      }
+    }
+
+  } else {  //No covariates
+
+    for (i=0; i< *n; i++) { 
+      if (y[i]<=ypred[i]) { s1 += pow(y[i]-ypred[i],2.0); } else { s2 += pow(y[i]-ypred[i],2.0); }
+    }
+
+    s1pow= pow(s1,1.0/3.0); s2pow= pow(s2,1.0/3.0);
+    thmode[*nsel +2]= (s1pow-s2pow)/(s1pow+s2pow); //alpha
+
+  }
+
+  thmode[(*nsel)+1]= (0.25/((*n)+.0)) * pow(s1pow + s2pow, 3);  //MLE for residual dispersion
+
+  free_dvector(ypred, 0,*n -1);
+  free_dvector(Xtwy,1,*nsel);
+  free_dmatrix(XtwX,1,*nsel,1,*nsel);
+  free_dmatrix(XtwXinv,1,*nsel,1,*nsel);
+  free_dvector(thnew,1,*nsel);
 }
 
 

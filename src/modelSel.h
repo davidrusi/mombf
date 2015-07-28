@@ -156,7 +156,7 @@ void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, i
 void loglnegGradSkewNorm(double *g, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 
-void mleSkewnorm(double *thmode, double *y, double *x, int *maxit);
+void mleSkewnorm(double *thmode, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit);
 
 
 

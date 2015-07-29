@@ -486,7 +486,8 @@ void nn_bayes(double *mpo,
               double *y,
               double **Slik_inv)
 {
-    double *z;
+  bool posdef;
+  double *z;
 
     //assert(mpo != NULL);
     //assert(mpr != NULL);
@@ -499,7 +500,7 @@ void nn_bayes(double *mpo,
     z = dvector(1, p);
 
     rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, Spo_inv, 1, p, 1, p);
-    inv_posdef(Spo_inv, p, Spo);
+    inv_posdef(Spo_inv, p, Spo, &posdef);
     rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
     Ax(Spo, z, mpo, 1, p, 1, p);
 
@@ -542,7 +543,7 @@ void nn_bayes_rand(double *theta,
     cholS = dmatrix(0, p-1, 0, p-1);
 
     rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, S_inv, 1, p, 1, p);
-    inv_posdef(S_inv, p, S);
+    inv_posdef(S_inv, p, S, &posdef);
     rAx_plus_sBy(1.0/r1, Spr_inv, mpr, 1.0/r2, Slik_inv, y, z, 1, p, 1, p);
     Ax(S, z, m, 1, p, 1, p);
 
@@ -657,7 +658,8 @@ void lm(double *b,
         const int *p,
         const int *useXtX)
 {
-    register int i;
+  bool posdef;
+  register int i;
 
     //assert(b != NULL);
     //assert(XtX != NULL);
@@ -678,7 +680,7 @@ void lm(double *b,
 
     if (*useXtX == 0) {
         AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
-        inv_posdef(XtX, *p, invXtX);
+        inv_posdef(XtX, *p, invXtX,&posdef);
         Atx(X, y, Xty, 1, *n, 1, *p); //X'y
     }
 
@@ -745,9 +747,10 @@ void lmbayes(double *bpost,
              double *nu0,
              double *s0)
 {
-    double *b_ls;
-    double s_ls;
-    double **Vb_inv;
+  bool posdef;
+  double *b_ls;
+  double s_ls;
+  double **Vb_inv;
 
     //assert(bpost != NULL);
     //assert(spost != NULL);
@@ -772,7 +775,7 @@ void lmbayes(double *bpost,
 
     if (*useXtX == 0) {
         AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
-        inv_posdef(XtX, *p, invXtX);
+        inv_posdef(XtX, *p, invXtX, &posdef);
         Atx(X, y, Xty, 1, *n, 1, *p); //X'y
     }
 
@@ -869,6 +872,7 @@ void lmbayes_knownvar(double *bpost,
                       double **Spr_inv,
                       double *tauprior)
 {
+  bool posdef;
     double *b_ls;
     double s_ls;
     double **Vb_inv;
@@ -892,7 +896,7 @@ void lmbayes_knownvar(double *bpost,
 
     if (*useXtX == 0) {
         AtB(X, 1, *n, 1, *p, X, 1, *n, 1, *p, XtX);
-        inv_posdef(XtX, *p, invXtX);
+        inv_posdef(XtX, *p, invXtX, &posdef);
         Atx(X, y, Xty, 1, *n, 1, *p); //X'y
     }
 
@@ -3402,13 +3406,13 @@ double choldc_det(double **chols,
 
 /*
  * Inverse of a symmetric, positive definite matrix a[1..n][1..n] using
- * Cholesky decomposition. Result is returned in aout.
+ * Cholesky decomposition. Result is returned in aout. posdef returns if matrix was indeed positive definite
  */
 void inv_posdef(double **a,
                 int n,
-                double **aout)
+                double **aout,
+                bool *posdef)
 {
-    bool posdef;
     register int i;
     register int j;
     double **b;
@@ -3417,7 +3421,7 @@ void inv_posdef(double **a,
     //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b, &posdef);
+    choldc_inv(a, n, b, posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
             register int k;
@@ -3448,9 +3452,9 @@ void inv_posdef(double **a,
  */
 void inv_posdef_upper(double **a,
                       int n,
-                      double **aout)
+                      double **aout,
+                      bool *posdef)
 {
-    bool posdef;
     register int i;
     register int j;
     double **b;
@@ -3459,7 +3463,7 @@ void inv_posdef_upper(double **a,
     //assert(aout != NULL);
 
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b, &posdef);
+    choldc_inv(a, n, b, posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
             register int k;
@@ -5093,7 +5097,7 @@ void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, d
     bool posdef;
     double *y, **S, **cholS;
     y= dvector(1,p); S= dmatrix(1,p,1,p); cholS= dmatrix(1,p,1,p);
-    inv_posdef(Sinv,p,S);
+    inv_posdef(Sinv,p,S,&posdef);
     choldc(S,p,cholS,&posdef);
     rmvnormC(y, p, mu, cholS);
     free_dvector(y,1,p); free_dmatrix(S,1,p,1,p); free_dmatrix(cholS,1,p,1,p);
@@ -5102,6 +5106,7 @@ void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, d
 
 //R interface for rtmvnormProd
 SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin) {
+  bool posdef;
   int i,j, p=LENGTH(mu), nn=INTEGER(n)[0];
   double **S, **Sinv;
 
@@ -5111,7 +5116,7 @@ SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper,
     int ip= (i-1)*p;
     for (j=1; j<i; j++) S[i][j]= S[j][i]= REAL(Sigma)[ip+j-1];
   }
-  inv_posdef(S, p, Sinv);
+  inv_posdef(S, p, Sinv,&posdef);
   free_dmatrix(S,1,p,1,p);
 
   SEXP ans;
@@ -5980,7 +5985,7 @@ double demomvec(double *y, int n, double tau, double phi, int logscale) {
 //Gradient of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
-  for (i=0; i<(*n); i++) {
+  for (i=1; i<=(*n); i++) {
     ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));
   } 
 }
@@ -5989,64 +5994,69 @@ void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
 //Output ans is a vector, as non-diagonal elements are 0
 void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
-  for (i=0; i<(*n); i++) { ans[i]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); }
+  for (i=1; i<=(*n); i++) { ans[i]= -2.0/pow(th[i],2) - 1.0/(exp(*logphi)*(*tau)); }
 }
 
 //Gradient of log-pMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, p=(*n)-1; 
   double sumth2=0;
   if (p>0) {  //th has some elements
-    for (i=0; i<p; i++) {
+    for (i=1; i<=p; i++) {
       ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));  //same as in dmomgrad
       sumth2 += (th[i]*th[i]); 
     }
     ans[*n]= -1.5*p - 0.5*(*alpha) -1.0 + 0.5*(sumth2/(*tau) + (*lambda)) * exp(-(*logphi));
     } else {  //th is empty
-    ans[0]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
+    ans[1]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
   }
 }
 
 //Hessian of log-pMOM(0,phi*tau) + log-IG(phi,alpha,lambda) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is matrix [1..n][1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Input:
+// - th[1..n-1]: vector with th values
+// - logphi: log(phi)
+// - tau: prior dispersion parameter
+// - alpha, lambda: prior parameters for phi
 void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double sumth2=0;
-  for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
-    ans[i+1][i+1]= -2.0/((*th)*(*th)) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
+  for (i=1; i<=p; i++) { 
+    for (j=1; j<=i; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][i]= -2.0/pow(th[i],2) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
     sumth2 += (th[i]*th[i]); 
-    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
-    ans[i+1][*n +1]= ans[*n +1][i+1]= th[i] / (exp(*logphi)*(*tau));
+    for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n]= ans[*n][i+1]= th[i] / (exp(*logphi)*(*tau));
   }
-  ans[*n +1][*n +1]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
+  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
 }
 
 
 //Gradient of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
-  for (i=0; i< (*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / (th[i]*th[i]*th[i]) - 2.0 / th[i]; }
+  for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / (th[i]*th[i]*th[i]) - 2.0 / th[i]; }
 }
 
 //Hessian of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
 void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i; double th2;
-  for (i=0; i< (*n); i++) { 
-    th2= th[i]*th[i];
-    ans[i]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; 
+  for (i=01; i<=(*n); i++) { 
+    th2= pow(th[i],2.0);
+    ans[i]= -6.0 * (*tau) * exp(*logphi) / th2 + 2.0/th2; 
   }
 }
 
 //Gradient of log-piMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, p=(*n)-1; 
   double th2, suminvth2=0;
   if (p>0) {  //th is non-empty
-    for (i=0; i<p; i++) { 
+    for (i=1; i<=p; i++) { 
       th2= th[i]*th[i];
       ans[i]= 2.0 * (*tau) * exp(*logphi) / (th2*th[i]) - 2.0 / th[i]; //same as dimomgrad
       suminvth2+= 1.0/th2;
@@ -6062,41 +6072,39 @@ void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, suminvth2=0;
-  for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+  for (i=1; i<=p; i++) { 
+    for (j=1; j<i; j++) { ans[i][j]= ans[j][i]=0; }
     th2= th[i]*th[i];
     suminvth2+= 1.0/th2;
-    ans[i+1][i+1]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; //same as in dimomhess
-    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
-    ans[i+1][*n +1]= ans[*n +1][i+1]= 2.0 * (*tau) * exp(*logphi) / (th2 * th[i]);
+    ans[i][i]= -6.0 * (*tau) * exp(*logphi) / (th2 * th2) + 2.0/th2; //same as in dimomhess
+    for (j=i+1; j<=p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n]= ans[*n][i]= 2.0 * (*tau) * exp(*logphi) / (th2 * th[i]);
   }
-  ans[*n +1][*n +1]= -0.5*exp(-(*logphi))*(*lambda) - (*tau) * exp(*logphi) * suminvth2;
+  ans[*n][*n]= -0.5*exp(-(*logphi))*(*lambda) - (*tau) * exp(*logphi) * suminvth2;
 }
 
 //Gradient of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
-  for (i=0; i< (*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) /(th[i]*th[i]*th[i]) - th[i]*exp(-(*logphi))/(*tau); }
+  for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / pow(th[i],3.0) - th[i]*exp(-(*logphi))/(*tau); }
 }
 
 //Hessian of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
 void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
-  double th2;
-  for (i=0; i< (*n); i++) { 
-    th2= th[i]*th[i];
-    ans[i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau);
+  for (i=1; i<=(*n); i++) { 
+    ans[i]= -6.0 * (*tau) * exp(*logphi)/pow(th[i],2.0) - exp(-(*logphi))/(*tau);
   }
 }
 
 //Gradient of log-peMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
-//Output: ans is vector [0..n-1] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
+//Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, p=(*n)-1; 
   double th2, suminvth2=0, sumth2=0;
   if (p>0) {  //th is non-empty
-    for (i=0; i<p; i++) {
+    for (i=1; i<=p; i++) {
       th2= th[i]*th[i];
       sumth2+= th2;
       suminvth2+= 1.0/th2;
@@ -6113,14 +6121,14 @@ void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, sumth2=0, suminvth2=0;
-  for (i=0; i<p; i++) { 
-    for (j=0; j<i; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
+  for (i=1; i<=p; i++) { 
+    for (j=1; j<i; j++) { ans[i][j]= ans[j][i]=0; }
     th2= th[i]*th[i];
     sumth2+= th2;
     suminvth2+= 1.0/th2;
-    ans[i+1][i+1]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
-    for (j=i+1; j<p; j++) { ans[i+1][j+1]= ans[j+1][i+1]=0; }
-    ans[i+1][*n +1]= ans[*n +1][i+1]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
+    ans[i][i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
+    for (j=i+1; j<=p; j++) { ans[i][j]= ans[j][i]=0; }
+    ans[i][*n +1]= ans[*n +1][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
   }
   ans[*n +1][*n +1]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
 }
@@ -6168,7 +6176,7 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
 
   AvectBvec(x, n, p, x, n, p, S); //S= t(x) %*% x + 1/tau
   for (i=1; i<=p; i++) S[i][i] += tauinv;
-  inv_posdef(S, p, Sinv); 
+  inv_posdef(S, p, Sinv, &posdef); 
   choldc(Sinv, p, cholSinv, &posdef);
   choldc_inv(Sinv, p, inv_cholSinv, &posdef); //inverse of chol(Sinv)
 
@@ -6305,7 +6313,7 @@ void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *V
     Sinv[i][i]= Vvec[i-1+p*(i-1)];
     for (j=1; j<i; j++) { Sinv[i][j]= Sinv[j][i]= Vvec[i-1+p*(j-1)]; }
   }
-  inv_posdef(Sinv, p, S);
+  inv_posdef(Sinv, p, S, &posdef);
   choldc(Sinv, p, cholSinv, &posdef);
   choldc_inv(Sinv, p, inv_cholSinv, &posdef); //inverse of chol(Sinv)
 

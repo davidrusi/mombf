@@ -6025,10 +6025,10 @@ void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, d
   double sumth2=0;
   for (i=1; i<=p; i++) { 
     for (j=1; j<=i; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][i]= -2.0/pow(th[i],2) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
+    ans[i][i]= -2.0/pow(th[i],2.0) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
     sumth2 += (th[i]*th[i]); 
     for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n]= ans[*n][i+1]= th[i] / (exp(*logphi)*(*tau));
+    ans[i][*n]= ans[*n][i]= th[i] / (exp(*logphi)*(*tau));
   }
   ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda));
 }
@@ -6128,9 +6128,9 @@ void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, 
     suminvth2+= 1.0/th2;
     ans[i][i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
     for (j=i+1; j<=p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n +1]= ans[*n +1][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
+    ans[i][*n]= ans[*n][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
   }
-  ans[*n +1][*n +1]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
+  ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
 }
 
 

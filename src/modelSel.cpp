@@ -1030,7 +1030,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   g= dvector(1,p); delta= dvector(1,p); thnew= dvector(1,p);
   H= dmatrix(1,p,1,p); Hinv= dmatrix(1,p,1,p);
 
-  i=1; err=1; damp=0.01;
+  i=1; err=1; damp=2.0;
 
   fnegSkewnorm(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
 
@@ -1058,15 +1058,33 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
     for (j=1; j<=p; j++) { thnew[j]= thmode[j] - delta[j]; }
     fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
 
+    //If Newton update fails, use gradient algorithm
+    //ii= 1;
+    //if (fnew > (*fmode)) {
+    //  //Set gradient norm equal to norm of attempted Newton step size
+    //  double deltanorm=0, gnorm=0, norm; 
+    //  for (j=1; j<=p; j++) { deltanorm += pow(delta[j],2.0); gnorm += pow(g[j],2.0); }
+    //  norm= sqrt(deltanorm/gnorm);
+    //  for (j=1; j<=p; j++) { delta[j]= g[j] * norm; } 
+    //  while ((fnew > (*fmode)) & (ii<5)) {
+    //for (j=1; j<=p; j++) delta[j] /= damp;  //decrease step size
+    //for (j=1; j<=p; j++) { thnew[j]= thmode[j] - delta[j]; }
+    //fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
+    //ii++;
+    //}
+    //}
+
     //If Newton update fails, use Levenberg-Marquardt (LMA)
     ii= 1;
-    while ((fnew > (*fmode)) & (ii<5)) {
-      for (j=1; j<=p; j++) H[j][j] *= (1.0+damp);
-      inv_posdef(H,p,Hinv,&posdef);
-      Ax(Hinv,g,delta,1,p,1,p);
-      for (j=1; j<=p; j++) { thnew[j]= thmode[j] - delta[j]; }
-      fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
-      ii++;
+    if (fnew > (*fmode)) { 
+      while ((fnew > (*fmode)) & (ii<5)) {
+    	for (j=1; j<=p; j++) H[j][j] *= damp;
+    	inv_posdef(H,p,Hinv,&posdef);
+    	Ax(Hinv,g,delta,1,p,1,p);
+    	for (j=1; j<=p; j++) { thnew[j]= thmode[j] - delta[j]; }
+    	fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
+    	ii++;
+      }
     }
 
     //If new value improves target function, update thmode, fmode
@@ -1103,7 +1121,9 @@ void fnegSkewnorm(double *ans, double *ypred, double *th, int *sel, int *nsel, i
 // Input
 // - th[1..nsel+2]: (theta, log(vartheta), atanh(alpha)) where theta=regression coef, vartheta \propto variance and alpha=asymmetry parameter in [-1,1]
 // - Other parameters as in postmodeSkewNorm
-// Output: value of minus the log-joint evaluated at th
+// Output: 
+// - ans: value of minus the log-joint evaluated at th
+// - ypred: linear predictor x %*% th
   double scale, alpha;
 
   scale= exp(th[*nsel +1]);
@@ -1202,7 +1222,7 @@ void fppnegSkewnorm(double **H, double *th, double *ypred, int *sel, int *nsel, 
 
   if ((*prior)==1) {
 
-    dmomighess(Hprior,&nselplus1,th+1,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    dmomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
     for (i=1; i<= (*nsel)+1; i++) {
       H[i][i] -= Hprior[i][i];
       for (j=1; j<i; j++) {
@@ -1215,7 +1235,7 @@ void fppnegSkewnorm(double **H, double *th, double *ypred, int *sel, int *nsel, 
 
   } else if ((*prior)==2) {
 
-    dimomighess(Hprior,&nselplus1,th+1,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    dimomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
     for (i=1; i<= (*nsel)+1; i++) {
       H[i][i] -= Hprior[i][i];
       for (j=1; j<i; j++) {
@@ -1228,7 +1248,7 @@ void fppnegSkewnorm(double **H, double *th, double *ypred, int *sel, int *nsel, 
 
   } else if ((*prior)==3) {
 
-    demomighess(Hprior,&nselplus1,th+1,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    demomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
     for (i=1; i<= (*nsel)+1; i++) {
       H[i][i] -= Hprior[i][i];
       for (j=1; j<i; j++) {
@@ -1253,6 +1273,9 @@ void fppnegSkewnorm(double **H, double *th, double *ypred, int *sel, int *nsel, 
 
 void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, double *XtX) {
   //Log-likelihood function of a linear model with two-piece normal errors evaluated at th=(theta,scale,alpha)
+  //Output
+  // - ans: value of the log-likelihood evaluated at th
+  // - ypred: linear predictor x %*% th
   int i;
   double w1, w2;
 
@@ -1262,7 +1285,6 @@ void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, i
 
   if ((*nsel)>0) {
 
-    ypred= dvector(0,*n -1);
     Aselvecx(x, th+1, ypred, 0, (*n) -1, sel, nsel); //ypred= x %*% th
 
     for (i=0; i<(*n); i++) {
@@ -1270,8 +1292,6 @@ void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, i
       if (y[i]<ypred[i]) { (*ans) -= w1 * pow(y[i]-ypred[i],2); } else { (*ans) -= w2 * pow(y[i]-ypred[i],2); }
 
     }
-
-    free_dvector(ypred,0,*n -1);
 
   } else {
 
@@ -1358,10 +1378,10 @@ void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, do
   alphat= tanh(th[*nsel +2]);
   alpha= th[*nsel+2];
 
-  w1= 1.0 / (pow(1.0 + alphat,2));
-  w2= 1.0 / (pow(1.0 - alphat,2));
-  ws1= -2.0 / (pow(cosh(alpha),2) * pow(1.0+alphat,3));
-  ws2=  2.0 / (pow(cosh(alpha),2) * pow(1.0-alphat,3));
+  w1= 1.0 / (pow(1.0 + alphat,2.0));
+  w2= 1.0 / (pow(1.0 - alphat,2.0));
+  ws1= -2.0 / (pow(cosh(alpha),2.0) * pow(1.0+alphat,3.0));
+  ws2=  2.0 / (pow(cosh(alpha),2.0) * pow(1.0-alphat,3.0));
   wss1= 2.0 * exp(-2.0*alpha) + 4.0*exp(-4.0*alpha);
   wss2= 2.0 * exp(2.0*alpha) + 4.0*exp(4.0*alpha);
 
@@ -1399,10 +1419,10 @@ void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, do
 	  if (y[k]<ypred[k]) { w= w1; } else { w= w2; }
 	  H[i][j] += x[k+ idxi] * x[k +idxj] * w;  //x[k][i] * x[k][j] * w
 	}
+	H[i][j] /= sigma;
+	H[j][i]= H[i][j];
       }
-      for (j=1; j<i; j++) { H[i][j]= H[j][i]; }
     }
-    for (i=1; i<=(*nsel); i++) { for (j=1; j<=(*nsel); j++) { H[i][j]= H[i][j]/sigma; H[j][i]= H[i][j]; } }
 
     //Compute H[1:*nsel,*nsel+1] <- t(X0)%*%Wy0/sigma
     tX0Wy0= dvector(1,*nsel);

@@ -3,6 +3,7 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
 # - x: design matrix
+  if ((!is.logical(sel)) || (!is.vector(sel))) stop("sel must be a logical vector")
   if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)") 
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
@@ -18,7 +19,7 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
   tau <- as.double(priorCoef@priorPars['tau'])
   taualpha <- as.double(priorSkew@priorPars['tau'])
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
-  
+  #  
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }

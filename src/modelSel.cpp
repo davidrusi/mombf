@@ -815,7 +815,7 @@ double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
 //*************************************************************************************
 
 
-void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, double *XtX, double *ytX, int *n, int *sel, int *nsel) {
+void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, double *XtX, double *ytX, int *n, int *p, int *sel, int *nsel) {
   //Least squares estimate for y= x[,sel] %*% theta + e, where e ~ N(0,phi)   (phi is the variance)
   //Input
   // - y: observed response
@@ -835,7 +835,7 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 
   if ((*nsel)>0) {
     //Least squares
-    addct2XtX(&zero,XtX,sel,nsel,nsel,S);
+    addct2XtX(&zero,XtX,sel,nsel,p,S);
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,ytX,sel,theta);
 
@@ -917,7 +917,7 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
 
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
-  postmodeSkewNorm(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior);
+  postmodeSkewNorm(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior);
 
   if ((*(*pars).method ==0) | (*(*pars).method ==1)) { //Laplace or MC
 
@@ -943,19 +943,19 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
     } else if (*(*pars).method ==1) { //Monte Carlo
 
       int i, j, nu=3;
-      double *thsim, **cholV, **cholVinv, ctnu= (nu+2.0)/(nu+.0), detVinv, term1, term2;
+      double *thsim, **cholV, **cholVinv, ctnu= sqrt((nu-2.0)/(nu+.0)), detVinv, term1, term2;
 
       thsim= dvector(1, p); cholV= dmatrix(1,p,1,p); cholVinv= dmatrix(1,p,1,p);
 
-      thmode[p+1]= log(thmode[p+1]); thmode[p+2]= atanh(thmode[p+2]);
+      thmode[p-1]= log(thmode[p-1]); thmode[p]= atanh(thmode[p]);
       cholS_inv(cholhess, p, cholV);
       for (i=1; i<=p; i++) {
-	for (j=i; j<=p; j++) {
-	  cholV[i][j]= sqrt(ctnu) * cholV[i][j];
-	  cholVinv[i][j]= sqrt(ctnu) * hess[i][j];
+	for (j=1; j<=i; j++) {
+	  cholV[i][j]= cholV[i][j] * ctnu;
+	  cholVinv[i][j]= cholhess[i][j] / ctnu;
 	}
       }
-      detVinv= exp(log(det) + p * log(ctnu));
+      detVinv= exp(log(det) - 2*p*log(ctnu));
 
       ans= 0;
       for (i=1; i<= (*(*pars).B); i++) {
@@ -983,7 +983,7 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
 
 
 
-void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior) {
+void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior) {
 //Posterior mode for two-piece normal under pMOM, piMOM or peMOM prior on (theta,atanh(alpha)) and vartheta ~ IG(alpha/2,lambda/2)
   // Input
   // - y: observed response
@@ -999,20 +999,20 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   // - hess: hessian evaluated at thmode
 
   bool posdef;
-  int i, ii, j, p=(*nsel)+2;
+  int i, ii, j, p=(*nsel)+2, itermle=10;
   double err, damp, *g, **H, **Hinv, *delta, lmin=0, *vals, fnew, *thnew, *ypred;
 
   ypred= dvector(0,*n -1);
 
   if (*initmle) {  //Initialize at MLE
 
-    mleSkewnorm(thmode, ypred, sel, nsel, n, y, x, XtX, ytX, maxit, false);
+    mleSkewnorm(thmode, ypred, sel, nsel, n, pvar, y, x, XtX, ytX, &itermle, false);
 
   } else {  //Initialize at least-squares for theta; set (phi,alpha)= argmax likelihood for given theta
 
     double s1=0, s2=0, pows1, pows2;
 
-    leastsquares(thmode, thmode+p+1, ypred, y, x, XtX, ytX, n, sel, nsel);
+    leastsquares(thmode, thmode+p+1, ypred, y, x, XtX, ytX, n, pvar, sel, nsel);
 
     for (i=0; i<(*n); i++) {
       if (y[i]<=ypred[i]) { s1+= pow(y[i]-ypred[i], 2.0); } else { s2+= pow(y[i]-ypred[i], 2.0); }
@@ -1090,10 +1090,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
     //If new value improves target function, update thmode, fmode
     if (fnew<(*fmode)) {
       err= 0;
-      for (j=1; j<=p; j++) {
-	err= max_xy(err,fabs(delta[j]));
-	thmode[j]= thnew[j];
-      }
+      for (j=1; j<=p; j++) { err= max_xy(err,fabs(delta[j])); thmode[j]= thnew[j]; }
       (*fmode)= fnew;
       i++;
     } else {
@@ -1104,9 +1101,17 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   thmode[p-1]= exp(thmode[p-1]);
   thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
 
-  for (i=1; i<=p; i++) {
-    hess[i][i]= H[i][i];
-    for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= H[i][j]; }
+  if (ii==1) { //LMA update not used in last iteration
+    for (i=1; i<=p; i++) {
+      hess[i][i]= H[i][i];
+      for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= H[i][j]; }
+    } 
+  } else {  //LMA update used, which modifies H
+    damp= pow(damp,ii - 1.0);
+    for (i=1; i<=p; i++) {
+      hess[i][i]= H[i][i] / damp;
+      for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= H[i][j]; }
+    } 
   }
 
   free_dvector(ypred, 0,*n -1); free_dvector(g,1,p); free_dvector(delta,1,p); free_dvector(thnew,1,p);
@@ -1193,10 +1198,10 @@ void fpnegSkewnorm(double *g, double *th, double *ypred, int *sel, int *nsel, in
 
   } else if ((*prior)==3) {
 
-    dimomiggrad(gprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    demomiggrad(gprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
     for (i=1; i<= (*nsel)+1; i++) { g[i] -= gprior[i]; }
 
-    dimomgrad(gprior+(*nsel)+1,&one,th+(*nsel)+1,&zero,taualpha);
+    demomgrad(gprior+(*nsel)+1,&one,th+(*nsel)+1,&zero,taualpha);
     g[(*nsel)+2] -= gprior[(*nsel)+2];
 
   } else {
@@ -1411,9 +1416,9 @@ void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, do
 
     //Compute H[1:*nsel,1:*nsel] <- t(X0)%*%W%*%X0/sigma
     for (i=1; i<=(*nsel); i++) {
-      idxi= (*n)*(i-1);
+      idxi= (*n)*sel[i-1];
       for (j=i; j<=(*nsel); j++) {
-	idxj= (*n)*(j-1);
+	idxj= (*n)*sel[j-1];
 	H[i][j]= 0;
 	for (k=0; k<(*n); k++) {
 	  if (y[k]<ypred[k]) { w= w1; } else { w= w2; }
@@ -1469,14 +1474,14 @@ void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, do
 }
 
 
-void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit) {
+void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit) {
   //Find MLE for linear regression with skew-normal residuals
   //Output: 
   // - thmode[1..nsel+2] contains MLE for regression parameters, residual dispersion and asymmetry
   // - ypred[0.. n-1] contains linear predictor at MLE
   //If useinit==false thmode is initialized at least squares, else thmode is used
   bool posdef;
-  int i, ii=1, j, k, idxi, idxj, nseluniv=1, seluniv=0, maxituniv=100;
+  int i, ii=1, j, k, idxi, idxj, nseluniv=1, seluniv=sel[0], maxituniv=100;
   double *Xtwy, **XtwX, **XtwXinv, *thnew, err=1.0, s1=0, s2=0, s1pow, s2pow, w, w1, w2, *e, *epred, *thuniv, difth1;
 
   if ((*nsel)>0) {  //There are covariates
@@ -1488,16 +1493,17 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, dou
 
     if (!useinit) {
 
-      leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX, n,sel,nsel);
+      leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX,n,p,sel,nsel);
 
-      //Refine estimate for intercept (assumed to be first column in x) via several univariate updates
+      //Refine estimate for intercept (assumed to be sel[0]) via several univariate updates
       e= dvector(0,*n -1); epred= dvector(0,*n -1); thuniv= dvector(1,3);
-      for (i=0; i< (*n); i++) { epred[i]= thmode[1]*x[i]; e[i]= y[i] - ypred[i] + epred[i]; }
+      idxj= (*n)*sel[0];
+      for (i=0; i< (*n); i++) { epred[i]= thmode[1]*x[i +idxj]; e[i]= y[i] - ypred[i] + epred[i]; }
       thuniv[1]= thmode[1]; thuniv[2]= thmode[*nsel +1]; thuniv[3]= thmode[*nsel +2];
-      mleSkewnorm(thuniv,epred,&seluniv,&nseluniv,n,e,x,XtX,ytX,&maxituniv,true);
+      mleSkewnorm(thuniv,epred,&seluniv,&nseluniv,n,p,e,x,XtX,ytX,&maxituniv,true);
       difth1= thuniv[1]-thmode[1];
       thmode[1]= thuniv[1]; thmode[*nsel +1]= thuniv[2]; thmode[*nsel +2]= thuniv[3];
-      for (i=0; i< (*n); i++) { ypred[i]+= difth1*x[i]; }  //update linear predictor
+      for (i=0; i< (*n); i++) { ypred[i]+= difth1*x[i +idxj]; }  //update linear predictor
       if ((*nsel)==1) { err= -1; } //only 1 covariate, we're done
       free_dvector(e, 0,*n -1); free_dvector(epred, 0,*n -1); free_dvector(thuniv,1,3);
     }
@@ -1513,7 +1519,7 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, dou
 
       //Compute t(X) %*% W %*% y, t(X) %*% W %*% X
       for (i=1; i<=(*nsel); i++) {
-        idxi= (*n)*(i-1);
+        idxi= (*n)*sel[i-1];
 	//Find t(X) %*% W %*% y
 	Xtwy[i]= 0;
 	for (k=0; k<(*n); k++) {
@@ -1522,7 +1528,7 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, dou
 	}
 	//Find t(X) %*% W %*% X
         for (j=i; j<=(*nsel); j++) {
-	  idxj= (*n)*(j-1);
+	  idxj= (*n)*sel[j-1];
 	  XtwX[i][j]= 0;
 	  for (k=0; k<(*n); k++) {
 	    if (y[k]<ypred[k]) { w= w1; } else { w= w2; }

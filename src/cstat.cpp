@@ -3354,7 +3354,7 @@ void choldc_inv(double **a, int n, double **aout, bool *posdef) {
 void cholS_inv(double **cholS, int n, double **cholSinv) {
   /*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
   int i,j;
-  for (i=1;i<=n;i++) for (j=i+1;j<=n;j++) cholSinv[i][j]= cholS[i][j];
+  for (i=1;i<=n;i++) for (j=1;j<=i;j++) cholSinv[i][j]= cholS[i][j];
   choldc_inv_internal(cholSinv,n);
 }
 
@@ -6044,9 +6044,9 @@ void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
 //Output ans is a vector, as non-diagonal elements are 0
 void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i; double th2;
-  for (i=01; i<=(*n); i++) { 
+  for (i=1; i<=(*n); i++) { 
     th2= pow(th[i],2.0);
-    ans[i]= -6.0 * (*tau) * exp(*logphi) / th2 + 2.0/th2; 
+    ans[i]= -6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2; 
   }
 }
 
@@ -6060,10 +6060,10 @@ void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
       th2= th[i]*th[i];
       ans[i]= 2.0 * (*tau) * exp(*logphi) / (th2*th[i]) - 2.0 / th[i]; //same as dimomgrad
       suminvth2+= 1.0/th2;
-      ans[p]= 0.5*p - 0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi)) - exp(*logphi)*(*tau) * suminvth2;
     }
+    ans[*n]= 0.5*p - 0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi)) - exp(*logphi)*(*tau) * suminvth2;
   } else {  //th is empty
-    ans[p]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
+    ans[1]= -0.5*(*alpha) -1.0 + 0.5*(*lambda)*exp(-(*logphi));
   }
 }
 
@@ -6094,7 +6094,7 @@ void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
 void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
   int i;
   for (i=1; i<=(*n); i++) { 
-    ans[i]= -6.0 * (*tau) * exp(*logphi)/pow(th[i],2.0) - exp(-(*logphi))/(*tau);
+    ans[i]= -6.0 * (*tau) * exp(*logphi)/pow(th[i],4.0) - exp(-(*logphi))/(*tau);
   }
 }
 
@@ -6112,7 +6112,7 @@ void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
     }
     ans[*n]= -0.5*p - 0.5*(*alpha) -1.0 + 0.5*(sumth2/(*tau) + (*lambda)) * exp(-(*logphi)) - exp(*logphi)*(*tau)*suminvth2;
   } else {  //th is empty
-    ans[*n]= -0.5*(*alpha) -1.0 + 0.5*(*lambda) * exp(-(*logphi));
+    ans[1]= -0.5*(*alpha) -1.0 + 0.5*(*lambda) * exp(-(*logphi));
   }
 }
 

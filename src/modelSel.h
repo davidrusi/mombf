@@ -133,7 +133,7 @@ double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 // LEAST SQUARES
 //*************************************************************************************
 
-void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, double *XtX, double *ytX, int *n, int *sel, int *nsel);
+void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, double *XtX, double *ytX, int *n, int *p, int *sel, int *nsel);
 
 
 
@@ -146,7 +146,7 @@ double pimomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
 double pemomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
 double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prior);
 
-void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior);
+void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior);
 
 void fnegSkewnorm(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale);
 void fpnegSkewnorm(double *g, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
@@ -156,7 +156,7 @@ void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, i
 void loglnegGradSkewNorm(double *g, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 
-void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit);
+void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit);
 
 
 

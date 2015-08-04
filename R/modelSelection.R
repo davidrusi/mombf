@@ -28,7 +28,6 @@ setMethod("postProb", signature(object='msfit'), function(object, nmax, method='
   modelpp <- modelpp[order(modelpp$pp,decreasing=TRUE),]
   if (!missing(nmax)) modelpp <- modelpp[1:nmax,]
   if (object$family=='auto') {
-    browser()
     modelid <- as.character(modelpp[,'modelid'])
     twopiece <- laplace <- logical(nrow(modelpp))
     twopiece[grep(as.character(object$p+1),modelid)] <- TRUE

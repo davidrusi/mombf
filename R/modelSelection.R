@@ -5,7 +5,7 @@
 ### Methods for msfit objects
 
 setMethod("show", signature(object='msfit'), function(object) {
-  cat('msfit object with',ncol(object$postSample),'variables\n')
+  cat('msfit object with',object$p,'variables and',object$family,'residual distribution\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
   cat("Use postProb() to get posterior model probabilities\n")
   cat("Elements $margpp, $postMode, $postSample and $coef contain further information (see help('msfit') and help('modelSelection') for details)\n")
@@ -27,7 +27,26 @@ setMethod("postProb", signature(object='msfit'), function(object, nmax, method='
   }
   modelpp <- modelpp[order(modelpp$pp,decreasing=TRUE),]
   if (!missing(nmax)) modelpp <- modelpp[1:nmax,]
-  modelpp[,c('modelid','pp')]
+  if (object$family=='auto') {
+    browser()
+    modelid <- as.character(modelpp[,'modelid'])
+    twopiece <- laplace <- logical(nrow(modelpp))
+    twopiece[grep(as.character(object$p+1),modelid)] <- TRUE
+    laplace[grep(as.character(object$p+2),modelid)] <- TRUE
+    family <- character(nrow(modelpp))
+    family[(!twopiece) & (!laplace)] <- 'normal'
+    family[twopiece & (!laplace)] <- 'twopiecenormal'
+    family[(!twopiece) & laplace] <- 'laplace'
+    family[twopiece & laplace] <- 'twopiecelaplace'
+    modelid <- sub(paste(',',object$p+1,sep=''),'',modelid)
+    modelid <- sub(as.character(object$p+1),'',modelid)  #for null model
+    modelid <- sub(paste(',',object$p+2,sep=''),'',modelid)
+    modelid <- sub(as.character(object$p+2),'',modelid)  #for null model
+    modelpp <- data.frame(modelid=modelid,family=family,pp=modelpp[,'pp'])
+  } else {
+    modelpp <- data.frame(modelid=modelpp[,'modelid'],family=object$family,pp=modelpp[,'pp'])
+  }
+  modelpp[,c('modelid','family','pp')]
 }
 )
 
@@ -142,10 +161,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
 
 
   #Initialize
-  postMode <- rep(as.integer(0),p); postModeProb <- double(1)
+  if (family==0) { postMode <- rep(as.integer(0),p+1) } else { postMode <- rep(as.integer(0),p) }
+  postModeProb <- double(1)
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
-    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,family,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    if (family==0) { famgreedy <- as.integer(1) } else { famgreedy <- family }
+    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,famgreedy,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
   } else if (initSearch=='SCAD') {
     #require(ncvreg)
@@ -159,17 +180,29 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
 
   #Run MCMC
   mcmc2save <- floor((niter-burnin)/thinning)
-  postSample <- rep(as.integer(0),p*mcmc2save)
-  if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
-  margpp <- double(p); postProb <- double(mcmc2save)
-  ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
-  postSample <- matrix(postSample,ncol=p)
-  coef <- rep(0,ncol(x))
-  if (any(postMode)) {
-    pm <- postMode(y=y,x=x[,postMode==1,drop=FALSE],priorCoef=priorCoef)
-    coef[postMode==1] <- pm$coef
+  if (family != 0) {
+    postSample <- rep(as.integer(0),p*mcmc2save)
+    margpp <- double(p)
+  } else {
+    postSample <- rep(as.integer(0),(p+1)*mcmc2save)
+    margpp <- double(p+1)
   }
-  ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef)
+  if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
+  postProb <- double(mcmc2save)
+  ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+  postSample <- matrix(postSample,ncol=ifelse(family!=0,p,p+1))
+  if (family==0) { family <- 'auto' } else if (family==1) { family <- 'normal' } else if (family==2) { family <- 'twopiecenormal' } else if (family==3) { family <- 'laplace' } else if (family==4) { family <- 'twopiecelaplace' }
+  if (family=='normal') {
+    coef <- rep(0,ncol(x))
+    if (any(postMode)) {
+      pm <- postMode(y=y,x=x[,postMode[1:ncol(x)]==1,drop=FALSE],priorCoef=priorCoef)
+      coef[postMode==1] <- pm$coef
+    }
+  } else {
+    coef <- rep(NA,ncol(x))
+  }
+
+  ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef,family=family,p=ncol(x))
   new("msfit",ans)
 }
 

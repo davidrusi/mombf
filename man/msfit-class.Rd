@@ -44,6 +44,9 @@ regression coefficients, as indicated below.
       scale)}
     \item{coef}{Estimated coefficients (via posterior mode) for highest
       posterior probability model}
+    \item{family}{Residual distribution, i.e. argument \code{family}
+      when calling \code{modelSelection}}
+    \item{p}{Number of variables}
   }
 }
 \section{Methods}{

@@ -44,6 +44,16 @@ pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
     } else if (*prCoef==3) {
       Rprintf("Zellner prior with two-piece Normal residuals not currently implemented");
     }
+  } else if ((*family)==0) { //Normal + Two-piece Normal + Laplace + Two-piece Laplace residuals
+    if (*prCoef==0) {
+      ans= pmomMargTP;
+    } else if (*prCoef==1) {
+      ans= pimomMargTP;
+    } else if (*prCoef==2) {
+      ans= pemomMargTP;
+    } else if (*prCoef==3) {
+      Rprintf("Zellner prior with two-piece Normal/Laplace residuals not currently implemented");
+    }
   } else {
     Rf_error("This error distribution is not available");
   }
@@ -565,6 +575,7 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 // - deltaini: vector with indexes of covariates initially in the model (both deltaini and its indexes must be indexed at 0)
 // - verbose: set verbose==1 to print iteration progress every 10% of the iterations
 // - pars: struct of type marginalPars containing parameters needed to evaluate the marginal density of the data & prior on model space
+// - family: residual distribution (1 for Normal; 2 for two-piece Normal; 3 for Laplace; 4 for two-piece Laplace). Set family==0 to perform inference on the family
 //Output
 // - postSample: matrix with niter rows and p columns with posterior samples for covariate inclusion/exclusion (formatted as a vector in column order)
 // - postOther: matrix with niter rows and nOther columns with posterior samples for other model parameters
@@ -580,7 +591,7 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
   SEXP ans;
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
-  modelSelectionGibbs2(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
+  modelSelectionGibbs(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
 
   PROTECT(ans = allocVector(REALSXP, 1));
   *REAL(ans)= 1.0;
@@ -591,102 +602,66 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
 
 
 void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
-  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, niter10, niterthin, savecnt, ilow, iupper;
-  double currentJ, newM, newP, newJ=0.0, ppnew, u;
+
+  bool copylast;
+  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=2, curfamily, newfamily;
+  double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
+  modselIntegrals *integrals;
+
 
   marginalFunction= set_marginalFunction(prCoef, knownphi, family);
   priorFunction= set_priorFunction(prDelta);
 
-  sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
-
-  //Initialize
-  if (*verbose ==1) Rprintf("Running Gibbs sampler");
-  niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
-  if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
-  for (j=0; j< *(*pars).p; j++) { margpp[j]= 0; }
-  nsel= *ndeltaini;
-  for (j=0; j< nsel; j++) { sel[j]= deltaini[j]; postMode[deltaini[j]]= 1; }
-  if ((*prDelta)==2) { postOther[0]= *(*pars).prDeltap; }
-  currentJ= marginalFunction(sel,&nsel,pars) + priorFunction(sel,&nsel,pars);
-  postProb[0]= *postModeProb= currentJ;
-  if (*burnin >0) { ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; } else { ilow=1; savecnt=1; iupper= *niter; } //if no burnin, start at i==1 & save initial value
-
-  //Iterate
-  for (i=ilow; i< iupper; i++) {
-    for (j=0; j< *(*pars).p; j++) {
-      sel2selnew(j,sel,&nsel,selnew,&nselnew); //copy sel into selnew, adding/removing jth element
-      if (nselnew <= (*(*pars).p)) {
-        newM= marginalFunction(selnew,&nselnew,pars);
-        newP= priorFunction(selnew,&nselnew,pars);
-        newJ= newM + newP;
-        if (newJ > *postModeProb) {   //update posterior mode
-          *postModeProb= newJ;
-          for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
-          for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; }
-        }
-        ppnew= 1.0/(1.0+exp(currentJ-newJ));
-        if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew; } else { margpp[j]+= (1-ppnew); } }
-      } else {
- 	ppnew= -0.01;
-      }
-      u= runif();
-      if (u<ppnew) {  //update model indicator
-        selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
-      }
-    }  //end j for
-    if ((i>0) && ((i%(*thinning))==0)) {
-      if ((*prDelta)==2) {
-        *(*pars).prDeltap= rbetaC(nsel + (*pars).parprDeltap[0], *(*pars).p - nsel + (*pars).parprDeltap[1]);
-        postOther[savecnt]= *(*pars).prDeltap;
-      }
-      for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin+savecnt]= 1; }
-      postProb[savecnt]= currentJ;
-      savecnt++;
-    }
-    if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
+  mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
+  if ((*family)==0) { 
+    nbvars= (*(*pars).p)+1; 
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +2);
+    copylast= true;
+  } else { 
+    nbvars= (*(*pars).p);
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p));
+    copylast= false;
   }
-  if (iupper>ilow) { for (j=0; j< *(*pars).p; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
-  if (*verbose==1) Rprintf(" Done.\n");
 
-  free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
-}
-
-//Same as modelSelectionGibbs, but log(integrated likelihood) + log(prior) are managed through an object of class modselIntegrals
-void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
-  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, niter10, niterthin, savecnt, ilow, iupper;
-  double currentJ, newJ=0.0, ppnew, u;
-  pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
-
-  marginalFunction= set_marginalFunction(prCoef, knownphi, family);
-  priorFunction= set_priorFunction(prDelta);
-
-  modselIntegrals *integrals= new modselIntegrals(marginalFunction, priorFunction, *(*pars).p);
-
-  sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
+  sel= ivector(0,nbvars); selnew= ivector(0,nbvars);
 
   //Initialize
   if (*verbose ==1) Rprintf("Running Gibbs sampler");
   niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
-  for (j=0; j< *(*pars).p; j++) { margpp[j]= 0; }
+  for (j=0; j< nbvars; j++) { margpp[j]= 0; }
   nsel= *ndeltaini;
   for (j=0; j< nsel; j++) { sel[j]= deltaini[j]; postMode[deltaini[j]]= 1; }
   if ((*prDelta)==2) { postOther[0]= *(*pars).prDeltap; }
-  currentJ= integrals->getJoint(sel,&nsel,pars);
+  if ((*family)==0) { 
+    sel[nsel]= (*(*pars).p);  //initialize to baseline model
+    nselplus1= nsel+1;
+    currentJ= integrals->getJoint(sel,&nselplus1,pars);
+  } else {
+    currentJ= integrals->getJoint(sel,&nsel,pars);
+  }
   postProb[0]= *postModeProb= currentJ;
   if (*burnin >0) { ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; } else { ilow=1; savecnt=1; iupper= *niter; } //if no burnin, start at i==1 & save initial value
 
   //Iterate
   for (i=ilow; i< iupper; i++) {
     for (j=0; j< *(*pars).p; j++) {
-      sel2selnew(j,sel,&nsel,selnew,&nselnew); //copy sel into selnew, adding/removing jth element
-      if (nselnew <= (*(*pars).p)) {
-        newJ= integrals->getJoint(selnew,&nselnew,pars);
+      sel2selnew(j,sel,&nsel,selnew,&nselnew,copylast); //copy sel into selnew, adding/removing jth element
+      if (nselnew <= (*(*pars).n)) {
+	if ((*family)==0) {  //inference is being done on the family
+	  nselplus1= nselnew+1;
+	  newJ= integrals->getJoint(selnew,&nselplus1,pars);
+	} else {  //family is fixed
+	  newJ= integrals->getJoint(selnew,&nselnew,pars);
+	}
         if (newJ > *postModeProb) {   //update posterior mode
           *postModeProb= newJ;
           for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
           for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; }
+	  if ((*family)==0) { 
+	    if (selnew[nselnew]== (*(*pars).p)) { postMode[*(*pars).p]= 0; } else { postMode[*(*pars).p]= 1; }
+	  }
         }
         ppnew= 1.0/(1.0+exp(currentJ-newJ));
         if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew; } else { margpp[j]+= (1-ppnew); } }
@@ -698,23 +673,52 @@ void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, in
         selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
       }
     }  //end j for
+
+    if ((*family)==0) {  //update family
+      nselplus1= nsel+1;
+      curfamily= sel[nsel] - (*(*pars).p);
+      sumpfamily= 0;
+      for (j=0; j<nbfamilies; j++) {
+	if (j==curfamily) {
+	  mfamily[j]= currentJ;
+	  pfamily[j]= 1.0;
+	  sumpfamily += 1.0; 
+	} else {
+	  sel[nsel]= (*(*pars).p) + j;
+	  mfamily[j]= integrals->getJoint(sel,&nselplus1,pars);
+	  pfamily[j]= exp(mfamily[j] - currentJ);
+	  sumpfamily += pfamily[j];
+	}
+      }
+      for (j=0; j<nbfamilies; j++) { pfamily[j] /= sumpfamily; }
+      rmultinomial(1, nbfamilies, pfamily, &newfamily);
+      sel[nsel]= (*(*pars).p) + newfamily;
+      if (i>=0) { margpp[*(*pars).p]+= pfamily[1]; } //change to pfamily[1]+pfamily[3] when skew-laplace is available
+      currentJ= mfamily[newfamily];
+    }
+
     if ((i>0) && ((i%(*thinning))==0)) {
       if ((*prDelta)==2) {
         *(*pars).prDeltap= rbetaC(nsel + (*pars).parprDeltap[0], *(*pars).p - nsel + (*pars).parprDeltap[1]);
         postOther[savecnt]= *(*pars).prDeltap;
       }
       for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin+savecnt]= 1; }
+      if ((*family)==0) { 
+	if (sel[nsel]== (*(*pars).p)) { postSample[(*(*pars).p)*niterthin + savecnt]= 0; } else { postSample[(*(*pars).p)*niterthin + savecnt]= 1; }
+      }
       postProb[savecnt]= currentJ;
       savecnt++;
     }
     if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
-  if (iupper>ilow) { for (j=0; j< *(*pars).p; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
+  if (iupper>ilow) { for (j=0; j<nbvars; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
   if (*verbose==1) Rprintf(" Done.\n");
 
-  free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
+  free_ivector(sel,0,nbvars); free_ivector(selnew,0,nbvars);
+  free_dvector(mfamily,0,nbfamilies-1); free_dvector(pfamily,0,nbfamilies-1);
   delete integrals;
 }
+
 
 //greedyVarSelC: greedy search for posterior mode in variable selection.
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
@@ -752,7 +756,7 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
   //Iterate
   for (i=0, nchanges=1; (i< *niter) && (nchanges>0); i++) {
     for (j=0, nchanges=0; j< *(*pars).p; j++) {
-      sel2selnew(j,sel,&nsel,selnew,&nselnew); //copy sel into selnew, adding/removing jth element
+      sel2selnew(j,sel,&nsel,selnew,&nselnew,false); //copy sel into selnew, adding/removing jth element
       newJ= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
       if (newJ > *postModeProb) {
         *postModeProb= newJ;  //update post mode prob
@@ -769,18 +773,20 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
 
 
 
-void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew) {
+void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew, bool copylast) {
 //Copy sel into selnew.
 // - If j in sel, don't copy it in selnew and set nselnew=nsel-1.
 // - If j not in sel, add it to selnew and set nselnew=nsel+1.
+// - If copylast==true, copy last element sel[nsel] into selnew[nselnew]
   int i, ii, found;
   for (i=0, found=0; (i< *nsel) && (found==0); i++) { selnew[i]= sel[i]; found= (newelem==sel[i]); }
   if (found==0) { //add newelem
-    selnew[i]= newelem; (*nselnew)= (*nsel)+1;
+    selnew[*nsel]= newelem; (*nselnew)= (*nsel)+1;
   } else {  //remove new elem
     for (ii=i; ii< *nsel; ii++) { selnew[ii-1]= sel[ii]; }
     (*nselnew)= (*nsel)-1;
   }
+  if (copylast) selnew[*nselnew]= sel[*nsel];
 }
 
 
@@ -858,6 +864,81 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 
 
 //*************************************************************************************
+// MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS
+//*************************************************************************************
+
+//The first nsel elements in sel indicate variables in/out of the model
+//Element nsel+1 indicates single-piece if equal to p+1, two-piece if equal to p+2
+// - Example1: If nsel=2,p=10 and sel=(2,5,11) then variables 2 and 5 are in the model, and residuals are Normal
+// - Example2: If nsel=2,p=10 and sel=(2,5,12) then variables 2 and 5 are in the model, and residuals are two-piece Normal
+// - Example3: If nsel=1,p=10 and sel=(0,11) then variables 0 is in the model and residuals are Normal
+
+
+double pmomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
+  int p= (*((*pars).p)), nvars= *nsel -1;
+  double ans;
+
+  if (sel[nvars] == p) { //Normal residuals
+
+    ans= pmomMarginalUC(sel, &nvars, pars);
+
+  } else if (sel[nvars]== (p+1)) { //Two-piece Normal residuals
+
+    int prior=1;
+    ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
+
+  } else {
+    Rf_error("Invalid residual distribution\n");
+  }
+
+  return ans;
+}
+
+
+double pimomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
+  int p= (*((*pars).p)), nvars= *nsel -1;
+  double ans;
+
+  if (sel[nvars] == p) { //Normal residuals
+
+    ans= pimomMarginalUC(sel, &nvars, pars);
+
+  } else if (sel[nvars]== (p+1)) { //Two-piece Normal residuals
+
+    int prior=2;
+    ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
+
+  } else {
+    Rf_error("Invalid residual distribution\n");
+  }
+
+  return ans;
+}
+
+
+double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
+  int p= (*((*pars).p)), nvars= *nsel -1;
+  double ans;
+
+  if (sel[nvars] == p) { //Normal residuals
+
+    ans= pemomMarginalUC(sel, &nvars, pars);
+
+  } else if (sel[nvars]== (p+1)) { //Two-piece Normal residuals
+
+    int prior=3;
+    ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
+
+  } else {
+    Rf_error("Invalid residual distribution\n");
+  }
+
+  return ans;
+}
+
+
+
+//*************************************************************************************
 // TWO-PIECE NORMAL ROUTINES
 //*************************************************************************************
 
@@ -883,6 +964,7 @@ SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP
   UNPROTECT(1);
   return ans;
 }
+
 
 
 double pmomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars) {

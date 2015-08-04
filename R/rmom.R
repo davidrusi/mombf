@@ -3,6 +3,7 @@
 ##################################################################################
 
 setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+  if (msfit$family != 'normal') stop("Posterior sampling only implemented for Normal residuals")
   if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
   #Draw model
   pp <- postProb(msfit,method=pp)

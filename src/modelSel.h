@@ -116,9 +116,8 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 //*************************************************************************************
 
 void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
-void modelSelectionGibbs2(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
 void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
-void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew);
+void sel2selnew(int newelem, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast);
 
 // Priors on Model Space (always return on log scale)
 double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
@@ -134,6 +133,16 @@ double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 //*************************************************************************************
 
 void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, double *XtX, double *ytX, int *n, int *p, int *sel, int *nsel);
+
+
+
+//*************************************************************************************
+// MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS
+//*************************************************************************************
+
+double pmomMargTP(int *sel, int *nsel, struct marginalPars *pars);
+double pimomMargTP(int *sel, int *nsel, struct marginalPars *pars);
+double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars);
 
 
 
@@ -161,7 +170,7 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int
 
 
 //*************************************************************************************
-// Product MOM routines
+// Product MOM routines under Normal residuals
 //*************************************************************************************
 
 double f2opt_mom(double *th);
@@ -177,8 +186,9 @@ double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B); //MC 
 double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
+
 //*************************************************************************************
-// Product iMOM routines
+// Product iMOM routines under Normal residuals
 //*************************************************************************************
 
 double f2opt_imom(double *th);
@@ -200,7 +210,7 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 
 //*************************************************************************************
-// Product eMOM routines
+// Product eMOM routines under Normal residuals
 //*************************************************************************************
 
 double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);

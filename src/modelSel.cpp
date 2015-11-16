@@ -317,7 +317,11 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
   }
   logbf= m0-m1;
   logpratio= priorFunction(curModel, &nsel0, pars) - priorFunction(curModel, &nsel1, pars); //we use curModel in both cases as priorFunction currently only depends on nb vars
-  *pinclude= 1.0/(1.0+exp(logbf+logpratio));
+  if (curModel[j] && (((*nsel)+(*(*pars).p2)) >= n)) {
+    *pinclude= 0.0;
+  } else {
+    *pinclude= 1.0/(1.0+exp(logbf+logpratio));
+  }
   if (runif() < *pinclude) { deltaprop=1; } else { deltaprop=0; }
   //Propose coef
   nu= (int) sqrt((double) n);

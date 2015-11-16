@@ -294,7 +294,11 @@ MHTheta1emom <- function(e,j,delta,theta1,phi,tau,xj,modelPrior) {
   logbf <- sum(dnorm(e,0,sd=sqrt(phi),log=TRUE)) - m1
   delta0 <- delta1 <- delta; delta0[j] <- FALSE; delta1[j] <- TRUE
   logpratio01 <- modelPrior(delta0) - modelPrior(delta1)
-  p <- 1/(1 + exp(logbf+logpratio01))
+  if ((delta[j]==1) & ((pcur+padj) >= length(e))) {
+      p <- 0
+  } else {
+      p <- 1/(1 + exp(logbf+logpratio01))
+  }
   deltaProp <- rbinom(n=1,size=1,prob=p)
   nu <- sqrt(ifelse(is.matrix(e),nrow(e),length(e)))
   #Acceptance prob

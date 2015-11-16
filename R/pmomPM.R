@@ -178,7 +178,7 @@ for (i in 2:niter) {
   curDelta <- postDelta[i-1,]; curTheta1 <- postTheta1[i-1,]
   for (j in 1:p1) {
     ej <- e+curTheta1[j]*x[,j]
-    newval <- MHTheta1pmom(ej,j=j,delta=curDelta,theta1=curTheta1,phi=1,r=r,tau=postTau[i-1],xj=x[,j],modelPrior=modelPrior)
+    newval <- MHTheta1pmom(ej,j=j,delta=curDelta,theta1=curTheta1,phi=1,r=r,tau=postTau[i-1],xj=x[,j],padj=p2,modelPrior=modelPrior)
     curDelta[j] <- newval$delta; curTheta1[j] <- newval$theta1
     if (newval$accept) e <- ej - curTheta1[j]*x[,j]   #Update residuals
   }

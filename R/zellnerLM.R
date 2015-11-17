@@ -57,7 +57,7 @@ for (i in 2:niter) {
   curDelta <- postDelta[i-1,]; curTheta1 <- postTheta1[i-1,]
   for (j in 1:p1) {
     ej <- e+curTheta1[j]*x[,j]
-    newval <- MHTheta1zellner(ej,j=j,delta=curDelta,theta1=curTheta1,phi=1,tau=postTau[i-1],xj=x[,j],modelPrior=modelPrior)
+    newval <- MHTheta1zellner(ej,j=j,delta=curDelta,theta1=curTheta1,phi=1,tau=postTau[i-1],xj=x[,j],padj=p2,modelPrior=modelPrior)
     curDelta[j] <- newval$delta; curTheta1[j] <- newval$theta1
     if (newval$accept) e <- ej - curTheta1[j]*x[,j]   #Update residuals
   }
@@ -81,7 +81,7 @@ return(ans[-1:-burnin,,drop=FALSE])
 
 
 
-MHTheta1zellner <- function(e,j,delta,theta1,phi,tau,xj,modelPrior) {
+MHTheta1zellner <- function(e,j,delta,theta1,phi,tau,xj,padj,modelPrior) {
   #MH step to simulate (delta[j], theta1[j]) from its posterior given the data, delta[-j], theta1[-j], theta2 and phi parameters
   # Input
   # - e: partial residuals, i.e. y - predicted y given all covariates except covariate j
@@ -91,12 +91,14 @@ MHTheta1zellner <- function(e,j,delta,theta1,phi,tau,xj,modelPrior) {
   # - phi: current value for phi
   # - tau: current value for tau
   # - xj: vector containing the column of the design matrix associated with theta1[j]
+  # - padj: number of adjustment covariates (forced inclusion in the model)
   # - modelPrior: function to compute the model log-prior probability
   # Ouput: list with the following elements
   # - delta: new value for delta[j] (can be the same as input value if proposal not accepted)
   # - theta1: new value for theta1[j]
   # - accept: logical variable indicated whether proposed new value has been accepted or not
   #Propose
+  pcur <- sum(delta)
   m1 <- zellnerMargKuniv(y=e, x=xj, phi=phi, tau=tau, logscale=TRUE)
   logbf <- sum(dnorm(e,0,sd=sqrt(phi),log=TRUE)) - m1
   delta0 <- delta1 <- delta; delta0[j] <- FALSE; delta1[j] <- TRUE

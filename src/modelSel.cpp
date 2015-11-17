@@ -205,6 +205,9 @@ void pmomLM(int *postModel, double *margpp, double *postCoef1, double *postCoef2
   sumpartialres2= sumres2;
   //MCMC iterations
   for (i=ilow; i< iupper; i++) {
+    //if (i==4124) {
+    //  printf("Debugging now\n");
+    //}
     //Sample (curCoef1,curModel)
     for (j=0; j< *(*pars).p1; j++) {
       if (curModel[j]) {
@@ -317,7 +320,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
   }
   logbf= m0-m1;
   logpratio= priorFunction(curModel, &nsel0, pars) - priorFunction(curModel, &nsel1, pars); //we use curModel in both cases as priorFunction currently only depends on nb vars
-  if (curModel[j] && (((*nsel)+(*(*pars).p2)) >= n)) {
+  if ((!curModel[j]) && (((*nsel)+(*(*pars).p2)) >= n)) {
     *pinclude= 0.0;
   } else {
     *pinclude= 1.0/(1.0+exp(logbf+logpratio));

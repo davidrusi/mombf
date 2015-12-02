@@ -1089,7 +1089,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
   bool posdef;
   int i, ii, j, p=(*nsel)+2, itermle=10;
-  double err, damp, *g, **H, **Hinv, *delta, lmin=0, *vals, fnew, *thnew, *ypred;
+  double err, damp, *g, **H, **Hinv, *delta, lmin, *vals, fnew, *thnew, *ypred;
 
   ypred= dvector(0,*n -1);
 
@@ -1136,9 +1136,10 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
       //Ensure H is posdef
       vals= dvector(1,p);
       eigenvals(H,p,vals);
-      for (j=1; j<=p; j++) if (vals[j]<lmin) lmin= vals[j];
+      lmin= vals[1];
+      for (j=2; j<=p; j++) if (vals[j]<lmin) lmin= vals[j];
       lmin = -lmin + .01;
-      for (j=1; j<=p; i++) H[j][j] += lmin;
+      for (j=1; j<=p; j++) H[j][j] += lmin;
       choldc_inv(H,p,Hinv,&posdef);
       Ax(Hinv,g,delta,1,p,1,p);
       free_dvector(vals,1,p);

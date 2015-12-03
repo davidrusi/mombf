@@ -1117,7 +1117,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   g= dvector(1,p); delta= dvector(1,p); thnew= dvector(1,p);
   H= dmatrix(1,p,1,p); Hinv= dmatrix(1,p,1,p);
 
-  i=1; err=1; damp=2.0;
+  i=ii=1; err=1; damp=2.0;
 
   fnegSkewnorm(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
 
@@ -1570,7 +1570,7 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int
   //If useinit==false thmode is initialized at least squares, else thmode is used
   bool posdef;
   int i, ii=1, j, k, idxi, idxj, nseluniv=1, seluniv=sel[0], maxituniv=100;
-  double *Xtwy, **XtwX, **XtwXinv, *thnew, err=1.0, s1=0, s2=0, s1pow, s2pow, w, w1, w2, *e, *epred, *thuniv, difth1;
+  double *Xtwy, **XtwX, **XtwXinv, *thnew, err=1.0, s1=0, s2=0, s1pow=1, s2pow=1, w, w1, w2, *e, *epred, *thuniv, difth1;
 
   if ((*nsel)>0) {  //There are covariates
 
@@ -1592,7 +1592,12 @@ void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int
       difth1= thuniv[1]-thmode[1];
       thmode[1]= thuniv[1]; thmode[*nsel +1]= thuniv[2]; thmode[*nsel +2]= thuniv[3];
       for (i=0; i< (*n); i++) { ypred[i]+= difth1*x[i +idxj]; }  //update linear predictor
-      if ((*nsel)==1) { err= -1; } //only 1 covariate, we're done
+      if ((*nsel)==1) { //only 1 covariate, we're done
+	err= -1;
+        for (i=0, s1=0, s2=0; i< *n; i++) { if (y[i]<=ypred[i]) { s1 += pow(y[i]-ypred[i],2.0); } else { s2 += pow(y[i]-ypred[i],2.0); } }
+        s1pow= pow(s1,1.0/3.0); s2pow= pow(s2,1.0/3.0);
+        thmode[*nsel +2]= (s1pow-s2pow)/(s1pow+s2pow); //alpha
+      }
       free_dvector(e, 0,*n -1); free_dvector(epred, 0,*n -1); free_dvector(thuniv,1,3);
     }
 

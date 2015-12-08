@@ -5990,6 +5990,13 @@ void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   } 
 }
 
+
+//Same but univariate
+double dmomgraduniv(double *th, double *logphi, double *tau) { 
+  return (2.0/(*th) - (*th)/(exp(*logphi)*(*tau)));
+}
+
+
 //Hessian of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
 void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
@@ -5997,7 +6004,13 @@ void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
   for (i=1; i<=(*n); i++) { ans[i]= -2.0/pow(th[i],2) - 1.0/(exp(*logphi)*(*tau)); }
 }
 
-//Gradient of log-pMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
+//same but univariate
+double dmomhessuniv(double *th, double *logphi, double *tau) { 
+  return (-2.0/pow(*th,2) - 1.0/(exp(*logphi)*(*tau)));
+}
+
+
+//Gradient of log-pMOM(th;0,phi*tau) + log-IG(phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, p=(*n)-1; 
@@ -6040,6 +6053,11 @@ void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / (th[i]*th[i]*th[i]) - 2.0 / th[i]; }
 }
 
+//same but univariate
+double dimomgraduniv(double *th, double *logphi, double *tau) { 
+  return (2.0 * (*tau) * exp(*logphi) / pow(*th,3.0) - 2.0 / (*th));
+}
+
 //Hessian of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
 void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
@@ -6049,6 +6067,13 @@ void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
     ans[i]= -6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2; 
   }
 }
+
+double dimomhessuniv(double *th, double *logphi, double *tau) { 
+  double th2;
+  th2= pow(*th,2.0);
+  return(-6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2); 
+}
+
 
 //Gradient of log-piMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
@@ -6089,6 +6114,11 @@ void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / pow(th[i],3.0) - th[i]*exp(-(*logphi))/(*tau); }
 }
 
+//same but univariate
+double demomgraduniv(double *th, double *logphi, double *tau) { 
+  return(2.0 * (*tau) * exp(*logphi) / pow(*th,3.0) - (*th)*exp(-(*logphi))/(*tau));
+}
+
 //Hessian of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
 void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
@@ -6097,6 +6127,12 @@ void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
     ans[i]= -6.0 * (*tau) * exp(*logphi)/pow(th[i],4.0) - exp(-(*logphi))/(*tau);
   }
 }
+
+//same but univariate
+double demomhessuniv(double *th, double *logphi, double *tau) { 
+  return(-6.0 * (*tau) * exp(*logphi)/pow(*th,4.0) - exp(-(*logphi))/(*tau));
+}
+
 
 //Gradient of log-peMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0

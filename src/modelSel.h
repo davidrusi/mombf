@@ -19,6 +19,7 @@ struct marginalPars {
   double *m;  //Sinv * Xty   (needed by mom and emom)
   double **S;  //XtX + I/tau  (needed by mom and emom)
   int *method; //method==0 for Laplace; method==1 for Monte Carlo; method==2 for plug-in (method== -1 for exact, when available)
+  int *optimMethod; //optimization method to find mode
   int *B;      //number of Monte Carlo samples
   double *alpha;    //prior for residual variance is IG(.5*alpha,.5*lambda)
   double *lambda;
@@ -105,7 +106,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,double *XtX,double *ytX,int *method,int *B,double *alpha,double *lambda,double *phi, double *tau, double *taualpha, int *r, double *prDeltap, double *parprDeltap, int *logscale);
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,double *XtX,double *ytX,int *method,int *optimMethod,int *B,double *alpha,double *lambda,double *phi, double *tau, double *taualpha, int *r, double *prDeltap, double *parprDeltap, int *logscale);
 void set_f2opt_pars(double *m, double **S, double *sumy2, double *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
 void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
@@ -156,14 +157,20 @@ double pemomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
 double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prior);
 
 void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior);
+void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
 
 void fnegSkewnorm(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale);
 void fpnegSkewnorm(double *g, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
+void fpnegSkewnormUniv(int j, double *g, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
 void fppnegSkewnorm(double **H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
+void fppnegSkewnormUniv(int j, double *H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior);
+
 
 void loglSkewnorm(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, double *XtX);
 void loglnegGradSkewNorm(double *g, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
+void loglnegGradSkewNormUniv(int j, double *g, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 void loglnegHessSkewNorm(double **H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
+void loglnegHessSkewNormUniv(int jj, double *H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x);
 
 void mleSkewnorm(double *thmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit);
 

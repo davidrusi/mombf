@@ -354,17 +354,23 @@ double demomvec(double *y, int n, double tau, double phi, int logscale); //Multi
 
 // Non-local prior density derivatives
 void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-pMOM density wrt th
+double dmomgraduniv(double *th, double *logphi, double *tau); //same but univariate
 void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-pMOM density wrt th
+double dmomhessuniv(double *th, double *logphi, double *tau); // same but univariate
 void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-pMOM + log-IG wrt (th,logphi)
 void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Hess log-pMOM + log-IG wrt (th,logphi)
 
 void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-piMOM density wrt th
+double dimomgraduniv(double *th, double *logphi, double *tau); //same but univariate
 void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-piMOM density wrt th
+double dimomhessuniv(double *th, double *logphi, double *tau); //same but univariate
 void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-piMOM + log-IG wrt (th,logphi)
 void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda);//Hess log-piMOM + log-IG wrt (th,logphi)
 
 void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau); //Gradient of log-peMOM density wrt th
+double demomgraduniv(double *th, double *logphi, double *tau); //same but univariate
 void demomhess(double *ans, int *n, double *th, double *logphi, double *tau); //Hessian of log-peMOM density wrt th
+double demomhessuniv(double *th, double *logphi, double *tau); //same but univariate
 void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda); //Grad log-peMOM + log-IG wrt (th,logphi)
 void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda);//Hess log-peMOM + log-IG wrt (th,logphi)
 

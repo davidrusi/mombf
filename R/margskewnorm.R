@@ -1,4 +1,4 @@
-nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) {
+nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='Laplace', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX) {
 #Marginal density of the data under non-local priors and skew-normal residuals
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
@@ -32,8 +32,9 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
   tau <- as.double(tau); r <- as.integer(r)
   if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
   method <- as.integer(method)
+  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,r,method,B,logscale,alpha,lambda,prior)
+  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,r,method,optimMethod,B,logscale,alpha,lambda,prior)
   return(ans);
 }

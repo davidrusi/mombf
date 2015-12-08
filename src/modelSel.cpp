@@ -650,7 +650,12 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
     currentJ= integrals->getJoint(sel,&nsel,pars);
   }
   postProb[0]= *postModeProb= currentJ;
-  if (*burnin >0) { ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; } else { ilow=1; savecnt=1; iupper= *niter; } //if no burnin, start at i==1 & save initial value
+  if (*burnin >0) { 
+    ilow=-(*burnin); savecnt=0; iupper= *niter - *burnin +1; 
+  } else { 
+    for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin]= 1; }
+    ilow=1; savecnt=1; iupper= *niter; 
+   } //if no burnin, start at i==1 & save initial value
 
   //Iterate
   for (i=ilow; i< iupper; i++) {
@@ -1096,7 +1101,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
   bool posdef;
   int i, ii, j, p=(*nsel)+2, itermle=10;
-  double err, damp, *g, **H, **Hinv, *delta, lmin, *vals, fnew, *thnew, *ypred;
+  double err, ferr, damp, *g, **H, **Hinv, *delta, lmin, *vals, fnew, *thnew, *ypred;
 
   ypred= dvector(0,*n -1);
 
@@ -1126,12 +1131,12 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   g= dvector(1,p); delta= dvector(1,p); thnew= dvector(1,p);
   H= dmatrix(1,p,1,p); Hinv= dmatrix(1,p,1,p);
 
-  i=ii=1; err=1; damp=2.0;
+  i=ii=1; err=ferr=1; damp=2.0;
 
   fnegSkewnorm(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alpha,lambda,prior,true);
   (*fmode) -= thmode[p-1];
 
-  while ((err>0.0001) & (i<(*maxit))) {
+  while ((err>0.001) & (i<(*maxit)) & (ferr>0.001)) {
 
     fpnegSkewnorm(g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alpha,lambda,prior); //gradient
     fppnegSkewnorm(H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alpha,lambda,prior); //Hessian
@@ -1173,6 +1178,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
     //If new value improves target function, update thmode, fmode
     if (fnew<(*fmode)) {
+      ferr= *fmode - fnew;
       err= 0;
       for (j=1; j<=p; j++) { err= max_xy(err,fabs(delta[j])); thmode[j]= thnew[j]; }
       (*fmode)= fnew;
@@ -1204,6 +1210,93 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
 
 
+void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior) {
+//Posterior mode for two-piece normal under pMOM, piMOM or peMOM prior on (theta,atanh(alpha)) and vartheta ~ IG(alpha/2,lambda/2)
+//
+//Maximization is done via Coordinate Descent Algorithm (i.e. iterative univariate minimization)
+//
+  // Input
+  // - y: observed response
+  // - x: design matrix
+  // - maxit: maximum number of iterations
+  // - tau: dispersion parameter for MOM prior on theta
+  // - tau.alpha: dispersion parameter for MOM prior on atanh(alpha)
+  // - alphaphi, lambdaphi: prior on vartheta ~ IG(alphaphi/2,lambdaphi/2)
+  // - init: init=='mle' to initialize at MLE, else initialize at least squares
+  // Ouput
+  // - thmode[1..nsel]: posterior mode for (theta,vartheta,alpha) (i.e. in original parameterization)
+  // - fmode: minus log-joint evaluated at thmode
+  // - hess: hessian evaluated at thmode
+
+  int i, j, it, p=(*nsel)+2;
+  double err, ferr, g, H, delta, fnew, *thnew, *ypred, s1=0, s2=0, pows1, pows2, acur, aa, bb, sumth2=0;
+
+  ypred= dvector(0,*n -1); thnew= dvector(1,p);
+
+  //Initialize at least squares estimate
+  leastsquares(thmode, thmode+(*nsel)+1, ypred, y, x, XtX, ytX, n, pvar, sel, nsel);
+  for (i=0; i<(*n); i++) { if (y[i]<=ypred[i]) { s1+= pow(y[i]-ypred[i], 2.0); } else { s2+= pow(y[i]-ypred[i], 2.0); } }
+  pows1= pow(s1, 1.0/3.0); pows2= pow(s2, 1.0/3.0);
+  thmode[p]= (pows1 - pows2)/(pows1 + pows2);  //estimate for alpha
+  thmode[p-1]= (0.25/((*n)+.0)) * pow(pows1 + pows2, 3.0);  //estimate for phi
+
+  for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
+  thnew[p-1]= thmode[p-1]= log(thmode[p-1]); //phi
+  thnew[p]= thmode[p]= atanh(thmode[p]);   //alpha (Note: atanh(z)= 0.5*(log(1+z)-log(1-z)))
+
+  it=1; err= ferr= 1;
+
+  fnegSkewnorm(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true);
+  (*fmode) -= thmode[p-1];
+
+  while ((err>0.001) & (it<(*maxit)) & (ferr>0.001)) {
+
+    err= 0; sumth2= 0;
+    for (j=1; j<=p; j++) {
+
+      if (j== p-1) {  //update for phi
+	if (*prior ==1) { //under MOM use exact max for phi
+	  for (i=0, s1=0, s2=0; i<(*n); i++) { if (y[i]<=ypred[i]) { s1+= pow(y[i]-ypred[i], 2.0); } else { s2+= pow(y[i]-ypred[i], 2.0); } }
+	  for (i=1, sumth2=0; i<=(*nsel); i++) { sumth2 += thnew[i]*thnew[i]; }
+	  acur= tanh(thnew[p]);
+	  aa= (*n + 3*(*nsel) + (*alphaphi));
+	  bb= (s1/pow(1+acur,2.0) + s2/pow(1-acur,2.0) + sumth2/(*tau) + *lambdaphi);
+	  thnew[j]= log(bb/aa);
+	} else {
+          fpnegSkewnormUniv(j,&g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //gradient
+          fppnegSkewnormUniv(j,&H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //Hessian
+          delta= g/H;
+          thnew[j]= thmode[j] - delta;
+	}
+      } else {  //update for theta, alpha
+        fpnegSkewnormUniv(j,&g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //gradient
+        fppnegSkewnormUniv(j,&H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //Hessian
+        delta= g/H;
+        thnew[j]= thmode[j] - delta;
+      }
+    }
+    fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true);
+    fnew -= thnew[p-1];
+    //If new value improves target function, update thmode, fmode
+    if (fnew<(*fmode)) {
+      for (j=1; j<=p; j++) { err= max_xy(err,fabs(thmode[j]-thnew[j])); thmode[j]= thnew[j]; }
+      ferr= *fmode - fnew;
+      (*fmode)= fnew;
+    }
+    it++;
+
+  }
+
+  fppnegSkewnorm(hess,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //Hessian
+
+  thmode[p-1]= exp(thmode[p-1]);
+  thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
+
+  free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p);
+}
+
+/*
+//OLD VERSION THAT CHECKS OBJECTIVE FUNCTION AT EACH UNIVARIATE UPDATE
 void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior) {
 //Posterior mode for two-piece normal under pMOM, piMOM or peMOM prior on (theta,atanh(alpha)) and vartheta ~ IG(alpha/2,lambda/2)
 //
@@ -1301,7 +1394,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 
   free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p);
 }
-
+*/
 
 
 

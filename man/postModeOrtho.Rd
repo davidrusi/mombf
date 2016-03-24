@@ -1,0 +1,100 @@
+\name{postModeOrtho}
+\alias{postModeOrtho}
+\title{ Bayesian model selection and averaging under diagonal X'X for linear models. }
+\description{
+  Find the highest posterior probability model (HPM) via a fast
+  search algorithm, posterior model probabilities for a sequence of models that
+  includes the HPM, marginal inclusion probabilities
+  and Bayesian model averaging estimates under the assumption that X'X is block-diagonal.
+  The unknown residual variance is treated via an efficient exact algorithm.
+}
+\usage{
+postModeOrtho(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),
+priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
+}
+\arguments{
+   \item{y}{Outcome}
+
+   \item{x}{Matrix with predictors. If an intercept is desired x should include
+   a column of 1's.}
+
+   \item{priorCoef}{Prior distribution for the coefficients. Object created
+    with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
+
+   \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior,
+   \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p},
+   or \code{modelunifprior()} for Uniform prior}
+
+   \item{priorVar}{Inverse gamma prior on residual variance, created with \code{igprior()}}
+
+   \item{bma}{Set to TRUE to obtain marginal inclusion probabilities and
+   Bayesian model averaging parameter estimates for each column of x.}
+
+   \item{maxvars}{The search for the HPM is restricted to models with up to maxvars variables
+   (note: posterior model probabilities and BMA are valid regardless of maxvars)}
+}
+\details{
+  The first step is to list a sequence of models with 0,...,maxvars variables which,
+  under fairly general conditions listed in Papaspiliopoulos & Rossell (2016),
+  is guaranteed to include the HPM.
+  Then posterior model probabilities are computed for all these models to determine
+  the HPM, evaluate the marginal posterior of the residual variance on a grid,
+  and subsequently compute the marginal density p(y) via adaptive quadrature.
+  Finally this adaptive grid is used to compute marginal inclusion probabilities
+  and Bayesian model averaging estimates.
+  For more details see Papaspiliopoulos & Rossell (2016).
+}
+\value{
+List with elemants
+\item{models}{data.frame indicating the variables included in the sequence of models found
+during the search of the HPM, and their posterior probabilities. The model with highest
+posterior probability in this list is guaranteed to be the HPM.}
+
+\item{phi}{data.frame containing an adaptive grid of phi (residual variance) values and
+their marginal posterior density p(phi|y).}
+
+\item{logpy}{log-marginal density p(y), i.e. normalization constant of p(phi|y).}
+
+\item{bma}{Marginal posterior inclusion probabilities and Bayesian model averaging estimates
+for each column in x.}
+
+}
+\references{
+  Papaspiliopoulos O., Rossell D. Scalable Bayesian variable selection
+  and model averaging under block-orthogonal design. 2016
+}
+\author{ David Rossell }
+\examples{
+#Simulate data
+set.seed(1)
+p <- 500; n <- 510
+x <- scale(matrix(rnorm(n*p),nrow=n,ncol=p),center=TRUE,scale=TRUE)
+S <- cov(x)
+e <- eigen(cov(x))
+x <- t(t(x \%*\% e$vectors)/sqrt(e$values))
+th <- c(rep(0,p-3),c(.5,.75,1)); phi <- 1
+y <- x \%*\% matrix(th,ncol=1) + rnorm(n,sd=sqrt(phi))
+
+#Fit
+priorCoef=zellnerprior(tau=n); priorDelta=modelbinomprior(p=1/p); priorVar=igprior(0.01,0.01)
+pm.zell <- postModeOrtho(y=y,x=x,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,bma=TRUE)
+
+#Best models
+head(pm.zell$models)
+
+#Posterior probabilities for sequence of models
+nvars <- sapply(strsplit(as.character(pm.zell$models$modelid),split=','),length)
+plot(nvars,pm.zell$models$pp,ylab='post prob',xlab='number of vars',ylim=0:1,xlim=c(0,50))
+
+#Marginal posterior of phi
+plot(pm.zell$phi,type='l',xlab='phi',ylab='p(phi|y)')
+
+#Marginal inclusion prob & BMA estimates
+plot(pm.zell$bma$margpp,ylab='Marginal inclusion prob')
+plot(pm.zell$bma$coef,ylab='BMA estimate')
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ models }
+\keyword{ htest }
+

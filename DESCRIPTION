@@ -1,6 +1,6 @@
 Package: mombf
-Version: 1.6.1
-Date: 2015-11-17
+Version: 1.6.2
+Date: 2016-03-24
 Title: Moment and Inverse Moment Bayes Factors
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck
 Maintainer: David Rossell <rosselldavid@gmail.com>
@@ -11,5 +11,5 @@ Description: Model selection and parameter estimation based on non-local priors.
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R derivatives_nlps.R msPriorSpec.R imombf.R mode2g.R pimom.R imomknown.R modelSelection.R pmom.R dimom.R imomunknown.R priorp2g.R margpimom.R margskewnorm.R mombf.lm.R qimom.R emom.R dmom.R mombf.R qmom.R g2mode.R margpmom.R margpemom.R momknown.R imombf.lm.R momunknown.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R cox.R
+Collate: AllClasses.R AllGenerics.R bms_ortho.R derivatives_nlps.R msPriorSpec.R imombf.R mode2g.R pimom.R imomknown.R modelSelection.R pmom.R dimom.R imomunknown.R priorp2g.R margpimom.R margskewnorm.R mombf.lm.R qimom.R emom.R dmom.R mombf.R qmom.R g2mode.R margpmom.R margpemom.R momknown.R imombf.lm.R momunknown.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R cox.R
 

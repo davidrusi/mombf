@@ -52,7 +52,7 @@ setMethod("postProb", signature(object='msfit'), function(object, nmax, method='
 
 
 #### General model selection routines
-modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', optimMethod='LMA', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors

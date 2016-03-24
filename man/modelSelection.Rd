@@ -14,7 +14,7 @@ burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
 priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
-initSearch='greedy', method='auto', optimMethod='CDA', B=10^5, verbose=TRUE)
+initSearch='greedy', method='auto', optimMethod='LMA', B=10^5, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}

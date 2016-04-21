@@ -1,22 +1,36 @@
 \name{postModeOrtho}
 \alias{postModeOrtho}
-\title{ Bayesian model selection and averaging under diagonal X'X for linear models. }
+\alias{postModeBlockDiag}
+\title{Bayesian model selection and averaging under block-diagonal X'X for linear models.}
 \description{
-  Find the highest posterior probability model (HPM) via a fast
-  search algorithm, posterior model probabilities for a sequence of models that
-  includes the HPM, marginal inclusion probabilities
-  and Bayesian model averaging estimates under the assumption that X'X is block-diagonal.
-  The unknown residual variance is treated via an efficient exact algorithm.
+  postModeOrtho is for diagonal X'X,
+  postModeBlockDiag for the more general block-diagonal X'X,
+  where X is the matrix with predictors.
+
+  Both functions return the model of highest posterior probability of any given
+  size using an efficient search algorithm. This sequence of models includes
+  the highest posterior probability model (HPM).
+  Posterior model probabilities, marginal variable inclusion probabilities
+  and Bayesian model averaging estimates are also provided.
+  The unknown residual variance is integrated out using an exact deterministic
+  algorithm of low computational cost (see details in reference).
 }
 \usage{
 postModeOrtho(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),
 priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
+
+postModeBlockDiag(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
+priorDelta=modelbinomprior(p=1/ncol(x)),priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100, momcoef)
+
 }
 \arguments{
    \item{y}{Outcome}
 
    \item{x}{Matrix with predictors. If an intercept is desired x should include
    a column of 1's.}
+
+   \item{blocks}{Factor or integer vector of length ncol(x) indicating the block
+   that each column in x belongs to.}
 
    \item{priorCoef}{Prior distribution for the coefficients. Object created
     with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
@@ -32,6 +46,11 @@ priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
 
    \item{maxvars}{The search for the HPM is restricted to models with up to maxvars variables
    (note: posterior model probabilities and BMA are valid regardless of maxvars)}
+
+   \item{momcoef}{optional argument containing pre-computed coefficients needed to obtain
+   the marginal likelihood under the pMOM prior.
+   A first call to postModeBlockDiag returns these coefficients,
+   thus this argument is useful to speed up successive calls.}
 }
 \details{
   The first step is to list a sequence of models with 0,...,maxvars variables which,
@@ -57,6 +76,11 @@ their marginal posterior density p(phi|y).}
 
 \item{bma}{Marginal posterior inclusion probabilities and Bayesian model averaging estimates
 for each column in x.}
+
+\item{postmean.model}{Coefficient estimates conditional on each of the models in \code{models}}
+
+\item{momcoef}{If a MOM prior was specified in priorCoef, momcoef stores some coefficients needed
+to compute its marginal likelihood}
 
 }
 \references{

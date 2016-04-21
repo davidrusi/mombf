@@ -1,3 +1,6 @@
+CHANGES IN VERSION 1.7.0
+- Added block-orthogonal and block-diagonal variable selection
+
 CHANGES IN VERSION 1.6.1
 - Fixed maximum number of variables <=n in pmomLM, pmomLM (this also solves a numerical overflow issue when p>n)
 

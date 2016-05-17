@@ -243,11 +243,10 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
         stop("Beta-Binomial prior not currently implemented")
         #alpha=priorDelta@priorPars['alpha.p']; beta=priorDelta@priorPars['beta.p']
         #priorModel <- function(nvar) lbeta(nvar + alpha, p - nvar + beta) - lbeta(alpha, beta)
-        #priorModelBlock <- function(nvar,blocksize,rho) nvar*log(rho) + (blocksize-nvar)*log(1-rho)
     } else if (priorDelta@priorDistr=='uniform') {
         rho <- 0.5
         priorModel <- function(nvar) rep(-p*log(2),length(nvar))
-        priorModelBlock <- function(nvars,blocksize) rep(-blocksize*log(2),length(nvars))
+        priorModelBlock <- function(nvar,blocksize) rep(-blocksize*log(2),length(nvar))
     } else { stop("Prior on model space not recognized. Use modelbbprior(), modelunifprior() or modelbinomprior()") }
     if (priorCoef@priorDistr == 'zellner') {
         g <- as.double(priorCoef@priorPars['tau'])
@@ -288,7 +287,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     models <- rbind(data.frame(nvars=0,u=0,modelid='',phi=Inf,m=NA,block=NA,u.lower=0,u.upper=0,stringsAsFactors=FALSE),models)
     lpos.upper <- sumy2 - shrinkage * models$u.upper
     pp.upper <- priorModel(models$nvars) - 0.5*models$nvars*log(1+g) - 0.5*apos * log(lpos.upper)
-    mis <- is.na(models$u) & (pp.upper>max(pp.upper,na.rm=TRUE))
+    mis <- is.na(models$u) & (pp.upper>max(pp.upper[!is.na(models$u)],na.rm=TRUE))
+    browser()
     if (any(mis)) {
         enumsizes <- models$nvar[mis & (pp.upper>max(pp.upper[!mis]))]
         for (i in 1:length(enumsizes)) {
@@ -396,7 +396,7 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
         pp <- double(nrow(models))
         w <- phi[,2]/sum(phi[,2])
         for (i in 1:length(pp)) {
-            ppcond <- sapply(phi[,1],jointppMomKnownBlockDiag,sel=modelidx[,i],blocks=blocks,u=u,g=g,shrinkage=shrinkage,priorModelBlock=priorModelBlock,momcoef=momcoef,logscale=FALSE)
+            ppcond <- sapply(phi[,1],jointppMomKnownBlockDiag,sel=modelidx[,i],blocks=blocks,blocksize=blocksize,u=u,g=g,shrinkage=shrinkage,priorModelBlock=priorModelBlock,momcoef=momcoef,logscale=FALSE)
             pp[i] <- sum(ppcond * w)
         }
         pp.upper <- pp
@@ -634,7 +634,7 @@ margppMOMKnownBlockDiag <- function(phi,u,umv,g,shrinkage,priorModelBlock,momcoe
 # - u: u-scores for all variables (i.e. u[sel] selects those for active variables)
 # - g, shrinkage, rho, logscale: as in margppMomKnown
 #Output: posterior probability of the model conditional on phi
-jointppMomKnownBlockDiag <- function(phi,sel,blocks,u,g,shrinkage=g/(1+g),priorModelBlock,momcoef,logscale=TRUE) {
+jointppMomKnownBlockDiag <- function(phi,sel,blocks,blocksize,u,g,shrinkage=g/(1+g),priorModelBlock,momcoef,logscale=TRUE) {
     priorpp <- lapply(1:length(u), function(k) priorModelBlock(0:blocksize[k],blocksize=blocksize[k]))
     gpow <- (-(0:max(blocksize))/2) * log(g+1)
     phipow <- 1/(phi^(0:max(blocksize)))

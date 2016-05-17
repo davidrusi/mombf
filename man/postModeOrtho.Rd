@@ -20,7 +20,8 @@ postModeOrtho(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),
 priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
 
 postModeBlockDiag(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
-priorDelta=modelbinomprior(p=1/ncol(x)),priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100, momcoef)
+priorDelta=modelbinomprior(p=1/ncol(x)),priorVar=igprior(0.01,0.01), bma=FALSE,
+maxvars=100, momcoef)
 
 }
 \arguments{
@@ -101,7 +102,8 @@ y <- x \%*\% matrix(th,ncol=1) + rnorm(n,sd=sqrt(phi))
 
 #Fit
 priorCoef=zellnerprior(tau=n); priorDelta=modelbinomprior(p=1/p); priorVar=igprior(0.01,0.01)
-pm.zell <- postModeOrtho(y=y,x=x,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,bma=TRUE)
+pm.zell <- postModeOrtho(y,x=x,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,
+bma=TRUE)
 
 #Best models
 head(pm.zell$models)

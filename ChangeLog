@@ -1,3 +1,6 @@
+CHANGES IN VERSION 1.7.1
+- Fixed issue in block-diagonal variable selection that caused it to skip some model sizes
+
 CHANGES IN VERSION 1.7.0
 - Added block-orthogonal and block-diagonal variable selection
 
@@ -56,7 +59,7 @@ CHANGES IN VERSION 1.3.9
 - Limited number of saved models by modelSelection Gibbs scheme when p>16, to avoid running out of memory
 
 CHANGES IN VERSION 1.3.8
-- modelSelection Gibbs scheme now uses saved log(integrated likelihood) + log(prior) for previously considered models. Observed a 5-10 fold increase in speed. 
+- modelSelection Gibbs scheme now uses saved log(integrated likelihood) + log(prior) for previously considered models. Observed a 5-10 fold increase in speed.
 - modelSelection with Beta-Binomial prior now marginalizes over Binomial success prob, which greatly improves mixing of the Gibbs sampler.
 
 CHANGES IN VERSION 1.3.7
@@ -66,7 +69,7 @@ CHANGES IN VERSION 1.3.6
 - Added truncated multivariate normal random number generation routines
 
 CHANGES IN VERSION 1.3.5
-- Increased precision in pimom marginal Laplace approximation, which could cause crashing due to non-positive definitiness 
+- Increased precision in pimom marginal Laplace approximation, which could cause crashing due to non-positive definitiness
 
 CHANGES IN VERSION 1.3.4
 - Fixed code chunks in vignette to enhance their visibility
@@ -135,6 +138,6 @@ CHANGES IN VERSION 1.0.0
 
 CHANGES IN VERSION 0.0.1
 - Changed word "library" in Vignette title to "package"
-- Indicated GPL(>=2) in the DESCRIPTION file 
+- Indicated GPL(>=2) in the DESCRIPTION file
 
 

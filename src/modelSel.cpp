@@ -952,6 +952,39 @@ double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
 
 
 //*************************************************************************************
+// TWO-PIECE LAPLACE ROUTINES
+//*************************************************************************************
+
+void loglSkewlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, double *XtX) {
+  //Log-likelihood function of a linear model with two-piece Laplace errors evaluated at th=(theta,scale,alpha)
+  //Output
+  // - ans: value of the log-likelihood evaluated at th
+  // - ypred: linear predictor x %*% th
+  int i;
+  double w1, w2;
+
+  w1= 0.5 / ((1.0 + (*alpha)) * (*scale));
+  w2= 0.5 / ((1.0 - (*alpha)) * (*scale));
+  (*ans)= -(*n)*log(2.0) -0.5*(*n)*log(*scale);
+
+  if ((*nsel)>0) {
+
+    Aselvecx(x, th+1, ypred, 0, (*n) -1, sel, nsel); //ypred= x %*% th
+    for (i=0; i<(*n); i++) {
+      if (y[i]<ypred[i]) { (*ans) -= w1 * fabs(y[i]-ypred[i]); } else { (*ans) -= w2 * fabs(y[i]-ypred[i]); }
+    }
+
+  } else {
+
+    for (i=0; i<(*n); i++) {
+      if (y[i]<0) { (*ans) -= w1 * fabs(y[i]); } else { (*ans) -= w2 * fabs(y[i]); }
+    }
+
+  }
+}
+
+
+//*************************************************************************************
 // TWO-PIECE NORMAL ROUTINES
 //*************************************************************************************
 

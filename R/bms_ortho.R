@@ -77,22 +77,27 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
       #Refine grid for phi by adding further promising models
       goodmodelsizes <- which((maxpp - pp[-1]) < log(1000))
       if (length(goodmodelsizes)>0) {
-          goodmodelsizes <- 1:(goodmodelsizes[length(goodmodelsizes)])
-          goodmodelsizes <- goodmodelsizes[goodmodelsizes <= maxvars]
+          #goodmodelsizes <- 1:(goodmodelsizes[length(goodmodelsizes)])
+          goodmodelsizes <- goodmodelsizes[goodmodelsizes <= min(maxvars,ncol(x)-1)]
           phiseqextra <- modelidextra <- modelusumextra <- ppextra <- vector("list",length(goodmodelsizes))
           for (i in 1:length(goodmodelsizes)) {
               nvars <- goodmodelsizes[i]
               maxmodels <- lchoose(ncol(x),nvars)
               if (maxmodels>0) {
                   if (nvars == 1) {
-                      #idx <- list(2,3,4)
-                      idx <- list(2,3,4,5,6)
+                      idx <- list(2,3,4,5,6) #idx <- list(2,3,4)
+                      idx <- idx[idx<=ncol(x)]
                   } else {
                       if (nvars>2) idx <- 1:(nvars-2) else idx <- integer(0)
-                      #idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1))
-                      idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1), c(idx,nvars-1,nvars+3), c(idx,nvars,nvars+2))
+                      if (nvars+3<=ncol(x)) {
+                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1), c(idx,nvars-1,nvars+3), c(idx,nvars,nvars+2))
+                      } else if (nvars+2<=ncol(x)) {
+                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1))
+                      } else {
+                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars,nvars+1))
+                      }
                   }
-                  idx <- idx[1:ifelse(maxmodels>=log(6),5,exp(maxmodels)-1)]  #if <5 extra models available, just take those
+                  idx <- idx[1:min(length(idx),ifelse(maxmodels>=log(6),5,exp(maxmodels)-1))]  #if <5 extra models available, just take those
                   modelidextra[[i]] <- sapply(idx,function(z) paste(o[z],collapse=','))
                   modelusumextra[[i]] <- sapply(idx, function(z) sum(uord[z]))
                   lposextra <- sumy2 - shrinkage * modelusumextra[[i]]
@@ -104,7 +109,8 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
           pp <- c(pp,unlist(ppextra))
           modelid <- c(modelid,unlist(modelidextra))
           modelusum <- c(modelusum,unlist(modelusumextra))
-          variableidsextra <- strsplit(as.character(modelidextra),split=',')
+          #variableidsextra <- strsplit(as.character(modelidextra),split=',')
+          variableidsextra <- strsplit(unlist(modelidextra),split=',')
           variableids <- c(variableids,variableidsextra)
           nvars <- c(nvars,sapply(variableidsextra,length))
       }
@@ -114,6 +120,13 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
           phiseqpost <- jointPhiyZellnerOrtho(phiseq, sumy2, apos, shrinkage, u, g, rho, logscale=TRUE)
       } else {  #pMOM
           phiseqpost <- jointPhiyMOMOrtho(phiseq, sumy2, apos, shrinkage, u, g, rho, logscale=TRUE)
+      }
+      #Avoid phi values associated to 0 posterior density
+      zeropost <- match(-Inf,phiseqpost)
+      if (!is.na(zeropost)) {
+          zerophi <- phiseq[zeropost]
+          phiseq <- phiseq[1:max(1,zeropost-1)]
+          phiseqpost <- phiseqpost[1:max(1,zeropost-1)]
       }
       #Refine grid where target increases > tolf % its max value
       maxphipost <- max(phiseqpost)

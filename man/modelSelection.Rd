@@ -45,6 +45,10 @@ initSearch='greedy', method='auto', optimMethod='LMA', B=10^5, verbose=TRUE)
   for BIC-type approximation,
   \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
   for Hybrid Laplace-IS (only available for piMOM prior). See Details.}
+\item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
+  likelihood under Laplace or asymmetric Laplace errors. When
+  hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
+  diagonal adjustment is applied (see Rossell and Rubio for details).}
 \item{optimMethod}{Algorithm to maximize objective function when method=='Laplace' or method=='MC'. Only used for family=='twopiecenormal'. optimMethod=='LMA' uses modified Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
@@ -104,8 +108,13 @@ Object of class \code{msfit}, which extends a list with elements
   Johnson V.E., Rossell D. Non-Local Prior Densities for Default
   Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B,
   2010, 72, 143-170.
+  
   Johnson V.E., Rossell D. Bayesian model selection in high-dimensional
-  settings. Journal of the American Statistical Association, 2012, 107, 649-660.
+  settings. Journal of the American Statistical Association, 2012, 107,
+  649-660.
+
+  Rossell D., Rubio F.J. Tractable Bayesian variable selection: beyond
+  normal errors. 2016
 }
 \author{ David Rossell }
 \seealso{

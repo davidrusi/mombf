@@ -56,11 +56,11 @@ pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
     }
   } else if ((*family)==4) { //Asymmetric Laplace residuals
     if (*prCoef==0) {
-      ans= pmomMargALaplU;
+      ans= pmomMargAlaplU;
     } else if (*prCoef==1) {
-      ans= pimomMargALaplU;
+      ans= pimomMargAlaplU;
     } else if (*prCoef==2) {
-      ans= pemomMargALaplU;
+      ans= pemomMargAlaplU;
     } else if (*prCoef==3) {
       Rprintf("Zellner prior with asymmetric Laplace residuals not currently implemented");
     }
@@ -527,7 +527,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 // GENERAL MARGINAL DENSITY CALCULATION ROUTINES
 //********************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,double *XtX,double *ytX,int *method,int *hess,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taualpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset) {
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,double *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taualpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset) {
   (*pars).n= n;
   (*pars).p= p;
   (*pars).y= y;
@@ -536,7 +536,7 @@ void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double 
   (*pars).XtX= XtX;
   (*pars).ytX= ytX;
   (*pars).method= method;
-  (*pars).hess= hess;
+  (*pars).hesstype= hesstype;
   (*pars).optimMethod= optimMethod;
   (*pars).B= B;
   (*pars).alpha= alpha;
@@ -613,13 +613,13 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP SpostMode, SEXP SpostModeProb, SEXP SpostProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shess, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP SpostMode, SEXP SpostModeProb, SEXP SpostProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
   int logscale=1;
   double offset=0;
   struct marginalPars pars;
   SEXP ans;
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shess), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
   modelSelectionGibbs(INTEGER(SpostSample), REAL(SpostOther), REAL(Smargpp), INTEGER(SpostMode), REAL(SpostModeProb), REAL(SpostProb), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
 
   PROTECT(ans = allocVector(REALSXP, 1));
@@ -633,7 +633,7 @@ SEXP modelSelectionCI(SEXP SpostSample, SEXP SpostOther, SEXP Smargpp, SEXP Spos
 void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
 
   bool copylast;
-  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=2, curfamily, newfamily;
+  int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily;
   double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
@@ -667,6 +667,7 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
     sel[nsel]= (*(*pars).p);  //initialize to baseline model
     nselplus1= nsel+1;
     currentJ= integrals->getJoint(sel,&nselplus1,pars);
+    margpp[nbvars]= margpp[nbvars+1]= margpp[nbvars+2]= margpp[nbvars+3]= 0;
   } else {
     currentJ= integrals->getJoint(sel,&nsel,pars);
   }
@@ -676,7 +677,7 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
   } else { 
     for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin]= 1; }
     ilow=1; savecnt=1; iupper= *niter; 
-   } //if no burnin, start at i==1 & save initial value
+  } //if no burnin, start at i==1 & save initial value
 
   //Iterate
   for (i=ilow; i< iupper; i++) {
@@ -727,7 +728,9 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
       for (j=0; j<nbfamilies; j++) { pfamily[j] /= sumpfamily; }
       rmultinomial(1, nbfamilies, pfamily, &newfamily);
       sel[nsel]= (*(*pars).p) + newfamily;
-      if (i>=0) { margpp[*(*pars).p]+= pfamily[1]; } //change to pfamily[1]+pfamily[3] when skew-laplace is available
+      if (i>=0) {
+	for (j=0; j<nbfamilies; j++) margpp[(*(*pars).p) +j]+= pfamily[j];
+      }
       currentJ= mfamily[newfamily];
     }
 
@@ -758,13 +761,13 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP SpostMode, SEXP SpostModeProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shess, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP SpostMode, SEXP SpostModeProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
   int logscale=1;
   double offset=0;
   struct marginalPars pars;
   SEXP ans;
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shess), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
   greedyVarSelC(INTEGER(SpostMode),REAL(SpostModeProb),INTEGER(Sknownphi),INTEGER(Sfamily),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sverbose),&pars);
   PROTECT(ans = allocVector(REALSXP, 1));
   *REAL(ans)= 1.0;
@@ -921,6 +924,16 @@ double pmomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
     int prior=1;
     ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
 
+  } else if (sel[nvars]== (p+2)) { //Laplace residuals
+
+    int prior=1, symmetric=1;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
+
+  } else if (sel[nvars]== (p+3)) { //Asymmetric Laplace residuals
+
+    int prior=1, symmetric=0;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
+
   } else {
     Rf_error("Invalid residual distribution\n");
   }
@@ -941,6 +954,16 @@ double pimomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
 
     int prior=2;
     ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
+
+  } else if (sel[nvars]== (p+2)) { //Laplace residuals
+
+    int prior=2, symmetric=1;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
+
+  } else if (sel[nvars]== (p+3)) { //Asymmetric Laplace residuals
+
+    int prior=2, symmetric=0;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
 
   } else {
     Rf_error("Invalid residual distribution\n");
@@ -963,6 +986,16 @@ double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
     int prior=3;
     ans= nlpMargSkewNorm(sel, &nvars, pars, &prior);
 
+  } else if (sel[nvars]== (p+2)) { //Laplace residuals
+
+    int prior=3, symmetric=1;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
+
+  } else if (sel[nvars]== (p+3)) { //Asymmetric Laplace residuals
+
+    int prior=3, symmetric=0;
+    ans= nlpMargAlapl(sel, &nvars, pars, &prior, &symmetric);
+
   } else {
     Rf_error("Invalid residual distribution\n");
   }
@@ -976,14 +1009,14 @@ double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
 // TWO-PIECE LAPLACE ROUTINES
 //*************************************************************************************
 
-SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP Ssymmetric, SEXP Smethod, SEXP Shess, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef) {
+SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP Ssymmetric, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef) {
   //Note: Ssel[Snsel]==p+1
   int prCoef= INTEGER(SprCoef)[0], symmetric= INTEGER(Ssymmetric)[0];
   double *rans, emptydouble=0, offset=0;
   struct marginalPars pars;
   SEXP ans;
 
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),INTEGER(Shess),INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset);
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),INTEGER(Shesstype),INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset);
 
   PROTECT(ans = allocVector(REALSXP, 1));
   rans = REAL(ans);
@@ -1056,17 +1089,17 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 // - symmetric: symmetric==1 for Laplace residuals, symmetric==0 for asymmetric Laplace residuals
 // Output: integrated likelihood
 
-  bool initmle=true, posdef;
-  int maxit= 50, p= (*nsel)+2, n= (*((*pars).n)), hess= (*((*pars).hess));
+  bool posdef;
+  int maxit= 50, p= (*nsel)+2, n= (*((*pars).n)), *hesstype= ((*pars).hesstype);
   double ans, *thmode, fmode, **hess, **cholhess, det, *ypred;
 
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
-  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hess, symmetric);
+  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hesstype, symmetric);
   //if (*((*pars).optimMethod) == 1) {  //LMA (modified Newton-Raphson)
-  //  postmodeAlapl(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior, hess, symmetric);
+  //  postmodeAlapl(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior, hesstype, symmetric);
   //} else {  //Coordinate Descent Algorithm
-  //  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hess, symmetric);
+  //  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hesstype, symmetric);
   //}
 
   int method= *((*pars).method);
@@ -1111,7 +1144,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     ans= 0;
     for (i=1; i<= (*(*pars).B); i++) {
       rmvtC(thsim, p, thmode, cholV, nu);
-      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,(*pars).XtX,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true);
+      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,(*pars).XtX,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true,symmetric);
       term1 -= thsim[p-1];
       term2= -dmvtC(thsim, p, thmode, cholVinv, detVinv, nu, 1);
       ans += exp(-term1 + fmode + term2);
@@ -1131,7 +1164,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 }
 
 
-void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hess, int *symmetric) {
+void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
   //TO DO: adapt postmodeSkewNormCDA
 
 }
@@ -1262,13 +1295,13 @@ void fpnegAlaplUniv(int j, double *g, double *th, double *ypred, int *sel, int *
 }
 
 
-void fppnegAlaplUniv(int j, double *H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hess, int *symmetric) {
- //Hessian of fnegAlapl (for *hess==1 return expected hessian, for *hess=2 an adjusted hessian based on local quadratic fit)
+void fppnegAlaplUniv(int j, double *H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
+ //Hessian of fnegAlapl (for *hesstype==1 return expected hessian, for *hesstype=2 an adjusted hessian based on local quadratic fit)
 
   int i;
   double hprior, zero=0, sumth2, suminvth2;
 
-  loglnegHessAlaplUniv(j,H,th,nsel,sel,n,y,ypred,x,hess,symmetric);
+  loglnegHessAlaplUniv(j,H,th,nsel,sel,n,y,ypred,x,hesstype,symmetric);
 
   if ((*prior)==1) {
 
@@ -1352,7 +1385,7 @@ void loglnegGradAlaplUniv(int j, double *g, double *th, int *nsel, int *sel, int
 }
 
 
-void loglnegHessAlaplUniv(int jj, double *H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x, int *hess, int *symmetric) {
+void loglnegHessAlaplUniv(int jj, double *H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x, int *hesstype, int *symmetric) {
   //TO DO: PROGRAM
   (*H)= 0;
 }

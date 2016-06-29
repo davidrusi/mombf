@@ -188,7 +188,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     margpp <- double(p)
   } else {
     postSample <- rep(as.integer(0),(p+1)*mcmc2save)
-    margpp <- double(p+1)
+    margpp <- double(p+3)
   }
   if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
   postProb <- double(mcmc2save)

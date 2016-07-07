@@ -148,7 +148,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     prDeltap <- as.double(0)
     parprDeltap <- double(2)
   } else if (priorDelta@priorDistr=='binomial') {
-    if ('p' %in% priorDelta@priorPars) {
+    if ('p' %in% names(priorDelta@priorPars)) {
       prDelta <- as.integer(1)
       prDeltap <- as.double(priorDelta@priorPars['p'])
       if ((prDeltap<=0) | (prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")

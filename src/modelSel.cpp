@@ -1209,7 +1209,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 
   }
 
-  fppnegAlapl(hess,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //Hessian
+  fppnegAlapl(hess,thmode,ypred,sel,nsel,n,pvar,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric,hesstype); //Hessian
 
   thmode[p-1]= exp(thmode[p-1]);
   thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
@@ -1219,9 +1219,63 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 }
 
 
-void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric) {
-    //TO DO: add
-  H[1][1]= 0;
+void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric, int *hesstype) {
+  int i, j, one=1, nselplus1= (*nsel)+1;
+  double **Hprior, *hprioralpha, zero=0;
+
+  Hprior= dmatrix(1,nselplus1,1,nselplus1);
+  hprioralpha= dvector(1,1);
+
+  loglnegHessAlapl(H,th,nsel,sel,n,p,y,ypred,x,XtX,symmetric,hesstype);
+
+  if ((*prior)==1) {
+
+    dmomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    for (i=1; i<= (*nsel)+1; i++) {
+      H[i][i] -= Hprior[i][i];
+      for (j=1; j<i; j++) {
+	H[i][j]= H[j][i]= H[i][j] - Hprior[i][j];
+      }
+    }
+
+    dmomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+
+  } else if ((*prior)==2) {
+
+    dimomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    for (i=1; i<= (*nsel)+1; i++) {
+      H[i][i] -= Hprior[i][i];
+      for (j=1; j<i; j++) {
+	H[i][j]= H[j][i]= H[i][j] - Hprior[i][j];
+      }
+    }
+
+    dimomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+
+  } else if ((*prior)==3) {
+
+    demomighess(Hprior,&nselplus1,th,th+(*nsel)+1,tau,alphaphi,lambdaphi);
+    for (i=1; i<= (*nsel)+1; i++) {
+      H[i][i] -= Hprior[i][i];
+      for (j=1; j<i; j++) {
+	H[i][j]= H[j][i]= H[i][j] - Hprior[i][j];
+      }
+    }
+
+    demomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+
+  } else {
+
+    Rf_error("prior must be 'mom', 'imom' or 'emom'");
+
+  }
+
+  free_dmatrix(Hprior,1,nselplus1,1,nselplus1);
+  free_dvector(hprioralpha,1,1);
+
 }
 
 

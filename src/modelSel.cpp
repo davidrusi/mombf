@@ -1165,9 +1165,141 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 
 
 void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
-  //TO DO: adapt postmodeSkewNormCDA
+
+  bool useinit= false;
+  int i, j, it, p=(*nsel)+2, maxitmle=5;
+  double err, ferr, g, H, delta, fnew, *thnew, *ypred;
+
+  ypred= dvector(0,*n -1); thnew= dvector(1,p);
+
+  //Initialize at MLE
+  mleAlaplCDA(thmode,fmode,ypred,sel,nsel,n,pvar,y,x,XtX,ytX,&maxitmle,useinit,symmetric);
+
+  for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
+  thnew[p-1]= thmode[p-1]= log(thmode[p-1]); //phi
+  if (*symmetric ==0) thnew[p]= thmode[p]= atanh(thmode[p]);   //alpha (Note: atanh(z)= 0.5*(log(1+z)-log(1-z)))
+
+  it=1; err= ferr= 1;
+  fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+  (*fmode) -= thmode[p-1];
+
+  while ((err>0.001) & (it<(*maxit)) & (ferr>0.001)) {
+
+    err= 0;
+    for (j=1; j<=p; j++) {
+
+      fpnegAlaplUniv(j,&g,&H,thmode,ypred,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //gradient and hessian
+      delta= g/H;
+      thnew[j]= thmode[j] - delta;
+
+      fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+      fnew -= thnew[p-1];
+
+      //If new value improves target function, update thmode, fmode
+      if (fnew<(*fmode)) {
+	for (j=1; j<=p; j++) { err= max_xy(err,fabs(thmode[j]-thnew[j])); thmode[j]= thnew[j]; }
+	ferr= *fmode - fnew;
+	(*fmode)= fnew;
+      } else {
+	Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
+      }
+      it++;
+
+    }
+
+  }
+
+  fppnegAlapl(hess,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //Hessian
+
+  thmode[p-1]= exp(thmode[p-1]);
+  thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
+
+  free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p);
 
 }
+
+
+void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric) {
+    //TO DO: add
+  H[1][1]= 0;
+}
+
+
+void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit, int *symmetric) {
+  //MLE for linear regression with asymmetric Laplace errors using a Coordinate Descent Algorithm
+  //Input
+  // - useinit: if true then thmode is used as initial value (ypred should contain linear predictor for thmode), else it is initializes at least squares estimator
+  //Output
+  // - thmode: MLE
+  // - fmode: log-likelihood evaluated at the MLE
+  // - ypred[0.. n-1] contains linear predictor at MLE
+  int i, ii, j, jj;
+  double *thnew, fnew, err=0, scale, alpha, *fudgeh, g, H, s1, s2;
+
+  //Initialize
+  thnew= dvector(1,*nsel +2); fudgeh= dvector(1,*nsel +2);
+
+  if ((*nsel)>0) {
+    if (!useinit) { leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX,n,p,sel,nsel); }
+    for (j=1; j<= *nsel; j++) thnew[j]= thmode[j];
+  } else {
+    for (i=0; i< *n; i++) ypred[i]=0 ;
+  }
+  thmode[*nsel +1]= thnew[*nsel +1]= 0;
+  if (*symmetric== 0) thmode[*nsel +2]= thnew[*nsel +2]= 0;
+
+  scale= exp(thmode[*nsel +1]);
+  if (*symmetric ==0) alpha= tanh(thmode[*nsel +2]); else alpha= 0;
+  loglAlapl(fmode,ypred,thmode,nsel,sel,n,&scale,&alpha,y,x,symmetric);
+
+  //Coordinate descent
+  ii=0;
+  for (j=1; j<= *nsel +2; j++) fudgeh[j]= 1.0;
+  while ((err>0.0001) && (ii<(*maxit))) {
+    ii++;
+    //Update theta
+    if (*nsel >0) {
+      for (j=1; j< *nsel; j++) {
+	loglnegGradHessAlaplUniv(j-1,&g,&H,thmode,nsel,sel,n,p,y,ypred,x,XtX,symmetric);
+	thnew[j]= thmode[j]-fudgeh[j]*g/H;
+	loglAlapl(&fnew,ypred,thnew,nsel,sel,n,&scale,&alpha,y,x,symmetric);
+	jj=1;
+	while ((fnew> *fmode) && (jj<5)) {
+	  fudgeh[j]= fudgeh[j]/2;
+	  thnew[j]= thmode[j]- fudgeh[j]*g/H;
+	  loglAlapl(&fnew,ypred,thnew,nsel,sel,n,&scale,&alpha,y,x,symmetric);
+	}
+        if (fnew < *fmode) { 
+	  err= max_xy(err,fabs(thnew[j]-thmode[j])); 
+	  thmode[j]= thnew[j]; 
+	  (*fmode)= fnew; 
+	} else {
+	  Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
+	}
+      }
+    }
+
+    //Update vartheta
+    for (i=0, s1=s2=0; i< *n; i++) { if (y[i]<ypred[i]) { s1+= ypred[i]-y[i]; } else { s2+= y[i]-ypred[i]; } }
+
+    if (*symmetric ==0) {
+      thnew[*nsel +2]= atanh((sqrt(s1) - sqrt(s2))/(sqrt(s1) + sqrt(s2))); //alpha
+      thnew[*nsel +1]= log(0.25) - 2.0*log(*n +.0) + 4*log(sqrt(s1) + sqrt(s2)); //vartheta
+      err= max_xy(err,max_xy(fabs(thnew[*nsel +1]-thmode[*nsel +1]), fabs(thnew[*nsel +2]-thmode[*nsel +2])));
+      thmode[*nsel +2]= thnew[*nsel +2]; thmode[*nsel +1]= thnew[*nsel +1];
+    } else {
+      thnew[*nsel +1]= 2.0*log(s1+s2) - 2.0*log(*n +.0);
+      err= max_xy(err,fabs(thnew[*nsel +1]-thmode[*nsel +1]));
+      thmode[*nsel +1]= thnew[*nsel +1];
+    }
+    loglAlapl(fmode,ypred,thmode,nsel,sel,n,&scale,&alpha,y,x,symmetric);
+
+  }
+
+  free_dvector(thnew, 1, *nsel +2); free_dvector(fudgeh, 1, *nsel +2);
+
+}
+
 
 void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale, int *symmetric) {
 //Negative log-joint for two-piece Laplace under MOM/eMOM/iMOM prior on coef and IG on variance
@@ -1182,7 +1314,7 @@ void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int 
 
   scale= exp(th[*nsel +1]);
   if (*symmetric ==0) alpha= tanh(th[*nsel +2]); else alpha= 0;
-  loglAlapl(ans, ypred, th, nsel, sel, n, &scale, &alpha, y, x, XtX, symmetric);
+  loglAlapl(ans, ypred, th, nsel, sel, n, &scale, &alpha, y, x, symmetric);
   (*ans)= -(*ans);
 
   if ((*prior)==1) {
@@ -1327,7 +1459,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
 
 
 
-void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, double *XtX, int *symmetric) {
+void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, int *symmetric) {
   //Log-likelihood function of a linear model with two-piece Laplace errors evaluated at th=(theta,scale,alpha)
   //Output
   // - ans: value of the log-likelihood evaluated at th
@@ -1431,7 +1563,7 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
 
 void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric, int *hesstype) {
   int i, j, k;
-  double alpha, alphasq, scale, sqscale, wy0, wbarsqy0, wbarcubey0, w1, w2, w1sq, w2sq, w1cube, w2cube, *Xtwbar, *Xtwsq, *hdiag, *y0;
+  double alpha, alphasq, scale, sqscale, wy0, wbarsqy0, wbarcubey0, w1=1, w2=1, w1sq, w2sq, w1cube, w2cube, *Xtwbar, *Xtwsq, *hdiag, *y0;
   scale= exp(th[*nsel +1]);
   sqscale= sqrt(scale);
 
@@ -1519,8 +1651,11 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
 
     hdiag= dvector(1,*nsel);
 
-    quadapproxALaplace(hdiag, y0, x, th, &scale, &alpha, &wy0);
-
+    quadapproxALaplace(hdiag, H, nsel, sel, n, y0, x, th, &scale, &alpha, &wy0, symmetric, &w1, &w2);
+    for (i=1; i<= *nsel; i++) {
+      H[i][i]= hdiag[i];
+      for (j=1; j< i; j++) H[i][j]= H[j][i]= H[i][j] * sqrt(hdiag[i]/H[i][i]) * sqrt(hdiag[j]/H[j][j]);
+    }
     free_dvector(hdiag,1,*nsel);
 
   }
@@ -1529,9 +1664,10 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
 }
 
 
-void quadapproxALaplace(double *Hdiag, double *y0, double *x, double *th, double *vartheta, double *alpha, double *wy0) {
+void quadapproxALaplace(double *hdiag, double **H, int *nsel, int *sel, int *n, double *y0, double *x, double *th, double *vartheta, double *alpha, double *wy0, int *symmetric, double *w1, double *w2) {
   //Diagonal elements of the hessian in a quadratic approximation to asymmetric Laplace log-likelihood
   // Input
+  // - H: asymptotic hessian
   // - y0: residuals y - X th where th is the MLE
   // - x: matrix with predictors
   // - th: vector containing MLE for theta
@@ -1539,14 +1675,45 @@ void quadapproxALaplace(double *Hdiag, double *y0, double *x, double *th, double
   // - alpha: MLE for asymmetry parameter (must be in (-1,1))
   // - wy0: sum of weighted absolute errors at MLE (i.e. log-likelihood ignoring terms depending on vartheta)
   // Output
-  // - Hdiag: diagonal terms of the hessian
-  //TO DO: PROGRAM
-  (*Hdiag)= 1.0;
-}
+  // - hdiag: diagonal terms of the hessian
+  int i, j, k, colidx;
+  double *l, *fl, f0, *e, l2, suml2, suml4, ct;
 
-void mleAlapl(double *thmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit, int *symmetric) {
-  //TO DO: PROGRAM
-  *thmode= 0;
+  l= dvector(1,2);
+  fl= dvector(1,2);
+  e= dvector(0,*n -1);
+
+  f0= *wy0;
+  ct= 2.0/sqrt(*vartheta);
+  for (j=1; j<= *nsel; j++) {
+    l[2]= 1.96/sqrt(H[j][j]);
+    l[1]= -l[2];
+    colidx= sel[j-1]* (*n);
+    suml2= suml4= 0;
+    for (k=1; k<=2; k++) {
+      fl[k]= 0;
+      if (*symmetric ==0) { //asymmetric Laplace errors
+	for (i=0; i< *n; i++) {
+	  e[i]= y0[i] - l[k] * x[i + colidx];
+	  if (e[i]<0) { fl[k]-= (*w1) * e[i]; } else { fl[k]+= (*w2) * e[i]; }
+	}
+      } else { //symmetric Laplace errors
+	for (i=0; i< *n; i++) {
+	  e[i]= y0[i] - l[k] * x[i + colidx];
+	  if (e[i]<0) { fl[k]-= e[i]; } else { fl[k]+= e[i]; }
+	}
+      }
+      l2= l[k]*l[k];
+      suml2+= l2 * (fl[k]-f0);
+      suml4+= l2*l2;
+      hdiag[j]= ct * suml2 / suml4;
+    }
+  }
+
+  free_dvector(l,1,2);
+  free_dvector(fl,1,2);
+  free_dvector(e,0,*n -1);
+
 }
 
 

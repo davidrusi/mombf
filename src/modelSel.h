@@ -166,7 +166,8 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
 
 void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int *n, double *scale, double *alpha, double *y, double *x, double *XtX, int *symmetric);
 void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric);
-void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x, int *symmetric, int *hesstype);
+void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric, int *hesstype);
+void quadapproxALaplace(double *Hdiag, double *y0, double *x, double *th, double *vartheta, double *alpha, double *wy0);
 
 void mleAlapl(double *thmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *ytX, int *maxit, bool useinit, int *symmetric);
 

@@ -1429,20 +1429,115 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
 }
 
 
-void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, double *y, double *ypred, double *x, int *symmetric, int *hesstype) {
-  //TO DO: PROGRAM
-  H[1][1]= 0;
+void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric, int *hesstype) {
+  int i, j, k;
+  double alpha, alphasq, scale, sqscale, wy0, wbarsqy0, wbarcubey0, w1, w2, w1sq, w2sq, w1cube, w2cube, *Xtwbar, *Xtwsq, *hdiag, *y0;
+  scale= exp(th[*nsel +1]);
+  sqscale= sqrt(scale);
+
+  Xtwbar= dvector(0,*nsel);
+  y0= dvector(0,*n);
+
+  if (*symmetric ==0) { //asymmetric Laplace errors
+
+    Xtwsq= dvector(0,*nsel);
+    alpha= tanh(th[*nsel +2]);
+    alphasq= alpha*alpha;
+    w1= 1.0 / (1.0 + alpha);
+    w2= 1.0 / (1.0 - alpha);
+
+    for (j=0; j< *nsel; j++) {  //hessian wrt theta
+      H[j+1][j+1]= XtX[sel[j]*(*p)+sel[j]]/(scale*(1-alphasq));
+      for (k=0; k<j; k++) { H[j+1][k+1]= H[k+1][j+1]= XtX[sel[k]*(*p)+sel[j]]/(scale*(1-alphasq)); }
+      Xtwbar[j]= Xtwsq[j]= 0;
+    }
+
+    w1sq= w1*w1; w2sq= w2*w2;
+    w1cube= w1sq*w1; w2cube= w2sq*w2;
+    wy0= wbarsqy0= wbarcubey0=  0;
+    for (i=0; i< *n; i++) {
+      y0[i]= y[i]-ypred[i];
+      if (y[i]<ypred[i]) {
+	wy0-= w1 * y0[i];
+	wbarsqy0-= w1sq * y0[i];
+	wbarcubey0-= w1cube * y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]+= w1* x[sel[j]*(*p) +i]; Xtwsq[j]+= w1sq* x[sel[j]*(*p) +i]; }
+      } else {
+	wy0+= w2 * y0[i];
+	wbarsqy0-= w2sq * y0[i];
+	wbarcubey0-= w2cube * y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]-= w2* x[sel[j]*(*p) +i]; Xtwsq[j]+= w2sq* x[sel[j]*(*p) +i]; }
+      }
+    }
+
+    H[*nsel][*nsel]= 0.75*wy0/(scale*scale*sqscale) - 0.5*(*n)/(scale*sqscale);  //hessian wrt vartheta
+    H[*nsel +1][*nsel +1]= 2*wbarcubey0/sqscale; //hessian wrt alpha
+    H[*nsel][*nsel +1]= H[*nsel +1][*nsel]= 0.5*wbarsqy0/(scale*sqscale); //hessian wrt vartheta, alpha
+
+    for (j=0; j< *nsel; j++) { 
+      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/(scale*sqscale); //hessian wrt theta, vartheta
+      H[j+1][*nsel +2]= H[*nsel +2][j+1]= -Xtwsq[j]/sqscale; //hessian wrt theta, alpha
+    }
+
+    free_dvector(Xtwsq,0,*nsel);
+
+  } else {  //symmetric Laplace errors
+
+    Xtwsq= dvector(0,*nsel);
+
+    for (j=0; j< *nsel; j++) {  //hessian wrt theta
+      H[j+1][j+1]= XtX[sel[j]*(*p)+sel[j]]/scale;
+      for (k=0; k<j; k++) { H[j+1][k+1]= H[k+1][j+1]= XtX[sel[k]*(*p)+sel[j]]/scale; }
+      Xtwbar[j]= Xtwsq[j]= 0;
+    }
+
+    wy0= 0;
+    for (i=0; i< *n; i++) {
+      y0[i]= y[i]-ypred[i];
+      if (y[i]<ypred[i]) { 
+	wy0-= y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]+= x[sel[j]*(*p) +i]; }
+      } else {
+	wy0+= y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]-= x[sel[j]*(*p) +i]; }
+      }
+    }
+
+    H[*nsel][*nsel]= 0.75*wy0/(scale*scale*sqscale) - 0.5*(*n)/(scale*sqscale);  //hessian wrt vartheta
+
+    for (j=0; j< *nsel; j++) { 
+      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/(scale*sqscale); //hessian wrt theta, vartheta
+    }
+
+    free_dvector(Xtwsq,0,*nsel);
+
+  }
+
+  free_dvector(Xtwbar,0,*nsel);
+
+  if (*hesstype ==2) {
+
+    hdiag= dvector(1,*nsel);
+
+    quadapproxALaplace(hdiag, y0, x, th, &scale, &alpha, &wy0);
+
+    free_dvector(hdiag,1,*nsel);
+
+  }
+
+  free_dvector(y0,0,*n);
 }
 
-void quadapproxALaplace(double *Hdiag, double *ypred, double *x, double *th, double *vartheta, double *alpha, double *f0) {
+
+void quadapproxALaplace(double *Hdiag, double *y0, double *x, double *th, double *vartheta, double *alpha, double *wy0) {
   //Diagonal elements of the hessian in a quadratic approximation to asymmetric Laplace log-likelihood
   // Input
-  // - ypred: residuals y - X th where th is the MLE
+  // - y0: residuals y - X th where th is the MLE
   // - x: matrix with predictors
   // - th: vector containing MLE for theta
   // - vartheta: MLE for vartheta parameter (must be >0)
   // - alpha: MLE for asymmetry parameter (must be in (-1,1))
-  // - f0: sum of weighted absolute errors at MLE (i.e. log-likelihood ignoring terms depending on vartheta)
+  // - wy0: sum of weighted absolute errors at MLE (i.e. log-likelihood ignoring terms depending on vartheta)
   // Output
   // - Hdiag: diagonal terms of the hessian
   //TO DO: PROGRAM

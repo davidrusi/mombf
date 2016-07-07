@@ -1144,7 +1144,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     ans= 0;
     for (i=1; i<= (*(*pars).B); i++) {
       rmvtC(thsim, p, thmode, cholV, nu);
-      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,(*pars).XtX,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true,symmetric);
+      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true,symmetric);
       term1 -= thsim[p-1];
       term2= -dmvtC(thsim, p, thmode, cholVinv, detVinv, nu, 1);
       ans += exp(-term1 + fmode + term2);
@@ -1180,7 +1180,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
   if (*symmetric ==0) thnew[p]= thmode[p]= atanh(thmode[p]);   //alpha (Note: atanh(z)= 0.5*(log(1+z)-log(1-z)))
 
   it=1; err= ferr= 1;
-  fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+  fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
   (*fmode) -= thmode[p-1];
 
   while ((err>0.001) & (it<(*maxit)) & (ferr>0.001)) {
@@ -1188,11 +1188,11 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
     err= 0;
     for (j=1; j<=p; j++) {
 
-      fpnegAlaplUniv(j,&g,&H,thmode,ypred,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //gradient and hessian
+      fpnegAlaplUniv(j,&g,&H,thmode,ypred,sel,nsel,n,pvar,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //gradient and hessian
       delta= g/H;
       thnew[j]= thmode[j] - delta;
 
-      fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+      fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
       fnew -= thnew[p-1];
 
       //If new value improves target function, update thmode, fmode
@@ -1301,7 +1301,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
 }
 
 
-void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale, int *symmetric) {
+void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale, int *symmetric) {
 //Negative log-joint for two-piece Laplace under MOM/eMOM/iMOM prior on coef and IG on variance
 //Note: log-joint evaluated for vartheta, if log-joint for log(vartheta) is desired you need to substract -th[nsel+1] to consider the Jacobian term
 // Input

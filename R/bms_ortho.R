@@ -169,8 +169,8 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
       modelidx <- sapply(strsplit(modelid,split=','),as.numeric)
       nvars <- sapply(modelidx,length)
       if (priorCoef@priorDistr=='zellner') {
-          logpp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
-          pp <- exp(logpp)
+          pp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
+          pp <- exp(pp)
       } else {
           pp <- double(length(modelid))
           w <- phi[,2]/sum(phi[,2])
@@ -178,12 +178,10 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
               ppcond <- sapply(phi[,1],jointppMomKnownOrtho,sel=modelidx[[i]],u=u,g=g,shrinkage=shrinkage,rho=rho,logscale=FALSE)
               pp[i] <- sum(ppcond * w)
           }
-          logpp <- log(pp)
       }
     } else {
       phi <- NA
       logpy <- NA
-      logpp <- (pp-maxpp) - log(sum(exp(pp-maxpp)))
       pp <- exp(pp - maxpp)
       pp <- pp/sum(pp)
     }
@@ -196,7 +194,7 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     }
     phi <- phi[sel,]
     #
-    models <- data.frame(modelid=modelid,pp=pp,logpp=logpp)
+    models <- data.frame(modelid=modelid,pp=pp)
     models <- models[order(pp,decreasing=TRUE),]
     if (sum(models$pp)>1) {
         warning("Posterior model probabilities are unstable, this often signals that t(x) %*% x is not diagonal")
@@ -303,17 +301,16 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
         names(umv[[i]]) <- modelid[-1]
         ubest[[i]] <- do.call(rbind,by(u[[i]], INDICES=u[[i]][,'nvars'], FUN=function(z) z[1,]))[-1,] #best model of each size
     }
+    #Avoid overflow in cases where X'X not exactly block-diagonal
+    sumumax <- sum(sapply(u, function(z) z$u[1]))
+    if (sumumax > (sumy2-l.phi)) {
+        u <- lapply(u, function(z) { z$u <- z$u * ((sumy2-l.phi)/sumumax); return(z) } )
+        ubest <- lapply(ubest, function(z) { z$u <- z$u * ((sumy2-l.phi)/sumumax); return(z) } )
+        for (i in 1:length(umv)) { umv[[i]] <- lapply(umv[[i]], function(z) { z$u <- z$u * ((sumy2-l.phi)/sumumax); return(z) } ) }
+    }
     #Enumerate models
     models <- coolblock(ubest,g=g,priorModelBlock=priorModelBlock,varidx=varidx,maxvars=maxvars)
     models <- rbind(data.frame(nvars=0,u=0,modelid='',phi=Inf,m=NA,block=NA,u.lower=0,u.upper=0,stringsAsFactors=FALSE),models)
-    #Avoid numerical overflow (also cases where X'X is not diagonal)
-    maxu <- max(models$u.upper)
-    if (maxu > sumy2-l.phi) {
-        warning("Posterior model probabilities are unstable, this often signals that t(x) %*% x is not diagonal")
-        models$u.upper <- models$u.upper * ((sumy2-l.phi)/maxu)
-        models$u.lower <- models$u.lower * ((sumy2-l.phi)/maxu)
-        models$u <- models$u * ((sumy2-l.phi)/maxu)
-    }
     lpos.upper <- sumy2 - shrinkage * models$u.upper
     pp.upper <- priorModel(models$nvars) - 0.5*models$nvars*log(1+g) - 0.5*apos * log(lpos.upper)
     mis <- is.na(models$u) & (pp.upper>max(pp.upper[!is.na(models$u)],na.rm=TRUE))
@@ -420,9 +417,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     #Exact posterior probabilities
     nvars <- models$nvars
     if (priorCoef@priorDistr=='zellner') {
-        logpp.upper <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage*models$u.upper)/2)
-        pp.upper <- exp(logpp.upper)
-        logpp <- ifelse(is.na(models$u),NA,logpp.upper)
+        pp.upper <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage*models$u.upper)/2)
+        pp.upper <- exp(pp.upper)
         pp <- ifelse(is.na(models$u),NA,pp.upper)
     } else {
         modelidx <- sapply(strsplit(models$modelid,split=','), function(z) { ans= rep(FALSE,p); ans[as.numeric(z)] <- TRUE; return(ans) })
@@ -433,9 +429,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
             pp[i] <- sum(ppcond * w)
         }
         pp.upper <- pp
-        logpp <- log(pp)
     }
-    models <- data.frame(models[,c('modelid','nvars')],pp=pp,pp.upper=pp.upper,logpp=logpp)
+    models <- data.frame(models[,c('modelid','nvars')],pp=pp,pp.upper=pp.upper)
     ans <- list(models=models, phi=phi, logpy=logpy)
     #Coefficient estimates under each visited model
     modelidx <- sapply(strsplit(models$modelid,split=','), function(z) { ans= rep(FALSE,p); ans[as.numeric(z)] <- TRUE; return(ans) })

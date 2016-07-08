@@ -77,42 +77,44 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
       #Refine grid for phi by adding further promising models
       goodmodelsizes <- which((maxpp - pp[-1]) < log(1000))
       if (length(goodmodelsizes)>0) {
-          #goodmodelsizes <- 1:(goodmodelsizes[length(goodmodelsizes)])
-          goodmodelsizes <- goodmodelsizes[goodmodelsizes <= min(maxvars,ncol(x)-1)]
-          phiseqextra <- modelidextra <- modelusumextra <- ppextra <- vector("list",length(goodmodelsizes))
-          for (i in 1:length(goodmodelsizes)) {
-              nvars <- goodmodelsizes[i]
-              maxmodels <- lchoose(ncol(x),nvars)
-              if (maxmodels>0) {
-                  if (nvars == 1) {
-                      idx <- list(2,3,4,5,6) #idx <- list(2,3,4)
-                      idx <- idx[idx<=ncol(x)]
-                  } else {
-                      if (nvars>2) idx <- 1:(nvars-2) else idx <- integer(0)
-                      if (nvars+3<=ncol(x)) {
-                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1), c(idx,nvars-1,nvars+3), c(idx,nvars,nvars+2))
-                      } else if (nvars+2<=ncol(x)) {
-                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1))
+          if (length(goodmodelsizes)!=1 | goodmodelsizes[1]!=ncol(x)) {  #skip if only 1 model with ncol(x) variables remains
+              #goodmodelsizes <- 1:(goodmodelsizes[length(goodmodelsizes)])
+              goodmodelsizes <- goodmodelsizes[goodmodelsizes <= min(maxvars,ncol(x)-1)]
+              phiseqextra <- modelidextra <- modelusumextra <- ppextra <- vector("list",length(goodmodelsizes))
+              for (i in 1:length(goodmodelsizes)) {
+                  nvars <- goodmodelsizes[i]
+                  maxmodels <- lchoose(ncol(x),nvars)
+                  if (maxmodels>0) {
+                      if (nvars == 1) {
+                          idx <- list(2,3,4,5,6) #idx <- list(2,3,4)
+                          idx <- idx[idx<=ncol(x)]
                       } else {
-                          idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars,nvars+1))
+                          if (nvars>2) idx <- 1:(nvars-2) else idx <- integer(0)
+                          if (nvars+3<=ncol(x)) {
+                              idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1), c(idx,nvars-1,nvars+3), c(idx,nvars,nvars+2))
+                          } else if (nvars+2<=ncol(x)) {
+                              idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars-1,nvars+2), c(idx,nvars,nvars+1))
+                          } else {
+                              idx <- list(c(idx,nvars-1,nvars+1), c(idx,nvars,nvars+1))
+                          }
                       }
+                      idx <- idx[1:min(length(idx),ifelse(maxmodels>=log(6),5,exp(maxmodels)-1))]  #if <5 extra models available, just take those
+                      modelidextra[[i]] <- sapply(idx,function(z) paste(o[z],collapse=','))
+                      modelusumextra[[i]] <- sapply(idx, function(z) sum(uord[z]))
+                      lposextra <- sumy2 - shrinkage * modelusumextra[[i]]
+                      phiseqextra[[i]] <- .5* lposextra / (.5*apos + 1)
+                      ppextra[[i]] <- priorModel(nvars) - 0.5*nvars*log(1+g) - 0.5*apos * log(lposextra)
                   }
-                  idx <- idx[1:min(length(idx),ifelse(maxmodels>=log(6),5,exp(maxmodels)-1))]  #if <5 extra models available, just take those
-                  modelidextra[[i]] <- sapply(idx,function(z) paste(o[z],collapse=','))
-                  modelusumextra[[i]] <- sapply(idx, function(z) sum(uord[z]))
-                  lposextra <- sumy2 - shrinkage * modelusumextra[[i]]
-                  phiseqextra[[i]] <- .5* lposextra / (.5*apos + 1)
-                  ppextra[[i]] <- priorModel(nvars) - 0.5*nvars*log(1+g) - 0.5*apos * log(lposextra)
               }
+              phiseq <- c(phiseq,unlist(phiseqextra))
+              pp <- c(pp,unlist(ppextra))
+              modelid <- c(modelid,unlist(modelidextra))
+              modelusum <- c(modelusum,unlist(modelusumextra))
+              #variableidsextra <- strsplit(as.character(modelidextra),split=',')
+              variableidsextra <- strsplit(unlist(modelidextra),split=',')
+              variableids <- c(variableids,variableidsextra)
+              nvars <- c(nvars,sapply(variableidsextra,length))
           }
-          phiseq <- c(phiseq,unlist(phiseqextra))
-          pp <- c(pp,unlist(ppextra))
-          modelid <- c(modelid,unlist(modelidextra))
-          modelusum <- c(modelusum,unlist(modelusumextra))
-          #variableidsextra <- strsplit(as.character(modelidextra),split=',')
-          variableidsextra <- strsplit(unlist(modelidextra),split=',')
-          variableids <- c(variableids,variableidsextra)
-          nvars <- c(nvars,sapply(variableidsextra,length))
       }
       #Evaluate marginal of phi at selected grid points
       phiseq <- phiseq[order(phiseq,decreasing=TRUE)]
@@ -194,6 +196,10 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     #
     models <- data.frame(modelid=modelid,pp=pp)
     models <- models[order(pp,decreasing=TRUE),]
+    if (sum(models$pp)>1) {
+        warning("Posterior model probabilities are unstable, this often signals that t(x) %*% x is not diagonal")
+        models$pp <- models$pp/sum(models$pp)
+    }
     ans <- list(models=models, phi=phi, logpy=logpy)
     if (bma) {
         margpp <- double(p)
@@ -298,10 +304,17 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     #Enumerate models
     models <- coolblock(ubest,g=g,priorModelBlock=priorModelBlock,varidx=varidx,maxvars=maxvars)
     models <- rbind(data.frame(nvars=0,u=0,modelid='',phi=Inf,m=NA,block=NA,u.lower=0,u.upper=0,stringsAsFactors=FALSE),models)
+    #Avoid numerical overflow (also cases where X'X is not diagonal)
+    maxu <- max(models$u.upper)
+    if (maxu > sumy2-l.phi) {
+        warning("Posterior model probabilities are unstable, this often signals that t(x) %*% x is not diagonal")
+        models$u.upper <- models$u.upper * ((sumy2-l.phi)/maxu)
+        models$u.lower <- models$u.lower * ((sumy2-l.phi)/maxu)
+        models$u <- models$u * ((sumy2-l.phi)/maxu)
+    }
     lpos.upper <- sumy2 - shrinkage * models$u.upper
     pp.upper <- priorModel(models$nvars) - 0.5*models$nvars*log(1+g) - 0.5*apos * log(lpos.upper)
     mis <- is.na(models$u) & (pp.upper>max(pp.upper[!is.na(models$u)],na.rm=TRUE))
-    browser()
     if (any(mis)) {
         enumsizes <- models$nvar[mis & (pp.upper>max(pp.upper[!mis]))]
         for (i in 1:length(enumsizes)) {
@@ -359,7 +372,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     #Refine grid where target increases > tolf % its max value
     tolf <- 0.01
     sel <- which(abs(diff(exp(phiseqpost-maxphipost))) > tolf)
-    while (length(sel)>0) {
+    itrefine <- 0
+    while ((length(sel)>0) && (itrefine<10)) {
         phiseqnew <- unlist(lapply(sel, function(z) { ans= seq(phiseq[z],phiseq[z+1],length=5); ans[c(-1,-length(ans))] } ))
         if (priorCoef@priorDistr == 'zellner') {
             phiseqpostnew <- jointPhiyZellnerBlockDiag(phiseqnew, sumy2, apos, a.phi, l.phi, shrinkage, u, g, priorModelBlock, blocksize, logscale=TRUE)
@@ -372,11 +386,14 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
         ophiseq <- order(phiseq,decreasing=TRUE)
         phiseq <- phiseq[ophiseq]; phiseqpost <- phiseqpost[ophiseq]
         sel <- which(abs(diff(exp(phiseqpost-maxphipost))) > tolf)
+        itrefine <- itrefine+1
     }
     #Compute marginal p(y)
+    zeropost <- which(is.infinite(phiseqpost))
+    if (length(zeropost)>1) { phiseq <- phiseq[-zeropost[-1]]; phiseqpost <- phiseqpost[-zeropost[-1]] }
     phiseqpost <- exp(phiseqpost-maxphipost)
     if (integrateMethod=='CSR') {
-        myintegral <- int.simpson2(phiseq,phiseqpost,equi=FALSE,method="CSR")
+        myintegral <- int.simpson2(phiseq[phiseqpost!=0],phiseqpost[phiseqpost!=0],equi=FALSE,method="CSR")
     } else {
         if (priorCoef@priorDistr=='zellner') {
             f2int <- function(phi) { exp(jointPhiyZellnerBlockDiag(phi,sumy2=sumy2,apos=apos,a.phi=a.phi,l.phi=l.phi,shrinkage=shrinkage,u=u,g=g,priorModelBlock=priorModelBlock,blocksize=blocksize,logscale=TRUE) - maxphipost) }
@@ -401,8 +418,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     #Exact posterior probabilities
     nvars <- models$nvars
     if (priorCoef@priorDistr=='zellner') {
-        pp.upper <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage*models$u.upper)/2)
-        pp.upper <- exp(pp.upper)
+        logpp.upper <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage*models$u.upper)/2)
+        pp.upper <- exp(logpp.upper)
         pp <- ifelse(is.na(models$u),NA,pp.upper)
     } else {
         modelidx <- sapply(strsplit(models$modelid,split=','), function(z) { ans= rep(FALSE,p); ans[as.numeric(z)] <- TRUE; return(ans) })
@@ -489,21 +506,25 @@ coolblock <- function(ubest, g, priorModelBlock, varidx, maxvars) {
         r[[k]] <- matrix(NA,nrow=nvars[k]+1,ncol=nvars[k]+1)
         rownames(r[[k]]) <- colnames(r[[k]]) <- 0:nvars[k]
         r[[k]][-1,1] <- r[[k]][1,-1] <- shrinkage * ubest[[k]][,'u'] / (ubest[[k]]$nvars * log1g - 2 * sapply(priorodds,'[[',1))
-        for (l in 2:nvars[k]) {
-            for (j in 1:(l-1)) {
-                r[[k]][l+1,j+1] <- r[[k]][j+1,l+1] <- shrinkage * (ubest[[k]][l,'u'] - ubest[[k]][j,'u']) / ((l-j) * log1g - 2 * priorodds[[l]][j+1])
-            }
+        if (nvars[k]>=2) {
+          for (l in 2:nvars[k]) {
+              for (j in 1:(l-1)) {
+                  r[[k]][l+1,j+1] <- r[[k]][j+1,l+1] <- shrinkage * (ubest[[k]][l,'u'] - ubest[[k]][j,'u']) / ((l-j) * log1g - 2 * priorodds[[l]][j+1])
+              }
+          }
         }
         phiseq[[k]] <- double(nvars[k])
         m[[k]] <- character(nvars[k])
         ll <- 1
-        for (l in 1:(nvars[k]-1)) {
-            rmin <- min(r[[k]][l+1,1:l])
-            rmax <- max(r[[k]][(l+2):(nvars[k]+1),l+1])
-            if (rmax < rmin) {
-                phiseq[[k]][ll] <- rmin
-                m[[k]][ll] <- as.character(ubest[[k]][l,'modelid'])
-                ll <- ll+1
+        if (nvars[k]>=2) {
+            for (l in 1:(nvars[k]-1)) {
+                rmin <- min(r[[k]][l+1,1:l])
+                rmax <- max(r[[k]][(l+2):(nvars[k]+1),l+1])
+                if (rmax < rmin) {
+                    phiseq[[k]][ll] <- rmin
+                    m[[k]][ll] <- as.character(ubest[[k]][l,'modelid'])
+                    ll <- ll+1
+                }
             }
         }
         l <- nvars[k]  #treat last case separately (no larger models to compare with)

@@ -169,8 +169,8 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
       modelidx <- sapply(strsplit(modelid,split=','),as.numeric)
       nvars <- sapply(modelidx,length)
       if (priorCoef@priorDistr=='zellner') {
-          pp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
-          pp <- exp(pp)
+          logpp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
+          pp <- exp(logpp)
       } else {
           pp <- double(length(modelid))
           w <- phi[,2]/sum(phi[,2])
@@ -178,10 +178,12 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
               ppcond <- sapply(phi[,1],jointppMomKnownOrtho,sel=modelidx[[i]],u=u,g=g,shrinkage=shrinkage,rho=rho,logscale=FALSE)
               pp[i] <- sum(ppcond * w)
           }
+          logpp <- log(pp)
       }
     } else {
       phi <- NA
       logpy <- NA
+      logpp <- (pp-maxpp) - log(sum(exp(pp-maxpp)))
       pp <- exp(pp - maxpp)
       pp <- pp/sum(pp)
     }
@@ -194,7 +196,7 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     }
     phi <- phi[sel,]
     #
-    models <- data.frame(modelid=modelid,pp=pp)
+    models <- data.frame(modelid=modelid,pp=pp,logpp=logpp)
     models <- models[order(pp,decreasing=TRUE),]
     if (sum(models$pp)>1) {
         warning("Posterior model probabilities are unstable, this often signals that t(x) %*% x is not diagonal")
@@ -420,6 +422,7 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     if (priorCoef@priorDistr=='zellner') {
         logpp.upper <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage*models$u.upper)/2)
         pp.upper <- exp(logpp.upper)
+        logpp <- ifelse(is.na(models$u),NA,logpp.upper)
         pp <- ifelse(is.na(models$u),NA,pp.upper)
     } else {
         modelidx <- sapply(strsplit(models$modelid,split=','), function(z) { ans= rep(FALSE,p); ans[as.numeric(z)] <- TRUE; return(ans) })
@@ -430,8 +433,9 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
             pp[i] <- sum(ppcond * w)
         }
         pp.upper <- pp
+        logpp <- log(pp)
     }
-    models <- data.frame(models[,c('modelid','nvars')],pp=pp,pp.upper=pp.upper)
+    models <- data.frame(models[,c('modelid','nvars')],pp=pp,pp.upper=pp.upper,logpp=logpp)
     ans <- list(models=models, phi=phi, logpy=logpy)
     #Coefficient estimates under each visited model
     modelidx <- sapply(strsplit(models$modelid,split=','), function(z) { ans= rep(FALSE,p); ans[as.numeric(z)] <- TRUE; return(ans) })

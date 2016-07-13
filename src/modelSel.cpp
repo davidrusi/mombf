@@ -1090,17 +1090,13 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 // Output: integrated likelihood
 
   bool posdef;
-  int maxit= 50, p= (*nsel)+2, n= (*((*pars).n)), *hesstype= ((*pars).hesstype);
+  int maxit= 50, p, n= (*((*pars).n)), *hesstype= ((*pars).hesstype);
   double ans, *thmode, fmode, **hess, **cholhess, det, *ypred;
 
+  if (*symmetric ==0) { p= *nsel +2; } else { p= *nsel +1; }
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
   postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hesstype, symmetric);
-  //if (*((*pars).optimMethod) == 1) {  //LMA (modified Newton-Raphson)
-  //  postmodeAlapl(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, &initmle, prior, hesstype, symmetric);
-  //} else {  //Coordinate Descent Algorithm
-  //  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, (*pars).tau, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hesstype, symmetric);
-  //}
 
   int method= *((*pars).method);
   if ((method!=0) & (method!=1)) method= 0; //If unrecognized method, set to Laplace
@@ -1131,7 +1127,8 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 
     thsim= dvector(1, p); cholV= dmatrix(1,p,1,p); cholVinv= dmatrix(1,p,1,p);
 
-    thmode[p-1]= log(thmode[p-1]); thmode[p]= atanh(thmode[p]);
+    thmode[*nsel +1]= log(thmode[*nsel +1]); 
+    if (*symmetric ==0) thmode[p]= atanh(thmode[p]);
     cholS_inv(cholhess, p, cholV);
     for (i=1; i<=p; i++) {
       for (j=1; j<=i; j++) {
@@ -1145,7 +1142,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     for (i=1; i<= (*(*pars).B); i++) {
       rmvtC(thsim, p, thmode, cholV, nu);
       fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true,symmetric);
-      term1 -= thsim[p-1];
+      term1 -= thsim[*nsel +1];
       term2= -dmvtC(thsim, p, thmode, cholVinv, detVinv, nu, 1);
       ans += exp(-term1 + fmode + term2);
     }
@@ -1167,54 +1164,67 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
 
   bool useinit= false;
-  int i, j, it, p=(*nsel)+2, maxitmle=5;
-  double err, ferr, g, H, delta, fnew, *thnew, *ypred;
+  int i, j, jj, it, p, maxitmle=5;
+  double err, ferr, g, H, delta, fnew, *thnew, *ypred, *fudgeh;
 
-  ypred= dvector(0,*n -1); thnew= dvector(1,p);
+  if (*symmetric ==0) { p= (*nsel)+2; } else { p= (*nsel)+1; }
+  ypred= dvector(0,*n -1); thnew= dvector(1,p); fudgeh= dvector(1,p);
+  for (j=1; j<=p; j++) fudgeh[j]= 1.0;
 
   //Initialize at MLE
   mleAlaplCDA(thmode,fmode,ypred,sel,nsel,n,pvar,y,x,XtX,ytX,&maxitmle,useinit,symmetric);
 
   for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
-  thnew[p-1]= thmode[p-1]= log(thmode[p-1]); //phi
-  if (*symmetric ==0) thnew[p]= thmode[p]= atanh(thmode[p]);   //alpha (Note: atanh(z)= 0.5*(log(1+z)-log(1-z)))
+  thnew[*nsel +1]= thmode[*nsel +1]; //phi
+  if (*symmetric ==0) thnew[p]= thmode[p];   //alpha
 
   it=1; err= ferr= 1;
   fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
-  (*fmode) -= thmode[p-1];
+  (*fmode) -= thmode[*nsel +1];
 
-  while ((err>0.001) & (it<(*maxit)) & (ferr>0.001)) {
+  while ((err>0.0001) & (it<(*maxit)) & (ferr>0.0001)) {
 
-    err= 0;
+    err= ferr= 0;
     for (j=1; j<=p; j++) {
 
       fpnegAlaplUniv(j,&g,&H,thmode,ypred,sel,nsel,n,pvar,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric); //gradient and hessian
+      if (j== *nsel +1) g-= 1.0;
       delta= g/H;
-      thnew[j]= thmode[j] - delta;
-
+      thnew[j]= thmode[j] - fudgeh[j]*delta;
       fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
-      fnew -= thnew[p-1];
+      fnew -= thnew[*nsel +1];
+
+      if ((fnew< *fmode) & (fudgeh[j]<1)) fudgeh[j]*= 2;
+      jj=1;
+      while ((fnew> *fmode) && (jj<5)) {
+	fudgeh[j]= fudgeh[j]/2;
+	thnew[j]= thmode[j]- fudgeh[j]*delta;
+	fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+	fnew -= thnew[*nsel +1];
+      }
 
       //If new value improves target function, update thmode, fmode
       if (fnew<(*fmode)) {
-	for (j=1; j<=p; j++) { err= max_xy(err,fabs(thmode[j]-thnew[j])); thmode[j]= thnew[j]; }
-	ferr= *fmode - fnew;
+	err= max_xy(err,fabs(thmode[j]-thnew[j])); 
+	ferr+= *fmode - fnew;
+	thmode[j]= thnew[j];
 	(*fmode)= fnew;
       } else {
 	Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
       }
-      it++;
 
     }
+
+    it++;
 
   }
 
   fppnegAlapl(hess,thmode,ypred,sel,nsel,n,pvar,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,symmetric,hesstype); //Hessian
 
-  thmode[p-1]= exp(thmode[p-1]);
-  thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
+  thmode[*nsel +1]= exp(thmode[*nsel +1]);
+  if (*symmetric== 0) thmode[p]= tanh(thmode[p]); //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
 
-  free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p);
+  free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p); free_dvector(fudgeh,1,p);
 
 }
 
@@ -1238,8 +1248,10 @@ void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int
       }
     }
 
-    dmomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
-    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    if (*symmetric ==0) {
+      dmomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+      H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    }
 
   } else if ((*prior)==2) {
 
@@ -1251,8 +1263,10 @@ void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int
       }
     }
 
-    dimomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
-    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    if (*symmetric ==0) {
+      dimomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+      H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    }
 
   } else if ((*prior)==3) {
 
@@ -1264,8 +1278,10 @@ void fppnegAlapl(double **H, double *th, double *ypred, int *sel, int *nsel, int
       }
     }
 
-    demomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
-    H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    if (*symmetric ==0) {
+      demomhess(hprioralpha,&one,th+(*nsel)+1,&zero,taualpha);
+      H[(*nsel)+2][(*nsel)+2] -= hprioralpha[1];
+    }
 
   } else {
 
@@ -1288,7 +1304,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
   // - fmode: log-likelihood evaluated at the MLE
   // - ypred[0.. n-1] contains linear predictor at MLE
   int i, ii, j, jj;
-  double *thnew, fnew, err=0, scale, alpha, *fudgeh, g, H, s1, s2;
+  double *thnew, fnew, err, scale, alpha, *fudgeh, g, H, s1, s2;
 
   //Initialize
   thnew= dvector(1,*nsel +2); fudgeh= dvector(1,*nsel +2);
@@ -1307,23 +1323,23 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
   loglAlapl(fmode,ypred,thmode,nsel,sel,n,&scale,&alpha,y,x,symmetric);
 
   //Coordinate descent
-  ii=0;
+  ii=0; err= 1;
   for (j=1; j<= *nsel +2; j++) fudgeh[j]= 1.0;
   while ((err>0.0001) && (ii<(*maxit))) {
-    ii++;
+    ii++; err= 0;
     //Update theta
     if (*nsel >0) {
-      for (j=1; j< *nsel; j++) {
+      for (j=1; j<= *nsel; j++) {
 	loglnegGradHessAlaplUniv(j-1,&g,&H,thmode,nsel,sel,n,p,y,ypred,x,XtX,symmetric);
 	thnew[j]= thmode[j]-fudgeh[j]*g/H;
 	loglAlapl(&fnew,ypred,thnew,nsel,sel,n,&scale,&alpha,y,x,symmetric);
 	jj=1;
-	while ((fnew> *fmode) && (jj<5)) {
+	while ((fnew< *fmode) && (jj<5)) {
 	  fudgeh[j]= fudgeh[j]/2;
 	  thnew[j]= thmode[j]- fudgeh[j]*g/H;
 	  loglAlapl(&fnew,ypred,thnew,nsel,sel,n,&scale,&alpha,y,x,symmetric);
 	}
-        if (fnew < *fmode) { 
+        if (fnew > *fmode) { 
 	  err= max_xy(err,fabs(thnew[j]-thmode[j])); 
 	  thmode[j]= thnew[j]; 
 	  (*fmode)= fnew; 
@@ -1341,11 +1357,13 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
       thnew[*nsel +1]= log(0.25) - 2.0*log(*n +.0) + 4*log(sqrt(s1) + sqrt(s2)); //vartheta
       err= max_xy(err,max_xy(fabs(thnew[*nsel +1]-thmode[*nsel +1]), fabs(thnew[*nsel +2]-thmode[*nsel +2])));
       thmode[*nsel +2]= thnew[*nsel +2]; thmode[*nsel +1]= thnew[*nsel +1];
+      alpha= tanh(thmode[*nsel +2]);
     } else {
       thnew[*nsel +1]= 2.0*log(s1+s2) - 2.0*log(*n +.0);
       err= max_xy(err,fabs(thnew[*nsel +1]-thmode[*nsel +1]));
       thmode[*nsel +1]= thnew[*nsel +1];
     }
+    scale= exp(thmode[*nsel +1]);
     loglAlapl(fmode,ypred,thmode,nsel,sel,n,&scale,&alpha,y,x,symmetric);
 
   }
@@ -1430,11 +1448,12 @@ void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int 
 
 
 void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, double *XtX, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric) {
- //Univariate gradient and hessian of fnegAlapl wrt j^th element in th
+  //Univariate gradient and hessian of fnegAlapl wrt j^th element in th
+  //Note: the -1.0 term when j=nsel+1 coming from the jacobian of tvartheta=log(vartheta) is not included, it must be added separately after calling this function
   int i;
   double gprior, hprior, zero=0, sumth2, suminvth2;
 
-  loglnegGradHessAlaplUniv(j,g,H,th,nsel,sel,n,p,y,ypred,x,XtX,symmetric);
+  loglnegGradHessAlaplUniv(j-1,g,H,th,nsel,sel,n,p,y,ypred,x,XtX,symmetric);
 
   if ((*prior)==1) {
 
@@ -1442,7 +1461,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
       gprior= dmomgraduniv(th+j, th+(*nsel)+1, tau);
     } else if (j== (*nsel)+1) {
       for (i=1, sumth2=0; i<=(*nsel); i++) { sumth2 += th[i]*th[i]; }
-      gprior= -1.5*(*nsel) - 0.5*(*alphaphi) -1 + 0.5*(sumth2/(*tau) + *lambdaphi) * exp(-th[*nsel +1]);
+      gprior= -1.5*(*nsel) - 0.5*(*alphaphi) -1.0 + 0.5*(sumth2/(*tau) + *lambdaphi) * exp(-th[*nsel +1]);
     } else {
       gprior= dmomgraduniv(th+(*nsel)+2, &zero, taualpha);
     }
@@ -1464,7 +1483,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
       gprior= dimomgraduniv(th+j, th+(*nsel)+1, tau);
     } else if (j== (*nsel)+1) {
       for (i=1, suminvth2=0; i<=(*nsel); i++) { suminvth2 += 1.0/(th[i]*th[i]); }
-      gprior= 0.5*(*nsel) - 0.5*(*alphaphi) -1 + 0.5*(*lambdaphi)*exp(-th[*nsel +1]) - exp(th[*nsel +1])*(*tau)*suminvth2;
+      gprior= 0.5*(*nsel) - 0.5*(*alphaphi) -1.0 + 0.5*(*lambdaphi)*exp(-th[*nsel +1]) - exp(th[*nsel +1])*(*tau)*suminvth2;
     } else {
       gprior= dimomgraduniv(th+(*nsel)+2, &zero, taualpha);
     }
@@ -1486,7 +1505,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
       gprior= demomgraduniv(th+j, th+(*nsel)+1, tau);
     } else if (j== (*nsel)+1) {
       for (i=1, sumth2=0, suminvth2=0; i<=(*nsel); i++) { sumth2 += th[i]*th[i]; suminvth2 += 1.0/(th[i]*th[i]); }
-      gprior= -0.5*(*nsel) - 0.5*(*alphaphi) - 1 +0.5*(sumth2/(*tau) + *lambdaphi) * exp(-th[*nsel +1]) - exp(th[*nsel +1])*(*tau)*suminvth2;
+      gprior= -0.5*(*nsel) - 0.5*(*alphaphi) - 1.0 +0.5*(sumth2/(*tau) + *lambdaphi) * exp(-th[*nsel +1]) - exp(th[*nsel +1])*(*tau)*suminvth2;
     } else {
       gprior= demomgraduniv(th+(*nsel)+2, &zero, taualpha);
     }
@@ -1521,11 +1540,11 @@ void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int 
   int i;
   double w1, w2;
 
-  (*ans)= -(*n)*log(2.0) -0.5*(*n)*log(*scale);
-  if (!symmetric) {
+  (*ans)= 0;
+  if (*symmetric ==0) {
 
-    w1= 0.5 / ((1.0 + (*alpha)) * (*scale));
-    w2= 0.5 / ((1.0 - (*alpha)) * (*scale));
+    w1= 1.0 / ((1.0 + (*alpha)) * sqrt(*scale));
+    w2= 1.0 / ((1.0 - (*alpha)) * sqrt(*scale));
     if ((*nsel)>0) {
       Aselvecx(x, th+1, ypred, 0, (*n) -1, sel, nsel); //ypred= x %*% th
       for (i=0; i<(*n); i++) {
@@ -1545,16 +1564,19 @@ void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int 
     } else {
       for (i=0; i<(*n); i++) { (*ans) -= fabs(y[i]); }
     }
+    (*ans)= (*ans) / sqrt(*scale);
 
   }
 
+  (*ans)+= -(*n +.0)*log(2.0) -0.5*(*n +.0)*log(*scale);
 }
 
 
 void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric) {
   //Gradient for th[j] of minus the log-likelihood function of a linear model with two-piece Laplace errors
+  //Note: the -1.0 term when j=nsel+1 coming from the jacobian of tvartheta=log(vartheta) is not included, it must be added separately after calling this function
   int i, colidx= sel[j]*(*n);
-  double scale, sqscale, alpha, alphasq, w1, w2, w1sq, w2sq, w1cube, w2cube, tmp;
+  double scale, sqscale, alpha, alphasq, w1, w2, ws1, ws2, wsbar1, wsbar2, tmp;
 
   scale= exp(th[*nsel +1]);
   sqscale= sqrt(scale);
@@ -1569,44 +1591,49 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
     if (j< *nsel) {  //derivative wrt theta
 
       for (i=0; i< *n; i++) {
-	if (y[i]<ypred[i]) { 
-	  (*g)+= w1 * x[colidx+i]; 
-	} else { 
-	  (*g)-= w2 * x[colidx+i]; 
-	}
+	if (y[i]<ypred[i]) { (*g)+= w1 * x[colidx+i]; } else { (*g)-= w2 * x[colidx+i]; }
       }
       (*g)= (*g)/sqscale;
       (*H)= XtX[sel[j]*(*p)+sel[j]]/(scale*(1-alphasq));
 
     } else if (j== *nsel) {  //derivative wrt vartheta
 
-      for (i=0; i< *n; i++) {
-	if (y[i]<ypred[i]) { 
-	  (*g)+= w1 * (ypred[i]-y[i]);
-	} else { 
-	  (*g)+= w2 * (y[i]-ypred[i]);;
-	}
-      }
-      (*H)= 0.75*(*g)/(scale*scale) - 0.5*(*n)/(scale*sqscale);
-      (*g)= ((*g)/scale - (*n)/sqscale) * 0.5/sqscale;
-
+      for (i=0; i< *n; i++) { if (y[i]<ypred[i]) { (*g)+= w1 * (ypred[i]-y[i]); } else { (*g)+= w2 * (y[i]-ypred[i]); } }
+      (*H)= 0.25 * (*g) / sqscale;
+      (*g)= (*n - (*g)/sqscale) * 0.5;
 
     } else {  //derivative wrt alpha
 
-      w1sq= w1*w1; w2sq= w2*w2;
-      w1cube= w1sq*w1; w2cube= w2sq*w2;
+      ws1= exp(-2.0 * th[*nsel +2]); ws2= exp(2.0 * th[*nsel +2]);
+      wsbar1= ws1; wsbar2= -ws2;
       for (i=0; i< *n; i++) {
 	tmp= y[i]-ypred[i];
-	if (y[i]<ypred[i]) {
-	  (*g)-= w1sq*tmp;
-	  (*H)-= w1cube*tmp;
+	if (tmp<0) {
+	  (*g)-= wsbar1*tmp;
+	  (*H)-= ws1*tmp;
 	} else { 
-	  (*g)-= w2sq*tmp;
-	  (*H)-= w2cube*tmp;
+	  (*g)+= wsbar2*tmp;
+	  (*H)+= ws2*tmp;
 	}
       }
       (*g)= -(*g)/sqscale;
-      (*H)*= -2.0/sqscale;
+      (*H)*= 2.0/sqscale;
+
+    }
+
+  } else {  // symmetric Laplace residuals
+
+    if (j< *nsel) {  //derivative wrt theta
+
+      for (i=0; i< *n; i++) { if (y[i]<ypred[i]) { (*g)+= x[colidx+i]; } else { (*g)-= x[colidx+i]; } }
+      (*g)= (*g)/sqscale;
+      (*H)= XtX[sel[j]*(*p)+sel[j]]/scale;
+
+    } else {  //derivative wrt vartheta
+
+      for (i=0; i< *n; i++) { if (y[i]<ypred[i]) { (*g)+= (ypred[i]-y[i]); } else { (*g)+= (y[i]-ypred[i]); } }
+      (*H)= 0.25 * (*g) / sqscale;
+      (*g)= (*n - (*g)/sqscale) * 0.5;
 
     }
 
@@ -1616,8 +1643,8 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
 
 
 void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric, int *hesstype) {
-  int i, j, k;
-  double alpha, alphasq, scale, sqscale, wy0, wbarsqy0, wbarcubey0, w1=1, w2=1, w1sq, w2sq, w1cube, w2cube, *Xtwbar, *Xtwsq, *hdiag, *y0;
+  int i, j, k, npar;
+  double alpha, alphasq, scale, sqscale, wy0, sumwsy0, sumwsbary0, w1=1, w2=1, ws1, ws2, wsbar1, wsbar2, *Xtwbar, *Xtws, *hdiag, *D, *y0;
   scale= exp(th[*nsel +1]);
   sqscale= sqrt(scale);
 
@@ -1626,7 +1653,7 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
 
   if (*symmetric ==0) { //asymmetric Laplace errors
 
-    Xtwsq= dvector(0,*nsel);
+    Xtws= dvector(0,*nsel);
     alpha= tanh(th[*nsel +2]);
     alphasq= alpha*alpha;
     w1= 1.0 / (1.0 + alpha);
@@ -1635,46 +1662,44 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
     for (j=0; j< *nsel; j++) {  //hessian wrt theta
       H[j+1][j+1]= XtX[sel[j]*(*p)+sel[j]]/(scale*(1-alphasq));
       for (k=0; k<j; k++) { H[j+1][k+1]= H[k+1][j+1]= XtX[sel[k]*(*p)+sel[j]]/(scale*(1-alphasq)); }
-      Xtwbar[j]= Xtwsq[j]= 0;
+      Xtwbar[j]= Xtws[j]= 0;
     }
 
-    w1sq= w1*w1; w2sq= w2*w2;
-    w1cube= w1sq*w1; w2cube= w2sq*w2;
-    wy0= wbarsqy0= wbarcubey0=  0;
+    ws1= exp(-2.0 * th[*nsel +2]); ws2= exp(2.0 * th[*nsel +2]);
+    wsbar1= ws1; wsbar2= -ws2;
+    wy0= sumwsy0= sumwsbary0=  0;
     for (i=0; i< *n; i++) {
       y0[i]= y[i]-ypred[i];
       if (y[i]<ypred[i]) {
 	wy0-= w1 * y0[i];
-	wbarsqy0-= w1sq * y0[i];
-	wbarcubey0-= w1cube * y0[i];
-	for (j=0; j< *nsel; j++) { Xtwbar[j]+= w1* x[sel[j]*(*p) +i]; Xtwsq[j]+= w1sq* x[sel[j]*(*p) +i]; }
+	sumwsy0-= ws1 * y0[i];
+	sumwsbary0-= wsbar1 * y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]+= w1* x[sel[j]*(*n) +i]; Xtws[j]+= ws1* x[sel[j]*(*n) +i]; }
       } else {
 	wy0+= w2 * y0[i];
-	wbarsqy0-= w2sq * y0[i];
-	wbarcubey0-= w2cube * y0[i];
-	for (j=0; j< *nsel; j++) { Xtwbar[j]-= w2* x[sel[j]*(*p) +i]; Xtwsq[j]+= w2sq* x[sel[j]*(*p) +i]; }
+	sumwsy0+= ws2 * y0[i];
+	sumwsbary0+= wsbar2 * y0[i];
+	for (j=0; j< *nsel; j++) { Xtwbar[j]-= w2* x[sel[j]*(*n) +i]; Xtws[j]+= ws2* x[sel[j]*(*n) +i]; }
       }
     }
 
-    H[*nsel][*nsel]= 0.75*wy0/(scale*scale*sqscale) - 0.5*(*n)/(scale*sqscale);  //hessian wrt vartheta
-    H[*nsel +1][*nsel +1]= 2*wbarcubey0/sqscale; //hessian wrt alpha
-    H[*nsel][*nsel +1]= H[*nsel +1][*nsel]= 0.5*wbarsqy0/(scale*sqscale); //hessian wrt vartheta, alpha
+    H[*nsel +1][*nsel +1]= 0.25*wy0/sqscale; //hessian wrt vartheta
+    H[*nsel +2][*nsel +2]= 2*sumwsy0/sqscale; //hessian wrt alpha
+    H[*nsel +1][*nsel +2]= H[*nsel +2][*nsel +1]= 0.5*sumwsbary0/sqscale; //hessian wrt vartheta, alpha
 
     for (j=0; j< *nsel; j++) { 
-      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/(scale*sqscale); //hessian wrt theta, vartheta
-      H[j+1][*nsel +2]= H[*nsel +2][j+1]= -Xtwsq[j]/sqscale; //hessian wrt theta, alpha
+      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/sqscale; //hessian wrt theta, vartheta
+      H[j+1][*nsel +2]= H[*nsel +2][j+1]= -Xtws[j]/sqscale; //hessian wrt theta, alpha
     }
 
-    free_dvector(Xtwsq,0,*nsel);
+    free_dvector(Xtws,0,*nsel);
 
   } else {  //symmetric Laplace errors
-
-    Xtwsq= dvector(0,*nsel);
 
     for (j=0; j< *nsel; j++) {  //hessian wrt theta
       H[j+1][j+1]= XtX[sel[j]*(*p)+sel[j]]/scale;
       for (k=0; k<j; k++) { H[j+1][k+1]= H[k+1][j+1]= XtX[sel[k]*(*p)+sel[j]]/scale; }
-      Xtwbar[j]= Xtwsq[j]= 0;
+      Xtwbar[j]= 0;
     }
 
     wy0= 0;
@@ -1682,20 +1707,18 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
       y0[i]= y[i]-ypred[i];
       if (y[i]<ypred[i]) { 
 	wy0-= y0[i];
-	for (j=0; j< *nsel; j++) { Xtwbar[j]+= x[sel[j]*(*p) +i]; }
+	for (j=0; j< *nsel; j++) { Xtwbar[j]+= x[sel[j]*(*n) +i]; }
       } else {
 	wy0+= y0[i];
-	for (j=0; j< *nsel; j++) { Xtwbar[j]-= x[sel[j]*(*p) +i]; }
+	for (j=0; j< *nsel; j++) { Xtwbar[j]-= x[sel[j]*(*n) +i]; }
       }
     }
 
-    H[*nsel][*nsel]= 0.75*wy0/(scale*scale*sqscale) - 0.5*(*n)/(scale*sqscale);  //hessian wrt vartheta
+    H[*nsel +1][*nsel +1]= 0.25*wy0/sqscale; //hessian wrt vartheta
 
     for (j=0; j< *nsel; j++) { 
-      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/(scale*sqscale); //hessian wrt theta, vartheta
+      H[j+1][*nsel +1]= H[*nsel +1][j+1]= -0.5*Xtwbar[j]/sqscale; //hessian wrt theta, vartheta
     }
-
-    free_dvector(Xtwsq,0,*nsel);
 
   }
 
@@ -1703,14 +1726,19 @@ void loglnegHessAlapl(double **H, double *th, int *nsel, int *sel, int *n, int *
 
   if (*hesstype ==2) {
 
-    hdiag= dvector(1,*nsel);
+    if (*symmetric ==0) { npar= *nsel +2; } else { npar= *nsel +1; }
+    hdiag= dvector(1,npar); D= dvector(1,npar);
 
     quadapproxALaplace(hdiag, H, nsel, sel, n, y0, x, th, &scale, &alpha, &wy0, symmetric, &w1, &w2);
-    for (i=1; i<= *nsel; i++) {
+    for (i=1; i<= *nsel; i++) D[i]= sqrt(hdiag[i]/H[i][i]);
+    hdiag[*nsel +1]= H[*nsel +1][*nsel +1]; D[*nsel +1]= 1;
+    if (*symmetric ==0) { hdiag[*nsel +2]= H[*nsel +2][*nsel +2]; D[*nsel +2]= 1; }
+
+    for (i=1; i<=npar; i++) {
       H[i][i]= hdiag[i];
-      for (j=1; j< i; j++) H[i][j]= H[j][i]= H[i][j] * sqrt(hdiag[i]/H[i][i]) * sqrt(hdiag[j]/H[j][j]);
+      for (j=1; j< i; j++) H[i][j]= H[j][i]= H[i][j] * D[i] * D[j];
     }
-    free_dvector(hdiag,1,*nsel);
+    free_dvector(hdiag,1,npar); free_dvector(D,1,npar);
 
   }
 
@@ -1960,6 +1988,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
   while ((err>0.001) & (i<(*maxit)) & (ferr>0.001)) {
 
     fpnegSkewnorm(g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alpha,lambda,prior); //gradient
+    g[p-1]-= 1.0; //jacobian term from tvartheta=log(vartheta)
     fppnegSkewnorm(H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alpha,lambda,prior); //Hessian
 
     inv_posdef(H,p,Hinv,&posdef);
@@ -2085,6 +2114,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 	  thnew[j]= log(bb/aa);
 	} else {
           fpnegSkewnormUniv(j,&g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //gradient
+	  g -= 1.0; //jacobian term from tvartheta=log(tvartheta)
           fppnegSkewnormUniv(j,&H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //Hessian
           delta= g/H;
           thnew[j]= thmode[j] - delta;
@@ -2171,7 +2201,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 	  bb= (s1/pow(1+acur,2.0) + s2/pow(1-acur,2.0) + sumth2/(*tau) + *lambdaphi);
 	  thnew[j]= log(bb/aa);
 	} else {
-          fpnegSkewnormUniv(j,&g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //gradient
+          fpnegSkewnormUniv(j,&g,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior) -1.0; //gradient
           fppnegSkewnormUniv(j,&H,thmode,ypred,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior); //Hessian
           delta= g/H;
           thnew[j]= thmode[j] - delta;
@@ -2272,6 +2302,7 @@ void fnegSkewnorm(double *ans, double *ypred, double *th, int *sel, int *nsel, i
 
 void fpnegSkewnorm(double *g, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior) {
  //Gradient of fnegSkewnorm
+ //Note: g[*nsel +1] does not include the -1.0 term coming from the jacobian of tvartheta=log(vartheta)
   int i, one=1, nselplus1= (*nsel)+1;
   double *gprior, zero=0;
 
@@ -2314,7 +2345,8 @@ void fpnegSkewnorm(double *g, double *th, double *ypred, int *sel, int *nsel, in
 
 
 void fpnegSkewnormUniv(int j, double *g, double *th, double *ypred, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior) {
- //Gradient of fnegSkewnorm
+  //Gradient of fnegSkewnorm
+  //Note: the -1.0 term when j=nsel+1 coming from the jacobian of tvartheta=log(vartheta) is not included, it must be added separately after calling this function
   int i;
   double gprior, zero=0, sumth2, suminvth2;
 

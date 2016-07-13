@@ -77,7 +77,7 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
   tau <- as.double(tau); r <- as.integer(r)
   if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
   method <- as.integer(method)
-  hess <- as.integer(ifelse(optimMethod=='asympDiagAdj',2,1))
+  hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)

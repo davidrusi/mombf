@@ -740,8 +740,21 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
         postOther[savecnt]= *(*pars).prDeltap;
       }
       for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin+savecnt]= 1; }
+      //Rprintf("%d\n",i);
       if ((*family)==0) {
-	if (sel[nsel]== (*(*pars).p)) { postSample[(*(*pars).p)*niterthin + savecnt]= 0; } else { postSample[(*(*pars).p)*niterthin + savecnt]= 1; }
+	if (sel[nsel]== (*(*pars).p)) { //Normal residuals
+	  postSample[(*(*pars).p)*niterthin + savecnt]= 0;
+	  postSample[((*(*pars).p +1))*niterthin + savecnt]= 0;
+	} else if (sel[nsel]== (*(*pars).p) +1) { //Asymmetric Normal residuals
+	  postSample[(*(*pars).p)*niterthin + savecnt]= 1;
+	  postSample[((*(*pars).p +1))*niterthin + savecnt]= 0;
+	} else if (sel[nsel]== (*(*pars).p) +2) { //Laplace residuals
+	  postSample[(*(*pars).p)*niterthin + savecnt]= 0;
+	  postSample[((*(*pars).p +1))*niterthin + savecnt]= 1;
+	} else { //Asymmetric Laplace residuals
+	  postSample[(*(*pars).p)*niterthin + savecnt]= 1;
+	  postSample[((*(*pars).p +1))*niterthin + savecnt]= 1;
+	}
       }
       postProb[savecnt]= currentJ;
       savecnt++;

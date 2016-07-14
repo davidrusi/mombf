@@ -187,13 +187,13 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     postSample <- rep(as.integer(0),p*mcmc2save)
     margpp <- double(p)
   } else {
-    postSample <- rep(as.integer(0),(p+1)*mcmc2save)
+    postSample <- rep(as.integer(0),(p+2)*mcmc2save)
     margpp <- double(p+3)
   }
   if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
   postProb <- double(mcmc2save)
   ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
-  postSample <- matrix(postSample,ncol=ifelse(family!=0,p,p+1))
+  postSample <- matrix(postSample,ncol=ifelse(family!=0,p,p+2))
   if (family==0) { family <- 'auto' } else if (family==1) { family <- 'normal' } else if (family==2) { family <- 'twopiecenormal' } else if (family==3) { family <- 'laplace' } else if (family==4) { family <- 'twopiecelaplace' }
   if (family=='normal') {
     coef <- rep(0,ncol(x))

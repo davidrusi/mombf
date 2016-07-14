@@ -695,7 +695,19 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
           for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
           for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; }
 	  if ((*family)==0) {
-	    if (selnew[nselnew]== (*(*pars).p)) { postMode[*(*pars).p]= 0; } else { postMode[*(*pars).p]= 1; }
+	    if (selnew[nselnew]== (*(*pars).p)) { //Normal residuals
+	      postMode[*(*pars).p]= 0; 
+	      postMode[(*(*pars).p) +1]= 0;
+	    } else if (selnew[nselnew]== (*(*pars).p) +1) { //Asymmetric Normal residuals
+	      postMode[*(*pars).p]= 1;
+	      postMode[(*(*pars).p) +1]= 0;
+	    } else if (selnew[nselnew]== (*(*pars).p) +2) { //Laplace residuals
+	      postMode[*(*pars).p]= 0;
+	      postMode[(*(*pars).p) +1]= 1;
+	    } else { //Asymmetric Laplace residuals
+	      postMode[*(*pars).p]= 1;
+	      postMode[(*(*pars).p) +1]= 1;
+	    }
 	  }
         }
         ppnew= 1.0/(1.0+exp(currentJ-newJ));
@@ -740,7 +752,6 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
         postOther[savecnt]= *(*pars).prDeltap;
       }
       for (j=0; j<nsel; j++) { postSample[sel[j]*niterthin+savecnt]= 1; }
-      //Rprintf("%d\n",i);
       if ((*family)==0) {
 	if (sel[nsel]== (*(*pars).p)) { //Normal residuals
 	  postSample[(*(*pars).p)*niterthin + savecnt]= 0;
@@ -762,6 +773,9 @@ void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int
     if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
   if (iupper>ilow) { for (j=0; j<nbvars; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
+  if (*family ==0) { 
+    margpp[nbvars] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+1] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+2] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+3] /= (iupper-imax_xy(0,ilow)+.0); 
+  }
   if (*verbose==1) Rprintf(" Done.\n");
 
   free_ivector(sel,0,nbvars); free_ivector(selnew,0,nbvars);

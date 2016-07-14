@@ -107,11 +107,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
       method <- as.integer(2)
     }
   } else if (method=='auto') {
-    if (priorCoef@priorDistr!='pMOM') {
-      method <- as.integer(0)
-    } else {
-      method <- as.integer(2)
-    }
+    if (priorCoef@priorDistr!='pMOM') { method <- as.integer(0) } else { method <- as.integer(2) }
   } else if (method=='plugin') {
     method <- as.integer(2)
   } else {
@@ -164,7 +160,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
 
 
   #Initialize
-  if (family==0) { postMode <- rep(as.integer(0),p+1) } else { postMode <- rep(as.integer(0),p) }
+  if (family==0) { postMode <- rep(as.integer(0),p+2) } else { postMode <- rep(as.integer(0),p) }
   postModeProb <- double(1)
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
@@ -188,12 +184,19 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     margpp <- double(p)
   } else {
     postSample <- rep(as.integer(0),(p+2)*mcmc2save)
-    margpp <- double(p+3)
+    margpp <- double(p+4)
   }
   if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
   postProb <- double(mcmc2save)
   ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+  if (!is.null(colnames(x))) { nn <- colnames(x) } else { nn <- paste('x',1:ncol(x),sep='') }
   postSample <- matrix(postSample,ncol=ifelse(family!=0,p,p+2))
+  if (family!=0) {
+    colnames(postSample) <- names(postMode) <- names(margpp) <- nn
+  } else {
+    colnames(postSample) <- names(postMode)<- c(nn,'asymmetry','laplace')
+    names(margpp) <- c(nn,'family.normal','family.tpnormal','family.laplace','family.tplaplace')
+  }
   if (family==0) { family <- 'auto' } else if (family==1) { family <- 'normal' } else if (family==2) { family <- 'twopiecenormal' } else if (family==3) { family <- 'laplace' } else if (family==4) { family <- 'twopiecelaplace' }
   if (family=='normal') {
     coef <- rep(0,ncol(x))

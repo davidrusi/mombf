@@ -164,8 +164,9 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   postModeProb <- double(1)
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
-    if (family==0) { famgreedy <- as.integer(1) } else { famgreedy <- family }
-    ans <- .Call("greedyVarSelCI", postMode,postModeProb,knownphi,famgreedy,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans= .Call("greedyVarSelCI", knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    postMode <- ans[[1]]; postModeProb <- ans[[2]]
+    if (family==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
     ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
   } else if (initSearch=='SCAD') {
     #require(ncvreg)
@@ -178,19 +179,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   }
 
   #Run MCMC
-  mcmc2save <- floor((niter-burnin)/thinning)
-  if (family != 0) {
-    postSample <- rep(as.integer(0),p*mcmc2save)
-    margpp <- double(p)
-  } else {
-    postSample <- rep(as.integer(0),(p+2)*mcmc2save)
-    margpp <- double(p+4)
-  }
-  if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
-  postProb <- double(mcmc2save)
-  ans <- .Call("modelSelectionCI", postSample,postOther,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+  #if (prDelta==2) postOther <- double(mcmc2save) else postOther <- double(0)
+  ans <- .Call("modelSelectionCI", postMode,postModeProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+  #ans <- .Call("modelSelectionCI", postSample,margpp,postMode,postModeProb,postProb,knownphi,family,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
   if (!is.null(colnames(x))) { nn <- colnames(x) } else { nn <- paste('x',1:ncol(x),sep='') }
-  postSample <- matrix(postSample,ncol=ifelse(family!=0,p,p+2))
+  postSample <- matrix(ans[[1]],ncol=ifelse(family!=0,p,p+2))
+  margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
   if (family!=0) {
     colnames(postSample) <- names(postMode) <- names(margpp) <- nn
   } else {
@@ -200,7 +194,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
   if (family==0) { family <- 'auto' } else if (family==1) { family <- 'normal' } else if (family==2) { family <- 'twopiecenormal' } else if (family==3) { family <- 'laplace' } else if (family==4) { family <- 'twopiecelaplace' }
   if (family=='normal') {
     coef <- rep(0,ncol(x))
-    if (any(postMode)) {
+    if (any(postMode==1)) {
       pm <- postMode(y=y,x=x[,postMode[1:ncol(x)]==1,drop=FALSE],priorCoef=priorCoef)
       coef[postMode==1] <- pm$coef
     }
@@ -208,7 +202,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1
     coef <- rep(NA,ncol(x))
   }
 
-  ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef,family=family,p=ncol(x))
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef,family=family,p=ncol(x))
   new("msfit",ans)
 }
 

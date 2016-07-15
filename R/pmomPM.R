@@ -109,10 +109,12 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
   if (priorTau1!=0) postOther <- double(mcmc2save) else postOther <- double(1)
   x <- as.double(x); xadj <- as.double(xadj)
 
-  ans <- .Call("pmomLM_I", postModel,margpp,postCoef1,postCoef2,postPhi,postOther,niter,thinning,burnin,ndeltaini,deltaini,iniCoef1,iniCoef2,iniPhi,iniOthers,as.integer(verbose),n,p1,p2,isbinary,ybinary,y,sumy2,x,xadj,XtX,ytX,cholS2,S2inv,cholS2inv,colsumx1sq,alpha,lambda,prCoef,r,tau1,tau2,priorTau1,atau1,btau1,priorModel,prModelpar)
-  postModel <- matrix(postModel,ncol=p1); postCoef1 <- matrix(postCoef1,ncol=p1)
-  if (p2>0) postCoef2 <- matrix(postCoef2,ncol=p2) else postCoef2 <- NA
-  if (priorTau1==0) postOther <- NA
+  ans <- .Call("pmomLM_I", niter,thinning,burnin,ndeltaini,deltaini,iniCoef1,iniCoef2,iniPhi,iniOthers,as.integer(verbose),n,p1,p2,isbinary,ybinary,y,sumy2,x,xadj,XtX,ytX,cholS2,S2inv,cholS2inv,colsumx1sq,alpha,lambda,prCoef,r,tau1,tau2,priorTau1,atau1,btau1,priorModel,prModelpar)
+  #ans <- .Call("pmomLM_I", postModel,margpp,postCoef1,postCoef2,postPhi,postOther,niter,thinning,burnin,ndeltaini,deltaini,iniCoef1,iniCoef2,iniPhi,iniOthers,as.integer(verbose),n,p1,p2,isbinary,ybinary,y,sumy2,x,xadj,XtX,ytX,cholS2,S2inv,cholS2inv,colsumx1sq,alpha,lambda,prCoef,r,tau1,tau2,priorTau1,atau1,btau1,priorModel,prModelpar)
+  postModel <- matrix(ans[[1]],ncol=p1); margpp <- ans[[2]]; postCoef1 <- matrix(ans[[3]],ncol=p1)
+  if (p2>0) postCoef2 <- matrix(ans[[4]],ncol=p2) else postCoef2 <- NA
+  postPhi <- ans[[5]]
+  if (priorTau1==0) postOther <- NA else postOther <- ans[[6]]
   return(list(postModel=postModel,postCoef1=postCoef1,postCoef2=postCoef2,postPhi=postPhi,postOther=postOther,margpp=margpp))
 }
 

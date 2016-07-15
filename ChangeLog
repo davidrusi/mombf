@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.8.0
+- Major vignette update
+- Added integrated likelihood for product eMOM prior in linear models
+- Added general nlpMarginal function
+- Added linear regression with two-piece normal, laplace and two-piece laplace residuals
+- Fixed numerical stability issues in orthogonal and block-diagonal regression
+
 CHANGES IN VERSION 1.7.1
 - Fixed issue in block-diagonal variable selection that caused it to skip some model sizes
 

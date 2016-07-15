@@ -71,7 +71,7 @@ typedef double(*pt2modavgPrior)(int *, int *, struct modavgPars *);  //pointer t
 //*************************************************************************************
 
 pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family);
-pt2margFun set_priorFunction(int *prDelta);
+pt2margFun set_priorFunction(int *prDelta, int *family);
 pt2modavgPrior set_priorFunction_modavg(int *priorModel);
 
 //*************************************************************************************
@@ -117,16 +117,19 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 // Model Selection Routines
 //*************************************************************************************
 
-void modelSelectionGibbs(int *postSample, double *postOther, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars);
 void sel2selnew(int newelem, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast);
 
 // Priors on Model Space (always return on log scale)
 double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
+double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 double binomPrior(int *sel, int *nsel, struct marginalPars *pars);
+double binomPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 double betabinPrior(int *sel, int *nsel, struct marginalPars *pars);
+double betabinPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 
 

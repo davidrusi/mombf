@@ -14,7 +14,8 @@ burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
 priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
-initSearch='greedy', method='auto', optimMethod='LMA', B=10^5, verbose=TRUE)
+initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
+B=10^5, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}
@@ -49,7 +50,9 @@ initSearch='greedy', method='auto', optimMethod='LMA', B=10^5, verbose=TRUE)
   likelihood under Laplace or asymmetric Laplace errors. When
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
   diagonal adjustment is applied (see Rossell and Rubio for details).}
-\item{optimMethod}{Algorithm to maximize objective function when method=='Laplace' or method=='MC'. Only used for family=='twopiecenormal'. optimMethod=='LMA' uses modified Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
+\item{optimMethod}{Algorithm to maximize objective function when
+  method=='Laplace' or method=='MC'. optimMethod=='LMA' uses modified
+  Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
 }

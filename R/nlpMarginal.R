@@ -5,6 +5,33 @@
 ##############################################################################################
 
 
+nlpMarginal <- function(sel, y, x, family="normal", priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX) {
+  if (!(family %in% c('normal','twopiecenormal','laplace','twopiecelaplace'))) stop("family not recognized, it should be 'normal','twopiecenormal','laplace' or 'twopiecelaplace'")
+  if (family=='normal') {
+    tau= as.double(priorCoef@priorPars['tau'])
+    aa= priorVar@priorPars['alpha']; ll= priorVar@priorPars['lambda']
+    if (priorCoef@priorDistr=='pMOM') {
+      r <- priorCoef@priorPars['r']
+      ans= pmomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,r=r,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX) 
+    } else if (priorCoef@priorDistr=='piMOM') {
+      if (method=='auto') method <- 'Laplace'
+      ans= pimomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
+    } else if (priorCoef@priorDistr=='peMOM') {
+      if (method=='auto') method <- 'Laplace'
+      ans= pemomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
+    } else if (priorCoef@priorDistr=='zellner') {
+      ans= zellnerMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,logscale=logscale,XtX=XtX,ytX=ytX)
+    } else { stop("Prior distribution in priorCoef not recognized") }
+  } else if (family=='twopiecenormal') {
+    ans= nlpMarginalSkewnorm(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,optimMethod=optimMethod,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
+  } else if (family=='laplace') {
+    ans= nlpMarginalAlapl(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,hess=hess,optimMethod=optimMethod,logscale=logscale,symmetric=TRUE)
+  } else {
+    ans= nlpMarginalAlapl(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,hess=hess,optimMethod=optimMethod,logscale=logscale,symmetric=FALSE)
+  }
+  return(ans)
+}
+
 ##############################################################################################
 ## INTEGRATED LIKELIHOOD FOR LINEAR MODELS UNDER NORMAL RESIDUALS
 ##############################################################################################
@@ -519,6 +546,33 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   }
   if (!logscale) ans <- exp(ans)
   return(ans)
+}
+
+
+pemomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) {
+#Marginal density of the data y~N(x*theta,phi*I) under a product emom prior (unknown variance)
+# - sel: vector with indexes of variables included in the model
+# - y: response variable
+# - x: design matrix
+# - alpha, lambda: prior for phi is IGamma(alpha/2,lambda/2)
+# - tau: prior dispersion parameter
+# - method: method to approximate the integral for known phi. Integral wrt phi is performed via integrate. 'Laplace' for Laplace approx which may underestimate true value, 'MC' for exact evaluation which can be very computationally expensive. 'Hybrid' combines Laplace for fixed phi with numerical integration wrt phi. The Laplace error is estimated using a single exact evaluation for a value of phi close to the posterior mode
+# - B: number of Monte Carlo samples to use (ignored unless method=='MC')
+  if (is.matrix(y)) y <- as.vector(y)
+  if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
+  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
+  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
+  if (is.logical(sel)) sel <- which(sel)
+  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
+  y <- as.double(y); sumy2 <- sum(y^2)
+  tau <- as.double(tau)
+  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
+  method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
+  alpha <- as.double(alpha); lambda <- as.double(lambda)
+  ans <- .Call("pemomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda)
+  return(ans);
 }
 
 

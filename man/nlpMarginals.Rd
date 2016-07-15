@@ -1,23 +1,28 @@
 \name{nlpmarginals}
 \alias{nlpmarginals}
+\alias{nlpMarginal}
 \alias{pimomMarginalK}
 \alias{pimomMarginalU}
 \alias{pmomMarginalK}
 \alias{pmomMarginalU}
-\title{ Marginal density of the observed data for linear models under a
-  given model, using non-local prior distributions for the regression coefficients.}
+\title{ Marginal density of the observed data for linear regression with
+  Normal, two-piece Normal, Laplace or two-piece Laplace residuals
+  under non-local and Zellner priors }
 \description{
-  The marginal density of the observed data, i.e. the likelihood
-  integrated with respect to a non-local prior distribution on the
+  The marginal density of the data, i.e. the likelihood
+  integrated with respect to the given prior distribution on the
   regression coefficients of the variables included in the model and
-  (optionally) an
-  inverse gamma prior on the residual variance.
-  \code{pimomMarginalK} and \code{pimomMarginalU} use a product iMOM prior on
-  the regression coefficients for the known and unknown variance cases
-  (respectively).
-  \code{pmomMarginalK} and \code{pmomMarginalU} use a product MOM prior.
+  an inverse gamma prior on the residual variance.
+  
+  \code{nlpMarginal} is the general function, the remaining ones
+  correspond to particular cases and are kept for backwards
+  compatibility with old code, and will be deprecated in the future.
 }
 \usage{
+nlpMarginal(sel, y, x, family="normal", priorCoef=momprior(tau=0.348),
+priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
+method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX)
+
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) 
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
 method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
@@ -32,6 +37,33 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 \item{y}{Vector with observed responses}
 \item{x}{Design matrix with covariates. Only the columns specified in
   \code{sel} are included in the model, the rest are disregarded}
+\item{family}{Residual distribution. Possible values are
+  'normal','twopiecenormal','laplace', 'twopiecelaplace'}
+\item{priorCoef}{Prior distribution for the coefficients. Object created
+  with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
+\item{priorVar}{Inverse gamma prior on residual variance, created with
+  \code{igprior()}}
+\item{priorSkew}{prior on residual skewness parameter, assumed to be of
+  the same family as priorCoef. Ignored if \code{family} is 'normal' or
+  'laplace'.}
+\item{method}{Method to approximate the integral. method=='auto' uses
+  closed-form expressions whenever possible and Laplace approximations
+  otherwise. method=='Laplace' for Laplace approx.
+  method=='MC' for Monte Carlo}
+\item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
+  likelihood under Laplace or asymmetric Laplace errors. When
+  hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
+  diagonal adjustment is applied (see Rossell and Rubio for details).}
+\item{optimMethod}{Algorithm to maximize objective function when
+  method=='Laplace' or method=='MC'. optimMethod=='LMA' uses modified
+  Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
+\item{B}{Number of Monte Carlo samples to use (ignored unless
+  \code{method=='MC'})}
+\item{logscale}{If \code{logscale==TRUE} the log marginal density is returned.}
+\item{XtX}{Optionally, specify the matrix X'X.
+  Useful when the function must be called a large number of times.}
+\item{ytX}{Optionally, specify the vector y'X.
+  Useful when the function must be called a large number of times.}
 \item{phi}{Residual variance, assumed to be known by
   \code{pimomMarginalK} and \code{pmomMarginalK}}
 \item{alpha}{Prior for phi is inverse gamma \code{alpha/2},
@@ -40,20 +72,6 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   \code{lambda/2}}
 \item{tau}{Prior dispersion parameter for MOM and iMOM priors (see details)}
 \item{r}{Prior power parameter for MOM prior is \code{2*r}}
-\item{method}{Method to approximate the integral. method=='auto' uses exact
-  calculation when p<=10 and pMOM priors are specified, else uses
-  Laplace approx. method=='Laplace' for Laplace approx.
-  method=='plugin' for BIC-type approx.
-  method=='MC' for Monte Carlo. method=='Plug-in' for plug-in estimate. method=='Hybrid'
-for hybrid Laplace-MC (only available for \code{pimomMarginalU}). See
-help for \code{modelSelection} for details.}
-\item{B}{Number of Monte Carlo samples to use (ignored unless
-  \code{method=='MC'})}
-\item{logscale}{If \code{logscale==TRUE} the log marginal density is returned.}
-\item{XtX}{Optionally, specify the matrix X'X.
-  Useful when the function must be called a large number of times.}
-\item{ytX}{Optionally, specify the vector y'X.
-  Useful when the function must be called a large number of times.}
 }
 \details{
   The marginal density of the data is equal to the integral of

@@ -4,12 +4,14 @@
 \title{ Bayesian variable selection for linear models via non-local priors. }
 \description{
   Bayesian model selection for linear models using
-  non-local priors. The
-  algorithm uses a Gibbs scheme and can handle p>>n cases.
+  non-local priors. Model enumeration is used when feasible,
+  else a Gibbs scheme that can handle p>>n is adopted.
   See \code{rnlp} to obtain posterior samples for the coefficients.
 }
 \usage{
-modelSelection(y, x, center=TRUE, scale=TRUE, niter=10^4, thinning=1,
+modelSelection(y, x, center=TRUE, scale=TRUE,
+enumerate= ifelse(ncol(x)<20,TRUE,FALSE), maxvars= ncol(x),
+niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
 priorVar=igprior(alpha=.01,lambda=.01),
@@ -20,8 +22,11 @@ B=10^5, verbose=TRUE)
 \arguments{
 \item{y}{Vector with observed responses}
 \item{x}{Design matrix with all potential predictors}
-\item{center}{If \code{center==TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
-\item{scale}{If \code{scale==TRUE}, \code{y} and columns in \code{x} are scaled to have standard deviation 1}
+\item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
+\item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
+  scaled to have standard deviation1}
+\item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are enumerated, else Gibbs sampling is used to explore the model space}
+\item{maxvars}{Maximum number of variables in a model (ignored if \code{enumerate==FALSE})}
 \item{niter}{Number of Gibbs sampling iterations}
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
@@ -121,12 +126,12 @@ Object of class \code{msfit}, which extends a list with elements
 }
 \author{ David Rossell }
 \seealso{
- See \code{\link{msfit-class}} for details on the output, postProb to
- extract posterior model probabilities.
- See \code{\link{rnlp}} to obtain posterior samples for the coefficients.
- To compute marginal densities for a given model see
-  \code{\link{pmomMarginalK}}, \code{\link{pmomMarginalU}},
-  \code{\link{pimomMarginalK}}, \code{\link{pimomMarginalU}}.
+  \code{\link{msfit-class}} for details on the output.
+  \code{\link{postProb}} to obtain posterior model probabilities.
+ \code{\link{rnlp}} to obtain posterior samples for the coefficients.
+ \code{\link{nlpMarginal}} to compute marginal densities for a given model.
+  
+
 }
 \examples{
 #Simulate data

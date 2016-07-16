@@ -560,77 +560,6 @@ evidence in favor of including the variable in the model.
 
 
 
-\subsection{Variable selection for $>2$ models}
-\label{ssec:varsellm}
-
-We illustrate how to perform variable selection with a simple simualted dataset.
-We generate 100 observations for the response variable and 3 covariates.
-The regression coefficient for the third covariate is 0.
-
-\footnotesize
-<<varsel1>>=
-set.seed(2011*01*18)
-x <- matrix(rnorm(100*3),nrow=100,ncol=3)
-theta <- matrix(c(1,1,0),ncol=1)
-y <- x %*% theta + rnorm(100)
-@
-\normalsize
-
-First we need to specify the prior distribution for the regression coefficients,
-the model space and the residual variance.
-We specify a (product) iMOM prior on the coefficients with prior variance parameter \texttt{tau=.131},
-which targets the detection of standardized effect sizes above 0.2.
-Regarding the model space, we use a Beta-binomial prior (binomial prior on the number of included variables
-with a beta hyper-prior on the Binomial success probability)
-as then posterior probabilities automatically adjust for multiple comparisons \citep{scott:2010}.
-Finally, for the residual variance we set a fairly non-informative inverse gamma prior.
-For defining other prior distributions see the help for \texttt{msPriorSpec}
-({\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} can be used to define MOM, eMOM and Zellner priors, respectively).
-
-\footnotesize
-<<varsel2>>=
-priorCoef <- imomprior(tau=.131)
-priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
-priorVar <- igprior(alpha=.01,lambda=.01)
-@
-\normalsize
-
-The routine \texttt{modelSelection} implements a Gibbs sampling scheme which
-returns a posterior sample for the variable inclusion indicators in the slot \texttt{postSample},
-the visited model with highest posterior probability
-and the marginal posterior probabilities of inclusion for each covariate.
-The marginal posterior probabilities are estimated via Rao-Blackwellization,
-i.e. averaging the posterior probability for inclusion in each Gibbs iteration,
-as this estimate is more precise than simply taking \texttt{colMeans} on the slot \texttt{postSample}.
-
-\footnotesize
-<<varsel3>>=
-fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
-priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
-method='Laplace')
-fit1$postMode
-fit1$margpp
-@
-\normalsize
-
-We see that the posterior mode chooses the correct model,
-and that the marginal probabilities clearly indicate
-that covariates 1 and 2 should be included and covariate 3 should be excluded.
-This illustrates an important issue:
-non-local priors result in a procedure which assigns high posterior probability
-to the true model (or the model under consideration
-with smallest Kullback-Leibler distance to the true model).
-This remains true even in high dimensions, whereas local priors
-typically assign negligible mass to any single model.
-We can see this by checking the proportion of posterior samples in which
-the correct model has been visited: 90 out of 90.
-
-\footnotesize
-<<varsel4>>=
-correct <- t(fit1$postSample)==c(TRUE,TRUE,FALSE)
-table(colSums(correct)==3)
-@
-\normalsize
 
 \section{Parameter estimation}
 \label{sec:bma}
@@ -933,6 +862,120 @@ The model with the highest posterior probability is the one including only \text
 {\it i.e.} the correct model,
 and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
 
+
+\section{Variable selection for linear models}
+\label{sec:varsellm}
+
+The main function for model selection is \texttt{modelSelection}, which returns model posterior probabilities under linear regression models
+allowing for Normal, asymmetric Normal, Laplace and asymmetric Laplace residuals.
+A second interesting function is \texttt{nlpMarginal}, which computes the integrated likelihood for a given model under the same settings.
+We illustrate their use with a simple simulated dataset.
+Let us generate 100 observations for the response variable and 3 covariates,
+where the true regression coefficient for the third covariate is 0.
+
+\footnotesize
+<<varsel1>>= 
+set.seed(2011*01*18)
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x %*% theta + rnorm(100)
+@
+\normalsize
+
+To start with we assume Normal residuals (the default).
+Ee need to specify the prior distribution for the regression coefficients, the model space and the residual variance.
+We specify a product iMOM prior on the coefficients with prior dispersion \texttt{tau=.131},
+which targets the detection of standardized effect sizes above 0.2.
+Regarding the model space we use a Beta-binomial(1,1) prior \citep{scott:2010}.
+Finally, for the residual variance we set a minimally informative inverse gamma prior.
+For defining other prior distributions see the help for \texttt{msPriorSpec}
+({\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} can be used to define MOM, eMOM and Zellner priors, respectively).
+
+\footnotesize
+<<varsel2>>=
+priorCoef <- imomprior(tau=.131)
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
+priorVar <- igprior(.01,.01)
+@
+\normalsize
+
+\texttt{modelSelection} enumerates all models when its argument \texttt{enumerate} is set to TRUE,
+otherwise it uses a Gibbs sampling scheme to explore the model space (saved in the slot \texttt{postSample}).
+It returns the visited model with highest posterior probability 
+and the marginal posterior inclusion probabilities for each covariate
+(when using Gibbs sampling these are estimated via Rao-Blackwellization to improve accuracy).
+
+\footnotesize
+<<varsel3>>=
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar)
+fit1$postMode
+fit1$margpp
+postProb(fit1)
+
+fit2 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
+enumerate=FALSE, niter=1000)
+fit2$postMode
+fit2$margpp
+postProb(fit2,method='norm')
+postProb(fit2,method='exact')
+@
+\normalsize
+
+The highest posterior probability model is the simulation truth,
+indicating that covariates 1 and 2 should be included and covariate 3 should be excluded.
+\texttt{fit1} was obtained by enumerating the $2^3=8$ possible models,
+whereas \texttt{fit2} ran 1,000 Gibbs iterations, delivering very similar results.
+\texttt{postProb} estimates posterior probabilities by renormalizing the probability of each model conditional
+to the set of visited models when \texttt{method='norm'} (the default), otherwise it uses the proportion of Gibbs iterations spent on each model.
+
+Below we run modelSelection again but now using Zellner's prior,
+with prior dispersion set to obtain the so-called Unit Information Prior.
+The posterior mode is still the data-generating truth, albeit its posterior probability
+has decreased substantially.
+This illustrates the core issue with NLPs: they tend to concentrate more posterior probability
+around the true model (or that closest in the Kullback-Leibler sense).
+This difference in behaviour relative to LPs becomes amplified as the number of considered models becomes larger,
+which may result in the latter giving a posterior probability that converges to 0 for the true model \citep{johnson:2012}.
+
+<<varsel4>>=
+fit3 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, 
+method='Laplace')
+postProb(fit3)
+@ 
+
+Finally, we illustrate how to relax the assumption that residuals are Normally distributed.
+We may set the argument \texttt{family} to \texttt{'twopiecenormal'}, \texttt{'laplace'} or \texttt{'twopiecelaplace'}
+to allow for asymmetry (for two-piece Normal and two-piece Laplace) or thicker-than-normal tails (for Laplace and asymmetric Laplace).
+For instance, the maximum likelihood estimator under Laplace residuals is equivalent to median regression
+and under asymmetric Laplace residuals to quantile regression, thus these options can be interpreted as robust alternatives to Normal residuals.
+A nice feature is that regression coefficients can still be interpreted in the usual manner.
+These families add flexibility while maintaining analytical and computational tractability, e.g. they lead to convex optimization and efficient approximations to marginal likelihoods,
+and additionally to robustness we have found they can also lead to increased sensitivity to detect non-zero coefficients.
+Alas, computations under Normal residuals are inevitably faster, hence whenever this extra flexibility is not needed it is nice to
+be able to fall back onto the Normal family, particularly when $p$ is large.
+\texttt{modelSelection} and \texttt{nlpMarginal} incorporate this option by setting \texttt{family=='auto'},
+which indicates that the residual distribution should be inferred from the data.
+When $p$ is small a full model enumeration is conducted, but when $p$ is large the Gibbs scheme spends most time on models with high posterior probability,
+thus automatically focusing on the Normal family when it provides a good enough approximation and resorting to one of the alternatives when warranted by the data.
+
+For instance, in the example below there's roughly 0.95 posterior probability that residuals are Normal, hence the Gibbs algorithm would spend most time on the (faster) Normal model.
+The two-piece Normal and two-piece Laplace (also known as asymmetric Laplace) incorporate an asymmetry parameter $\alpha \in [-1,1]$,
+where $\alpha=0$ corresponds to the symmetric case (i.e. Normal and Laplace residuals).
+We set a NLP on $\mbox{atanh}(\alpha) \in (-\infty,infty)$ so that under the asymmetric model we push prior mass away from $\alpha=0$,
+which intuitively means we are interested in finding significant departures from asymmetry and otherwise we fall back onto the simpler symmetric case.
+
+\footnotesize
+<<varsel5>>=
+priorCoef <- imomprior(tau=.131)
+fit4 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
+priorSkew=imomprior(tau=.131),family='auto')
+head(postProb(fit4))
+@
+\normalsize
 
 \bibliographystyle{plainnat}
 \bibliography{references}

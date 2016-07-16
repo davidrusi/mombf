@@ -615,6 +615,111 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 // MODEL SELECTION ROUTINES
 //********************************************************************************************
 
+//modelSelectionEnum: model selection via enumeration in linear regression for several choices of prior distribution
+//Input parameters
+// - nmodels: number of models to be enumerated (rows in models)
+// - models: binary matrix containing all models to be enumerated, structured as a vector
+// - knownphi: is residual variance phi known?
+// - priorCoef: 0 for product MOM, 1 for product iMOM, 2 for product eMOM
+// - priorDelta: 0 for uniform, 1 for binomial, 2 for binomial with beta hyper-prior for success prob
+// - niter: number of Gibbs iterations
+// - ndeltaini: length of deltaini
+// - deltaini: vector with indexes of covariates initially in the model (both deltaini and its indexes must be indexed at 0)
+// - verbose: set verbose==1 to print iteration progress every 10% of the iterations
+// - pars: struct of type marginalPars containing parameters needed to evaluate the marginal density of the data & prior on model space
+// - family: residual distribution (1 for Normal; 2 for two-piece Normal; 3 for Laplace; 4 for two-piece Laplace). Set family==0 to perform inference on the family
+//Output
+// - margpp: marginal posterior probability for inclusion of each covariate
+// - postMode: model with highest posterior probability amongst those enumerated
+// - postModeProb: unnormalized posterior prob of posterior mode (log scale)
+// - postProb: unnormalized posterior prob of each visited model (log scale)
+
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+
+  int logscale=1, *postMode, mycols, mycols2;
+  double offset=0, *postModeProb, *postProb;
+  struct marginalPars pars;
+  SEXP ans;
+
+  PROTECT(ans= allocVector(VECSXP, 3));
+  if (INTEGER(Sfamily)[0] !=0) { mycols= mycols2= INTEGER(Sp)[0]; } else { mycols= 2 + INTEGER(Sp)[0]; mycols2= mycols+2; }
+
+  SET_VECTOR_ELT(ans, 0, allocVector(INTSXP, mycols));
+  postMode= INTEGER(VECTOR_ELT(ans,0));
+
+  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, 1));
+  postModeProb= REAL(VECTOR_ELT(ans,1));
+
+  SET_VECTOR_ELT(ans, 2, allocVector(REALSXP, INTEGER(Snmodels)[0]));
+  postProb= REAL(VECTOR_ELT(ans,2));
+
+
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
+  modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sverbose), &pars);
+
+  UNPROTECT(1);
+  return ans;
+}
+
+
+
+void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *family, int *prCoef, int *prDelta, int *verbose, struct marginalPars *pars) {
+
+  int i, j, *sel, nsel, nselplus1, niter10, nbvars, nbfamilies=4, postModeidx;
+  double *mfamily, *pfamily;
+  pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
+  modselIntegrals *integrals;
+
+  marginalFunction= set_marginalFunction(prCoef, knownphi, family);
+  priorFunction= set_priorFunction(prDelta, family);
+
+  mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
+  if ((*family)==0) {
+    nbvars= (*(*pars).p)+1;
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +2);
+  } else {
+    nbvars= (*(*pars).p);
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p));
+  }
+
+  sel= ivector(0,nbvars);
+  if (*verbose ==1) Rprintf("Computing posterior probabilities");
+  if (*nmodels >10) { niter10= (*nmodels)/10; } else { niter10= 1; }
+
+  postModeidx= 0;
+  (*postModeProb)= -INFINITY;
+  //Iterate
+  for (i=0; i< *nmodels; i++) {
+    nsel= 0;
+    for (j=0; j< *(*pars).p; j++) { if (models[(*nmodels)*j + i]==1) { sel[nsel]= j; nsel++; } }
+    if (nsel <= (*(*pars).n)) {
+      if ((*family)==0) {  //inference is being done on the family
+        sel[nsel]= (*(*pars).p) + models[(*nmodels)*(*(*pars).p) +i] + 2*models[(*nmodels)*nbvars +i];
+	nselplus1= nsel+1;
+	postProb[i]= integrals->getJoint(sel,&nselplus1,pars);
+      } else {  //family is fixed
+	postProb[i]= integrals->getJoint(sel,&nsel,pars);
+      }
+      if (postProb[i] > *postModeProb) { (*postModeProb)= postProb[i]; postModeidx= i; }
+    }
+    if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
+  }
+
+  //Store posterior mode
+  for (j=0; j< *(*pars).p; j++) { postMode[j]= models[(*nmodels)*j + postModeidx]; }
+  if ((*family)==0) { 
+    for (j= *(*pars).p; j< (*(*pars).p)+2; j++) { postMode[j]= models[(*nmodels)*j + postModeidx]; }
+  }
+
+  if (*verbose==1) Rprintf(" Done.\n");
+
+  free_ivector(sel,0,nbvars); free_dvector(mfamily,0,nbfamilies-1); free_dvector(pfamily,0,nbfamilies-1);
+  delete integrals;
+}
+
+
+
+
 //modelSelectionGibbs: Gibbs sampler for model selection in linear regression for several choices of prior distribution
 //Input parameters
 // - knownphi: is residual variance phi known?
@@ -633,7 +738,7 @@ void set_f2int_pars(double *XtX, double *ytX, double *tau, int *n, int *p, int *
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
 
   int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2;
   double offset=0, *margpp, *postModeProb, *postProb;
@@ -669,6 +774,7 @@ SEXP modelSelectionCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, 
   UNPROTECT(1);
   return ans;
 }
+
 
 
 

@@ -1,5 +1,6 @@
 CHANGES IN VERSION 1.8.0
 - Major vignette update
+- Added model enumeration option to modelSelection
 - Added integrated likelihood for product eMOM prior in linear models
 - Added general nlpMarginal function
 - Added linear regression with two-piece normal, laplace and two-piece laplace residuals

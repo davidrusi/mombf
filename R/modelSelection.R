@@ -120,7 +120,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   } else {
     stop("Invalid 'method'")
   }
-  hess <- as.integer(ifelse(optimMethod=='asympDiagAdj',2,1))
+  hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
 
   #Format arguments for .Call

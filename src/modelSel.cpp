@@ -1394,6 +1394,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 	thnew[j]= thmode[j]- fudgeh[j]*delta;
 	fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
 	fnew -= thnew[*nsel +1];
+	jj++;
       }
 
       //If new value improves target function, update thmode, fmode

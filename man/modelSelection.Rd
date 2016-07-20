@@ -34,11 +34,15 @@ B=10^5, verbose=TRUE)
 \item{family}{Residual distribution. Possible values are
   'normal','twopiecenormal','laplace', 'twopiecelaplace', or 'auto'. For
   the latter the residual distribution is inferred from the data.}
-\item{priorCoef}{Prior distribution for the coefficients. Object created
-  with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
+\item{priorCoef}{Prior on coefficients, created
+  by \code{momprior}, \code{imomprior}, \code{emomprior} or
+  \code{zellnerprior}.
+  Prior dispersion is on coefficients/sqrt(scale) for Normal and
+  two-piece Normal, and on coefficients/sqrt(2*scale) for Laplace
+  and two-piece Laplace.}
 \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
-\item{priorVar}{Inverse gamma prior on residual variance, created with
-  \code{igprior()}}
+\item{priorVar}{Inverse gamma prior on scale parameter, created by
+  \code{igprior(). For Normal variance=scale, for Laplace variance=2*scale.}}
 \item{priorSkew}{prior on residual skewness parameter, assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or 'laplace'.}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}

@@ -39,10 +39,14 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   \code{sel} are included in the model, the rest are disregarded}
 \item{family}{Residual distribution. Possible values are
   'normal','twopiecenormal','laplace', 'twopiecelaplace'}
-\item{priorCoef}{Prior distribution for the coefficients. Object created
-  with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
-\item{priorVar}{Inverse gamma prior on residual variance, created with
-  \code{igprior()}}
+\item{priorCoef}{Prior on coefficients, created
+  by \code{momprior}, \code{imomprior}, \code{emomprior} or
+  \code{zellnerprior}.
+  Prior dispersion is on coefficients/sqrt(scale) for Normal and
+  two-piece Normal, and on coefficients/sqrt(2*scale) for Laplace
+  and two-piece Laplace.}
+\item{priorVar}{Inverse gamma prior on scale parameter, created by
+  \code{igprior(). For Normal variance=scale, for Laplace variance=2*scale.}}
 \item{priorSkew}{prior on residual skewness parameter, assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or
   'laplace'.}

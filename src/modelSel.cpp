@@ -1281,17 +1281,18 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 // - prior: prior==1 for pMOM, prior==2 for piMOM, prior==3 for peMOM
 // - symmetric: symmetric==1 for Laplace residuals, symmetric==0 for asymmetric Laplace residuals
 // Output: integrated likelihood
-// IMPORTANT: it is assumed that prior dispersion tau was elicited on theta/sqrt(2*vartheta), but lower-level functions operate on theta/sqrt(vartheta), hence we sets taulapl= 2*tau
+// IMPORTANT: it is assumed that prior dispersion tau was elicited on theta/sqrt(2*vartheta), but lower-level functions operate on theta/sqrt(vartheta), hence we set taulapl= 2*tau. Similarly for vartheta we set lambdalapl= 2*lambda
 
   bool posdef;
   int maxit= 50, p, n= (*((*pars).n)), *hesstype= ((*pars).hesstype);
-  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, taulapl;
+  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, taulapl, lambdalapl;
 
   taulapl= 2.0 * (*(*pars).tau);
+  lambdalapl= 2.0 * (*(*pars).lambda);
   if (*symmetric ==0) { p= *nsel +2; } else { p= *nsel +1; }
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
-  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &taulapl, (*pars).taualpha, (*pars).alpha, (*pars).lambda, prior, hesstype, symmetric);
+  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &taulapl, (*pars).taualpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
 
   int method= *((*pars).method);
   if ((method!=0) & (method!=1)) method= 0; //If unrecognized method, set to Laplace
@@ -1336,7 +1337,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     ans= 0;
     for (i=1; i<= (*(*pars).B); i++) {
       rmvtC(thsim, p, thmode, cholV, nu);
-      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,&taulapl,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,true,symmetric);
+      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,&taulapl,(*pars).taualpha,(*pars).alpha,&lambdalapl,prior,true,symmetric);
       term1 -= thsim[*nsel +1];
       term2= -dmvtC(thsim, p, thmode, cholVinv, detVinv, nu, 1);
       ans += exp(-term1 + fmode + term2);

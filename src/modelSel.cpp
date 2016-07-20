@@ -1534,6 +1534,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
 	  fudgeh[j]= fudgeh[j]/2;
 	  thnew[j]= thmode[j]- fudgeh[j]*g/H;
 	  loglAlapl(&fnew,ypred,thnew,nsel,sel,n,&scale,&alpha,y,x,symmetric);
+	  jj++;
 	}
         if (fnew > *fmode) { 
 	  err= max_xy(err,fabs(thnew[j]-thmode[j])); 

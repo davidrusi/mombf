@@ -19,7 +19,6 @@ modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nva
 modselIntegrals::~modselIntegrals() {
 
   free((char  *) this->zerochar);
-  //free_charvector(this->zerochar, 0, maxVars-1);
 
 }
 

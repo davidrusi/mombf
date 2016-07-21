@@ -676,7 +676,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
   if ((*family)==0) {
     nbvars= (*(*pars).p)+1;
-    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +2);
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +4);
   } else {
     nbvars= (*(*pars).p);
     integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p));
@@ -793,7 +793,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
   if ((*family)==0) {
     nbvars= (*(*pars).p)+1;
-    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +2);
+    integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +4);
     copylast= true;
   } else {
     nbvars= (*(*pars).p);
@@ -807,7 +807,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   if (*verbose ==1) Rprintf("Running Gibbs sampler");
   niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
-  for (j=0; j< nbvars; j++) { margpp[j]= 0; }
+  for (j=0; j< (*(*pars).p); j++) { margpp[j]= 0; }
   nsel= *ndeltaini;
   for (j=0; j< nsel; j++) { sel[j]= deltaini[j]; postMode[deltaini[j]]= 1; }
   //if ((*prDelta)==2) { postOther[0]= *(*pars).prDeltap; }
@@ -815,7 +815,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
     sel[nsel]= (*(*pars).p);  //initialize to baseline model
     nselplus1= nsel+1;
     currentJ= integrals->getJoint(sel,&nselplus1,pars);
-    margpp[nbvars]= margpp[nbvars+1]= margpp[nbvars+2]= margpp[nbvars+3]= 0;
+    margpp[(*(*pars).p)]= margpp[(*(*pars).p)+1]= margpp[(*(*pars).p)+2]= margpp[(*(*pars).p)+3]= 0;
   } else {
     currentJ= integrals->getJoint(sel,&nsel,pars);
   }
@@ -916,9 +916,9 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
     }
     if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
-  if (iupper>ilow) { for (j=0; j<nbvars; j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
+  if (iupper>ilow) { for (j=0; j< (*(*pars).p); j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
   if (*family ==0) { 
-    margpp[nbvars] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+1] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+2] /= (iupper-imax_xy(0,ilow)+.0); margpp[nbvars+3] /= (iupper-imax_xy(0,ilow)+.0); 
+    margpp[(*(*pars).p)] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+1] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+2] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+3] /= (iupper-imax_xy(0,ilow)+.0); 
   }
   if (*verbose==1) Rprintf(" Done.\n");
 

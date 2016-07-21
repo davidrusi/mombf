@@ -10,7 +10,7 @@
 }
 \usage{
 modelSelection(y, x, center=TRUE, scale=TRUE,
-enumerate= ifelse(ncol(x)<20,TRUE,FALSE), maxvars= ncol(x),
+enumerate= ifelse(ncol(x)<15,TRUE,FALSE), maxvars= ncol(x),
 niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),

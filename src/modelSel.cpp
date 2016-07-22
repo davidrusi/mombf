@@ -1285,14 +1285,14 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 
   bool posdef;
   int maxit= 50, p, n= (*((*pars).n)), *hesstype= ((*pars).hesstype);
-  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, taulapl, lambdalapl;
+  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, taulapl, lambdalapl, ftol=0.001, thtol=0.0001;
 
   taulapl= 2.0 * (*(*pars).tau);
   lambdalapl= 2.0 * (*(*pars).lambda);
   if (*symmetric ==0) { p= *nsel +2; } else { p= *nsel +1; }
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
-  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &taulapl, (*pars).taualpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
+  postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &ftol, &thtol, &taulapl, (*pars).taualpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
 
   int method= *((*pars).method);
   if ((method!=0) & (method!=1)) method= 0; //If unrecognized method, set to Laplace
@@ -1357,7 +1357,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 }
 
 
-void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
+void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *ftol, double *thtol, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
 
   bool useinit= false;
   int i, j, jj, it, p, maxitmle=5;
@@ -1378,7 +1378,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
   fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
   (*fmode) -= thmode[*nsel +1];
 
-  while ((err>0.0001) & (it<(*maxit)) & (ferr>0.0001)) {
+  while ((err> *thtol) & (it<(*maxit)) & (ferr> *ftol)) {
 
     err= ferr= 0;
     for (j=1; j<=p; j++) {
@@ -2057,13 +2057,13 @@ double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prio
 
   bool initmle=true, posdef;
   int maxit= 50, p, n= (*((*pars).n));
-  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred;
+  double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, ftol=0.001, thtol=0.0001;
 
   if (*symmetric ==0) { p= *nsel +2; } else { p= *nsel +1; }
   thmode= dvector(1,p); hess= dmatrix(1, p, 1, p); ypred=dvector(0,n-1);
 
   if ((*symmetric ==1) | (*((*pars).optimMethod) != 1)) { //Coordinate Descent Algorithm
-    postmodeSkewNormCDA(thmode,&fmode,hess,sel,nsel,(*pars).n,(*pars).p,(*pars).y,(*pars).x,(*pars).XtX,(*pars).ytX,&maxit,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,symmetric);
+    postmodeSkewNormCDA(thmode,&fmode,hess,sel,nsel,(*pars).n,(*pars).p,(*pars).y,(*pars).x,(*pars).XtX,(*pars).ytX,&maxit,&ftol,&thtol,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,prior,symmetric);
   } else {  //LMA (modified Newton-Raphson)
     postmodeSkewNorm(thmode,&fmode,hess,sel,nsel,(*pars).n,(*pars).p,(*pars).y,(*pars).x,(*pars).XtX,(*pars).ytX,&maxit,(*pars).tau,(*pars).taualpha,(*pars).alpha,(*pars).lambda,&initmle, prior);
   }
@@ -2262,7 +2262,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
 
 
 
-void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric) {
+void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *ftol, double *thtol, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric) {
 //Posterior mode for two-piece normal under pMOM, piMOM or peMOM prior on (theta,atanh(alpha)) and vartheta ~ IG(alpha/2,lambda/2)
 //
 //Maximization is done via Coordinate Descent Algorithm (i.e. iterative univariate minimization)
@@ -2307,7 +2307,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
   fnegSkewnorm(fmode,ypred,thmode,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
   (*fmode) -= thmode[*nsel +1];
 
-  while ((err>0.0001) & (it<(*maxit)) & (ferr>0.0001)) {
+  while ((err> *thtol) & (it<(*maxit)) & (ferr> *ftol)) {
 
     err= 0; sumth2= 0;
     for (j=1; j<=p; j++) {

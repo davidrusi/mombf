@@ -687,7 +687,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
   if (*nmodels >10) { niter10= (*nmodels)/10; } else { niter10= 1; }
 
   postModeidx= 0;
-  (*postModeProb)= -INFINITY;
+  (*postModeProb)= R_NegInf;
   //Iterate
   for (i=0; i< *nmodels; i++) {
     nsel= 0;

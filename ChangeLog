@@ -1,3 +1,6 @@
+CHANGES IN VERSION 1.8.1
+- Fixed use of infinity that was creating trouble in some C compilers
+
 CHANGES IN VERSION 1.8.0
 - Major vignette update
 - Added model enumeration option to modelSelection

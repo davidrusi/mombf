@@ -1,12 +1,19 @@
 \name{modelSelection}
 \alias{modelSelection}
+\alias{modelsearchBlockDiag}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Bayesian variable selection for linear models via non-local priors. }
 \description{
   Bayesian model selection for linear models using
-  non-local priors. Model enumeration is used when feasible,
-  else a Gibbs scheme that can handle p>>n is adopted.
-  See \code{rnlp} to obtain posterior samples for the coefficients.
+  non-local or Zellner priors. p>>n can be handled.
+
+  modelSelection tries to provide an exact solution,
+  enumerating all models when feasible and using
+  a Gibbs scheme otherwise.
+  See \code{rnlp} for posterior samples for the coefficients.
+
+  modelsearchBlockDiag seeks the highest posterior
+  probability model using an iterative block search.
 }
 \usage{
 modelSelection(y, x, center=TRUE, scale=TRUE,
@@ -18,6 +25,11 @@ priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
 B=10^5, verbose=TRUE)
+
+modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
+priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
+blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20,
+maxenum=10, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}
@@ -26,7 +38,9 @@ B=10^5, verbose=TRUE)
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
   scaled to have standard deviation1}
 \item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are enumerated, else Gibbs sampling is used to explore the model space}
-\item{maxvars}{Maximum number of variables in a model (ignored if \code{enumerate==FALSE})}
+\item{maxvars}{When \code{enumerate==TRUE} only models with up to maxvars variables
+  enumerated. In \code{modelsearchBlockDiag} a sequence of models
+  is defined from 1 up to \code{maxvars}}
 \item{niter}{Number of Gibbs sampling iterations}
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
@@ -64,6 +78,16 @@ B=10^5, verbose=TRUE)
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
+
+\item{blocksize}{Maximum number of variables in a block. Careful, the
+  cost of the algorithm is of order \code{2^blocksize}}
+\item{maxiter}{Maximum number of iterations, each iteration includes a
+  screening pass to add and subtract variables}
+\item{maxlogmargdrop}{Stop the sequence of models when the drop in log
+  p(y|model) is greater than \code{maxlogmargdrop}. This option avoids
+  spending unnecessary time exploring overly large models}
+\item{maxenum}{If the posterior mode found has less than \code{maxenum}
+  variables then do a full enumeration of all its submodels}
 }
 \details{
   Let delta be the vector indicating inclusion/exclusion of each
@@ -91,9 +115,18 @@ B=10^5, verbose=TRUE)
   accuracy. In non-sparse situations where models with many variables
   have large posterior probability method=='plugin' can be substantially
   faster.
-  
+
   For more details on the methods used to compute marginal densities see
   Johnson & Rossell (2012).
+
+  \code{modelsearchBlockDiag} uses the block search method described in
+  Papaspiliopoulos & Rossell. Briefly, spectral clustering is run on
+  X'X to cluster variables into blocks of \code{blocksize} and
+  subsequently the Coolblock algorithm is used to define a sequence
+  of models of increasing size. The exact integrated likelihood
+  is evaluated for all models in this path, the best model chosen,
+  and the scheme iteratively repeated to add and drop variables
+  until convergence.
 }
 \value{
 Object of class \code{msfit}, which extends a list with elements
@@ -120,13 +153,16 @@ Object of class \code{msfit}, which extends a list with elements
   Johnson V.E., Rossell D. Non-Local Prior Densities for Default
   Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B,
   2010, 72, 143-170.
-  
+
   Johnson V.E., Rossell D. Bayesian model selection in high-dimensional
   settings. Journal of the American Statistical Association, 2012, 107,
   649-660.
 
+  Papaspiliopoulos O., Rossell, D. Scalable Bayesian variable selection
+  and model averaging under block orthogonal design. 2016
+
   Rossell D., Rubio F.J. Tractable Bayesian variable selection: beyond
-  normal errors. 2016
+  normality. 2016
 }
 \author{ David Rossell }
 \seealso{
@@ -134,7 +170,7 @@ Object of class \code{msfit}, which extends a list with elements
   \code{\link{postProb}} to obtain posterior model probabilities.
  \code{\link{rnlp}} to obtain posterior samples for the coefficients.
  \code{\link{nlpMarginal}} to compute marginal densities for a given model.
-  
+
 
 }
 \examples{

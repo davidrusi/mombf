@@ -1,4 +1,4 @@
-modelsearchBlockDiag <- function(y, x, priorCoef=zellnerprior(tau=nrow(x)), priorDelta=modelbinomprior(p=1/ncol(x)), priorVar=igprior(0.01,0.01), blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20, maxenum=10, verbose=TRUE) {
+modelsearchBlockDiag <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01), blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20, maxenum=10, verbose=TRUE) {
     n <- length(y); p <- ncol(x)
     #Check and format input parameters
     if (priorDelta@priorDistr=='binomial' & ('p' %in% names(priorDelta@priorPars))) {
@@ -37,7 +37,7 @@ modelsearchBlockDiag <- function(y, x, priorCoef=zellnerprior(tau=nrow(x)), prio
     while ((iter< maxiter) & improved) {
         improved <- FALSE
         #Forward pass
-        ansfwd <- blocksearch(y=y,e=e,x=x,selfixed=selfixed,blocksize=blocksize,maxvars=maxvars,priorModel=priorModel,priorModelBlock=priorModelBlock,g=g,a.phi=a.phi,l.phi=l.phi,sumy2=sumy2,apos=apos,shrinkage=shrinkage,maxlogmargdrop=maxlogmargdrop)
+        ansfwd <- blocksearch(y=y,e=e,x=x,selfixed=selfixed,blocksize=blocksize,maxvars=maxvars,priorCoef=priorCoef,priorVar=priorVar,priorModel=priorModel,priorModelBlock=priorModelBlock,g=g,a.phi=a.phi,l.phi=l.phi,sumy2=sumy2,apos=apos,shrinkage=shrinkage,maxlogmargdrop=maxlogmargdrop)
         ansfwd <- ansfwd[!is.na(ansfwd$logpp),]
         selfwd.maxlogpp <- which.max(ansfwd$logpp)
         selfwd.bestmarg <- which.max(ansfwd$marglhood)
@@ -47,7 +47,7 @@ modelsearchBlockDiag <- function(y, x, priorCoef=zellnerprior(tau=nrow(x)), prio
         ans <- rbind(ans,ansfwd[!(ansfwd$modelid %in% ans$modelid),])
         #Backward pass
         if (length(sel)>1) {
-            ansbackward <- blocksearch(y=y,x=x[,sel],blocksize=blocksize,maxvars=maxvars,priorModel=priorModel,priorModelBlock=priorModelBlock,g=g,a.phi=a.phi,l.phi=l.phi,sumy2=sumy2,apos=apos,shrinkage=shrinkage,maxlogmargdrop=maxlogmargdrop)
+            ansbackward <- blocksearch(y=y,x=x[,sel],blocksize=blocksize,maxvars=maxvars,priorCoef=priorCoef,priorVar=priorVar,priorModel=priorModel,priorModelBlock=priorModelBlock,g=g,a.phi=a.phi,l.phi=l.phi,sumy2=sumy2,apos=apos,shrinkage=shrinkage,maxlogmargdrop=maxlogmargdrop)
             ansbackward$modelid <- sapply(lapply(strsplit(ansbackward$modelid,','), function(z) sel[as.numeric(z)]), paste, collapse=',')
             ansbackward <- ansbackward[!(ansbackward$modelid %in% ans$modelid),]
             if (nrow(ansbackward)>0) {
@@ -87,7 +87,7 @@ modelsearchBlockDiag <- function(y, x, priorCoef=zellnerprior(tau=nrow(x)), prio
 }
 
 
-blocksearch <- function(y,e=y,x,selfixed=integer(0),blocksize,maxvars,priorModel,priorModelBlock,g,a.phi,l.phi,sumy2,apos,shrinkage,maxlogmargdrop=20) {
+blocksearch <- function(y,e=y,x,selfixed=integer(0),blocksize,maxvars,priorCoef,priorVar,priorModel,priorModelBlock,g,a.phi,l.phi,sumy2,apos,shrinkage,maxlogmargdrop=20) {
     #Use spectral clustering followed by coolblock to define a sequence of models gamma of increasing size. Return actual p(y|gamma)p(gamma) for that sequence.
     notfixed <- setdiff(1:ncol(x), selfixed)
     nfixed <- length(selfixed)

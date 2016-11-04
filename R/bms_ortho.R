@@ -256,6 +256,7 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     varidx <- lapply(as.integer(names(blocksize)), function(k) nn[blocks==k])
     if (priorDelta@priorDistr=='binomial' & ('p' %in% names(priorDelta@priorPars))) {
         rho <- priorDelta@priorPars['p']
+        if (rho<0 | rho>1) stop("Specified prior inclusion probability outside [0,1]. Check priorDelta")
         priorModel <- function(nvar) nvar*log(rho) + (p-nvar)*log(1-rho)
         priorModelBlock <- function(nvar,blocksize) nvar*log(rho) + (blocksize-nvar)*log(1-rho)
     } else if (priorDelta@priorDistr=='binomial' & !('p' %in% names(priorDelta@priorPars))) {

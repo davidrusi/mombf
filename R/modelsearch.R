@@ -140,17 +140,29 @@ initKmeans <- function(coord, nclus) {
     return(centers)
 }
 
-spectralClus <- function(x, blocksize=10, ndim= min(c(ncol(x)/blocksize,nrow(x)))) {
-    if (ncol(x)<blocksize) {
-        cl <- rep(1,ncol(x))
+spectralClus <- function(x, blocksize=10, scale=FALSE, ndim= min(c(ncol(x)/blocksize,nrow(x)))) {
+    #Spectral clustering of columns in x via k-means on largest eigenvalues of cor(x)^2. A deterministic initialization using quantiles in the first eigenvector is used. Clusters are iteratively subdivided until all clusters have size<=blocksize.
+    # - x: data matrix whose columns we want to cluster
+    # - blocksize: maximum cluster size
+    # - scale: if TRUE
+    # - ndim: number of eigenvectors to use in the cluster
+    p <- ncol(x)
+    if (p<blocksize) {
+        cl <- rep(1,p)
     } else {
         xstd= scale(x,center=TRUE,scale=TRUE)
-        S= cov(xstd)
+        S= cov(xstd)^2
+        D= diag(p); diag(D)= 1/sqrt(rowSums(S))
+        S= D %*% S %*% D
         eig= eigen(S)
-        ndim <- min(c(ndim,nrow(x),ncol(x)))
-        coord= t(t(eig$vectors[,1:ndim,drop=FALSE]) * sqrt(eig$values[1:ndim]))
+        ndim <- min(c(ndim,nrow(x),p))
+        if (!scale) {
+            coord= t(t(eig$vectors[,1:ndim,drop=FALSE]) * sqrt(eig$values[1:ndim]))
+        } else {
+            coord= eig$vectors[,1:ndim,drop=FALSE]
+        }
         #Initialize clusters based on quantile grid on first component
-        centers= initKmeans(coord, nclus=max(round(ncol(x)/blocksize),2))
+        centers= initKmeans(coord, nclus=max(round(p/blocksize),2))
         km= kmeans(coord, centers=centers)
         cl= km$cluster
         maxcl= max(cl)

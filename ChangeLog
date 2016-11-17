@@ -1,3 +1,9 @@
+CHANGES IN VERSION 1.8.3
+- Fixed spectral clustering on cor(x)^2 instead of cor(x)
+
+CHANGES IN VERSION 1.8.2
+- Added blocksearch and spectral clustering
+
 CHANGES IN VERSION 1.8.1
 - Fixed use of infinity that was creating trouble in some C compilers
 

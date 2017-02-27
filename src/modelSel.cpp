@@ -1296,6 +1296,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 
   postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &ftol, &thtol, &taulapl, (*pars).taualpha, (*pars).fixatanhalpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
   //Rprintf("Posterior mode: %f %f %f %f\n",thmode[1],thmode[2],thmode[3],thmode[4]);
+  //Rprintf("Objective function at the mode: %f \n", fmode);
   //Rprintf("Hessian \n");
   //Rprintf("%f %f %f %f\n",hess[1][1],hess[1][2],hess[1][3],hess[1][4]);
   //Rprintf("%f %f %f %f\n",hess[2][1],hess[2][2],hess[2][3],hess[2][4]);
@@ -1320,11 +1321,11 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     free_dvector(vals,1,p);
   }
   det= choldc_det(cholhess, p);
-  //printf("Cholesky of Hessian (p=%d) \n", p);
-  //printf("%f %f %f \n",hess[1][1],hess[1][2],hess[1][3]);
-  //printf("%f %f %f \n",hess[2][1],hess[2][2],hess[2][3]);
-  //printf("%f %f %f \n\n",hess[3][1],hess[3][2],hess[3][3]);
-  //printf("Determinant %f \n", det);
+  //Rprintf("Cholesky of Hessian (p=%d) \n", p);
+  //Rprintf("%f %f %f \n",hess[1][1],hess[1][2],hess[1][3]);
+  //Rprintf("%f %f %f \n",hess[2][1],hess[2][2],hess[2][3]);
+  //Rprintf("%f %f %f \n\n",hess[3][1],hess[3][2],hess[3][3]);
+  //Rprintf("Determinant %f \n", det);
 
   if (method==0) { //Laplace
 
@@ -1353,7 +1354,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     for (i=1; i<= (*(*pars).B); i++) {
       rmvtC(thsim, p, thmode, cholV, nu);
       if ((*symmetric ==0) & (fixedalpha==1)) { thsim[p+1]= *((*pars).fixatanhalpha); }
-      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,&taulapl,(*pars).taualpha,(*pars).alpha,&lambdalapl,prior,true,symmetric);
+      fnegAlapl(&term1,ypred,thsim,sel,nsel,(*pars).n,(*pars).y,(*pars).x,&taulapl,(*pars).taualpha,(*pars).alpha,&lambdalapl,prior,true,symmetric,fixedalpha);
       term1 -= thsim[*nsel +1];
       term2= -dmvtC(thsim, p, thmode, cholVinv, detVinv, nu, 1);
       ans += exp(-term1 + fmode + term2);
@@ -1395,7 +1396,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
   if (*symmetric ==0) { thnew[p]= thmode[p]; } //alpha
 
   it=1; err= ferr= 1;
-  fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+  fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric,fixedalpha);
   (*fmode) -= thmode[*nsel +1];
 
   while ((err> *thtol) & (it<(*maxit)) & (ferr> *ftol)) {
@@ -1407,7 +1408,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
       if (j== *nsel +1) g-= 1.0;
       delta= g/H;
       thnew[j]= thmode[j] - fudgeh[j]*delta;
-      fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+      fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric,fixedalpha);
       fnew -= thnew[*nsel +1];
 
       if ((fnew< *fmode) & (fudgeh[j]<1)) fudgeh[j]*= 2;
@@ -1415,7 +1416,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
       while ((fnew> *fmode) && (jj<5)) {
 	fudgeh[j]= fudgeh[j]/2;
 	thnew[j]= thmode[j]- fudgeh[j]*delta;
-	fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+	fnegAlapl(&fnew,ypred,thnew,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric,fixedalpha);
 	fnew -= thnew[*nsel +1];
 	jj++;
       }
@@ -1603,7 +1604,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
 }
 
 
-void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale, int *symmetric) {
+void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int *n, double *y, double *x, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, bool logscale, int *symmetric, int fixedalpha) {
 //Negative log-joint for two-piece Laplace under MOM/eMOM/iMOM prior on coef and IG on variance
 //Note: log-joint evaluated for vartheta, if log-joint for log(vartheta) is desired you need to substract -th[nsel+1] to consider the Jacobian term
 // Input
@@ -1621,7 +1622,7 @@ void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int 
 
   if ((*prior)==1) {
 
-    if (*symmetric ==0) {
+    if ((*symmetric ==0) & (fixedalpha==0)) {
       if ((*nsel)>0) {
         (*ans) += -dmomvec(th+1,*nsel,0.0,*tau,scale,1,1) - dmom(th[*nsel +2],0.0,*taualpha,1.0,1,1) - dinvgammaC(scale,0.5*(*alphaphi),0.5*(*lambdaphi),1);
       } else {
@@ -1637,7 +1638,7 @@ void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int 
 
   } else if ((*prior)==2) {
 
-    if (*symmetric ==0) {
+    if ((*symmetric ==0) & (fixedalpha==0)) {
       if ((*nsel)>0) {
         (*ans) += -dimomvec(th+1,*nsel,0.0,*tau,scale,1) - dimom(th[*nsel +2],0.0,*taualpha,1.0,1) - dinvgammaC(scale,0.5*(*alphaphi),0.5*(*lambdaphi),1);
       } else {
@@ -1653,7 +1654,7 @@ void fnegAlapl(double *ans, double *ypred, double *th, int *sel, int *nsel, int 
 
   } else if ((*prior)==3) {
 
-    if (*symmetric ==0) {
+    if ((*symmetric ==0) & (fixedalpha==0)) {
       if ((*nsel)>0) {
         (*ans) += -demomvec(th+1,*nsel,*tau,scale,1) - demom(th[*nsel +2],*taualpha,1.0,1) - dinvgammaC(scale,0.5*(*alphaphi),0.5*(*lambdaphi),1);
       } else {

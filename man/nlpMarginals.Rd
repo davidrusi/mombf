@@ -13,7 +13,7 @@
   integrated with respect to the given prior distribution on the
   regression coefficients of the variables included in the model and
   an inverse gamma prior on the residual variance.
-  
+
   \code{nlpMarginal} is the general function, the remaining ones
   correspond to particular cases and are kept for backwards
   compatibility with old code, and will be deprecated in the future.
@@ -23,7 +23,7 @@ nlpMarginal(sel, y, x, family="normal", priorCoef=momprior(tau=0.348),
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
 method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX)
 
-pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) 
+pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
 method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pmomMarginalK(sel, y, x, phi, tau, r=1, method='auto', B=10^5,
@@ -47,7 +47,9 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   and two-piece Laplace.}
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
   \code{igprior(). For Normal variance=scale, for Laplace variance=2*scale.}}
-\item{priorSkew}{prior on residual skewness parameter, assumed to be of
+\item{priorSkew}{Either a number fixing tanh(alpha) where alpha is the
+  asymmetry parameter or a prior on residual skewness parameter,
+  assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or
   'laplace'.}
 \item{method}{Method to approximate the integral. method=='auto' uses

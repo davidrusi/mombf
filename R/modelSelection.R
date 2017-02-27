@@ -142,7 +142,13 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   tau <- as.double(priorCoef@priorPars['tau'])
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
 
-  taualpha <- as.double(priorSkew@priorPars['tau'])
+  if (class(priorSkew)=='msPriorSpec') {
+      taualpha <- as.double(priorSkew@priorPars['tau'])
+      fixatanhalpha <- as.double(-10000)
+  } else {
+      taualpha <- 0.358
+      fixatanhalpha <- as.double(priorSkew)
+  }
   if (family=='auto') { familyint <- 0 } else if (family=='normal') { familyint <- 1 } else if (family=='twopiecenormal') { familyint <- 2 } else if (family=='laplace') { familyint <- 3 } else if (family=='twopiecelaplace') { familyint <- 4 } else stop("family not available")
   familyint <- as.integer(familyint)
 
@@ -173,7 +179,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
@@ -187,7 +193,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -205,7 +211,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
       if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     }
     models= as.integer(unlist(models))
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)

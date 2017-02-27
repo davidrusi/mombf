@@ -56,9 +56,13 @@ maxenum=10, verbose=TRUE)
   and two-piece Laplace.}
 \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
-  \code{igprior(). For Normal variance=scale, for Laplace variance=2*scale.}}
-\item{priorSkew}{prior on residual skewness parameter, assumed to be of
-  the same family as priorCoef. Ignored if \code{family} is 'normal' or 'laplace'.}
+  \code{igprior(). For Normal variance=scale, for Laplace
+    variance=2*scale.}}
+\item{priorSkew}{Either a number fixing tanh(alpha) where alpha is the
+  asymmetry parameter or a prior on residual skewness parameter,
+  assumed to be of
+  the same family as priorCoef. Ignored if \code{family} is 'normal' or
+  'laplace'.}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}

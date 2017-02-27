@@ -12,7 +12,7 @@ nlpMarginal <- function(sel, y, x, family="normal", priorCoef=momprior(tau=0.348
     aa= priorVar@priorPars['alpha']; ll= priorVar@priorPars['lambda']
     if (priorCoef@priorDistr=='pMOM') {
       r <- priorCoef@priorPars['r']
-      ans= pmomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,r=r,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX) 
+      ans= pmomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,r=r,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
     } else if (priorCoef@priorDistr=='piMOM') {
       if (method=='auto') method <- 'Laplace'
       ans= pimomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
@@ -78,7 +78,7 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logsc
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau); r <- as.integer(r)
@@ -135,7 +135,7 @@ pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, meth
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau); r <- as.integer(r)
@@ -226,7 +226,7 @@ imomModeK <- function(thini, XtX, ytX, phi, tau) {
       th[i] <- thnew
     }
   }
-  return(th)  
+  return(th)
 }
 
 imomIntegralApprox <- function(XtX, ytX, phi, tau, logscale=TRUE) {
@@ -257,7 +257,7 @@ pimomMarginalK <- function(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logs
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau)
@@ -296,7 +296,7 @@ pimomMarginalKR <- function(y, x, phi, tau=1, method='Laplace', B=10^5, logscale
       Vprop <- sdprop %*% cov2cor(Vinv) %*% sdprop
       #thsim <- rmvnorm(B,rep(0,p1),Vprop)
       #adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - dmvnorm(thsim,rep(0,p1),Vprop,log=TRUE)
-      thsim <- rmvt(B,sigma=Vprop,df=1) 
+      thsim <- rmvt(B,sigma=Vprop,df=1)
       adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - dmvt(thsim,delta=rep(0,p1),sigma=Vprop,df=1,log=TRUE)
       m <- max(adj)
       adj <- log(mean(exp(adj-m+500))) + m - 500
@@ -326,7 +326,7 @@ pimomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau)
@@ -379,7 +379,7 @@ imomModeU <- function(thini, phiini, XtX, ytX, sumy2, tau, alpha, lambda, n) {
     err <- err+abs(phi-phinew)
     phi <- phinew
   }
-  return(c(th,log(phi)))  
+  return(c(th,log(phi)))
 }
 
 imomUIntegralApprox <- function(thini, etaini, XtX, ytX, sumy2, tau, alpha, lambda, n, logscale=TRUE) {
@@ -483,7 +483,7 @@ pemomMarginalKR <- function(y, x, phi, tau, method='Laplace', B=10^5, logscale=T
   } else {
     S <- t(x) %*% x + diag(p)/tau
     m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-    ans <- -.5*(sum(y^2) - t(m) %*% S %*% m)/phi + p*sqrt(2)  - .5*n*log(2*pi*phi) - .5*p*log(tau) - log(sqrt(det(S))) 
+    ans <- -.5*(sum(y^2) - t(m) %*% S %*% m)/phi + p*sqrt(2)  - .5*n*log(2*pi*phi) - .5*p*log(tau) - log(sqrt(det(S)))
     if (method=='Laplace') {
       I <- pemomIntegralApproxR(m=m, S=S, phi=phi, tau=tau, logscale=TRUE)
     } else if (method=='1storder') {
@@ -508,7 +508,7 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   # - Prior for th proportional to N(th; 0, tau*phi*I) * prod(exp(-tau*phi/th^2)^r
   # - Prior for phi: IGamma(alpha/2,lambda/2)
   #   i.e. phi is the residual variance; tau the prior dispersion parameter
-  #require(mvtnorm) 
+  #require(mvtnorm)
   if (is.vector(x)) x <- matrix(x,ncol=1)
   n <- length(y); p <- ncol(x)
   if (ncol(x)==0) {
@@ -564,7 +564,7 @@ pemomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau)
@@ -588,7 +588,9 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
 # - y: response variable
 # - x: design matrix
   if ((!is.logical(sel)) || (!is.vector(sel))) stop("sel must be a logical vector")
-  if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)") 
+  if (class(priorSkew)=='msPriorSpec') {
+    if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
+  }
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
   } else if (priorCoef@priorDistr=='piMOM') {
@@ -601,16 +603,22 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
     stop('Prior specified in priorDistr not recognized')
   }
   tau <- as.double(priorCoef@priorPars['tau'])
-  taualpha <- as.double(priorSkew@priorPars['tau'])
+  if (class(priorSkew)=='msPriorSpec') {
+      taualpha <- as.double(priorSkew@priorPars['tau'])
+      fixatanhalpha <- as.double(-10000)
+  } else {  #fixed quantile level
+      taualpha <- 0.358
+      fixatanhalpha <- as.double(priorSkew)
+  }
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
-  #  
+  #
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau); r <- as.integer(r)
@@ -619,7 +627,7 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,r,method,optimMethod,B,logscale,alpha,lambda,prior)
+  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,method,optimMethod,B,logscale,alpha,lambda,prior)
   return(ans);
 }
 
@@ -630,7 +638,9 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
 # - y: response variable
 # - x: design matrix
   if ((!is.logical(sel)) || (!is.vector(sel))) stop("sel must be a logical vector")
-  if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)") 
+  if (class(priorSkew)=='msPriorSpec') {
+    if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
+  }
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
   } else if (priorCoef@priorDistr=='piMOM') {
@@ -643,17 +653,23 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
     stop('Prior specified in priorDistr not recognized')
   }
   tau <- as.double(priorCoef@priorPars['tau'])
-  taualpha <- as.double(priorSkew@priorPars['tau'])
+  if (class(priorSkew)=='msPriorSpec') {
+      taualpha <- as.double(priorSkew@priorPars['tau'])
+      fixatanhalpha <- as.double(-10000)
+  } else {  #fixed quantile level
+      taualpha <- 0.358
+      fixatanhalpha <- as.double(priorSkew)
+  }
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
   symmetric <- as.integer(as.logical(symmetric))
-  #  
+  #
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   if (is.logical(sel)) sel <- which(sel)
   if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
+  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
   p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
   y <- as.double(y); sumy2 <- sum(y^2)
   tau <- as.double(tau); r <- as.integer(r)
@@ -663,6 +679,6 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("nlpMarginalAlaplI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,r,symmetric,method,hess,optimMethod,B,logscale,alpha,lambda,prior)
+  ans <- .Call("nlpMarginalAlaplI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,symmetric,method,hess,optimMethod,B,logscale,alpha,lambda,prior)
   return(ans);
 }

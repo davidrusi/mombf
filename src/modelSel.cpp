@@ -1285,7 +1285,7 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 // IMPORTANT: it is assumed that prior dispersion tau was elicited on theta/sqrt(2*vartheta), but lower-level functions operate on theta/sqrt(vartheta), hence we set taulapl= 2*tau. Similarly for vartheta we set lambdalapl= 2*lambda
 
   bool posdef;
-  int maxit= 50, p, n= (*((*pars).n)), *hesstype= ((*pars).hesstype), fixedalpha;
+  int maxit= 100, p, n= (*((*pars).n)), *hesstype= ((*pars).hesstype), fixedalpha;
   double ans, *thmode, fmode, **hess, **cholhess, det, *ypred, taulapl, lambdalapl, ftol=0.001, thtol=0.0001;
 
   taulapl= 2.0 * (*(*pars).tau);
@@ -1295,13 +1295,10 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
   thmode= dvector(1,p+fixedalpha); hess= dmatrix(1, p+fixedalpha, 1, p+fixedalpha); ypred=dvector(0,n-1);
 
   postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &ftol, &thtol, &taulapl, (*pars).taualpha, (*pars).fixatanhalpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
-  //Rprintf("Posterior mode: %f %f %f %f\n",thmode[1],thmode[2],thmode[3],thmode[4]);
+
+  //int i;
+  //Rprintf("--- thmode= "); for (i=1; i<=p; i++) { Rprintf(" %f", thmode[i]); } Rprintf("\n");
   //Rprintf("Objective function at the mode: %f \n", fmode);
-  //Rprintf("Hessian \n");
-  //Rprintf("%f %f %f %f\n",hess[1][1],hess[1][2],hess[1][3],hess[1][4]);
-  //Rprintf("%f %f %f %f\n",hess[2][1],hess[2][2],hess[2][3],hess[2][4]);
-  //Rprintf("%f %f %f %f\n",hess[3][1],hess[3][2],hess[3][3],hess[3][4]);
-  //Rprintf("%f %f %f %f\n",hess[4][1],hess[4][2],hess[4][3],hess[4][4]);
 
   int method= *((*pars).method);
   if ((method!=0) & (method!=1)) method= 0; //If unrecognized method, set to Laplace
@@ -1321,11 +1318,6 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
     free_dvector(vals,1,p);
   }
   det= choldc_det(cholhess, p);
-  //Rprintf("Cholesky of Hessian (p=%d) \n", p);
-  //Rprintf("%f %f %f \n",hess[1][1],hess[1][2],hess[1][3]);
-  //Rprintf("%f %f %f \n",hess[2][1],hess[2][2],hess[2][3]);
-  //Rprintf("%f %f %f \n\n",hess[3][1],hess[3][2],hess[3][3]);
-  //Rprintf("Determinant %f \n", det);
 
   if (method==0) { //Laplace
 
@@ -1377,23 +1369,25 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, double *XtX, double *ytX, int *maxit, double *ftol, double *thtol, double *tau, double *taualpha, double *fixatanhalpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric) {
 
   bool useinit= false;
-  int i, j, jj, it, p, maxitmle=5, fixedalpha;
+  int i, j, jj, it, p, maxitmle=20, fixedalpha;
   double err, ferr, g, H, delta, fnew, *thnew, *ypred, *fudgeh;
 
   if (*fixatanhalpha > -9999) { fixedalpha= 1; } else { fixedalpha= 0; }
-  if ((*symmetric ==0) & (!fixedalpha)) { p= *nsel +2; } else { p= *nsel +1; }
+  if ((*symmetric ==0) & (fixedalpha==0)) { p= *nsel +2; } else { p= *nsel +1; }
   //if (*symmetric ==0) { p= (*nsel)+2; } else { p= (*nsel)+1; }
   ypred= dvector(0,*n -1); thnew= dvector(1,p+fixedalpha); fudgeh= dvector(1,p);
   for (j=1; j<=p; j++) fudgeh[j]= 1.0;
 
   //Initialize at MLE
   mleAlaplCDA(thmode,fmode,ypred,sel,nsel,n,pvar,y,x,XtX,ytX,&maxitmle,useinit,symmetric,fixatanhalpha);
-  //Rprintf("fixedalpha %d, fixatanhalpha= %f \n", fixedalpha, *fixatanhalpha);
-  //Rprintf("MLE: %f %f %f %f\n", thmode[1], thmode[2], thmode[3],thmode[4]);
 
   for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
   thnew[*nsel +1]= thmode[*nsel +1]; //phi
-  if (*symmetric ==0) { thnew[p]= thmode[p]; } //alpha
+  if (*symmetric ==0) {   //alpha (avoid 0 posterior at alpha=0)
+    if (fabs(thmode[p])>0.01) {
+      thnew[p]= thmode[p];
+    } else { if (thmode<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
+  }
 
   it=1; err= ferr= 1;
   fnegAlapl(fmode,ypred,thmode,sel,nsel,n,y,x,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric,fixedalpha);
@@ -1429,6 +1423,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 	(*fmode)= fnew;
       } else {
 	Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
+	thnew[j]= thmode[j];
       }
 
     }
@@ -1525,18 +1520,38 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
   double *thnew, fnew, err, scale, alpha, *fudgeh, g, H, s1, s2;
 
   if (*fixatanhalpha > -9999) { fixedalpha= 1; } else { fixedalpha= 0; }
-  //if ((*symmetric ==0) & (!fixedalpha)) { p= *nsel +2; } else { p= *nsel +1; }
+  //if ((*symmetric ==0) & (fixedalpha==0)) { p= *nsel +2; } else { p= *nsel +1; }
 
   //Initialize
   thnew= dvector(1,*nsel +2); fudgeh= dvector(1,*nsel +2);
 
-  if ((*nsel)>0) {
-    if (!useinit) { leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX,n,p,sel,nsel); }
-    for (j=1; j<= *nsel; j++) thnew[j]= thmode[j];
+  if ((*symmetric ==0) & (fixedalpha==0)) {   //if alpha must be estimated, init regression coef to median regression after 5 iter
+
+    int fiveiter=1, issymmetric= 1;
+    mleAlaplCDA(thmode,fmode,ypred,sel,nsel,n,p,y,x,XtX,ytX,&fiveiter,false,&issymmetric,fixatanhalpha);
+    thmode[*nsel +2]= thnew[*nsel +2]= 0;
+
   } else {
-    for (i=0; i< *n; i++) ypred[i]=0 ;
+
+    if ((*nsel)>0) {
+      if (!useinit) { leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX,n,p,sel,nsel); }
+      for (j=1; j<= *nsel; j++) thnew[j]= thmode[j];
+    } else {
+      for (i=0; i< *n; i++) ypred[i]=0 ;
+    }
+    thmode[*nsel +1]= thnew[*nsel +1]= 0;
+
+    if ((*symmetric ==0) & (fixedalpha==1)) { thmode[*nsel +2]= thnew[*nsel +2]= *fixatanhalpha; }
   }
-  thmode[*nsel +1]= thnew[*nsel +1]= 0;
+
+  //if ((*nsel)>0) {
+  //  if (!useinit) { leastsquares(thmode,thmode+(*nsel)+1,ypred,y,x,XtX,ytX,n,p,sel,nsel); }
+  //  for (j=1; j<= *nsel; j++) thnew[j]= thmode[j];
+  //} else {
+  //  for (i=0; i< *n; i++) ypred[i]=0 ;
+  //}
+  //thmode[*nsel +1]= thnew[*nsel +1]= 0;
+
   if ((*symmetric ==0) & (fixedalpha==0)) { thmode[*nsel +2]= thnew[*nsel +2]= 0; } else if ((*symmetric ==0) & (fixedalpha==1)) { thmode[*nsel +2]= thnew[*nsel +2]= *fixatanhalpha; }
 
   scale= exp(thmode[*nsel +1]);
@@ -1551,6 +1566,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
   ii=0; err= 1;
   for (j=1; j<= *nsel +2; j++) fudgeh[j]= 1.0;
   while ((err>0.0001) && (ii<(*maxit))) {
+
     ii++; err= 0;
     //Update theta
     if (*nsel >0) {
@@ -1571,6 +1587,7 @@ void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *ns
 	  (*fmode)= fnew;
 	} else {
 	  Aselvecx(x, thmode+1, ypred, 0, (*n) -1, sel, nsel);
+	  thnew[j]= thmode[j];
 	}
       }
     }
@@ -1686,7 +1703,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
 
   loglnegGradHessAlaplUniv(j-1,g,H,th,nsel,sel,n,p,y,ypred,x,XtX,symmetric);
 
-  if ((*prior)==1) {
+  if ((*prior)==1) {   //MOM prior
 
     if (j <= (*nsel)) {
       gprior= dmomgraduniv(th+j, th+(*nsel)+1, tau);
@@ -1708,7 +1725,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
     }
     (*H) -= hprior;
 
-  } else if ((*prior)==2) {
+  } else if ((*prior)==2) {   //iMOM prior
 
     if (j <= (*nsel)) {
       gprior= dimomgraduniv(th+j, th+(*nsel)+1, tau);
@@ -1730,7 +1747,7 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
     }
     (*H) -= hprior;
 
-  } else if ((*prior)==3) {
+  } else if ((*prior)==3) {   //eMOM prior
 
     if (j <= (*nsel)) {
       gprior= demomgraduniv(th+j, th+(*nsel)+1, tau);
@@ -1740,15 +1757,17 @@ void fpnegAlaplUniv(int j, double *g, double *H, double *th, double *ypred, int 
     } else {
       gprior= demomgraduniv(th+(*nsel)+2, &zero, taualpha);
     }
+
     (*g) -= gprior;
 
     if (j<=(*nsel)) {
-      hprior= demomhessuniv(th+j-1, th+(*nsel)+1, tau);
+      hprior= demomhessuniv(th+j, th+(*nsel)+1, tau);
+
     } else if (j== (*nsel)+1) {
       for (i=1, sumth2=0, suminvth2=0; i<=(*nsel); i++) { sumth2+= pow(th[i],2.0); suminvth2 += pow(1.0/th[i],2.0); }
       hprior= -0.5*(*nsel) - 0.5*(*alphaphi) -1.0 + 0.5*(sumth2/(*tau) + (*lambdaphi)) * exp(-th[*nsel +1]) - exp(th[*nsel +1])*(*tau)*suminvth2;
     } else {
-      hprior= demomhessuniv(th+(*nsel)+1,&zero,taualpha);
+      hprior= demomhessuniv(th+(*nsel)+2,&zero,taualpha);
     }
     (*H) -= hprior;
 
@@ -2269,6 +2288,7 @@ void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, in
       i++;
     } else {
       i= (*maxit);
+      for (j=1; j<=p; j++) { thnew[j]= thmode[j]; }
     }
   }
 
@@ -2341,7 +2361,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 
   while ((err> *thtol) & (it<(*maxit)) & (ferr> *ftol)) {
 
-    err= 0; sumth2= 0;
+    err= ferr= 0; sumth2= 0;
     for (j=1; j<=p; j++) {
 
       if (j== *nsel +1) {  //update for phi
@@ -2365,15 +2385,21 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
         delta= g/H;
         thnew[j]= thmode[j] - delta;
       }
+
+      fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
+      fnew -= thnew[*nsel +1];
+      //If new value improves target function, update thmode, fmode
+      if (fnew<(*fmode)) {
+        err= max_xy(err,fabs(thmode[j]-thnew[j]));
+	thmode[j]= thnew[j];
+        ferr+= *fmode - fnew;
+        (*fmode)= fnew;
+      } else {
+        thnew[j]= thmode[j];
+      }
+
     }
-    fnegSkewnorm(&fnew,ypred,thnew,sel,nsel,n,y,x,XtX,tau,taualpha,alphaphi,lambdaphi,prior,true,symmetric);
-    fnew -= thnew[*nsel +1];
-    //If new value improves target function, update thmode, fmode
-    if (fnew<(*fmode)) {
-      for (j=1; j<=p; j++) { err= max_xy(err,fabs(thmode[j]-thnew[j])); thmode[j]= thnew[j]; }
-      ferr= *fmode - fnew;
-      (*fmode)= fnew;
-    }
+
     it++;
 
   }
@@ -3306,6 +3332,65 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, nu;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss;
+  if (*nsel == 0) {
+
+    term1= .5*(*(*pars).n + *(*pars).alpha);
+    num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
+    ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
+
+  } else {
+
+    if ((*(*pars).method ==0) | ((*(*pars).method == -1) & ((*nsel)>10)))  { //Laplace
+
+      int prior=1, symmetric=1;
+      ans= nlpMargSkewNorm(sel, nsel, pars, &prior, &symmetric);
+
+    } else {
+
+      m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+      addct2XtX(&tauinv,(*pars).XtX,sel,nsel,(*pars).p,S);
+      invdet_posdef(S,*nsel,Sinv,&detS);
+      Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+      nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);
+      nu= (int) (2.0*nuhalf);
+
+      ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
+      num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
+      den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
+
+      if (*(*pars).method ==1) {  //MC
+
+        term1= (*(*pars).lambda + *(*pars).sumy2 - quadratic_xseltAxsel((*pars).ytX,Sinv,1,nsel,sel))/(nu+.0);
+        for (i=1; i<= *nsel; i++) { for (j=i; j<= *nsel; j++) { Sinv[i][j]= Sinv[j][i]= Sinv[i][j]*term1; } } //Vinv matrix
+        ans= MC_mom_T(m,Sinv,&nu,(*pars).r,nsel,(*pars).B);
+
+      } else if (*(*pars).method ==2) {  //Plug-in
+
+        ans= rsumlogsq(m,(*pars).r,nsel);
+
+      } else if ((*(*pars).method == -1) & ((*nsel)<=10)) { //Exact
+
+        Voptinv= dmatrix(1,*nsel,1,*nsel);
+        for (i=1; i<= *nsel; i++) for (j=i; j<= *nsel; j++) Voptinv[i][j]= Voptinv[j][i]= Sinv[i][j] * ss / (nu+.0);
+        ans= log(mvtexpect(m, Voptinv, *nsel, 2, nu));
+        free_dmatrix(Voptinv,1,*nsel,1,*nsel);
+
+      }
+      ans+= num - den;
+      free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+    }
+  }
+
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
+}
+
+
+
+double pmomMarginalUC_old(int *sel, int *nsel, struct marginalPars *pars) {
+  int i, j, nu;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, *thopt, **Voptinv, fopt, phiadj, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss;
   if (*nsel == 0) {
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -3324,6 +3409,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
     den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
 
+    //Rprintf("%d variables, method=%d \n", *nsel, *((*pars).method));
     if ((*(*pars).method ==0) | ((*(*pars).method == -1) & ((*nsel)>10)))  { //Laplace
 
       thopt= dvector(1,*nsel); Voptinv= dmatrix(1,*nsel,1,*nsel);
@@ -3829,57 +3915,60 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
     num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
     den= .5*(*(*pars).n)*LOG_M_PI + gamln(&alphahalf);
     ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
-    if ((*(*pars).logscale)!=1) ans= exp(ans);
+
   } else {
-    V= dmatrix(1,*nsel,1,*nsel);
-    Vinv= dmatrix(1,*nsel,1,*nsel);
-    thest= dvector(1,*nsel+1);
 
-    addct2XtX((*pars).tau,(*pars).XtX,sel,nsel,(*pars).p,V); //add tau to diagonal elem of XtX
-    inv_posdef_upper(V,*nsel,Vinv,&posdef);
-    Asym_xsel(Vinv,*nsel,(*pars).ytX,sel,thest);
-    for (i=0, sumer2=0; i<(*(*pars).n); i++) {
-      for (j=1, ypred=0; j<=(*nsel); j++) { ypred += (*pars).x[i + (*(*pars).n)*sel[j-1]] * thest[j]; }
-      er= (*pars).y[i] - ypred;
-      sumer2+= er*er;
+    if ((*(*pars).method)==0) {  //Laplace
+      int prior=2, symmetric=1;
+      ans= nlpMargSkewNorm(sel, nsel, pars, &prior, &symmetric);
+    } else {
+
+      V= dmatrix(1,*nsel,1,*nsel); Vinv= dmatrix(1,*nsel,1,*nsel); thest= dvector(1,*nsel+1);
+
+      addct2XtX((*pars).tau,(*pars).XtX,sel,nsel,(*pars).p,V); //add tau to diagonal elem of XtX
+      inv_posdef_upper(V,*nsel,Vinv,&posdef);
+      Asym_xsel(Vinv,*nsel,(*pars).ytX,sel,thest);
+      for (i=0, sumer2=0; i<(*(*pars).n); i++) {
+        for (j=1, ypred=0; j<=(*nsel); j++) { ypred += (*pars).x[i + (*(*pars).n)*sel[j-1]] * thest[j]; }
+        er= (*pars).y[i] - ypred;
+        sumer2+= er*er;
+      }
+      phiest= (sumer2 + (*(*pars).lambda))/(*(*pars).alpha + *(*pars).n);
+      if ((*(*pars).method)==2) {  //Plug-in
+
+        hessian=0;
+        thest[*nsel +1]= log(phiest);
+        imomUIntegralApproxC(&ans,thest,sel,nsel,(*pars).n,(*pars).p,(*pars).sumy2,(*pars).XtX,(*pars).ytX,(*pars).alpha,(*pars).lambda,(*pars).tau,&one,&hessian);
+        ans= ans + alphahalf*log(.5*(*(*pars).lambda)) - .5*(*(*pars).n)*LOG_M_2PI - gamln(&alphahalf);
+
+      } else if ((*(*pars).method)==1) {  //MC for each fixed phi + univariate integration
+        set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
+        inputphi= (*pars).phi; (*pars).phi= &phiest;
+        (*(*pars).method)= 0; inputlog= (*pars).logscale; (*pars).logscale= &one; //Laplace approx for phi=phiest
+        intlapl= pimomMarginalKC(sel, nsel, pars);
+        (*pars).phi= inputphi; (*(*pars).method)= 1; (*pars).logscale= inputlog;  //reset input values for phi, method
+        f2int_pars.offset= &intlapl; //f2int_imom returns result divided by exp(intlapl) to avoid numerical overflow
+        ans= intlapl + log(qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
+
+      } else if ((*(*pars).method)==3) {  //Hybrid Laplace - MC - Univariate integration
+        set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
+        inputphi= (*pars).phi; (*pars).phi= &phiest;
+        (*(*pars).method)= 1; //IS evaluation of marginal for phi=phiest
+        intmc= pimomMarginalKC(sel, nsel, pars);
+        (*(*pars).method)= 0; //Laplace approx for phi=phiest
+        intlapl= pimomMarginalKC(sel, nsel, pars);
+        (*pars).phi= inputphi; (*(*pars).method)= 2;  //reset input values for phi, method
+        if (intlapl==0) { intmc+= 1.0e-300; intlapl+= 1.0e-300; } //avoid numerical zero
+        f2int_pars.method= &zero;  //set method to eval marginal for known phi to Laplace approx
+        f2int_pars.offset= &intlapl; //f2int_imom returns result divided by exp(intlapl) to avoid numerical overflow
+        ans= intmc + log(qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf)); //adjusment is intmc - intlapl, but intlapl is the offset so needs to added back in
+      }
+      free_dmatrix(V,1,*nsel,1,*nsel);
+      free_dmatrix(Vinv,1,*nsel,1,*nsel);
+      free_dvector(thest,1,*nsel+1);
     }
-    phiest= (sumer2 + (*(*pars).lambda))/(*(*pars).alpha + *(*pars).n);
-    if (((*(*pars).method)==0) || ((*(*pars).method)==2)) {  //Laplace or Plug-in
-
-      if (*(*pars).method == 2) { hessian=0; } else { hessian=1; }
-      thest[*nsel +1]= log(phiest);
-      imomUIntegralApproxC(&ans,thest,sel,nsel,(*pars).n,(*pars).p,(*pars).sumy2,(*pars).XtX,(*pars).ytX,(*pars).alpha,(*pars).lambda,(*pars).tau,&one,&hessian);
-      ans= ans + alphahalf*log(.5*(*(*pars).lambda)) - .5*(*(*pars).n)*LOG_M_2PI - gamln(&alphahalf);
-      if ((*(*pars).logscale)!=1) ans= exp(ans);
-
-    } else if ((*(*pars).method)==1) {  //MC for each fixed phi + univariate integration
-      set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
-      inputphi= (*pars).phi; (*pars).phi= &phiest;
-      (*(*pars).method)= 0; inputlog= (*pars).logscale; (*pars).logscale= &one; //Laplace approx for phi=phiest
-      intlapl= pimomMarginalKC(sel, nsel, pars);
-      (*pars).phi= inputphi; (*(*pars).method)= 1; (*pars).logscale= inputlog;  //reset input values for phi, method
-      f2int_pars.offset= &intlapl; //f2int_imom returns result divided by exp(intlapl) to avoid numerical overflow
-      ans= intlapl + log(qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf));
-      if ((*(*pars).logscale)==0) ans= exp(ans);
-
-    } else if ((*(*pars).method)==3) {  //Hybrid Laplace - MC - Univariate integration
-      set_f2int_pars((*pars).XtX,(*pars).ytX,(*pars).tau,(*pars).n,(*pars).p,sel,nsel,(*pars).y,(*pars).sumy2,(*pars).method,(*pars).B,(*pars).alpha,(*pars).lambda,&zero);
-      inputphi= (*pars).phi; (*pars).phi= &phiest;
-      (*(*pars).method)= 1; //IS evaluation of marginal for phi=phiest
-      intmc= pimomMarginalKC(sel, nsel, pars);
-      (*(*pars).method)= 0; //Laplace approx for phi=phiest
-      intlapl= pimomMarginalKC(sel, nsel, pars);
-      (*pars).phi= inputphi; (*(*pars).method)= 2;  //reset input values for phi, method
-      if (intlapl==0) { intmc+= 1.0e-300; intlapl+= 1.0e-300; } //avoid numerical zero
-      f2int_pars.method= &zero;  //set method to eval marginal for known phi to Laplace approx
-      f2int_pars.offset= &intlapl; //f2int_imom returns result divided by exp(intlapl) to avoid numerical overflow
-      ans= intmc + log(qromo(f2int_imom,0.0,100,midpnt) + qromo(f2int_imom,100,1.0e30,midinf)); //adjusment is intmc - intlapl, but intlapl is the offset so needs to added back in
-      if ((*(*pars).logscale)==0) ans= exp(ans);
-    }
-    free_dmatrix(V,1,*nsel,1,*nsel);
-    free_dmatrix(Vinv,1,*nsel,1,*nsel);
-    free_dvector(thest,1,*nsel+1);
   }
+  if ((*(*pars).logscale)==0) ans= exp(ans);
   return(ans);
 }
 

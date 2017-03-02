@@ -522,7 +522,7 @@ void nn_bayes_rand(double *theta,
                    double **Slik_inv,
                    double *y)
 {
-    bool posdef; 
+    bool posdef;
     double *z;
     double *m;
     double **S;
@@ -919,7 +919,7 @@ void lmbayes_knownvar(double *bpost,
     }
 
     if (*B > 0) {             //posterior samples
-        bool posdef;         
+        bool posdef;
         double *zeroes;
         double **cholVb;
         register int i;
@@ -1812,7 +1812,7 @@ void free_dmatrix(double **m,
     }
     nv -= ncol * nrow;
 }
- 
+
 
 /* Free int array allocated by iarray3() */
 void free_iarray3(int ***a,
@@ -1862,7 +1862,7 @@ double lfact(int n)
     }
     else
     {
-        double lf[] =        
+        double lf[] =
         {
             0.000000000000000,
             0.000000000000000,
@@ -3316,7 +3316,7 @@ void maxvec(const double *x,
 
 void choldc(double **a, int n, double **aout, bool *posdef) {
 /* Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
-decomposition, A = L * L' . On input, only the upper triangle of a need be given; 
+decomposition, A = L * L' . On input, only the upper triangle of a need be given;
  The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) */
   int i,j,k;
   double sum, *p, max_a;
@@ -3489,7 +3489,7 @@ void invdet_posdef(double **a,
                    double **aout,
                    double *det_a)
 {
-    bool posdef; 
+    bool posdef;
     register int i;
     register int j;
     double **b;
@@ -3839,52 +3839,52 @@ void eigenvals(double **a, int n, double *vals) {
 
 
 void tred2(double **a, int n, double d[], double e[], bool getVecs) {
-  /*  Householder reduction of a real, symmetric matrix a[1..n][1..n]. On output, a is replaced by the orthogonal matrix Q effecting the transformation. d[1..n] returns the diagonal ele- ments of the tridiagonal matrix, and e[1..n] the off-diagonal elements, with e[1]=0. 
+  /*  Householder reduction of a real, symmetric matrix a[1..n][1..n]. On output, a is replaced by the orthogonal matrix Q effecting the transformation. d[1..n] returns the diagonal ele- ments of the tridiagonal matrix, and e[1..n] the off-diagonal elements, with e[1]=0.
       Set getVecs=true to obtain eigenvectors, getVecs=false to get only eigenvalues */
-  int l,k,j,i; 
+  int l,k,j,i;
   double scale,hh,h,g,f;
-  for (i=n;i>=2;i--) { 
+  for (i=n;i>=2;i--) {
     l=i-1;
-    h=scale=0.0; 
+    h=scale=0.0;
     if (l > 1) {
       for (k=1;k<=l;k++) scale += fabs(a[i][k]);
       if (scale == 0.0) {  //Skip transformation
 	e[i]=a[i][l];
-      } else { 
+      } else {
 	for (k=1;k<=l;k++) {
 	  a[i][k] /= scale; //Use scaled a's for transformation
 	  h += a[i][k]*a[i][k]; //Form sigma in h.
-	} 
-	f=a[i][l]; 
-	g=(f >= 0.0 ? -sqrt(h) : sqrt(h)); 
+	}
+	f=a[i][l];
+	g=(f >= 0.0 ? -sqrt(h) : sqrt(h));
 	e[i]=scale*g;
 	h -= f*g; //Now h is equation (11.2.4)
-	a[i][l]=f-g; //Store u/H in the ith row of a. 
-	f=0.0; 
+	a[i][l]=f-g; //Store u/H in the ith row of a.
+	f=0.0;
 	for (j=1;j<=l;j++) {
 	  a[j][i]=a[i][j]/h;   // This line could be omitted if getVecs=false
-	  g=0.0; 
-	  for (k=1;k<=j;k++) g += a[j][k]*a[i][k]; 
+	  g=0.0;
+	  for (k=1;k<=j;k++) g += a[j][k]*a[i][k];
 	  for (k=j+1;k<=l;k++) g += a[k][j]*a[i][k];
 	  e[j]=g/h;  //Form element of p in temporarily unused element of e
 	  f += e[j]*a[i][j];
-	} 
-	hh=f/(h+h); 
+	}
+	hh=f/(h+h);
 	for (j=1;j<=l;j++) {
-	  f=a[i][j]; 
-	  e[j]=g=e[j]-hh*f; 
+	  f=a[i][j];
+	  e[j]=g=e[j]-hh*f;
 	  for (k=1;k<=j;k++) a[j][k] -= (f*e[k]+g*a[i][k]);
 	}
       }
-    } else e[i]=a[i][l]; 
+    } else e[i]=a[i][l];
     d[i]=h;
   }
   d[1]=0.0;   // This line could be omitted if getEigen=false
-  e[1]=0.0; 
+  e[1]=0.0;
   if (getVecs) {
     for (i=1;i<=n;i++) { //Begin accumulation of transformation matrices.
-      l=i-1; 
-      //This block skipped when i=1. 
+      l=i-1;
+      //This block skipped when i=1.
       //Use u and u/H stored in a to form QQQQQQQ.
       if (d[i]) {
         for (j=1;j<=l;j++) {
@@ -4737,7 +4737,7 @@ double rnorm_trunc_prob(double lprob,
 //Important note: intervals are assumed to be disjoint and ordered.
 // Input
 // - n: length of output y
-// - ltrunc, rtrunc: vectors [0..ntrunc-1] with start / end of truncation intervals. 
+// - ltrunc, rtrunc: vectors [0..ntrunc-1] with start / end of truncation intervals.
 // - ntrunc: number of truncatio intervals, i.e. length of vectors ltrunc & rtrunc
 // - m: mean of underlying normal
 // - s: sd
@@ -4761,7 +4761,7 @@ void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rt
   for (i=0; i< *n; i++) {
     u= runif() * cump[ntrunc];
     j= 0;
-    while ((u > cump[j+1]) && (j< ntrunc -1)) j++;    
+    while ((u > cump[j+1]) && (j< ntrunc -1)) j++;
     y[i]= qnormC(p[j][0] + u - cump[j], *m, *s);
     (*pdfy) += dnormC(y[i], *m, *s, 1) - log(cump[ntrunc]);
   }
@@ -4796,7 +4796,7 @@ void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *low
   double **D, **K, *alpha, *ansortho, paccept;
   D= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
   alpha= dvector(1,p); ansortho= dvector(0,n*p -1);
-  choldc(Sigma, p, D, &posdef); 
+  choldc(Sigma, p, D, &posdef);
   choldc_inv(Sigma, p, K, &posdef);
   //Draws from orthogonal transformation
   Ax(K, mu, alpha, 1, p, 1, p); //alpha= K %*% mu
@@ -4838,7 +4838,7 @@ SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within
   rtmvnorm(REAL(ans), INTEGER(n)[0], p, REAL(mu)-1, S, REAL(lower)-1, REAL(upper)-1, INTEGER(within)[0], INTEGER(method)[0]);
   free_dmatrix(S,1,p,1,p);
   UNPROTECT(1);
-  return ans; 
+  return ans;
 }
 
 
@@ -4862,7 +4862,7 @@ void rtmvnormMH(double *ansortho, double *paccept, int n, int p, double *alpha, 
   x0= dvector(1,p);
   rtmvnormProp(x0, &propold, p, alpha, D, lower, upper, within);
   lold= 0;
-  for (j=1; j<=p; j++) { 
+  for (j=1; j<=p; j++) {
     lold -= 0.5 * (x0[j]-alpha[j]) * (x0[j]-alpha[j]);
     ansortho[n*(j-1)]= x0[j];
   }
@@ -4904,7 +4904,7 @@ void rtmvnormWithin(double *ans, int n, int p, double *alpha, double **D, double
   for (j=1; j<=p; j++) ans[n*(j-1)]= x0[j];
   //Gibbs
   for (j=1; j<=p; j++) {
-    Dj[j]= 0; 
+    Dj[j]= 0;
     for (k=1; k<=p; k++) Dj[j] += D[j][k] * ans[(k-1)*n];
   }
   i= 1;
@@ -4954,7 +4954,7 @@ void rtmvnormOutside(double *ans, int n, int p, double *alpha, double **D, doubl
   rtmvnormProp(x0, &lprop, p, alpha, D, lower, upper, 0);
   for (j=1; j<=p; j++) ans[n*(j-1)]= x0[j];
   for (j=1; j<=p; j++) {
-    Dj[j]= 0; 
+    Dj[j]= 0;
     for (k=1; k<=p; k++) Dj[j] += D[j][k] * x0[k];
   }
   //Gibbs
@@ -5022,7 +5022,7 @@ void rtmvnormOutside_Gibbs(double *z, double *Dj, double *alpha, double **D, int
 	jj++;
       }
       umod[1]= -1.0e20; lmod[k]= 1.0e20;
-      //Draw random variate	     
+      //Draw random variate
       rnorm_truncMult(z+j, &lprop, &one, umod+1, lmod+1, k, alpha+j, &oned); //note: umod is lower bound for inclusion intervals (lmod is upper bound)
       for (k=1; k<=p; k++) Dj[k] += z[j] * D[k][j];
       //rnorm_truncMult(ans+i+(j-1)*n, &lprop, &one, umod+1, lmod+1, k, alpha+j, &oned); //note: umod is lower bound for inclusion intervals (lmod is upper bound)
@@ -5033,7 +5033,7 @@ void rtmvnormOutside_Gibbs(double *z, double *Dj, double *alpha, double **D, int
     } else {
       z[j]= rnormC(alpha[j], 1);
     }
-  }    
+  }
   free_dvector(l,1,p); free_dvector(u,1,p);
 }
 
@@ -5086,7 +5086,7 @@ void rtmvnormProp(double *z, double *propdens, int p, double *alpha, double **D,
 
 
 //Multiv trunc Normal given constraint on product
-void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int is_low_trunc, int is_up_trunc, int burnin) { 
+void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, double lower, double upper, int is_low_trunc, int is_up_trunc, int burnin) {
   if (is_low_trunc==1 && is_up_trunc==0) {
     rtmvnormProd_low(ans, n, p, mu, Sinv, k, lower, burnin);
   } else if (is_low_trunc==0 && is_up_trunc==1) {
@@ -5199,7 +5199,7 @@ void rtmvnormProd_low(double *ans, int n, int p, double *mu, double **Sinv, int 
   xcur= dvector(1,p);
   ltrunc= dvector(1,2); rtrunc= dvector(1,2);
   l= pow(lower, 1.0/(k*p+.0));
-  for (i=1; i<=p; i++) { 
+  for (i=1; i<=p; i++) {
     condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]);
     if (mu[i]>l) xcur[i]= mu[i]; else xcur[i]= l + .1*condsd[i];
   }
@@ -5245,9 +5245,9 @@ void rtmvnormProd_up(double *ans, int n, int p, double *mu, double **Sinv, int k
   condvar= dvector(1,p); condsd= dvector(1,p);
   xcur= dvector(1,p);
   u= pow(upper, 1.0/(k*p+.0));
-  for (i=1; i<=p; i++) { 
-    condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]); 
-    if (mu[i]<u) xcur[i]= mu[i]; else if (mu[i]>=u) xcur[i]= u - .1*condsd[i]; 
+  for (i=1; i<=p; i++) {
+    condvar[i]= 1/Sinv[i][i]; condsd[i]= sqrt(condvar[i]);
+    if (mu[i]<u) xcur[i]= mu[i]; else if (mu[i]>=u) xcur[i]= u - .1*condsd[i];
   }
   //Burn-in
   u= pow(upper,1.0/(k+.0));
@@ -5424,7 +5424,7 @@ double mvtexpect(double* mu, double** sigma, int n, int power, double dof)
   int index_sum;
 
   int s = power*n;
-  int half_s = s/2; 
+  int half_s = s/2;
   int j, k, r, half_power;
 
   int* nu_index; /* indices nu_0 through nu_{n-1} */
@@ -5447,7 +5447,7 @@ double mvtexpect(double* mu, double** sigma, int n, int power, double dof)
 	    product *= -1;
 
 	  for (j = 0; j < n; j++)
-	    product *= BinomialCoefficient(power, nu_index[j]); 
+	    product *= BinomialCoefficient(power, nu_index[j]);
 
 	  if (dof > 0.0)
 	    product *= one_plus_kappa(dof, r);
@@ -5470,7 +5470,7 @@ double mvtexpect(double* mu, double** sigma, int n, int power, double dof)
 	  mean_term = 0.0;
 	  for (j = 0; j < n; j++)
 	    mean_term += (half_power - nu_index[j])*mu[j+1];
-	  product *= pow(mean_term, s - 2*r); 
+	  product *= pow(mean_term, s - 2*r);
 	  product /= exp(lfact(r) + lfact(s - 2*r));
 
 	  sum += product;
@@ -5490,7 +5490,7 @@ double mvtexpect_vec(double* mu, double* sigma, int n, int power, double dof)
   int index_sum;
 
   int s = power*n;
-  int half_s = s/2; 
+  int half_s = s/2;
   int j, k, r, half_power;
 
   int* nu_index; /* indices nu_0 through nu_{n-1} */
@@ -5513,7 +5513,7 @@ double mvtexpect_vec(double* mu, double* sigma, int n, int power, double dof)
 	    product *= -1;
 
 	  for (j = 0; j < n; j++)
-	    product *= BinomialCoefficient(power, nu_index[j]); 
+	    product *= BinomialCoefficient(power, nu_index[j]);
 
 	  if (dof > 0.0)
 	    product *= one_plus_kappa(dof, r);
@@ -5536,7 +5536,7 @@ double mvtexpect_vec(double* mu, double* sigma, int n, int power, double dof)
 	  mean_term = 0.0;
 	  for (j = 0; j < n; j++)
 	    mean_term += (half_power - nu_index[j])*mu[j];
-	  product *= pow(mean_term, s - 2*r); 
+	  product *= pow(mean_term, s - 2*r);
 	  product /= exp(lfact(r) + lfact(s - 2*r));
 
 	  sum += product;
@@ -5983,29 +5983,29 @@ double demomvec(double *y, int n, double tau, double phi, int logscale) {
 ************************************************************************/
 
 //Gradient of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
-void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void dmomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i;
   for (i=1; i<=(*n); i++) {
     ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));
-  } 
+  }
 }
 
 
 //Same but univariate
-double dmomgraduniv(double *th, double *logphi, double *tau) { 
+double dmomgraduniv(double *th, double *logphi, double *tau) {
   return (2.0/(*th) - (*th)/(exp(*logphi)*(*tau)));
 }
 
 
 //Hessian of log-pMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
-void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void dmomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i;
   for (i=1; i<=(*n); i++) { ans[i]= -2.0/pow(th[i],2) - 1.0/(exp(*logphi)*(*tau)); }
 }
 
 //same but univariate
-double dmomhessuniv(double *th, double *logphi, double *tau) { 
+double dmomhessuniv(double *th, double *logphi, double *tau) {
   return (-2.0/pow(*th,2) - 1.0/(exp(*logphi)*(*tau)));
 }
 
@@ -6013,12 +6013,12 @@ double dmomhessuniv(double *th, double *logphi, double *tau) {
 //Gradient of log-pMOM(th;0,phi*tau) + log-IG(phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
-  int i, p=(*n)-1; 
+  int i, p=(*n)-1;
   double sumth2=0;
   if (p>0) {  //th has some elements
     for (i=1; i<=p; i++) {
       ans[i]= 2.0/th[i] - th[i]/(exp(*logphi)*(*tau));  //same as in dmomgrad
-      sumth2 += (th[i]*th[i]); 
+      sumth2 += (th[i]*th[i]);
     }
     ans[*n]= -1.5*p - 0.5*(*alpha) -1.0 + 0.5*(sumth2/(*tau) + (*lambda)) * exp(-(*logphi));
     } else {  //th is empty
@@ -6036,10 +6036,10 @@ void dmomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, do
 void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double sumth2=0;
-  for (i=1; i<=p; i++) { 
+  for (i=1; i<=p; i++) {
     for (j=1; j<=i; j++) { ans[i][j]= ans[j][i]=0; }
     ans[i][i]= -2.0/pow(th[i],2.0) - 1.0/(exp(*logphi)*(*tau)); //same as in dmomhess
-    sumth2 += (th[i]*th[i]); 
+    sumth2 += (th[i]*th[i]);
     for (j=i+1; j<p; j++) { ans[i][j]= ans[j][i]=0; }
     ans[i][*n]= ans[*n][i]= th[i] / (exp(*logphi)*(*tau));
   }
@@ -6048,40 +6048,40 @@ void dmomighess(double **ans, int *n, double *th, double *logphi, double *tau, d
 
 
 //Gradient of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
-void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void dimomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i;
   for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / (th[i]*th[i]*th[i]) - 2.0 / th[i]; }
 }
 
 //same but univariate
-double dimomgraduniv(double *th, double *logphi, double *tau) { 
+double dimomgraduniv(double *th, double *logphi, double *tau) {
   return (2.0 * (*tau) * exp(*logphi) / pow(*th,3.0) - 2.0 / (*th));
 }
 
 //Hessian of log-piMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
-void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void dimomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i; double th2;
-  for (i=1; i<=(*n); i++) { 
+  for (i=1; i<=(*n); i++) {
     th2= pow(th[i],2.0);
-    ans[i]= -6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2; 
+    ans[i]= -6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2;
   }
 }
 
-double dimomhessuniv(double *th, double *logphi, double *tau) { 
+double dimomhessuniv(double *th, double *logphi, double *tau) {
   double th2;
   th2= pow(*th,2.0);
-  return(-6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2); 
+  return(-6.0 * (*tau) * exp(*logphi) / pow(th2,2.0) + 2.0/th2);
 }
 
 
 //Gradient of log-piMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
-  int i, p=(*n)-1; 
+  int i, p=(*n)-1;
   double th2, suminvth2=0;
   if (p>0) {  //th is non-empty
-    for (i=1; i<=p; i++) { 
+    for (i=1; i<=p; i++) {
       th2= th[i]*th[i];
       ans[i]= 2.0 * (*tau) * exp(*logphi) / (th2*th[i]) - 2.0 / th[i]; //same as dimomgrad
       suminvth2+= 1.0/th2;
@@ -6097,7 +6097,7 @@ void dimomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, suminvth2=0;
-  for (i=1; i<=p; i++) { 
+  for (i=1; i<=p; i++) {
     for (j=1; j<i; j++) { ans[i][j]= ans[j][i]=0; }
     th2= th[i]*th[i];
     suminvth2+= 1.0/th2;
@@ -6109,27 +6109,27 @@ void dimomighess(double **ans, int *n, double *th, double *logphi, double *tau, 
 }
 
 //Gradient of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
-void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void demomgrad(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i;
   for (i=1; i<=(*n); i++) { ans[i]= 2.0 * (*tau) * exp(*logphi) / pow(th[i],3.0) - th[i]*exp(-(*logphi))/(*tau); }
 }
 
 //same but univariate
-double demomgraduniv(double *th, double *logphi, double *tau) { 
+double demomgraduniv(double *th, double *logphi, double *tau) {
   return(2.0 * (*tau) * exp(*logphi) / pow(*th,3.0) - (*th)*exp(-(*logphi))/(*tau));
 }
 
 //Hessian of log-peMOM(th;0,phi*tau) density wrt th. Note: n=dim(th)
 //Output ans is a vector, as non-diagonal elements are 0
-void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) { 
+void demomhess(double *ans, int *n, double *th, double *logphi, double *tau) {
   int i;
-  for (i=1; i<=(*n); i++) { 
+  for (i=1; i<=(*n); i++) {
     ans[i]= -6.0 * (*tau) * exp(*logphi)/pow(th[i],4.0) - exp(-(*logphi))/(*tau);
   }
 }
 
 //same but univariate
-double demomhessuniv(double *th, double *logphi, double *tau) { 
+double demomhessuniv(double *th, double *logphi, double *tau) {
   return(-6.0 * (*tau) * exp(*logphi)/pow(*th,4.0) - exp(-(*logphi))/(*tau));
 }
 
@@ -6137,7 +6137,7 @@ double demomhessuniv(double *th, double *logphi, double *tau) {
 //Gradient of log-peMOM(th;0,phi*tau) + log-IG(th;phi,alpha/2,lambda/2) wrt (th, logphi) where logphi=log(phi)
 //Output: ans is vector [1..n] where n=dim(th)+1, i.e. n==1 indicates dim(th)=0
 void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
-  int i, p=(*n)-1; 
+  int i, p=(*n)-1;
   double th2, suminvth2=0, sumth2=0;
   if (p>0) {  //th is non-empty
     for (i=1; i<=p; i++) {
@@ -6157,14 +6157,14 @@ void demomiggrad(double *ans, int *n, double *th, double *logphi, double *tau, d
 void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, double *alpha, double *lambda) {
   int i, j, p=(*n)-1;
   double th2, sumth2=0, suminvth2=0;
-  for (i=1; i<=p; i++) { 
+  for (i=1; i<=p; i++) {
     for (j=1; j<i; j++) { ans[i][j]= ans[j][i]=0; }
     th2= th[i]*th[i];
     sumth2+= th2;
     suminvth2+= 1.0/th2;
     ans[i][i]= -6.0 * (*tau) * exp(*logphi)/(th2*th2) - exp(-(*logphi))/(*tau); //same as in demomhess
     for (j=i+1; j<=p; j++) { ans[i][j]= ans[j][i]=0; }
-    ans[i][*n]= ans[*n][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]); 
+    ans[i][*n]= ans[*n][i]= th[i]/(exp(*logphi)*(*tau)) + 2.0*(*tau)*exp(*logphi)/(th2*th[i]);
   }
   ans[*n][*n]= -0.5 * exp(-(*logphi)) * (sumth2/(*tau)+(*lambda)) - (*tau) * exp(*logphi) * suminvth2;
 }
@@ -6208,18 +6208,18 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
   nsave= (int) floor((niter - burnin +.0)/(thinning +.0));
   m= dvector(1,p); mortho= dvector(1,p); alpha= dvector(1,p); thcur= dvector(1,p); linpred= dvector(0,n-1);
   S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p); cholSinv= dmatrix(1,p,1,p); inv_cholSinv= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
-  D= dmatrix(1,p,1,p); 
+  D= dmatrix(1,p,1,p);
 
   AvectBvec(x, n, p, x, n, p, S); //S= t(x) %*% x + 1/tau
   for (i=1; i<=p; i++) S[i][i] += tauinv;
-  inv_posdef(S, p, Sinv, &posdef); 
+  inv_posdef(S, p, Sinv, &posdef);
   choldc(Sinv, p, cholSinv, &posdef);
   choldc_inv(Sinv, p, inv_cholSinv, &posdef); //inverse of chol(Sinv)
 
   Xty= dvector(1,p);
-  Atvecx(x, y, Xty+1, 0, p-1, 0, n-1); //m= solve(S) %*% t(x) %*% y 
+  Atvecx(x, y, Xty+1, 0, p-1, 0, n-1); //m= solve(S) %*% t(x) %*% y
   Ax(Sinv, Xty, m, 1, p, 1, p);
-  Ax(inv_cholSinv, m, mortho, 1, p, 1, p); 
+  Ax(inv_cholSinv, m, mortho, 1, p, 1, p);
   free_dvector(Xty,1,p);
 
   if (prior==0) apost= .5*(a_phi+n+3*p); else if (prior==1) apost= .5*(a_phi+n-p); else apost= .5*(a_phi+n+p);
@@ -6244,7 +6244,7 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
       for (j=1; j<=p; j++) th2invsum += 1/(thcur[j]*thcur[j]);
       if (runif() < exp((phicur-phinew)*tau*th2invsum)) { phicur= phinew; sqrtphi= sqrt(phicur); }
     }
-    for (j=1; j<=p; j++) { 
+    for (j=1; j<=p; j++) {
       alpha[j]= mortho[j]/sqrtphi;
       //Dthcur[j]= Dthcur[j] * sqrtphi;
       for (k=1; k<=j; k++) { D[j][k]= cholSinv[j][k] * sqrtphi; K[j][k]= inv_cholSinv[j][k] / sqrtphi; }
@@ -6256,10 +6256,10 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
       isave++;
     }
   }
-  free_dvector(m,1,p); 
-  free_dvector(mortho,1,p); 
-  free_dvector(alpha,1,p); 
-  free_dvector(thcur,1,p); 
+  free_dvector(m,1,p);
+  free_dvector(mortho,1,p);
+  free_dvector(alpha,1,p);
+  free_dvector(thcur,1,p);
   free_dvector(linpred,0,n-1);
   free_dmatrix(S,1,p,1,p); free_dmatrix(Sinv,1,p,1,p); free_dmatrix(cholSinv,1,p,1,p); free_dmatrix(inv_cholSinv,1,p,1,p); free_dmatrix(K,1,p,1,p);
   free_dmatrix(D,1,p,1,p);
@@ -6343,7 +6343,7 @@ void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *V
   double **S, **Sinv, **cholSinv, **inv_cholSinv, **K, **D;
   //Pre-compute stuff
   S= dmatrix(1,p,1,p); Sinv= dmatrix(1,p,1,p); cholSinv= dmatrix(1,p,1,p); inv_cholSinv= dmatrix(1,p,1,p); K= dmatrix(1,p,1,p);
-  D= dmatrix(1,p,1,p); 
+  D= dmatrix(1,p,1,p);
 
   for (i=1; i<=p; i++) {
     Sinv[i][i]= Vvec[i-1+p*(i-1)];
@@ -6402,7 +6402,7 @@ void rnlp_Gibbs_multiple(double *th, double *thini, int p, double *m, double **c
     } else if (prior==2) {
       for (i=1; i<=p; i++) {
         upperb= pen_emom(thcur+i, &phi, tau, 1);
-        l[i]= runif() * exp(upperb); 
+        l[i]= runif() * exp(upperb);
         upper[i]= sqrt(fabs((*tau) * phi/(log(l[i])-sqrt(2.0))));
         lower[i]= -upper[i];
       }
@@ -6432,7 +6432,7 @@ double pen_emom(double *th, double *phi, double *tau, int logscale) {
   double ans;
   ans= sqrt(2.0) - (*tau) * (*phi) / (th[0]*th[0]);
   if (logscale==0) ans= exp(ans);
-  return ans;  
+  return ans;
 }
 
 //Evaluates iMOM prior penalty, i.e. dimom(th) / dnorm(th)
@@ -6443,7 +6443,7 @@ double pen_imom(double *th, double *phi, double *tau, int logscale) {
   return(ans);
 }
 
-//Evaluates inverse of iMOM penalty, i.e. find th s.t. pen_imom(th,phi,tau) = lambda 
+//Evaluates inverse of iMOM penalty, i.e. find th s.t. pen_imom(th,phi,tau) = lambda
 //Refines initial search using Newton's algorithm
 double invpen_imom_newton(double *loglambda, double *phi, double *tau) {
   int i, maxiter=50;
@@ -6469,7 +6469,7 @@ double invpen_imom_newton(double *loglambda, double *phi, double *tau) {
 }
 
 
-// Uses an initial guess to bound the solution. Then uses a sandwhich approach based on recursive linear interpolation 
+// Uses an initial guess to bound the solution. Then uses a sandwhich approach based on recursive linear interpolation
 double invpen_imom_sandwich(double *loglambda, double *phi, double *tau) {
   int i, maxiter=50;
   double b, d, zcur, thcur, fcur, zlow, thlow, flow, zup, thup, fup, err, ftol=1.0e-5;
@@ -6817,16 +6817,16 @@ S20:
      Computes the cumulative  of    the  normal   distribution,   i.e.,
      the integral from -infinity to x of
           (1/sqrt(2*pi)) exp(-u*u/2) du
- 
+
      X --> Upper limit of integration.
                                         X is DOUBLE PRECISION
- 
+
      RESULT <-- Cumulative normal distribution.
                                         RESULT is DOUBLE PRECISION
- 
+
      CCUM <-- Compliment of Cumulative normal distribution.
                                         CCUM is DOUBLE PRECISION
- 
+
      Renaming of function ANORM from:
 
      Cody, W.D. (1993). "ALGORITHM 715: SPECFUN - A Portabel FORTRAN
@@ -6835,19 +6835,19 @@ S20:
 
      with slight modifications to return ccum and to deal with
      machine constants.
- 
+
 **********************************************************************
   Original Comments:
 ------------------------------------------------------------------
- 
+
  This function evaluates the normal distribution function:
- 
+
                               / x
                      1       |       -t*t/2
           P(x) = ----------- |      e       dt
                  sqrt(2 pi)  |
                              /-oo
- 
+
    The main computation evaluates near-minimax approximations
    derived from those in "Rational Chebyshev approximations for
    the error function" by W. J. Cody, Math. Comp., 1969, 631-637.
@@ -6857,38 +6857,38 @@ S20:
    depends on the arithmetic system, the compiler, the intrinsic
    functions, and proper selection of the machine-dependent
    constants.
- 
+
 *******************************************************************
 *******************************************************************
- 
+
  Explanation of machine-dependent constants.
- 
+
    MIN   = smallest machine representable number.
- 
+
    EPS   = argument below which anorm(x) may be represented by
            0.5  and above which  x*x  will not underflow.
            A conservative value is the largest machine number X
            such that   1.0 + X = 1.0   to machine precision.
 *******************************************************************
 *******************************************************************
- 
+
  Error returns
- 
+
   The program returns  ANORM = 0     for  ARG .LE. XLOW.
- 
- 
+
+
  Intrinsic functions required are:
- 
+
      ABS, AINT, EXP
- 
- 
+
+
   Author: W. J. Cody
           Mathematics and Computer Science Division
           Argonne National Laboratory
           Argonne, IL 60439
- 
+
   Latest modification: March 15, 1992
- 
+
 ------------------------------------------------------------------
 */
 void cumnor(double *arg,
@@ -7022,41 +7022,41 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 
 /*
 **********************************************************************
- 
+
      double dinvnr(double *p,double *q)
      Double precision NoRmal distribution INVerse
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns X  such that CUMNOR(X)  =   P,  i.e., the  integral from -
      infinity to X of (1/SQRT(2*PI)) EXP(-U*U/2) dU is P
- 
- 
+
+
                               Arguments
- 
- 
+
+
      P --> The probability whose normal deviate is sought.
                     P is DOUBLE PRECISION
- 
+
      Q --> 1-P
                     P is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      The  rational   function   on  page 95    of Kennedy  and  Gentle,
      Statistical Computing, Marcel Dekker, NY , 1980 is used as a start
      value for the Newton method of finding roots.
- 
- 
+
+
                               Note
- 
- 
+
+
      If P or Q .lt. machine EPS returns +/- DINVNR(EPS)
- 
+
 **********************************************************************
 */
 double dinvnr(double *p,
@@ -7121,32 +7121,32 @@ S40:
 
 /*
 **********************************************************************
- 
+
      double stvaln(double *p)
                     STarting VALue for Neton-Raphon
                 calculation of Normal distribution Inverse
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns X  such that CUMNOR(X)  =   P,  i.e., the  integral from -
      infinity to X of (1/SQRT(2*PI)) EXP(-U*U/2) dU is P
- 
- 
+
+
                               Arguments
- 
- 
+
+
      P --> The probability whose normal deviate is sought.
                     P is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      The  rational   function   on  page 95    of Kennedy  and  Gentle,
      Statistical Computing, Marcel Dekker, NY , 1980.
- 
+
 **********************************************************************
 */
 double stvaln(double *p)
@@ -7182,30 +7182,30 @@ S20:
 
 /*
 **********************************************************************
- 
+
      double devlpl(double a[],int *n,double *x)
               Double precision EVALuate a PoLynomial at X
- 
- 
+
+
                               Function
- 
- 
+
+
      returns
           A(1) + A(2)*X + ... + A(N)*X**(N-1)
- 
- 
+
+
                               Arguments
- 
- 
+
+
      A --> Array of coefficients of the polynomial.
                                         A is DOUBLE PRECISION(N)
- 
+
      N --> Length of A, also degree of polynomial - 1.
                                         N is INTEGER
- 
+
      X --> Point at which the polynomial is to be evaluated.
                                         X is DOUBLE PRECISION
- 
+
 **********************************************************************
 */
 double devlpl(double a[],
@@ -7227,67 +7227,67 @@ static int i;
 
 /*
 -----------------------------------------------------------------------
- 
+
      IPMPAR PROVIDES THE INTEGER MACHINE CONSTANTS FOR THE COMPUTER
      THAT IS USED. IT IS ASSUMED THAT THE ARGUMENT I IS AN INTEGER
      HAVING ONE OF THE VALUES 1-10. IPMPAR(I) HAS THE VALUE ...
- 
+
   INTEGERS.
- 
+
      ASSUME INTEGERS ARE REPRESENTED IN THE N-DIGIT, BASE-A FORM
- 
+
                SIGN ( X(N-1)*A**(N-1) + ... + X(1)*A + X(0) )
- 
+
                WHERE 0 .LE. X(I) .LT. A FOR I=0,...,N-1.
- 
+
      IPMPAR(1) = A, THE BASE.
- 
+
      IPMPAR(2) = N, THE NUMBER OF BASE-A DIGITS.
- 
+
      IPMPAR(3) = A**N - 1, THE LARGEST MAGNITUDE.
- 
+
   FLOATING-POINT NUMBERS.
- 
+
      IT IS ASSUMED THAT THE SINGLE AND DOUBLE PRECISION FLOATING
      POINT ARITHMETICS HAVE THE SAME BASE, SAY B, AND THAT THE
      NONZERO NUMBERS ARE REPRESENTED IN THE FORM
- 
+
                SIGN (B**E) * (X(1)/B + ... + X(M)/B**M)
- 
+
                WHERE X(I) = 0,1,...,B-1 FOR I=1,...,M,
                X(1) .GE. 1, AND EMIN .LE. E .LE. EMAX.
- 
+
      IPMPAR(4) = B, THE BASE.
- 
+
   SINGLE-PRECISION
- 
+
      IPMPAR(5) = M, THE NUMBER OF BASE-B DIGITS.
- 
+
      IPMPAR(6) = EMIN, THE SMALLEST EXPONENT E.
- 
+
      IPMPAR(7) = EMAX, THE LARGEST EXPONENT E.
- 
+
   DOUBLE-PRECISION
- 
+
      IPMPAR(8) = M, THE NUMBER OF BASE-B DIGITS.
- 
+
      IPMPAR(9) = EMIN, THE SMALLEST EXPONENT E.
- 
+
      IPMPAR(10) = EMAX, THE LARGEST EXPONENT E.
- 
+
 -----------------------------------------------------------------------
- 
+
      TO DEFINE THIS FUNCTION FOR THE COMPUTER BEING USED REMOVE
      THE COMMENT DELIMITORS FROM THE DEFINITIONS DIRECTLY BELOW THE NAME
      OF THE MACHINE
- 
+
 -----------------------------------------------------------------------
- 
+
      IPMPAR IS AN ADAPTATION OF THE FUNCTION I1MACH, WRITTEN BY
      P.A. FOX, A.D. HALL, AND N.L. SCHRYER (BELL LABORATORIES).
      IPMPAR WAS FORMED BY A.H. MORRIS (NSWC). THE CONSTANTS ARE
      FROM BELL LABORATORIES, NSWC, AND OTHER SOURCES.
- 
+
 -----------------------------------------------------------------------
      .. Scalar Arguments ..
 */
@@ -7725,46 +7725,46 @@ static double gengam;
 
 /*
 **********************************************************************
-                                                                      
-                                                                      
-     (STANDARD-)  G A M M A  DISTRIBUTION                             
-                                                                      
-                                                                      
+
+
+     (STANDARD-)  G A M M A  DISTRIBUTION
+
+
 **********************************************************************
 **********************************************************************
-                                                                      
-               PARAMETER  A >= 1.0  !                                 
-                                                                      
+
+               PARAMETER  A >= 1.0  !
+
 **********************************************************************
-                                                                      
-     FOR DETAILS SEE:                                                 
-                                                                      
-               AHRENS, J.H. AND DIETER, U.                            
-               GENERATING GAMMA VARIATES BY A                         
-               MODIFIED REJECTION TECHNIQUE.                          
-               COMM. ACM, 25,1 (JAN. 1982), 47 - 54.                  
-                                                                      
-     STEP NUMBERS CORRESPOND TO ALGORITHM 'GD' IN THE ABOVE PAPER     
-                                 (STRAIGHTFORWARD IMPLEMENTATION)     
-                                                                      
-     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of   
-     SUNIF.  The argument IR thus goes away.                          
-                                                                      
+
+     FOR DETAILS SEE:
+
+               AHRENS, J.H. AND DIETER, U.
+               GENERATING GAMMA VARIATES BY A
+               MODIFIED REJECTION TECHNIQUE.
+               COMM. ACM, 25,1 (JAN. 1982), 47 - 54.
+
+     STEP NUMBERS CORRESPOND TO ALGORITHM 'GD' IN THE ABOVE PAPER
+                                 (STRAIGHTFORWARD IMPLEMENTATION)
+
+     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of
+     SUNIF.  The argument IR thus goes away.
+
 **********************************************************************
-                                                                      
-               PARAMETER  0.0 < A < 1.0  !                            
-                                                                      
+
+               PARAMETER  0.0 < A < 1.0  !
+
 **********************************************************************
-                                                                      
-     FOR DETAILS SEE:                                                 
-                                                                      
-               AHRENS, J.H. AND DIETER, U.                            
-               COMPUTER METHODS FOR SAMPLING FROM GAMMA,              
-               BETA, POISSON AND BINOMIAL DISTRIBUTIONS.              
-               COMPUTING, 12 (1974), 223 - 246.                       
-                                                                      
-     (ADAPTED IMPLEMENTATION OF ALGORITHM 'GS' IN THE ABOVE PAPER)    
-                                                                      
+
+     FOR DETAILS SEE:
+
+               AHRENS, J.H. AND DIETER, U.
+               COMPUTER METHODS FOR SAMPLING FROM GAMMA,
+               BETA, POISSON AND BINOMIAL DISTRIBUTIONS.
+               COMPUTING, 12 (1974), 223 - 246.
+
+     (ADAPTED IMPLEMENTATION OF ALGORITHM 'GS' IN THE ABOVE PAPER)
+
 **********************************************************************
      INPUT: A =PARAMETER (MEAN) OF THE STANDARD GAMMA DISTRIBUTION
      OUTPUT: SGAMMA = SAMPLE FROM THE GAMMA-(A)-DISTRIBUTION
@@ -7940,27 +7940,27 @@ S140:
 
 /*
 **********************************************************************
-                                                                      
-                                                                      
-     (STANDARD-)  N O R M A L  DISTRIBUTION                           
-                                                                      
-                                                                      
+
+
+     (STANDARD-)  N O R M A L  DISTRIBUTION
+
+
 **********************************************************************
 **********************************************************************
-                                                                      
-     FOR DETAILS SEE:                                                 
-                                                                      
-               AHRENS, J.H. AND DIETER, U.                            
-               EXTENSIONS OF FORSYTHE'S METHOD FOR RANDOM             
-               SAMPLING FROM THE NORMAL DISTRIBUTION.                 
-               MATH. COMPUT., 27,124 (OCT. 1973), 927 - 937.          
-                                                                      
-     ALL STATEMENT NUMBERS CORRESPOND TO THE STEPS OF ALGORITHM 'FL'  
-     (M=5) IN THE ABOVE PAPER     (SLIGHTLY MODIFIED IMPLEMENTATION)  
-                                                                      
-     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of   
-     SUNIF.  The argument IR thus goes away.                          
-                                                                      
+
+     FOR DETAILS SEE:
+
+               AHRENS, J.H. AND DIETER, U.
+               EXTENSIONS OF FORSYTHE'S METHOD FOR RANDOM
+               SAMPLING FROM THE NORMAL DISTRIBUTION.
+               MATH. COMPUT., 27,124 (OCT. 1973), 927 - 937.
+
+     ALL STATEMENT NUMBERS CORRESPOND TO THE STEPS OF ALGORITHM 'FL'
+     (M=5) IN THE ABOVE PAPER     (SLIGHTLY MODIFIED IMPLEMENTATION)
+
+     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of
+     SUNIF.  The argument IR thus goes away.
+
 **********************************************************************
      THE DEFINITIONS OF THE CONSTANTS A(K), D(K), T(K) AND
      H(K) ARE ACCORDING TO THE ABOVEMENTIONED ARTICLE
@@ -8078,27 +8078,27 @@ double fsign(double num,
 
 /*
 **********************************************************************
-                                                                      
-                                                                      
-     (STANDARD-)  E X P O N E N T I A L   DISTRIBUTION                
-                                                                      
-                                                                      
+
+
+     (STANDARD-)  E X P O N E N T I A L   DISTRIBUTION
+
+
 **********************************************************************
 **********************************************************************
-                                                                      
-     FOR DETAILS SEE:                                                 
-                                                                      
-               AHRENS, J.H. AND DIETER, U.                            
-               COMPUTER METHODS FOR SAMPLING FROM THE                 
-               EXPONENTIAL AND NORMAL DISTRIBUTIONS.                  
-               COMM. ACM, 15,10 (OCT. 1972), 873 - 882.               
-                                                                      
-     ALL STATEMENT NUMBERS CORRESPOND TO THE STEPS OF ALGORITHM       
-     'SA' IN THE ABOVE PAPER (SLIGHTLY MODIFIED IMPLEMENTATION)       
-                                                                      
-     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of   
-     SUNIF.  The argument IR thus goes away.                          
-                                                                      
+
+     FOR DETAILS SEE:
+
+               AHRENS, J.H. AND DIETER, U.
+               COMPUTER METHODS FOR SAMPLING FROM THE
+               EXPONENTIAL AND NORMAL DISTRIBUTIONS.
+               COMM. ACM, 15,10 (OCT. 1972), 873 - 882.
+
+     ALL STATEMENT NUMBERS CORRESPOND TO THE STEPS OF ALGORITHM
+     'SA' IN THE ABOVE PAPER (SLIGHTLY MODIFIED IMPLEMENTATION)
+
+     Modified by Barry W. Brown, Feb 3, 1988 to use RANF instead of
+     SUNIF.  The argument IR thus goes away.
+
 **********************************************************************
      Q(N) = SUM(ALOG(2.0)**K/K!)    K=1,..,N ,      THE HIGHEST N
      (HERE 8) IS DETERMINED BY Q(N)=1.0 WITHIN STANDARD PRECISION

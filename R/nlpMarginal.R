@@ -587,7 +587,7 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
 # - x: design matrix
-  if ((!is.logical(sel)) || (!is.vector(sel))) stop("sel must be a logical vector")
+  if (((!is.integer(sel)) || (!is.vector(sel))) & ((!is.logical(sel)) || (!is.vector(sel)))) stop("sel must be either an integer or a logical vector")
   if (class(priorSkew)=='msPriorSpec') {
     if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
   }
@@ -637,7 +637,7 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
 # - sel: vector with indexes of variables included in the model
 # - y: response variable
 # - x: design matrix
-  if ((!is.logical(sel)) || (!is.vector(sel))) stop("sel must be a logical vector")
+  if (((!is.integer(sel)) || (!is.vector(sel))) & ((!is.logical(sel)) || (!is.vector(sel)))) stop("sel must be either an integer or a logical vector")
   if (class(priorSkew)=='msPriorSpec') {
     if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
   }

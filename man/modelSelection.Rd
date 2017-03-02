@@ -4,12 +4,12 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Bayesian variable selection for linear models via non-local priors. }
 \description{
-  Bayesian model selection for linear models using
+  Bayesian model selection for linear, asymmetric linear,
+  median and quantile regression under
   non-local or Zellner priors. p>>n can be handled.
 
-  modelSelection tries to provide an exact solution,
-  enumerating all models when feasible and using
-  a Gibbs scheme otherwise.
+  modelSelection enumerates all models when feasible
+  and uses a Gibbs scheme otherwise.
   See \code{rnlp} for posterior samples for the coefficients.
 
   modelsearchBlockDiag seeks the highest posterior
@@ -47,7 +47,9 @@ maxenum=10, verbose=TRUE)
   \code{.1*niter}. Set to 0 for no burn-in}
 \item{family}{Residual distribution. Possible values are
   'normal','twopiecenormal','laplace', 'twopiecelaplace', or 'auto'. For
-  the latter the residual distribution is inferred from the data.}
+  the latter the residual distribution is inferred from the data.
+  'laplace' corresponds to median regression and 'twopiecelaplace'
+  to quantile regression. See argument \code{priorSkew}}
 \item{priorCoef}{Prior on coefficients, created
   by \code{momprior}, \code{imomprior}, \code{emomprior} or
   \code{zellnerprior}.
@@ -58,11 +60,11 @@ maxenum=10, verbose=TRUE)
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
   \code{igprior(). For Normal variance=scale, for Laplace
     variance=2*scale.}}
-\item{priorSkew}{Either a number fixing tanh(alpha) where alpha is the
-  asymmetry parameter or a prior on residual skewness parameter,
-  assumed to be of
-  the same family as priorCoef. Ignored if \code{family} is 'normal' or
-  'laplace'.}
+\item{priorSkew}{Either a fixed value for tanh(alpha) where alpha is
+  the asymmetry parameter or a prior on tanh(alpha).
+  For \code{family=='twopiecelaplace'} setting alpha=a is equivalent
+  to performing quantile regression for the quantile (1+a)/2.
+  Ignored if \code{family} is 'normal' or 'laplace'.}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}

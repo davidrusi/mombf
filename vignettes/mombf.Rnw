@@ -37,7 +37,8 @@
 \date{}  %comment to include current date
 \maketitle
 
-The \texttt{mombf} package implements various methods for Bayesian model selection (BMS) and model averaging (BMA).
+The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
+for linear, asymmetric linear, median and quantile regression.
 This is the main package implementing the family of {\it non-local prior} (NLP) distributions
 (briefly reviewed here, see \cite{johnson:2010,johnson:2012} for a more detailed treatment),
 although other priors (mainly Zellner's) are also implemented.
@@ -57,7 +58,8 @@ The main features are:
 
 \item BMS and BMA for certain generalized linear models (Section \ref{sec:bfglm}, \cite{johnson:2012,rossell:2013b})
 
-\item BMS in linear regression with non-normal residuals (Rossell and Rubio, work in progress)
+\item BMS in linear regression with non-normal residuals \citep{rossell:2016b}. Particular cases are Bayesian versions
+  of asymmetric least squares, median and quantile regression.
 \end{itemize}
 
 This manual introduces some basic notions underlying NLPs

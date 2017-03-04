@@ -3333,6 +3333,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, nu;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss;
+
   if (*nsel == 0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);

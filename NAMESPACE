@@ -6,7 +6,7 @@ import(methods, actuar, mvtnorm, mgcv, ncvreg, stats)
 importFrom(survival, Surv, coxph)
 importFrom("utils", "combn")
 
-useDynLib(mombf)
+useDynLib(mombf, .registration=TRUE)
 
 export(bbPrior)
 export(binomPrior)

@@ -61,9 +61,10 @@ static R_CallMethodDef callMethods[]  = {
   {NULL, NULL, 0}
 };
 
-void R_init_myLib(DllInfo *info)
+void R_init_mombf(DllInfo *info)
 {
    R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+   R_useDynamicSymbols(info, FALSE);
 }
 
 

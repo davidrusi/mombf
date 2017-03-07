@@ -1296,10 +1296,6 @@ double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, 
 
   postmodeAlaplCDA(thmode, &fmode, hess, sel, nsel, (*pars).n, (*pars).p, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, &maxit, &ftol, &thtol, &taulapl, (*pars).taualpha, (*pars).fixatanhalpha, (*pars).alpha, &lambdalapl, prior, hesstype, symmetric);
 
-  //int i;
-  //Rprintf("--- thmode= "); for (i=1; i<=p; i++) { Rprintf(" %f", thmode[i]); } Rprintf("\n");
-  //Rprintf("Objective function at the mode: %f \n", fmode);
-
   int method= *((*pars).method);
   if ((method!=0) & (method!=1)) method= 0; //If unrecognized method, set to Laplace
 
@@ -1383,10 +1379,41 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 
   for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
   thnew[*nsel +1]= thmode[*nsel +1]; //phi
-  if (*symmetric ==0) {   //alpha (avoid 0 posterior at alpha=0)
-    if (fabs(thmode[p])>0.01) {
-      thnew[p]= thmode[p];
-    } else { if (thmode[p]<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
+  if (*symmetric ==0) {   //alpha
+    //(silly avoiding 0 posterior at alpha=0)
+    //if (fabs(thmode[p])>0.01) {
+    //  thnew[p]= thmode[p];
+    //} else { if (thmode[p]<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
+    //Improve initial guess for alpha
+    loglnegGradHessAlaplUniv(p,&g,&H,thmode,nsel,sel,n,pvar,y,ypred,x,XtX,symmetric);
+    if (*prior ==1) {  //pMOM prior
+      double s= (1.0 + 1.0/(H*(*taualpha)));
+      double ss= sqrt(thmode[p]*thmode[p] + 8.0*(1.0/H)*s);
+      if (thmode[p]>0) { thmode[p]= thnew[p]= 0.5*(thmode[p] + ss)/s; } else { thmode[p]= thnew[p]= 0.5*(thmode[p] - ss)/s; }
+    } else {  //piMOM prior (also used for peMOM, although no longer exact)
+      bool found;
+      int root_count;
+      double *coef, *real_vector, *imag_vector;
+      Polynomial poly;
+      PolynomialRootFinder::RootStatus_T status;
+
+      coef= dvector(0,4); real_vector= dvector(0,4); imag_vector= dvector(0,4);
+      coef[0]= 2.0*(*taualpha); coef[1]= 0; coef[2]= -2.0; coef[3]= H*thmode[p]; coef[4]= -H;
+      poly.SetCoefficients(coef, 4);
+      status= poly.FindRoots(real_vector,imag_vector,&root_count);
+
+      j=0; found= false;
+      while ((!found) & (j<=4)) {
+	if (fabs(imag_vector[j])<1.0e-5) {
+	  if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
+	    thmode[p]= thnew[p]= real_vector[j];
+	    found= true;
+	  }
+	}
+	j++;
+      }
+      free_dvector(coef,0,4); free_dvector(real_vector,0,4); free_dvector(imag_vector,0,4);
+    }
   }
 
   it=1; err= ferr= 1;
@@ -2352,7 +2379,40 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 
   for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
   thnew[*nsel +1]= thmode[*nsel +1]= log(thmode[*nsel +1]);
-  if (*symmetric ==0) { thnew[p]= thmode[p]= atanh(thmode[p]); }  //Note: atanh(z)= 0.5*(log(1+z)-log(1-z))
+  if (*symmetric ==0) {
+    thnew[p]= thmode[p]= atanh(thmode[p]); //Note: atanh(z)= 0.5*(log(1+z)-log(1-z))
+    //Improve initial guess for alpha
+    loglnegGradSkewNormUniv(p,&g,thmode,nsel,sel,n,y,ypred,x,symmetric); //gradient
+    loglnegHessSkewNormUniv(p,&H,thmode,nsel,sel,n,y,ypred,x,symmetric);  //hessian
+    if (*prior ==1) {  //pMOM prior
+      double s= (1.0 + 1.0/(H*(*taualpha)));
+      double ss= sqrt(thmode[p]*thmode[p] + 8.0*(1.0/H)*s);
+      if (thmode[p]>0) { thmode[p]= thnew[p]= 0.5*(thmode[p] + ss)/s; } else { thmode[p]= thnew[p]= 0.5*(thmode[p] - ss)/s; }
+    } else {  //piMOM prior (also used for peMOM, although no longer exact)
+      bool found;
+      int root_count;
+      double *coef, *real_vector, *imag_vector;
+      Polynomial poly;
+      PolynomialRootFinder::RootStatus_T status;
+
+      coef= dvector(0,4); real_vector= dvector(0,4); imag_vector= dvector(0,4);
+      coef[0]= 2.0*(*taualpha); coef[1]= 0; coef[2]= -2.0; coef[3]= H*thmode[p]; coef[4]= -H;
+      poly.SetCoefficients(coef, 4);
+      status= poly.FindRoots(real_vector,imag_vector,&root_count);
+
+      j=0; found= false;
+      while ((!found) & (j<=4)) {
+     	if (fabs(imag_vector[j])<1.0e-5) {
+     	  if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
+     	    thmode[p]= thnew[p]= real_vector[j];
+     	    found= true;
+     	  }
+     	}
+     	j++;
+      }
+      free_dvector(coef,0,4); free_dvector(real_vector,0,4); free_dvector(imag_vector,0,4);
+    }
+  }
 
   it=1; err= ferr= 1;
 
@@ -2408,6 +2468,7 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
 
   thmode[*nsel +1]= exp(thmode[*nsel +1]);
   if (*symmetric ==0) { thmode[p]= tanh(thmode[p]); } //Note: tanh(z)= -1 + 2/(1+exp(-2*z))
+  //Rprintf("--- niter=%d, Posterior mode= %f %f %f \n",it,thmode[1],thmode[2],thmode[p]);
 
   free_dvector(ypred, 0,*n -1); free_dvector(thnew,1,p);
 }

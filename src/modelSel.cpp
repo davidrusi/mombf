@@ -1386,7 +1386,7 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
   if (*symmetric ==0) {   //alpha (avoid 0 posterior at alpha=0)
     if (fabs(thmode[p])>0.01) {
       thnew[p]= thmode[p];
-    } else { if (thmode<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
+    } else { if (thmode[p]<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
   }
 
   it=1; err= ferr= 1;

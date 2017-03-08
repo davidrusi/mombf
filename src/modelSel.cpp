@@ -1379,13 +1379,13 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
 
   for (i=1; i<=(*nsel); i++) { thnew[i]= thmode[i]; }
   thnew[*nsel +1]= thmode[*nsel +1]; //phi
-  if (*symmetric ==0) {   //alpha
+  if ((*symmetric ==0) & (fixedalpha==0)) {   //alpha
     //(silly avoiding 0 posterior at alpha=0)
     //if (fabs(thmode[p])>0.01) {
     //  thnew[p]= thmode[p];
     //} else { if (thmode[p]<=0) { thmode[p]= thnew[p]= -0.01; } else { thmode[p]= thnew[p]= 0.01; } }
     //Improve initial guess for alpha
-    loglnegGradHessAlaplUniv(p,&g,&H,thmode,nsel,sel,n,pvar,y,ypred,x,XtX,symmetric);
+    loglnegGradHessAlaplUniv(p-1,&g,&H,thmode,nsel,sel,n,pvar,y,ypred,x,XtX,symmetric);
     if (*prior ==1) {  //pMOM prior
       double s= (1.0 + 1.0/(H*(*taualpha)));
       double ss= sqrt(thmode[p]*thmode[p] + 8.0*(1.0/H)*s);
@@ -1402,15 +1402,17 @@ void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, in
       poly.SetCoefficients(coef, 4);
       status= poly.FindRoots(real_vector,imag_vector,&root_count);
 
-      j=0; found= false;
-      while ((!found) & (j<=4)) {
-	if (fabs(imag_vector[j])<1.0e-5) {
-	  if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
-	    thmode[p]= thnew[p]= real_vector[j];
-	    found= true;
+      if (status == PolynomialRootFinder::SUCCESS) {
+        j=0; found= false;
+        while ((!found) & (j<=4)) {
+          if (fabs(imag_vector[j])<1.0e-5) {
+	    if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
+	      thmode[p]= thnew[p]= real_vector[j];
+	      found= true;
+	    }
 	  }
-	}
-	j++;
+	  j++;
+        }
       }
       free_dvector(coef,0,4); free_dvector(real_vector,0,4); free_dvector(imag_vector,0,4);
     }
@@ -1852,7 +1854,7 @@ void loglAlapl(double *ans, double *ypred, double *th, int *nsel, int *sel, int 
 void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel, int *sel, int *n, int *p, double *y, double *ypred, double *x, double *XtX, int *symmetric) {
   //Gradient for th[j] of minus the log-likelihood function of a linear model with two-piece Laplace errors
   //Note: the -1.0 term when j=nsel+1 coming from the jacobian of tvartheta=log(vartheta) is not included, it must be added separately after calling this function
-  int i, colidx= sel[j]*(*n);
+  int i, colidx;
   double scale, sqscale, alpha, alphasq, w1, w2, ws1, ws2, wsbar1, wsbar2, tmp;
 
   scale= exp(th[*nsel +1]);
@@ -1867,6 +1869,7 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
 
     if (j< *nsel) {  //derivative wrt theta
 
+      colidx= sel[j]*(*n);
       for (i=0; i< *n; i++) {
 	if (y[i]<ypred[i]) { (*g)+= w1 * x[colidx+i]; } else { (*g)-= w2 * x[colidx+i]; }
       }
@@ -1902,6 +1905,7 @@ void loglnegGradHessAlaplUniv(int j, double *g, double *H, double *th, int *nsel
 
     if (j< *nsel) {  //derivative wrt theta
 
+      colidx= sel[j]*(*n);
       for (i=0; i< *n; i++) { if (y[i]<ypred[i]) { (*g)+= x[colidx+i]; } else { (*g)-= x[colidx+i]; } }
       (*g)= (*g)/sqscale;
       (*H)= XtX[sel[j]*(*p)+sel[j]]/scale;
@@ -2400,15 +2404,17 @@ void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel,
       poly.SetCoefficients(coef, 4);
       status= poly.FindRoots(real_vector,imag_vector,&root_count);
 
-      j=0; found= false;
-      while ((!found) & (j<=4)) {
-     	if (fabs(imag_vector[j])<1.0e-5) {
-     	  if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
-     	    thmode[p]= thnew[p]= real_vector[j];
-     	    found= true;
-     	  }
-     	}
-     	j++;
+      if (status == PolynomialRootFinder::SUCCESS) {
+	j=0; found= false;
+	while ((!found) & (j<=4)) {
+	  if (fabs(imag_vector[j])<1.0e-5) {
+	    if (((real_vector[j]>0) & (thmode[p]>0)) | ((real_vector[j]<=0) & (thmode[p]<=0))) {
+	      thmode[p]= thnew[p]= real_vector[j];
+	      found= true;
+	    }
+	  }
+	  j++;
+	}
       }
       free_dvector(coef,0,4); free_dvector(real_vector,0,4); free_dvector(imag_vector,0,4);
     }

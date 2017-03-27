@@ -133,7 +133,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     r <- as.integer(1); prior <- as.integer(1)
   } else if (priorCoef@priorDistr=='peMOM') {
     r <- as.integer(1); prior <- as.integer(2)
-    stop('eMOM prior not currently implemented. Try function emomLM instead')
+    #stop('eMOM prior not currently implemented. Try function emomLM instead')
   } else if (priorCoef@priorDistr=='zellner') {
     r <- as.integer(1); prior <- as.integer(3)
   } else {

@@ -1,3 +1,8 @@
+CHANGES IN VERSION 1.9.5
+- Added eMOM and iMOM priors for two-piece Normal and two-piece Laplace errors
+- Fixed a bug in integrated likelihood Laplace approximation for the MOM prior and Normal errors
+- Fixed valgrind memory warnings 
+
 CHANGES IN VERSION 1.8.3
 - Fixed spectral clustering on cor(x)^2 instead of cor(x)
 

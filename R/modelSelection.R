@@ -57,13 +57,14 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), maxvars= ncol(x), niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars= ncol(x), niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors
 # - center: if center==TRUE y and x are centered to have zero mean, therefore eliminating the need to include an intercept term in x.
 # - scale: if scale==TRUE y and columns in x are scaled to have standard deviation 1
 # - enumerate: if TRUE all models with up to maxvars are enumerated, else Gibbs sampling is used to explore the model space
+# - includevars: set to TRUE for variables that you want to force into the model
 # - maxvars: maximum number of variables in models to be enumerated (ignored if enumerate==FALSE)
 # - niter: number of Gibbs sampling iterations
 # - thinning: MCMC thinning factor, i.e. only one out of each thinning iterations are reported. Defaults to thinning=1, i.e. no thinning
@@ -95,11 +96,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   y <- scale(y,center=center,scale=scale); x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   p <- ncol(x); n <- length(y)
+  if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(deltaini)) {
-    deltaini <- integer(0); ndeltaini= as.integer(0)
+    deltaini <- as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
   } else {
     if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
-    if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1) }
+    if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }
   }
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (method=='Laplace') {
@@ -171,6 +173,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     stop('Prior specified in priorDelta not recognized')
   }
   if (!is.null(colnames(x))) { nn <- colnames(x) } else { nn <- paste('x',1:ncol(x),sep='') }
+  includevars <- as.integer(includevars)
 
   if (!enumerate) {
 
@@ -179,21 +182,23 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
+      postMode[includevars==1] <- TRUE
       ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
     } else if (initSearch=='SCAD') {
       if (verbose) cat("Initializing via SCAD cross-validation...")
       deltaini <- rep(TRUE,ncol(x))
       cvscad <- cv.ncvreg(X=x[,!ct],y=y-mean(y),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
       deltaini[!ct] <- ncvreg(X=x[,!ct],y=y-mean(y),penalty='SCAD',dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1,1]!=0
+      deltaini[includevars==1] <- TRUE
       ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1)
       if (verbose) cat(" Done\n")
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -202,12 +207,25 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     #Model enumeration
     if (verbose) cat("Enumerating models...\n")
     if (maxvars>=ncol(x)) {
-      models= expand.grid(lapply(1:ifelse(familyint==0,ncol(x)+2,ncol(x)), function(z) c(FALSE,TRUE)))
+      models= expand.grid(lapply(1:ifelse(familyint==0,ncol(x)+2-sum(includevars),ncol(x)-sum(includevars)), function(z) c(FALSE,TRUE)))
+      if (any(includevars)) {
+          newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
+          newmodels[,includevars==0] <- as.matrix(models)
+          newmodels[,includevars==1] <- 1
+          models <- newmodels
+      }
       nmodels= as.integer(nrow(models))
     } else {
-      nmodels= as.integer(sum(sapply(0:maxvars, function(z) choose(ncol(x),z))))
+      if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
+      nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(x)-sum(includevars),z))))
       idx <- rep(FALSE,ncol(x))
-      models= t(do.call(cbind,lapply(0:maxvars, function(m) sapply(combn(ncol(x),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
+      models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(x),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
+      if (any(includevars)) {
+          newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
+          newmodels[,includevars==0] <- as.matrix(models)
+          newmodels[,includevars==1] <- 1
+          models <- newmodels
+      }
       if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     }
     models= as.integer(unlist(models))

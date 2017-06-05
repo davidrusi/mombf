@@ -8884,9 +8884,9 @@ void bspline(double **W,
 }
 
 
+
 /*
- * Same as bspline() but uses a vector as its first argument so that it can
- * be called from R
+ * Same as bspline() but uses a vector as its first argument so that it can be called from R
  */
 void bspline_vec(double *W,
                  const double *x,

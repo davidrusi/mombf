@@ -458,6 +458,8 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
   propPars[5]= 1-propPars[4];
 }
 
+
+
 //Expectation of prod_j th_j^{2*power} under multivariate Normal/T with mean m, covariance S, dimension n, degrees of freedom dof (dof=-1 for Normal)
 SEXP eprod_I(SEXP m, SEXP S, SEXP n, SEXP power, SEXP dof) {
   SEXP ans;
@@ -729,6 +731,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - niter: number of Gibbs iterations
 // - ndeltaini: length of deltaini
 // - deltaini: vector with indexes of covariates initially in the model (both deltaini and its indexes must be indexed at 0)
+// - includevars: binary vector, elements with includevars[j]==1 indicate that variable should always be included in the model
 // - verbose: set verbose==1 to print iteration progress every 10% of the iterations
 // - pars: struct of type marginalPars containing parameters needed to evaluate the marginal density of the data & prior on model space
 // - family: residual distribution (1 for Normal; 2 for two-piece Normal; 3 for Laplace; 4 for two-piece Laplace). Set family==0 to perform inference on the family
@@ -739,7 +742,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
 
   int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2;
   double offset=0, *margpp, *postModeProb, *postProb;
@@ -770,7 +773,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
-  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sverbose), &pars);
+  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), INTEGER(Sverbose), &pars);
 
   UNPROTECT(1);
   return ans;
@@ -779,7 +782,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
 
 
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, int *verbose, struct marginalPars *pars) {
 
   bool copylast;
   int i, j, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily;
@@ -831,42 +834,44 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   //Iterate
   for (i=ilow; i< iupper; i++) {
     for (j=0; j< *(*pars).p; j++) {
-      sel2selnew(j,sel,&nsel,selnew,&nselnew,copylast); //copy sel into selnew, adding/removing jth element
-      if (nselnew <= (*(*pars).n)) {
-	if ((*family)==0) {  //inference is being done on the family
-	  nselplus1= nselnew+1;
-	  newJ= integrals->getJoint(selnew,&nselplus1,pars);
-	} else {  //family is fixed
-	  newJ= integrals->getJoint(selnew,&nselnew,pars);
-	}
-        if (newJ > *postModeProb) {   //update posterior mode
-          *postModeProb= newJ;
-          for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
-          for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; }
-	  if ((*family)==0) {
-	    if (selnew[nselnew]== (*(*pars).p)) { //Normal residuals
-	      postMode[*(*pars).p]= 0;
-	      postMode[(*(*pars).p) +1]= 0;
-	    } else if (selnew[nselnew]== (*(*pars).p) +1) { //Asymmetric Normal residuals
-	      postMode[*(*pars).p]= 1;
-	      postMode[(*(*pars).p) +1]= 0;
-	    } else if (selnew[nselnew]== (*(*pars).p) +2) { //Laplace residuals
-	      postMode[*(*pars).p]= 0;
-	      postMode[(*(*pars).p) +1]= 1;
-	    } else { //Asymmetric Laplace residuals
-	      postMode[*(*pars).p]= 1;
-	      postMode[(*(*pars).p) +1]= 1;
-	    }
-	  }
+      if (includevars[j]==0) {
+        sel2selnew(j,sel,&nsel,selnew,&nselnew,copylast); //copy sel into selnew, adding/removing jth element
+        if (nselnew <= (*(*pars).n)) {
+         	if ((*family)==0) {  //inference is being done on the family
+         	  nselplus1= nselnew+1;
+         	  newJ= integrals->getJoint(selnew,&nselplus1,pars);
+         	} else {  //family is fixed
+         	  newJ= integrals->getJoint(selnew,&nselnew,pars);
+         	}
+          if (newJ > *postModeProb) {   //update posterior mode
+            *postModeProb= newJ;
+            for (k=0; k< *(*pars).p; k++) { postMode[k]= 0; }
+            for (k=0; k< nselnew; k++) { postMode[selnew[k]]= 1; }
+         	  if ((*family)==0) {
+         	    if (selnew[nselnew]== (*(*pars).p)) { //Normal residuals
+         	      postMode[*(*pars).p]= 0;
+         	      postMode[(*(*pars).p) +1]= 0;
+         	    } else if (selnew[nselnew]== (*(*pars).p) +1) { //Asymmetric Normal residuals
+         	      postMode[*(*pars).p]= 1;
+         	      postMode[(*(*pars).p) +1]= 0;
+         	    } else if (selnew[nselnew]== (*(*pars).p) +2) { //Laplace residuals
+         	      postMode[*(*pars).p]= 0;
+         	      postMode[(*(*pars).p) +1]= 1;
+         	    } else { //Asymmetric Laplace residuals
+         	      postMode[*(*pars).p]= 1;
+         	      postMode[(*(*pars).p) +1]= 1;
+         	    }
+         	  }
+          }
+          ppnew= 1.0/(1.0+exp(currentJ-newJ));
+          if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew; } else { margpp[j]+= (1-ppnew); } }
+        } else {
+         	ppnew= -0.01;
         }
-        ppnew= 1.0/(1.0+exp(currentJ-newJ));
-        if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew; } else { margpp[j]+= (1-ppnew); } }
-      } else {
-	ppnew= -0.01;
-      }
-      u= runif();
-      if (u<ppnew) {  //update model indicator
-        selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
+        u= runif();
+        if (u<ppnew) {  //update model indicator
+          selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
+        }
       }
     }  //end j for
 
@@ -933,7 +938,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sverbose) {
   int j, logscale=1, mycols, *postMode;
   double offset=0, *postModeProb;
   struct marginalPars pars;
@@ -950,14 +955,14 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltain
   postModeProb= REAL(VECTOR_ELT(ans,1));
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), REAL(SXtX), REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset);
-  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sverbose),&pars);
+  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),INTEGER(Sverbose),&pars);
 
   UNPROTECT(1);
   return ans;
 
 }
 
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *verbose, struct marginalPars *pars) {
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *includevars, int *verbose, struct marginalPars *pars) {
   int i, j, *sel, *selnew, *selaux, nsel, nselnew, nchanges, family=1;
   double newJ;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
@@ -974,13 +979,15 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCo
   //Iterate
   for (i=0, nchanges=1; (i< *niter) && (nchanges>0); i++) {
     for (j=0, nchanges=0; j< *(*pars).p; j++) {
-      sel2selnew(j,sel,&nsel,selnew,&nselnew,false); //copy sel into selnew, adding/removing jth element
-      newJ= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
-      if (newJ > *postModeProb) {
-        *postModeProb= newJ;  //update post mode prob
-        if (postMode[j]==0) { postMode[j]= 1; } else { postMode[j]= 0; }  //update post mode
-        selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; //update model indicator
-        nchanges++;
+      if (includevars[j]==0) {
+        sel2selnew(j,sel,&nsel,selnew,&nselnew,false); //copy sel into selnew, adding/removing jth element
+        newJ= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
+        if (newJ > *postModeProb) {
+          *postModeProb= newJ;  //update post mode prob
+          if (postMode[j]==0) { postMode[j]= 1; } else { postMode[j]= 0; }  //update post mode
+          selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; //update model indicator
+          nchanges++;
+        }
       }
     } //end j for
   }
@@ -4191,5 +4198,22 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
+}
+
+
+
+//*************************************************************************************
+// ADDITIVE MODELS
+//*************************************************************************************
+
+SEXP bsplineCI(SEXP x, SEXP degree, SEXP knots) {
+  int nknots=LENGTH(knots), nx=LENGTH(x);
+  SEXP ans;
+  PROTECT(ans= allocVector(REALSXP, (nknots-INTEGER(degree)[0]-1) * nx));
+
+  bspline_vec(REAL(ans), REAL(x), &nx, INTEGER(degree), REAL(knots), &nknots);
+
+  UNPROTECT(1);
   return ans;
 }

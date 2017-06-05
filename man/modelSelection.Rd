@@ -17,7 +17,9 @@
 }
 \usage{
 modelSelection(y, x, center=TRUE, scale=TRUE,
-enumerate= ifelse(ncol(x)<15,TRUE,FALSE), maxvars= ncol(x),
+enumerate= ifelse(ncol(x)<15,TRUE,FALSE),
+includevars=rep(FALSE,ncol(x)),
+maxvars= ncol(x),
 niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
@@ -37,7 +39,11 @@ maxenum=10, verbose=TRUE)
 \item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
   scaled to have standard deviation1}
-\item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are enumerated, else Gibbs sampling is used to explore the model space}
+\item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are
+  enumerated, else Gibbs sampling is used to explore the model space}
+\item{includevars}{Logical vector of length ncol(x) indicating variables
+that should always be included in the model, i.e. variable selection is
+not performed for these variables}
 \item{maxvars}{When \code{enumerate==TRUE} only models with up to maxvars variables
   enumerated. In \code{modelsearchBlockDiag} a sequence of models
   is defined from 1 up to \code{maxvars}}

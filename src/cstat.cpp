@@ -99,7 +99,7 @@ static void _cstaterror(const char *proc,
 double meani(const int *x,
              int lim)
 {
-    register int i;
+    int i;
     double value = 0.0;
 
     //assert(x != NULL);
@@ -117,7 +117,7 @@ double wmeani(const int *x,
               int lim,
               const double *w)
 {
-    register int i;
+    int i;
     double value = 0.0;
     double wtot = 0.0;
 
@@ -138,7 +138,7 @@ double wmeani(const int *x,
 double meanx(const double *x,
              int lim)
 {
-    register int i;
+    int i;
     double value = 0.0;
 
     //assert(x != NULL);
@@ -156,7 +156,7 @@ double wmeanx(const double *x,
               int lim,
               const double *w)
 {
-    register int i;
+    int i;
     double value = 0.0;
     double wtot = 0.0;
 
@@ -178,7 +178,7 @@ double vari(const int *x,
             int lim,
             bool unbiased)
 {
-    register int i;
+    int i;
     double value = 0.0;
 
     //assert(x != NULL);
@@ -200,7 +200,7 @@ double wvari(const int *x,
              int lim,
              const double *w)
 {
-    register int i;
+    int i;
     double value = 0.0;
     double wtot = 0.0;
 
@@ -222,7 +222,7 @@ double varx(const double *x,
             int lim,
             bool unbiased)
 {
-    register int i;
+    int i;
     double value = 0.0;
 
     //assert(x != NULL);
@@ -244,7 +244,7 @@ double wvarx(const double *x,
              int lim,
              const double *w)
 {
-    register int i;
+    int i;
     double value = 0.0;
     double wtot = 0.0;
 
@@ -266,7 +266,7 @@ double cv(const double *x,
           int ini,
           int fi)
 {
-    register int i;
+    int i;
     double m = 0.0;
     double s = 0.0;
     double ans;
@@ -292,7 +292,7 @@ double cvinv(const double *x,
              int ini,
              int fi)
 {
-    register int i;
+    int i;
     double m = 0.0;
     double s = 0.0;
     double ans;
@@ -320,8 +320,7 @@ void colMeans(double *m,
               int nrow,
               int ncol)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(m != NULL);
     //assert(x != NULL);
@@ -346,8 +345,7 @@ void colVar(double *v,
             int nrow,
             int ncol)
 {
-    register int i;
-    register int j;
+    int i, j;
     double *m;
     double *m2;
 
@@ -385,8 +383,8 @@ void colCV(double *cv,
            int nrow,
            int ncol)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double *m;
     double *s;
 
@@ -425,8 +423,8 @@ void colCVinv(double *cv,
               int nrow,
               int ncol)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double *m;
     double *s;
 
@@ -659,7 +657,7 @@ void lm(double *b,
         const int *useXtX)
 {
   bool posdef;
-  register int i;
+  int i;
 
     //assert(b != NULL);
     //assert(XtX != NULL);
@@ -804,10 +802,8 @@ void lmbayes(double *bpost,
 
     if (*B > 0) {             //posterior samples
         bool posdef;
-        double *zeroes;
-        double **cholVb;
-        register int i;
-        register int j;
+        double *zeroes, **cholVb;
+        int i, j;
 
         cholVb = dmatrix(1, *p, 1, *p);
         choldc(Vb, *p, cholVb,&posdef); //cholesky decomp of posterior covar for beta
@@ -920,9 +916,8 @@ void lmbayes_knownvar(double *bpost,
 
     if (*B > 0) {             //posterior samples
         bool posdef;
-        double *zeroes;
-        double **cholVb;
-        register int i;
+        double *zeroes, **cholVb;
+        int i;
 
         cholVb = dmatrix(1, *p, 1, *p);
         choldc(Vb, *p, cholVb, &posdef); //cholesky decomp of posterior covar for beta
@@ -931,7 +926,7 @@ void lmbayes_knownvar(double *bpost,
             zeroes[i] = 0.0;
         }
         for (i = 1; i <= (*B); i++) {
-            register int j;
+            int j;
 
             rmvnormC(bpost+(i-1)*(*p), *p, zeroes, cholVb);
             for (j = 1; j <= (*p); j++) {
@@ -1175,10 +1170,7 @@ void fwriteDoubleArray(FILE *f,
                        int rows,
                        int cols)
 {
-    register int i;
-    register int j;
-    int s1 = 0;
-    int s2 = 0;
+    int i, j, s1=0, s2=0;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1213,10 +1205,7 @@ void fwriteIntArray(FILE *f,
                     int rows,
                     int cols)
 {
-    register int i;
-    register int j;
-    int s1 = 0;
-    int s2 = 0;
+    int i, j, s1=0, s2=0;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1251,9 +1240,7 @@ void fwriteIntMatrix(FILE *f,
                      int rows,
                      int cols)
 {
-    register int i;
-    register int j;
-    int s = 0;
+    int i, j, s=0;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1285,9 +1272,7 @@ void fwriteDoubleMatrix(FILE *f,
                         int rows,
                         int cols)
 {
-    register int i;
-    register int j;
-    int s;
+    int i, j, s;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1323,9 +1308,7 @@ void fwriteDoubleMatrix2(FILE *f,
                          int rows,
                          int cols)
 {
-    register int i;
-    register int j;
-    int s = 0;
+    int i, j, s=0;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1357,9 +1340,7 @@ void fwriteFloatArray(FILE *f,
                       int rows,
                       int cols)
 {
-    register int i;
-    register int j;
-    int s = 0;
+    int i, j, s=0;
 
     //assert(f != NULL);
     //assert(x != NULL);
@@ -1394,9 +1375,7 @@ void writeArray(float *x,
                 int rows,
                 int cols)
 {
-    register int i;
-    register int j;
-    int s = 0;
+    int i, j, s=0;
 
     //assert(x != NULL);
 
@@ -1553,7 +1532,7 @@ int **imatrix(int nrl,
     int **m;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
-    register int i;
+    int i;
 
     //assert(nrow >= 0);
     //assert(ncol >= 0);
@@ -1591,7 +1570,7 @@ double **dmatrix(int nrl,
     double **m;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
-    register int i;
+    int i;
 
     //assert(nrow >= 0);
     //assert(ncol >= 0);
@@ -1626,8 +1605,8 @@ int ***iarray3(int n1,
                int n3)
 {
     int ***a;
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(n1 >= 0);
     //assert(n2 >= 0);
@@ -1671,8 +1650,8 @@ double ***darray3(int n1,
                   int n3)
 {
     double ***a;
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(n1 >= 0);
     //assert(n2 >= 0);
@@ -1771,7 +1750,7 @@ void free_imatrix(int **m,
                   int ncl,
                   int nch)
 {
-    register int i;
+    int i;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
@@ -1796,7 +1775,7 @@ void free_dmatrix(double **m,
                   int ncl,
                   int nch)
 {
-    register int i;
+    int i;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
@@ -2132,7 +2111,7 @@ double lfact(int n)
  */
 double ldoublefact(double x)
 {
-    register int i;
+    int i;
     double ans = 0.0;
 
     /* :TBD: converts from double to integer without noting rounding intent */
@@ -2539,7 +2518,7 @@ void grid(double x0,
           int n,
           double *x)
 {
-    register int i;
+    int i;
     double dx;
     double xi;
 
@@ -2566,8 +2545,8 @@ void rA(double r,
         int colini,
         int colfi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
     //assert(B != NULL);
@@ -2592,8 +2571,8 @@ void A_plus_B(double **A,
               int colini,
               int colfi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
     //assert(B != NULL);
@@ -2622,8 +2601,7 @@ void rA_plus_sB(double r,
                 int colini,
                 int colfi)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(A != NULL);
     //assert(B != NULL);
@@ -2655,8 +2633,7 @@ void rAx_plus_sBy(double r,
                   int colini,
                   int colfi)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(A != NULL);
     //assert(x != NULL);
@@ -2685,8 +2662,7 @@ void Ax_plus_y(double **A,
                int ini,
                int fi)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(A != NULL);
     //assert(x != NULL);
@@ -2712,8 +2688,7 @@ void xA(const double *x,
         int ini,
         int fi)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(x != NULL);
     //assert(A != NULL);
@@ -2740,8 +2715,8 @@ void Ax(double **A,
         int colini,
         int colfi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
     //assert(x != NULL);
@@ -2761,8 +2736,8 @@ void Ax(double **A,
  * Store result in vector z.
  */
 void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi) {
-    register int i;
-    register int j;
+    int i;
+    int j;
     int nrow = rowfi - rowini + 1;
 
     //assert(A != NULL);
@@ -2782,8 +2757,8 @@ void Avecx(const double *A, const double *x, double *z, int rowini, int rowfi, i
  * Multiply z= A[,sel] %*% x, i.e. choose elements indicated by sel[0],...,sel[*nsel-1]
  */
 void Aselvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int *sel, int *nsel) {
-  register int i;
-  register int j;
+  int i;
+  int j;
   int nrow = rowfi - rowini + 1;
 
   for (i = rowini; i <= rowfi; i++) {
@@ -2799,8 +2774,8 @@ void Aselvecx(const double *A, const double *x, double *z, int rowini, int rowfi
  * Multiply z= t(A[,sel]) %*% x, i.e. choose columns in A indicated by sel[0],...,sel[*nsel-1]
  */
 void Atselvecx(const double *A, const double *x, double *z, int rowini, int rowfi, int *sel, int *nsel) {
-  register int i;
-  register int j;
+  int i;
+  int j;
   int nrow = rowfi - rowini + 1, idx;
 
   for (j=0; j<(*nsel); j++) {
@@ -2826,8 +2801,8 @@ void Atvecx(const double *A,
             int colini,
             int colfi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     int ncol = colfi - colini + 1;
 
     //assert(A != NULL);
@@ -2853,8 +2828,8 @@ double xtAy(const double *x,
             int ini,
             int fi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double z = 0.0;
 
     //assert(x != NULL);
@@ -2881,8 +2856,8 @@ double quadratic_xtAx(const double *x,
                       int ini,
                       int fi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double z = 0.0;
 
     //assert(x != NULL);
@@ -2914,8 +2889,8 @@ double quadratic_xseltAselxsel(const double *x,
                                const int *nsel,
                                const int *sel)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double z = 0.0;
 
     //assert(x != NULL);
@@ -2956,8 +2931,8 @@ double quadratic_xtAselx(const double *x,
                          const int *nsel,
                          const int *sel)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double z = 0.0;
 
     //assert(x != NULL);
@@ -2996,8 +2971,8 @@ double quadratic_xseltAxsel(const double *x,
                             const int *nsel,
                             const int *sel)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double z = 0.0;
 
     //assert(x != NULL);
@@ -3034,8 +3009,8 @@ void Atx(double **A,
          int colini,
          int colfi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
     //assert(x != NULL);
@@ -3067,9 +3042,9 @@ void AtB(double **A,
          int colfiB,
          double **C)
 {
-    register int i;
-    register int j;
-    register int k;
+    int i;
+    int j;
+    int k;
 
     //assert(A != NULL);
     //assert(B != NULL);
@@ -3091,9 +3066,9 @@ void AtB(double **A,
 
 //C= t(A) %*% B, where C[1..ncolA][1..nrowB]
 void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB, double **C) {
-    register int i;
-    register int j;
-    register int k;
+    int i;
+    int j;
+    int k;
 
     //assert(A != NULL);
     //assert(B != NULL);
@@ -3122,7 +3097,7 @@ void a_plus_b(const double *a,
               int ini,
               int fi)
 {
-    register int i;
+    int i;
 
     //assert(a != NULL);
     //assert(b != NULL);
@@ -3140,7 +3115,7 @@ void a_prod_b(const double *a,
               int ini,
               int fi)
 {
-    register int i;
+    int i;
 
     //assert(a != NULL);
     //assert(b != NULL);
@@ -3159,7 +3134,7 @@ void a_prod_b_sel(const double *a,
                   const int *nsel,
                   const int *sel)
 {
-    register int i;
+    int i;
 
     //assert(a != NULL);
     //assert(b != NULL);
@@ -3177,7 +3152,7 @@ void a_prod_b_sel(const double *a,
 void a_zero(double *a,
             int p)
 {
-    register int i;
+    int i;
 
     //assert(a != NULL);
 
@@ -3191,8 +3166,8 @@ void R_zero(double **A,
             int p,
             int q)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
 
@@ -3209,8 +3184,8 @@ void ddiag(double **A,
            int ini,
            int fi)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
 
     //assert(A != NULL);
 
@@ -3268,7 +3243,7 @@ void minvec(const double *x,
             double *xmin,
             int *minpos)
 {
-    register int i;
+    int i;
 
     //assert(x != NULL);
     //assert(xmin != NULL);
@@ -3296,7 +3271,7 @@ void maxvec(const double *x,
             double *xmax,
             int *maxpos)
 {
-    register int i;
+    int i;
 
     //assert(x != NULL);
     //assert(xmax != NULL);
@@ -3389,7 +3364,7 @@ void choldc_inv_internal(double **cholS, int n) {
 double choldc_det(double **chols,
                   int n)
 {
-    register int i;
+    int i;
     double det = 1.0;
 
     //assert(chols != NULL);
@@ -3413,8 +3388,8 @@ void inv_posdef(double **a,
                 double **aout,
                 bool *posdef)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double **b;
 
     //assert(a != NULL);
@@ -3424,7 +3399,7 @@ void inv_posdef(double **a,
     choldc_inv(a, n, b, posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
-            register int k;
+            int k;
             double sum;
 
             sum = 0.0;
@@ -3455,8 +3430,8 @@ void inv_posdef_upper(double **a,
                       double **aout,
                       bool *posdef)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double **b;
 
     //assert(a != NULL);
@@ -3466,7 +3441,7 @@ void inv_posdef_upper(double **a,
     choldc_inv(a, n, b, posdef);
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
-            register int k;
+            int k;
             double sum;
 
             sum = 0.0;
@@ -3490,8 +3465,8 @@ void invdet_posdef(double **a,
                    double *det_a)
 {
     bool posdef;
-    register int i;
-    register int j;
+    int i;
+    int j;
     double **b;
 
     //assert(a != NULL);
@@ -3510,7 +3485,7 @@ void invdet_posdef(double **a,
 
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
-            register int k;
+            int k;
             double sum;
 
             sum = 0.0;
@@ -3543,15 +3518,14 @@ void inv_posdef_chol(double **invchol,
                      int n,
                      double **aout)
 {
-    register int i;
-    register int j;
+    int i, j;
 
     //assert(invchol != NULL);
     //assert(aout != NULL);
 
     for (i = 1; i <= n; i++) {
         for (j = i; j <= n; j++) {
-            register int k;
+            int k;
             double sum;
 
             sum = 0.0;
@@ -3588,8 +3562,7 @@ void ludc(double **a,
           double *d)
 {
     const double TINY = 1.0e-20;
-    register int i;
-    register int j;
+    int i, j;
     int imax = 1;
     double big;
     double *vv;                       /* Stores implicit scaling of each row */
@@ -3622,7 +3595,7 @@ void ludc(double **a,
 
     /* This is the loop over columns of Crout's method */
     for (j = 1; j <= n; j++) {
-        register int k;
+        int k;
         double sum;
         double dum;
 
@@ -3707,9 +3680,7 @@ void lu_solve(double **a,
               const int *indx,
               double b[])
 {
-    register int i;
-    register int j;
-    int ii = 0;
+    int i, j, ii=0;
     double sum;
 
     //assert(a != NULL);
@@ -3759,8 +3730,7 @@ void lu_inverse(double **a,
                 int n,
                 double **aout)
 {
-    register int i;
-    register int j;
+    int i, j;
     double *col;
     int *indx;
 
@@ -4156,7 +4126,7 @@ void samplei_wr(int *x,
                 int popsize,
                 int n)
 {
-    register int i;
+    int i;
 
     //assert(x != NULL);
 
@@ -4185,7 +4155,7 @@ void sampled_wr(double *x,
                 int popsize,
                 int n)
 {
-    register int i;
+    int i;
 
     //assert(x != NULL);
 
@@ -4257,7 +4227,7 @@ int runifdisc(int min,
 int rdisc(const double *probs,
           int nvals)
 {
-    register int i;
+    int i;
     double u;
     double pcum;
 
@@ -4330,7 +4300,7 @@ void rdirichlet(double *w,
     double W = 1.0;
     double a;
     double b;
-    register int j;
+    int j;
 
     //assert(w != NULL);
     //assert(alpha != NULL);
@@ -4363,7 +4333,7 @@ double ddirichlet(const double *w,
                   double *alpha,    /* maybe const */
                   const int *p)
 {
-    register int i;
+    int i;
     double ans = 0.0;
     double sumalpha = 0.0;
 
@@ -4449,7 +4419,7 @@ double dnormC_jvec(const double *y,
                    double s,
                    int logscale)
 {
-    register int i;
+    int i;
     double ans = 0.0;
 
     //assert(y != NULL);
@@ -4480,7 +4450,7 @@ double dmvnormC(const double *y,
                 double det,
                 int logscale)
 {
-    register int i;
+    int i;
     double *z;
     double *z2;
     double res = 0.0;
@@ -4549,7 +4519,7 @@ double qnormC(double cdf, double m, double s) {
 int rbinomial(int n,
               double p)
 {
-    register int i;
+    int i;
     int x = 0;
 
     for (i = 0; i < n; i++) {
@@ -4600,8 +4570,8 @@ void rmultinomial(int ndraws,
                   const double *pr,
                   int *x)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double *cum_p;
 
     //assert(pr != NULL);
@@ -5298,7 +5268,7 @@ void rmvnormC(double *y,
               const double *mu,
               double **chols)
 {
-    register int i;
+    int i;
     double *z;
 
     //assert(y != NULL);
@@ -5334,7 +5304,7 @@ double mnorm(double order,
         ans = 0.0;        /* Odd moments about 0 are equal to 0 */
     }
     else {
-        register int i;
+        int i;
         double temp1;
         double temp2;
         double res;
@@ -5578,7 +5548,7 @@ double dtmixC(double y,
               int ncomp,
               int logscale)
 {
-    register int i;
+    int i;
     double ans = 0.0;
 
     //assert(mu != NULL);
@@ -5624,7 +5594,7 @@ double dmvtC(const double *y,
 
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     {
-        register int i;
+        int i;
         double *z;
         double *z2;
 
@@ -5830,7 +5800,7 @@ void rmvtC(double *y,
            double **chols,
            int nu)
 {
-    register int i;
+    int i;
     double x;
     double *z;
 
@@ -8572,7 +8542,7 @@ double midpnt(double (* const func)(double),
         s = (b - a) * FUNC(0.5 * (a + b));
     }
     else {
-        register int j;
+        int j;
         double x;
         double tnm;
         double del;
@@ -8639,7 +8609,7 @@ double midinf(double (* const func)(double),
         s = (b - a) * FUNC(0.5 * (a + b));
     }
     else {
-        register int j;
+        int j;
         double x;
         double tnm;
         double del;
@@ -8697,7 +8667,7 @@ double qromo(double (* const func)(double),
     const int JMAXP = (JMAX+1);
     const int K = 5;
 
-    register int j;
+    int j;
     double ss;
     double dss;
     double h[JMAXP+1];
@@ -8740,8 +8710,8 @@ void polint(double xa[],
             double *y,
             double *dy)
 {
-    register int i;
-    register int m;
+    int i;
+    int m;
     int ns = 1;
     double dif;
     double *c;
@@ -8871,9 +8841,7 @@ void bspline(double **W,
         /* :TBD: - Should this be fatal? */
     }
     else {
-        register int i;
-        register int j;
-        int ncols = (*nknots - *degree - 1);
+        int i, j, ncols = (*nknots - *degree - 1);
 
         for (i = 0; i < (*nx); i++) {
             for (j = 0; j < ncols; j++) {
@@ -8895,8 +8863,8 @@ void bspline_vec(double *W,
                  const double *knots,
                  const int *nknots)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double **Wtemp;
     int ncols;
 
@@ -8942,8 +8910,8 @@ void mspline(double **W,
         /* :TBD: - Should this be fatal? */
     }
     else {
-        register int i;
-        register int j;
+        int i;
+        int j;
         int ncols = (*nknots - *degree - 1);
 
         for (i = 0; i < (*nx); i++) {
@@ -8967,8 +8935,8 @@ void mspline_vec(double *W,
                  const double *knots,
                  const int *nknots)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     double **Wtemp;
     int ncols;
 
@@ -9216,8 +9184,8 @@ void minimize(double th[],
               double (* const f)(double []),
               int itmax)
 {
-    register int i;
-    register int j;
+    int i;
+    int j;
     int ibig;
     double del;
     double fth;
@@ -9306,7 +9274,7 @@ double (*nrfunc)(double []);
 /* Must accompany dirmin. */
 double f1dim(double x)
 {
-    register int j;
+    int j;
     double f;
     double *xt;
 
@@ -9337,7 +9305,7 @@ void dirmin(double p[],
             int itmax,
             double dirminEPS)
 {
-    register int j;
+    int j;
     double xmin;
     double fx;
     double fb;

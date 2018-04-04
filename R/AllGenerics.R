@@ -34,6 +34,11 @@ if (!isGeneric("demom")) {
 }
 
 
+if (!isGeneric("marginalIW")) {
+  setGeneric("marginalNIW", function(x, xbar, samplecov, n, z, g,  mu0=rep(0,ncol(x)), nu0=ncol(x)+4, S0,logscale=TRUE) standardGeneric("marginalNIW"))
+}
+
+
 if (!isGeneric("postProb")) {
   setGeneric("postProb", function(object, nmax, method='norm') standardGeneric("postProb"))
 }

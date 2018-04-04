@@ -33,14 +33,24 @@ nu0=ncol(x)+4, S0, logscale=TRUE)
   \item{z}{Optional argument specifying cluster allocations}
   \item{g}{Prior dispersion parameter for mu}
   \item{mu0}{Prior mean for mu}
-  \item{nu0}{Prior degrees of freedom for Sigma^{-1}}
-  \item{S0}{Prior scale matrix for Sigma^{-1}, by default set to I/nu0}
+  \item{nu0}{Prior degrees of freedom for Sigma}
+  \item{S0}{Prior scale matrix for Sigma, by default set to I/nu0}
   \item{logscale}{set to TRUE to get the log-posterior density}
 }
 \value{
 If \code{z} is missing the integrated likelihood under a Normal-IW
 prior. If \code{z} was specified then the product of integrated
 likelihoods across clusters
+}
+\details{
+  The function computes
+
+  p(x)= int p(x | mu,Sigma) p(mu,Sigma) dmu dSigma
+
+  where p(x[i])= N(x[i]; mu,Sigma) iid i=1,...,n
+
+  p(mu | Sigma)= N(mu; mu0, g Sigma)
+  p(Sigma)=     IW(Sigma; nu0, S0)
 }
 \author{
 David Rossell

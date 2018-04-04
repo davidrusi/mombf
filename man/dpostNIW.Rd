@@ -10,7 +10,7 @@
   under conjugate priors
 
   mu | Sigma ~ N(mu0, g Sigma)
-  Sigma^{-1} ~ W(nu0, S0)
+  Sigma      ~ IW(nu0, S0)
 }
 \usage{
 dpostNIW(mu, Sigma, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0,
@@ -22,8 +22,8 @@ dpostNIW(mu, Sigma, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0,
   \item{x}{n x p data matrix (individuals in rows, variables in columns)}
   \item{g}{Prior dispersion parameter for mu}
   \item{mu0}{Prior mean for mu}
-  \item{nu0}{Prior degrees of freedom for Sigma^{-1}}
-  \item{S0}{Prior scale matrix for Sigma^{-1}, by default set to I/nu0}
+  \item{nu0}{Prior degrees of freedom for Sigma}
+  \item{S0}{Prior scale matrix for Sigma, by default set to I/nu0}
   \item{logscale}{set to TRUE to get the log-posterior density}
 }
 \value{

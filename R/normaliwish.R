@@ -25,13 +25,13 @@ dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,l
 #Posterior Normal-IW density
 #   x[i]       ~ N(mu,Sigma)
 #   mu | Sigma ~ N(mu0, g Sigma)
-#   Sigma^{-1} ~ W(nu0, S0)
+#   Sigma ~ IW(nu0, S0)
 # Input
 # - x: n x p data matrix
 # - g: prior dispersion parameter in the prior for mu
 # - mu0: prior mean in the prior for mu
-# - nu0: prior degrees of freedom for Sigma^{-1}
-# - S0: prior scale matrix for Sigma^{-1}, by default set to I/nu0
+# - nu0: prior degrees of freedom for Sigma
+# - S0: prior scale matrix for Sigma, by default set to I/nu0
 # - logscale: set to TRUE to get the log-posterior density
 # Output: Normal-IW posterior density evaluated at (mu,Sigma)
     if (!is.matrix(x)) stop("x must be a matrix")
@@ -59,7 +59,7 @@ setMethod(marginalNIW, signature("missing","ANY","matrix","numeric","missing"), 
 #Integrated likelihood for
 #   x[i]       ~ N(mu,Sigma)
 #   mu | Sigma ~ N(mu0, g Sigma)
-#   Sigma^{-1} ~ W(nu0, S0)
+#   Sigma      ~ IW(nu0, S0)
 #
 #
 # Input
@@ -68,18 +68,22 @@ setMethod(marginalNIW, signature("missing","ANY","matrix","numeric","missing"), 
 # - n: sample size
 # - g: prior dispersion parameter in the prior for mu
 # - mu0: prior mean in the prior for mu
-# - nu0: prior degrees of freedom for Sigma^{-1}
-# - S0: prior scale matrix for Sigma^{-1}, by default set to I/nu0
+# - nu0: prior degrees of freedom for Sigma
+# - S0: prior scale matrix for Sigma, by default set to I/nu0
 # - logscale: set to TRUE to get the log-integrated likelihood
-    p= ncol(samplecov)
-    if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
-    nupost= nu0+n
-    S= samplecov * (n-1)
-    m= matrix(xbar-mu0,ncol=1)
-    Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
-    detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
-    detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
-    ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
+    if (n==0) {
+        ans= 0
+    } else {
+        p= ncol(samplecov)
+        if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
+        nupost= nu0+n
+        S= samplecov * (n-1)
+        m= matrix(xbar-mu0,ncol=1)
+        Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
+        detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
+        detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
+        ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
+    }
     if (!logscale) ans= exp(ans)
     return(ans)
 }
@@ -101,14 +105,18 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","missi
 # - logscale: set to TRUE to get the log-integrated likelihood
     if (!is.matrix(x)) stop("x must be a matrix")
     n= nrow(x); p= ncol(x)
-    if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
-    nupost= nu0+n
-    S= cov(x) * (n-1)
-    m= matrix(colMeans(x)-mu0,ncol=1)
-    Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
-    detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
-    detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
-    ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
+    if (n==0) {
+        ans= 0
+    } else {
+        if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
+        nupost= nu0+n
+        S= cov(x) * (n-1)
+        m= matrix(colMeans(x)-mu0,ncol=1)
+        Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
+        detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
+        detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
+        ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
+    }
     if (!logscale) ans= exp(ans)
     return(ans)
 }
@@ -125,10 +133,11 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","vecto
 # Output: integrated likelihood conditional on z
     if (length(z) != nrow(x)) stop("length(z) must be equal to nrow(x)")
     cluslabels= unique(z)
+    cluslabels= cluslabels[order(cluslabels)]
     xbar= samplecov= vector("list",length(cluslabels))
     n= integer(length(cluslabels))
     for (i in 1:length(cluslabels)) {
-        sel= (z==i)
+        sel= (z==cluslabels[i])
         xbar[[i]]= colMeans(x[sel,,drop=FALSE])
         samplecov[[i]]=cov(x[sel,,drop=FALSE])
         n[i]=sum(sel)

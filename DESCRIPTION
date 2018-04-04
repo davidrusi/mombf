@@ -1,15 +1,15 @@
 Package: mombf
-Version: 1.9.6
-Date: 2017-12-27
+Version: 2.0.0
+Date: 2018-04-04
 Title: Moment and Inverse Moment Bayes Factors
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.14.0), methods, mvtnorm, ncvreg, actuar, mgcv
 Imports: survival
 Suggests: parallel
-Description: Model selection and parameter estimation based on non-local and Zellner priors. Bayes factors, marginal densities and variable selection in regression setups. Routines to sample, evaluate prior densities, distribution functions and quantiles are included.
+Description: Model selection and parameter estimation for non-local and some conjugate priors. Bayes factors for regression and mixtures. Routines to sample, evaluate prior densities, distributions and quantiles.
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R derivatives_nlps.R gam.R msPriorSpec.R modelsearch.R modelSelection.R nlpMarginal.R dmom.R mombf.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R cox.R
+Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R derivatives_nlps.R gam.R msPriorSpec.R modelsearch.R modelSelection.R normaliwish.R nlpMarginal.R dmom.R mombf.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R cox.R
 

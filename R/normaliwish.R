@@ -40,7 +40,7 @@ dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,l
     xbar= colMeans(x)
     nu1= nu0+n
     dm= matrix(xbar-mu0,ncol=1)
-    S1= S0 + cov(x)*(n-1) + n/(g*n+1) * (dm %*% t(dm))
+    S1= S0 + cov(x)*(n-1) + n/(1+n*g) * (dm %*% t(dm))
     w= n/(n+1/g)
     m1= w * xbar + (1-w) * mu0
     ans= dmvnorm(mu,m1,Sigma/(n+1/g),log=TRUE) + diwish(Sigma,nu=nu1,S=S1,logscale=TRUE)
@@ -77,9 +77,9 @@ setMethod(marginalNIW, signature("missing","ANY","matrix","numeric","missing"), 
         p= ncol(samplecov)
         if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
         nupost= nu0+n
-        S= samplecov * (n-1)
+        if (n>1) { S= samplecov * (n-1) } else { S= matrix(0,nrow=p,ncol=p) }
         m= matrix(xbar-mu0,ncol=1)
-        Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
+        Spost= S0 + S + n/(1+n*g) * (m %*% t(m))
         detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
         detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
         ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
@@ -93,7 +93,7 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","missi
 #Integrated likelihood for
 #   x[i]       ~ N(mu,Sigma)
 #   mu | Sigma ~ N(mu0, g Sigma)
-#   Sigma^{-1} ~ W(nu0, S0)
+#   Sigma      ~ IW(nu0, S0)
 #
 #
 # Input
@@ -110,9 +110,9 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","missi
     } else {
         if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
         nupost= nu0+n
-        S= cov(x) * (n-1)
+        txc= t(x-colMeans(x)); S= txc %*% t(txc)
         m= matrix(colMeans(x)-mu0,ncol=1)
-        Spost= S0 + S + (n/g)/(g+n) * (m %*% t(m))
+        Spost= S0 + S + n/(1+n*g) * (m %*% t(m))
         detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
         detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
         ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*log(1+n*g)
@@ -139,8 +139,8 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","vecto
     for (i in 1:length(cluslabels)) {
         sel= (z==cluslabels[i])
         xbar[[i]]= colMeans(x[sel,,drop=FALSE])
-        samplecov[[i]]=cov(x[sel,,drop=FALSE])
         n[i]=sum(sel)
+        if (n[i]>1) { samplecov[[i]]=cov(x[sel,,drop=FALSE]) } else { samplecov[[i]]= matrix(0,nrow=ncol(x),ncol=ncol(x)) }
     }
     ans= marginalNIW(xbar=xbar,samplecov=samplecov,n=n,g=g,mu0=mu0,nu0=nu0,S0=S0,logscale=TRUE)
     if (!logscale) ans= exp(ans)

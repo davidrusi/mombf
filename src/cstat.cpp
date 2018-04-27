@@ -4337,14 +4337,9 @@ int runifdisc(int min,
  * and probabilities probs[0],probs[1]...probs[nvals-1]
  * Returns 0 with probability probs[0], 1 with probability probs[1] etc.
  */
-int rdisc(const double *probs,
-          int nvals)
-{
+int rdisc(const double *probs, int nvals) {
     int i;
-    double u;
-    double pcum;
-
-    //assert(probs != NULL);
+    double u, pcum;
 
     u = runif();
     pcum = probs[0];
@@ -4547,44 +4542,106 @@ double dnormC_jvec(const double *y,
 
 
 /*
- * Density of multivariate Normal evaluated at y[1]...y[n].
+ * Density of multivariate Normal evaluated at y[1]...y[p].
  * mu is the mean. cholsinv and det are the Cholesky decomposition and the
  * determinant of the inverse covariance matrix.
  *
+ * //If transpose==false then Sigma^{-1}= cholsinv * cholsinv', where cholsinv is lower-triangular
+ * //If transpose== true then Sigma^{-1}= cholsinv' * cholsinv, where cholsinv is lower-triangular
  * Example:
- *   choldc_inv(s,n,cholsinv,posdef);
- *   det= choldc_det(cholsinv,n);
- *   dmvnormC(y,n,mu,cholsinv,det,0);
+ *   choldc_inv(s,p,cholsinv,posdef);
+ *   det= choldc_det(cholsinv,p);
+ *   dmvnormC(y,p,mu,cholsinv,det,0,true);
+ *
+ * Example:
+ *   choldc(sinv,p,cholsinv,posdef);
+ *   det= choldc_det(cholsinv,p);
+ *   dmvnormC(y,p,mu,cholsinv,det,0,false);
  */
-double dmvnormC(const double *y,
-                int n,
-                const double *mu,
-                double **cholsinv,
-                double det,
-                int logscale)
-{
+double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
     int i;
-    double *z;
-    double *z2;
-    double res = 0.0;
-    double ans;
+    double *z, *z2, res = 0.0, ans;
 
-    /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
-    z  = dvector(1, n);
-    z2 = dvector(1, n);
-    for (i = 1; i <= n; i++) {
-        z[i] = y[i] - mu[i];
+    z  = dvector(1, p);
+    z2 = dvector(1, p);
+    for (i = 1; i <= p; i++) { z[i] = y[i] - mu[i]; }
+    if (transpose) {
+      Ax(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
+    } else {
+      Atx(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv * cholsinv' * (y-mu) */
     }
-    Ax(cholsinv, z, z2, 1, n, 1, n);
-    for (i = 1; i <= n; i++) {
+    for (i = 1; i <= p; i++) {
         res += z2[i] * z2[i];
     }
-    free_dvector(z, 1, n);
-    free_dvector(z2, 1, n);
+    free_dvector(z, 1, p);
+    free_dvector(z2, 1, p);
 
-    ans = -n * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
     return (logscale == 1) ? ans : exp(ans);
 }
+
+
+//same as dmvnorm, but y is a 0-indexed n x p matrix and the density of each row of y is returned in ans[0],...,ans[n-1]
+void dmvnormmatC(double *ans, const double *y, int n, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
+  int i, j;
+  double *z, *z2, res = 0.0;
+
+  z  = dvector(1, p);
+  z2 = dvector(1, p);
+
+  for (i=0; i<n; i++) {
+
+    for (j = 1; j <= p; j++) { z[j] = y[i + (j-1)*n] - mu[j]; }
+    if (transpose) {
+      Ax(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
+    } else {
+      Atx(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv * cholsinv' * (y-mu) */
+    }
+    for (j = 1; j <= p; j++) {
+        res += z2[j] * z2[j];
+    }
+
+    ans[i] = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    if (logscale) { ans[i]= exp(ans[i]); }
+  }
+
+  free_dvector(z, 1, p);
+  free_dvector(z2, 1, p);
+}
+
+//same as dmvnormmat, but the transpose of y is provided instead
+// - ty[0],...,ty[p-1] are the values for 1st row of y
+// - ty[p],...,ty[2*p-1] are the values for the 2nd row of y
+// - etc.
+// Output ans[0],...,ans[n-1] contains the density of the rows in y
+void dmvnormmat_transC(double *ans, const double *ty, int n, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
+  int i, j;
+  double *z, *z2, res = 0.0;
+
+  z  = dvector(1, p);
+  z2 = dvector(1, p);
+
+  for (i=0; i<n; i++) {
+
+    for (j = 1; j <= p; j++) { z[j] = ty[j-1 + i*p] - mu[j]; }
+    if (transpose) {
+      Ax(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
+    } else {
+      Atx(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv * cholsinv' * (y-mu) */
+    }
+    for (j = 1; j <= p; j++) {
+        res += z2[j] * z2[j];
+    }
+
+    ans[i] = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    if (logscale) { ans[i]= exp(ans[i]); }
+  }
+
+  free_dvector(z, 1, p);
+  free_dvector(z2, 1, p);
+}
+
+
 
 
 /* Returns inv cdf of normal N(m,s^2) at p */
@@ -4673,17 +4730,9 @@ double dnegbinomial(int x, double r, double p, int logscale) {
  * Output:
  *   x:      ndraws vector of indices
  */
-void rmultinomial(int ndraws,
-                  int ncells,
-                  const double *pr,
-                  int *x)
-{
-    int i;
-    int j;
-    double *cum_p;
-
-    //assert(pr != NULL);
-    //assert(x != NULL);
+void rmultinomial(int ndraws, int ncells, const double *pr, int *x) {
+  int i, j;
+  double *cum_p;
 
     cum_p = dvector(0, ncells);
 
@@ -4696,7 +4745,6 @@ void rmultinomial(int ndraws,
 
         uj = runif() * cum_p[ncells-1];
         for (i = 0; ((uj > cum_p[i]) & (i < ncells)); i++);
-            /*NOBODY*/
         x[j] = i;
     }
 
@@ -5977,7 +6025,7 @@ void rwishartC(double **ans, int df, double **cholS, int p, bool returnChol) {
     ABt(cholans,1,p,1,p,cholans,1,p,1,p,ans); //ans= cholans %*% t(cholans)
     free_dmatrix(cholans,1,p,1,p);
   }
-  free_dmatrix(Z,1,p,1,p); 
+  free_dmatrix(Z,1,p,1,p);
 }
 
 

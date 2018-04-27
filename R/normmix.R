@@ -55,8 +55,8 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
         if (returndraws) {
             eta= t(matrix(mcmcfit2[[2]],ncol=(B-burnin)))
             mu= t(matrix(mcmcfit2[[3]],ncol=(B-burnin)))
-            Sigma= t(matrix(mcmcfit2[[4]],ncol=(B-burnin)))
-            mcmcout[[i]]= list(eta=eta,mu=mu,Sigma=Sigma)
+            cholSigmainv= t(matrix(mcmcfit2[[4]],ncol=(B-burnin))) #Cholesky decomp. Sigma^{-1}= cholSigmainv %*% t(cholSigmainv)
+            mcmcout[[i]]= list(eta=eta,mu=mu,cholSigmainv=cholSigmainv)
         }
         #Estimate probability of one empty cluster
         probone= posprobOneEmptyClus(x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcfit,burnin=burnin,verbose=TRUE)

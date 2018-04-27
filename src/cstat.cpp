@@ -5973,8 +5973,11 @@ void rwishartC(double **ans, int df, double **cholS, int p, bool returnChol) {
     }
   }
   AB(cholS,1,p,1,p,Z,1,p,1,p,cholans); //cholans= cholS %*% Z
-  if (!returnChol) { ABt(cholans,1,p,1,p,cholans,1,p,1,p,ans); } //ans= cholans %*% t(cholans)
-  free_dmatrix(Z,1,p,1,p); free_dmatrix(cholans,1,p,1,p);
+  if (!returnChol) {
+    ABt(cholans,1,p,1,p,cholans,1,p,1,p,ans); //ans= cholans %*% t(cholans)
+    free_dmatrix(cholans,1,p,1,p);
+  }
+  free_dmatrix(Z,1,p,1,p); 
 }
 
 

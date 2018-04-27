@@ -2,7 +2,7 @@
 ### NAMESPACE
 ###
 
-import(bayesm, methods, actuar, mvtnorm, mgcv, ncvreg, stats)
+import(bayesm, methods, mvtnorm, mgcv, ncvreg, stats)
 importFrom(matrixStats,rowMaxs)
 importFrom(mclust,Mclust,mclustBIC)
 importFrom(survival, Surv, coxph)

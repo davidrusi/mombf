@@ -56,7 +56,7 @@ SEXP normalmixGibbsCI(SEXP Sx, SEXP Sn, SEXP Sp, SEXP Sncomp, SEXP Sz, SEXP Smu0
 void normalmixGibbsC(double *pponeempty, double *eta, double *mu, double *cholSigmainv, double *x, int *n, int *p, int *ncomp, int *z, double *mu0, double *g, int *nu0, double *S0, double *q, int *B, int *burnin, int *verbose) {
   bool posdef;
   int b, i, j, l, idxeta=0, idxmu=0, idxSigma=0, idxctr, nelemmu, nelemSigma;
-  double shrin, w, ginv, nplusginv, *dm, **xsum, *muz, *zcount, *qpost, **A, **Sinv, **cholSinv, **cholSigmainvcur, ***S;
+  double shrin, w, ginv, nplusginv, *dm, **xsum, *muz, *zcount, *qpost, **cholSigma, **Sinv, **cholSinv, **cholSigmainvcur, ***S;
 
   //Initialize
   (*pponeempty)= 0;
@@ -64,7 +64,7 @@ void normalmixGibbsC(double *pponeempty, double *eta, double *mu, double *cholSi
   ginv= 1/(*g);
 
   dm= dvector(1,*p); zcount= dvector(1,*ncomp); qpost= dvector(1,*ncomp); muz= dvector(1,*p);
-  xsum= dmatrix(1,*p,1,*ncomp); A= dmatrix(1,*p,1,*p); Sinv= dmatrix(1,*p,1,*p); cholSinv= dmatrix(1,*p,1,*p); cholSigmainvcur= dmatrix(1,*p,1,*p); S= darray3(1,*ncomp,1,*p,1,*p);
+  xsum= dmatrix(1,*p,1,*ncomp); cholSigma= dmatrix(1,*p,1,*p); Sinv= dmatrix(1,*p,1,*p); cholSinv= dmatrix(1,*p,1,*p); cholSigmainvcur= dmatrix(1,*p,1,*p); S= darray3(1,*ncomp,1,*p,1,*p);
 
   for (l=1; l<=(*ncomp); l++) { for (j=1; j<=(*p); j++) { xsum[j][l]= 0; } }
   for (i=0; i<(*n); i++) {
@@ -89,20 +89,20 @@ void normalmixGibbsC(double *pponeempty, double *eta, double *mu, double *cholSi
       //choldc_inv(S[l], *p, cholSinv, &posdef);  //cholSinv is the inverse of chol(S[l]). Then S[l]^{-1}= t(cholSinv) %*% cholSinv
       inv_posdef_upper(S[l], *p, Sinv, &posdef);
       choldc(Sinv, *p, cholSinv, &posdef);
-      rwishartC(cholSigmainvcur, *nu0 + (int) zcount[l], cholSinv, *p, false);
+      rwishartC(cholSigmainvcur, *nu0 + (int) zcount[l], cholSinv, *p, true);
       if (b>=(*burnin)) { //store sampled value
 	idxctr= idxSigma + (l-1)*(*p)*(*p +1)/2;
 	for (i=1; i<=(*p); i++) { for (j=i; j<=(*p); j++) { cholSigmainv[idxctr]= cholSigmainvcur[j][i]; idxctr++; } }
       }
       //Sample mu= rmvnorm(1, colMeans(x)*w + mu0*(1-w), Sigma/(n+1/g))
       w= ((double) zcount[l])/((double) zcount[l] + ginv);
-      choldc_inv(cholSinv, *p, A, &posdef);
+      cholS_inv(cholSigmainvcur, *p, cholSigma);
       for (j=1; j<=(*p); j++) muz[j]= rnormC(0,1);
-      Atx(A, muz, mu-1 + idxmu + (l-1)*(*p), 1, *p, 1, *p); //mu= t(A) %*% muz
+      Atx(cholSigma, muz, mu-1 + idxmu + (l-1)*(*p), 1, *p, 1, *p); //mu= t(cholSigma) %*% muz
       nplusginv= sqrt(((double) zcount[l]) + ginv);
       for (j=1; j<=(*p); j++) {
-	mu[idxmu +j-1 + (l-1)*(*p)] /= nplusginv; //mu= (t(A) %*% muz) / sqrt(n+1/g)
-	mu[idxmu +j-1 + (l-1)*(*p)] += (xsum[j][l] / ((double) zcount[l])) * w + mu0[j-1] * (1-w); //mu= [(t(A) %*% muz) / sqrt(n+1/g)] + [colMeans(x)*w + mu0*(1-w)]
+	mu[idxmu +j-1 + (l-1)*(*p)] /= nplusginv; //mu= (t(cholSigma) %*% muz) / sqrt(n+1/g)
+	mu[idxmu +j-1 + (l-1)*(*p)] += (xsum[j][l] / ((double) zcount[l])) * w + mu0[j-1] * (1-w); //mu= [(t(cholSigma) %*% muz) / sqrt(n+1/g)] + [colMeans(x)*w + mu0*(1-w)]
       }
     }
     //Sample latent cluster indicators (z)
@@ -120,5 +120,5 @@ void normalmixGibbsC(double *pponeempty, double *eta, double *mu, double *cholSi
   }
   free_dvector(dm,1,*p); free_dvector(zcount,1,*ncomp); free_dvector(qpost,1,*ncomp); free_dvector(muz,1,*p);
   free_dmatrix(xsum,1,*p,1,*ncomp);
-  free_dmatrix(A,1,*p,1,*p); free_dmatrix(Sinv,1,*p,1,*p); free_dmatrix(cholSinv,1,*p,1,*p); free_dmatrix(cholSigmainvcur,1,*p,1,*p); free_darray3(S,1,*ncomp,1,*p,1,*p);
+  free_dmatrix(cholSigma,1,*p,1,*p); free_dmatrix(Sinv,1,*p,1,*p); free_dmatrix(cholSinv,1,*p,1,*p); free_dmatrix(cholSigmainvcur,1,*p,1,*p); free_darray3(S,1,*ncomp,1,*p,1,*p);
 }

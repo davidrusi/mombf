@@ -457,6 +457,123 @@ void colCVinv(double *cv,
 }
 
 
+//Sample covariance matrix (divided by n).
+//Input:
+// - x is an n * p matrix arranged by columns (0-indexed).
+// - n,p: dimensions of x
+// - lowertri: if false only diagonal and upper-diagonal elements of S are returned
+//Output: S[1][1],...,S[p][p]
+void covxvec(double *x, int n, int p, bool lowertri, double **S) {
+  int i, j, l, idxj, idxl;
+  double *xbar, *m2;
+  xbar= dvector(1,p); m2= dvector(1,p);
+  //Variances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    xbar[j]= 0;
+    for (i=0; i<n; i++) {
+      xbar[j]+= x[i+idxj];
+      m2[j]+= x[i+idxj]*x[i+idxj];
+    }
+    xbar[j]= xbar[j]/((double) n);
+    S[j][j]= m2[j]/((double) n) - xbar[j]*xbar[j];
+  }
+  //Covariances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    for (l=j+1; l<=p; l++) {
+      idxl= (l-1)*n;
+      S[j][l]= 0;
+      for (i=0; i<n; i++) { S[j][l]+= x[i+idxj]*x[i+idxl]; }
+      S[j][l]= S[j][l]/((double) n) - xbar[j]*xbar[l];
+    }
+  }
+  if (lowertri) {
+    for (j=1; j<=p; j++) { for (l=1; l<j; l++) { S[l][j]= S[j][l]; } }
+  }
+  free_dvector(xbar,1,p); free_dvector(m2,1,p);
+}
+
+
+//Matrix with sum of squares and cross-product, that is n * cov(x)
+//Input: x is an n * p matrix arranged by columns (0-indexed).
+//Output: stored in S[1][1],...,S[p][p]
+void sumsq(double *x, int n, int p, bool lowertri, double **S) {
+  int i, j, l, idxj, idxl;
+  double *xbar, *m2;
+  xbar= dvector(1,p); m2= dvector(1,p);
+  //Variances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    xbar[j]= 0;
+    for (i=0; i<n; i++) {
+      xbar[j]+= x[i+idxj];
+      m2[j]+= x[i+idxj]*x[i+idxj];
+    }
+    xbar[j]= xbar[j]/((double) n);
+    S[j][j]= m2[j] - ((double) n)*xbar[j]*xbar[j];
+  }
+  //Covariances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    for (l=j+1; l<=p; l++) {
+      idxl= (l-1)*n;
+      S[j][l]= 0;
+      for (i=0; i<n; i++) { S[j][l]+= x[i+idxj]*x[i+idxl]; }
+      S[j][l]= S[j][l] - ((double) n)*xbar[j]*xbar[l];
+    }
+  }
+  if (lowertri) {
+    for (j=1; j<=p; j++) { for (l=1; l<j; l++) { S[l][j]= S[j][l]; } }
+  }
+  free_dvector(xbar,1,p); free_dvector(m2,1,p);
+}
+
+//Sum of squares and cross-products matrix by clusters indicated in z[0],...,z[n-1]. Each z[i] must be in [1,nclus]
+//Input:
+// - x is an n * p matrix arranged by columns (0-indexed).
+// - n,p: dimensions of x
+// - z: cluster allocations (0-indexed)
+// - nclus: number of clusters
+// - lowertri: if false only diagonal and upper-diagonal elements of S are returned
+// Output: S[l] is a p x p matrix containing sum of squares and cross-products for individuals with z[i]=l
+void sumsqbyclus(double *x, int n, int p, int *z, int nclus, bool lowertri, double ***S) {
+  int i, j, l, kk, idxj, idxl, *zcount;
+  double **xbar, **m2;
+  zcount= ivector(1,nclus);
+  xbar= dmatrix(1,nclus,1,p); m2= dmatrix(1,nclus,1,p);
+  for (kk=1; kk<=nclus; kk++) { zcount[kk]= 0; }
+  for (i=0; i<n; i++) { (zcount[z[i]])++; }
+  //Variances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    for (kk=1; kk<=nclus; kk++) { xbar[kk][j]= 0; }
+    for (i=0; i<n; i++) {
+      xbar[z[i]][j]+= x[i+idxj];
+      m2[z[i]][j]+= x[i+idxj]*x[i+idxj];
+    }
+    for (kk=1; kk<=nclus; kk++) {
+      xbar[kk][j]= xbar[kk][j]/((double) zcount[kk]);
+      S[kk][j][j]= m2[kk][j] - ((double) zcount[kk])*xbar[kk][j]*xbar[kk][j];
+    }
+  }
+  //Covariances
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    for (l=j+1; l<=p; l++) {
+      idxl= (l-1)*n;
+      for (kk=1; kk<=nclus; kk++) { S[kk][j][l]= 0; }
+      for (i=0; i<n; i++) { S[z[i]][j][l]+= x[i+idxj]*x[i+idxl]; }
+      for (kk=1; kk<=nclus; kk++) { S[kk][j][l]= S[kk][j][l] - ((double) zcount[kk])*xbar[kk][j]*xbar[kk][l]; }
+    }
+  }
+  if (lowertri) {
+    for (j=1; j<=p; j++) { for (l=1; l<j; l++) { for (kk=1; kk<=nclus; kk++) { S[kk][l][j]= S[kk][j][l]; } } }
+  }
+  free_ivector(zcount,1,nclus);  free_dmatrix(xbar,1,nclus,1,p); free_dmatrix(m2,1,nclus,1,p);
+}
+
+
 /************************************************************************
                          BASIC BAYESIAN MODELS
 ************************************************************************/
@@ -1562,18 +1679,11 @@ int **imatrix(int nrl,
 
 
 /* Allocate double matrix with subscript range m[nrl..nrh][ncl..nch] */
-double **dmatrix(int nrl,
-                 int nrh,
-                 int ncl,
-                 int nch)
-{
+double **dmatrix(int nrl, int nrh, int ncl, int nch) {
     double **m;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
     int i;
-
-    //assert(nrow >= 0);
-    //assert(ncol >= 0);
 
     nv += nrow * ncol;
 
@@ -1600,17 +1710,8 @@ double **dmatrix(int nrl,
 
 
 /* Allocates int array with subscript range a[0..n1-1][0..n2-1][0..n3-1] */
-int ***iarray3(int n1,
-               int n2,
-               int n3)
-{
-    int ***a;
-    int i;
-    int j;
-
-    //assert(n1 >= 0);
-    //assert(n2 >= 0);
-    //assert(n3 >= 0);
+int ***iarray3(int n1, int n2, int n3) {
+  int ***a, i, j;
 
     /* Allocate pointers to first dimension */
     a = (int ***) calloc(n1, sizeof(int **));
@@ -1643,50 +1744,61 @@ int ***iarray3(int n1,
     return a;
 }
 
-
-/* Allocates double array with subscript range a[0..n1-1][0..n2-1][0..n3-1] */
-double ***darray3(int n1,
-                  int n2,
-                  int n3)
-{
+/* Allocates 3-way double array with subscript range [ini1..fi1][ini2..fi2][ini3..fi3] */
+double ***darray3(int ini1, int fi1, int ini2, int fi2, int ini3, int fi3) {
     double ***a;
     int i;
-    int j;
-
-    //assert(n1 >= 0);
-    //assert(n2 >= 0);
-    //assert(n3 >= 0);
+    size_t ndim1 = fi1-ini1+1;
 
     /* Allocate pointers to first dimension */
-    a = (double ***) calloc(n1, sizeof(double **));
+    a = (double ***) calloc(ndim1, sizeof(double **));
     if (a == NULL) {
         nrerror("darray3", "allocate a 3dim double array (1st dim)", "");
         /*NOTREACHED*/
     }
+    a -= ini1;
 
-    /* Allocate pointers to second dimension and set pointers */
-    a[0] = (double **) calloc(n1 * n2, sizeof(double *));
-    if (a[0] == NULL) {
-        nrerror("darray3", "allocate a 3dim double array (2nd dim)", "");
-        /*NOTREACHED*/
-    }
-    for (i = 1; i < n1; i++) {
-        a[i] = a[i-1] + n2;
-    }
-
-    /* Allocate pointers to third dimension and set pointers */
-    a[0][0] = (double *) calloc(n1 * n2 * n3, sizeof(double));
-    if (a[0][0] == NULL) {
-        nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
-        /*NOTREACHED*/
-    }
-    for (i = 0; i < n1; i++) {
-        for (j = 0; j < n2; j++) {
-            a[i][j] = a[0][0] + n2*n3*i + j*n3;
-        }
-    }
+    for (i=ini1; i<=fi1; i++) a[i]= dmatrix(ini2,fi2,ini3,fi3);
     return a;
 }
+
+/* OLD VERSION OF darray3.
+// Allocates double array with subscript range a[0..n1-1][0..n2-1][0..n3-1] */
+// double ***darray3(int n1, int n2, int n3) {
+//    double ***a;
+//    int i, j;
+//
+//    /* Allocate pointers to first dimension */
+//    a = (double ***) calloc(n1, sizeof(double **));
+//    if (a == NULL) {
+//        nrerror("darray3", "allocate a 3dim double array (1st dim)", "");
+//        /*NOTREACHED*/
+//    }
+//
+//    /* Allocate pointers to second dimension and set pointers */
+//    a[0] = (double **) calloc(n1 * n2, sizeof(double *));
+//    if (a[0] == NULL) {
+//        nrerror("darray3", "allocate a 3dim double array (2nd dim)", "");
+//        /*NOTREACHED*/
+//    }
+//    for (i = 1; i < n1; i++) {
+//        a[i] = a[i-1] + n2;
+//    }
+//
+//    /* Allocate pointers to third dimension and set pointers */
+//    a[0][0] = (double *) calloc(n1 * n2 * n3, sizeof(double));
+//    if (a[0][0] == NULL) {
+//        nrerror("darray3", "allocate a 3dim double array (3rd dim)", "");
+//        /*NOTREACHED*/
+//    }
+//    for (i = 0; i < n1; i++) {
+//        for (j = 0; j < n2; j++) {
+//            a[i][j] = a[0][0] + n2*n3*i + j*n3;
+//        }
+//    }
+//    return a;
+//}
+
 
 
 /* Free char vector allocated with charvector() */
@@ -1730,12 +1842,8 @@ void free_vector(float *v,
 
 
 /* Free double vector allocated with dvector() */
-void free_dvector(double *v,
-                  int nl,
-                  int nh)
-{
+void free_dvector(double *v, int nl, int nh) {
     //assert(v != NULL);
-
     if ((v+nl) != NULL) {
         free((char  *) (v+nl));
     }
@@ -1744,12 +1852,7 @@ void free_dvector(double *v,
 
 
 /* Free int matrix allocated by imatrix() */
-void free_imatrix(int **m,
-                  int nrl,
-                  int nrh,
-                  int ncl,
-                  int nch)
-{
+void free_imatrix(int **m, int nrl, int nrh, int ncl, int nch) {
     int i;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
@@ -1769,18 +1872,12 @@ void free_imatrix(int **m,
 
 
 /* Free double matrix allocated by dmatrix() */
-void free_dmatrix(double **m,
-                  int nrl,
-                  int nrh,
-                  int ncl,
-                  int nch)
-{
+void free_dmatrix(double **m, int nrl, int nrh, int ncl, int nch) {
     int i;
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
     //assert(m != NULL);
-
     for (i = nrh; i >= nrl; i--) {
         if ((m[i]+ncl) != NULL) {
             free((char *) (m[i]+ncl));
@@ -1794,35 +1891,28 @@ void free_dmatrix(double **m,
 
 
 /* Free int array allocated by iarray3() */
-void free_iarray3(int ***a,
-                  int n1,
-                  int n2,
-                  int n3)
-{
-    //assert(a != NULL);
-    //assert(a[0] != NULL);
-    //assert(a[0][0] != NULL);
-
+void free_iarray3(int ***a, int n1, int n2, int n3) {
     free((char*) (a[0][0]));
     free((char*) (a[0]));
     free((char*) (a));
 }
 
-
-/* Free double array allocated by darray3() */
-void free_darray3(double ***a,
-                  int n1,
-                  int n2,
-                  int n3)
-{
-    //assert(a != NULL);
-    //assert(a[0] != NULL);
-    //assert(a[0][0] != NULL);
-
-    free((char*) (a[0][0]));
-    free((char*) (a[0]));
-    free((char*) (a));
+/* Free double array allocated by old version of darray3(), with indexes [ini1..fi1][ini2..fi2][ini3..fi3] */
+void free_darray3(double ***a, int ini1, int fi1, int ini2, int fi2, int ini3, int fi3) {
+  int i;
+  for (i= fi1; i>=ini1; i--) {
+    free_dmatrix(a[i],ini2,fi2,ini3,fi3);
+  }
+  if ((a+ini1) != NULL) { free((char*) (a+ini1)); }
 }
+
+//OLD VERSION OF free_darray3.
+///* Free double array allocated by old version of darray3(), with indexes [0..n1][0..n2][0..n3] */
+//void free_darray3(double ***a, int n1, int n2, int n3) {
+//    free((char*) (a[0][0]));
+//    free((char*) (a[0]));
+//    free((char*) (a));
+//}
 
 
 /************************************************************************
@@ -3026,29 +3116,31 @@ void Atx(double **A,
 
 
 /*
+ * Multiply matrix A[rowiniA..rowfiA][coliniA..colfiA] by
+ * matrix B[rowiniB..rowfiB][coliniB..colfiB].
+ * Store result in matrix C.
+ */
+void AB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C) {
+  int i,j,k;
+    if ((colfiA-coliniA) != (rowfiB-rowiniB)) { errorC("AB", "dimensions don't match", 1); }
+    for (i = rowiniA; i <= rowfiA; i++) {
+        for (j = coliniB; j <= colfiB; j++) {
+            C[i][j] = 0.0;
+            for (k = coliniA; k <= colfiA; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
+
+/*
  * Multiply transpose of matrix A[rowiniA..rowfiA][coliniA..colfiA] by
  * matrix B[rowiniB..rowfiB][coliniB..colfiB].
  * Store result in matrix C.
  */
-void AtB(double **A,
-         int rowiniA,
-         int rowfiA,
-         int coliniA,
-         int colfiA,
-         double **B,
-         int rowiniB,
-         int rowfiB,
-         int coliniB,
-         int colfiB,
-         double **C)
-{
-    int i;
-    int j;
-    int k;
-
-    //assert(A != NULL);
-    //assert(B != NULL);
-    //assert(C != NULL);
+void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C) {
+  int i,j,k;
 
     if ((rowfiA-rowiniA) != (rowfiB-rowiniB)) {
         errorC("AtB", "dimensions don't match", 1);
@@ -3063,6 +3155,27 @@ void AtB(double **A,
         }
     }
 }
+
+
+/*
+ * Multiply matrix A[rowiniA..rowfiA][coliniA..colfiA] by
+ * transpose of matrix B[rowiniB..rowfiB][coliniB..colfiB].
+ * Store result in matrix C.
+ */
+void ABt(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C) {
+  int i,j,k;
+
+    if ((colfiA-coliniA) != (colfiB-coliniB)) { errorC("AtB", "dimensions don't match", 1); }
+    for (i = rowiniA; i <= rowfiA; i++) {
+        for (j = rowiniB; j <= rowfiB; j++) {
+            C[i][j] = 0.0;
+            for (k = coliniA; k <= colfiA; k++) {
+                C[i][j] += A[i][k] * B[j][k];
+            }
+        }
+    }
+}
+
 
 //C= t(A) %*% B, where C[1..ncolA][1..nrowB]
 void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB, double **C) {
@@ -4456,11 +4569,6 @@ double dmvnormC(const double *y,
     double res = 0.0;
     double ans;
 
-    //assert(y != NULL);
-    //assert(mu != NULL);
-    //assert(cholsinv != NULL);
-    //assert((logscale == 0) || (logscale == 1));
-
     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
     z  = dvector(1, n);
     z2 = dvector(1, n);
@@ -5821,6 +5929,54 @@ void rmvtC(double *y,
 
     free_dvector(z, 1, n);
 }
+
+/* Generate from a chi-square with df degrees of freedom */
+double rchisqC(int df) {
+  int i;
+  double ans= 0;
+  for (i=1; i<=df; i++) ans += pow(rnormC(0,1),2.0);
+  return(ans);
+}
+
+/* Generate from p x p dimensional Wishart(df,S)
+   Input
+   - df: degrees of freedom
+   - cholS: Cholesky decomposition of the scale matrix S
+   - p: number of rows and columns of S
+   - returnChol: if true the Cholesky decomposition of the sample matrix is returned (faster)
+
+   Output
+   - ans: if returnChol==false, a draw Sigma ~ Wishart(df,S). If returnChol=true, chol(Sigma) is returned instead (Sigma= chol(Sigma) %*% t(chol(Sigma)))
+
+   Example to sample from Wishart(nu,S)
+
+   choldc(S, p, cholS, posdef);
+   rwishartC(ans, df, cholS, p, false);
+
+   Example to sample from Inverse Wishart(nu,S)
+
+   inv_posdef_upper(S, p, Sinv, &posdef);
+   choldc(Sinv, p, cholSinv, &posdef);
+   rwishartC(Sigmainv, df, cholSinv, p, false);
+   inv_posdef_upper(Sigmainv, p, Sigma, &posdef);
+ */
+void rwishartC(double **ans, int df, double **cholS, int p, bool returnChol) {
+  int i,j;
+  double **Z, **cholans;
+  Z= dmatrix(1,p,1,p);
+  if (returnChol) { cholans= ans; } else { cholans= dmatrix(1,p,1,p); }
+  for (i=1; i<=p; i++) {
+    Z[i][i]= sqrt(rchisqC(df-p+i));
+    if (p>1) {
+      for (j=1; j<i; j++) Z[i][j]= rnormC(0,1);
+      for (j=i+1; j<=p; j++) Z[i][j]= 0;
+    }
+  }
+  AB(cholS,1,p,1,p,Z,1,p,1,p,cholans); //cholans= cholS %*% Z
+  if (!returnChol) { ABt(cholans,1,p,1,p,cholans,1,p,1,p,ans); } //ans= cholans %*% t(cholans)
+  free_dmatrix(Z,1,p,1,p); free_dmatrix(cholans,1,p,1,p);
+}
+
 
 
 /*

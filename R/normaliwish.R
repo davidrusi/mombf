@@ -20,6 +20,11 @@ diwish <- function(Sigma, nu, S, logscale=FALSE) {
 }
 
 
+riwish <- function(nu, S, Sinv) {
+    if (missing(Sinv)) Sinv <- solve(S)
+    solve(rWishart(1, df=nu, Sigma=Sinv)[,,1])
+}
+
 
 dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,logscale=FALSE) {
 #Posterior Normal-IW density
@@ -47,6 +52,51 @@ dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,l
     if (!logscale) ans= exp(ans)
     return(ans)
 }
+
+
+
+rpostNIW <- function(n,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,precision=FALSE) {
+#Draws from posterior Normal-IW density
+#   x[i]       ~ N(mu,Sigma)
+#   mu | Sigma ~ N(mu0, g Sigma)
+#   Sigma ~ IW(nu0, S0)
+# Input
+# - n: number of samples to be returned
+# - x: n x p data matrix
+# - g: prior dispersion parameter in the prior for mu
+# - mu0: prior mean in the prior for mu
+# - nu0: prior degrees of freedom for Sigma
+# - S0: prior scale matrix for Sigma, by default set to I/nu0
+# - precision: if set to TRUE, samples from the precision matrix Sigma^{-1} are returned instead
+# Output: independent random draws from Normal-IW posterior
+    if (!is.matrix(x)) stop("x must be a matrix")
+    samplesize= nrow(x); p= ncol(x)
+    if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
+    xbar= colMeans(x)
+    nu1= nu0+samplesize
+    dm= matrix(xbar-mu0,ncol=1)
+    S1= S0 + cov(x)*(samplesize-1) + samplesize/(1+samplesize*g) * (dm %*% t(dm))
+    w= samplesize/(samplesize+1/g)
+    m1= w * xbar + (1-w) * mu0
+    ans= vector("list",2)
+    if (!precision) { names(ans)= c("mu","Sigma") } else { names(ans)= c("mu","precision") }
+    ans[[1]]= matrix(NA,nrow=samplesize,ncol=p)
+    ans[[2]]= matrix(NA,nrow=samplesize,ncol=p*(p+1)/2)
+    S1inv= solve(S1)
+    for (i in 1:samplesize) {
+        if (precision) {
+            Sigmainv= rWishart(1, df=nu1, Sigma=S1inv)[,,1]
+            Sigma= solve(Sigmainv)
+            ans[[2]][i,]= Sigmainv[lower.tri(Sigmainv,diag=TRUE)]
+        } else {
+            Sigma= riwish(nu=nu1,Sinv=S1inv)
+            ans[[2]][i,]= Sigma[lower.tri(Sigma,diag=TRUE)]
+        }
+        ans[[1]][i,]= rmvnorm(1,m1,Sigma/(samplesize+1/g))
+    }
+    return(ans)
+}
+
 
 
 

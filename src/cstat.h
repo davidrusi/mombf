@@ -76,9 +76,12 @@ double cvinv(const double *x, int ini, int fi); //coefficient of variation of 1/
 
 void colMeans(double *m, const double *x, int nrow, int ncol);
 void colVar(double *m, const double *x, int nrow, int ncol);
-void colCV(double *cv, const double *x, int nrow, int ncol);
+void colCV(double *cv, const double *x, int nrow, int ncol);  //coefficient of variation
 void colCVinv(double *cv, const double *x, int nrow, int ncol); //CV of 1/x
 
+void covxvec(double *x, int n, int ncol, double **S); //sample covariance. x is a matrix arranged by columns (0-indexed). Answer stored in S[1][1],...,S[p][p]
+void sumsq(double *x, int n, int p, bool lowertri, double **S); //sum of squares and cross-products, that is n*cov(x)
+void sumsqbyclus(double *x, int n, int p, int *z, int nclus, bool lowertri, double ***S); //sum of squares within clusters indicated by z
 
 /************************************************************************
                          BASIC BAYESIAN MODELS
@@ -99,23 +102,6 @@ void lmbayes_knownvar(double *bpost, double *b, double **Vb, double **XtX, doubl
 
 FILE *openIn(const char *filename);
 FILE *openOut(const char *filename);
-//void scanFloat(char *, float *);
-//void scanDouble(char *, double *);
-//void scanInt(char *, int *);
-//void fscanDouble(FILE *, char *, double *);
-//void fscanInt(FILE *, char *, int *);
-//void scanLong(char *, long *);
-// 
-//void scanFloatArray(char *, float *, int);
-//void scanArray(char *, float *, int);
-//void scanDoubleArray(char *, double *, int);
-//void scanString(char *txt, char *s, int n);
-//void fscanString(FILE *, char *txt, char *s, int n);
-//void fscanDoubleArray(FILE *, double *, int);
-//void scanDoubleMatrix(char *, double **, int, int);
-//void fscanDoubleMatrix(FILE *ifile, double **x, int r, int c);
-//void scanIntArray(char *, int *, int);
-//void fscanIntArray(FILE *ifile, int *x, int n);
 
 void writeInt(int);
 void writeLong(long i);
@@ -132,7 +118,7 @@ void fwriteDoubleArray(FILE *, double *, int, int);
 void fwriteDoubleMatrix2(FILE *, double **, int , int);
 void writeDoubleMatrix(double **, int, int);
 void writeFloatArray(float *, int, int);
-void writeArray(float *, int, int); 
+void writeArray(float *, int, int);
 
 
 /**************************************************************/
@@ -148,19 +134,13 @@ void nrerror(const char *proc, const char *act, const char *what);
 /* Memory allocation                                          */
 /**************************************************************/
 
-
-
 char *charvector(int ,int);
 float   *vector(int, int);
 double  *dvector(int, int);
 double  **dmatrix(int, int, int, int);
-//double  ***darray_3(int, int);
-//double ***darray3(int n, int p, int q);
-double ***darray3(int n1, int n2, int n3);   //allocate 3-way double array [0..n1-1][0..n2-1][0..n3-1]
+double ***darray3(int ini1, int fi1, int ini2, int fi2, int ini3, int fi3);   //allocate 3-way double array [ini1..fi1][ini2..fi2][ini3..fi3]
 int     *ivector(int, int);
 int     **imatrix(int, int, int, int);
-//int ***iarray_3(int lo, int hi);
-//int ***iarray3(int p1, int p2, int p3);
 int ***iarray3(int n1, int n2, int n3);   //allocate 3-way int array [0..n1-1][0..n2-1][0..n3-1]
 
 void free_charvector(char *v,int nl,int nh);
@@ -169,7 +149,7 @@ void free_dvector(double *, int, int);
 void free_ivector(int *, int, int);
 void free_dmatrix(double **, int, int, int, int);
 void free_imatrix(int **, int, int, int, int);
-void free_darray3(double ***a, int n1, int n2, int n3);
+void free_darray3(double ***a, int ini1, int fi1, int ini2, int fi2, int ini3, int fi3);
 void free_iarray3(int ***a, int n1, int n2, int n3);
 
 /**************************************************************/
@@ -219,6 +199,8 @@ double quadratic_xseltAxsel(const double *x, double **A, int ini, const int *nse
 
 void Atx(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector
 void AtB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //t(matrix)*matrix, stored in C
+void AB(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //matrix * matrix, stored in C
+void ABt(double **A, int rowiniA, int rowfiA, int coliniA, int colfiA, double **B, int rowiniB, int rowfiB, int coliniB, int colfiB, double **C); //matrix * t(matrix), stored in C
 void AvectBvec(double *A, int nrowA, int ncolA, double *B, int nrowB, int ncolB, double **C); //same but input as 0-indexed vector
 void a_plus_b(const double *a, const double *b, double *c, int ini, int fi); //Vector sum i.e. c[i]=a[i]+b[i]
 void a_prod_b(const double *a, const double *b, double *c, int ini, int fi); //Vector prod i.e. c[i]=a[i]*b[i]
@@ -238,7 +220,7 @@ void maxvec(const double *x, int ini, int fi, double *xmax, int *maxpos); //max 
 void choldc(double **a, int n, double **aout, bool *posdef);   //Cholesky decomposition
 void choldc_inv(double **a, int n, double **aout, bool *posdef); //Inverse of chol(a)
 void cholS_inv(double **cholS, int n, double **cholSinv); //Inverse of cholS
-void choldc_inv_internal(double **cholS, int n); 
+void choldc_inv_internal(double **cholS, int n);
 double choldc_det(double **chols, int n); //Determinant of a symmetric def+ using its Cholesky decomp
 void inv_posdef(double **a, int n, double **aout, bool *posdef); //Inverse of a symmetric, positive definite matrix
 void inv_posdef_upper(double **a, int n, double **aout, bool *posdef); //Same but only returns upper triangular elements
@@ -257,7 +239,7 @@ void tqli(double d[], double e[], int n, double **z, bool getVecs);
 double pythag(double a, double b);
 
 
-int dcompare(const void *a, const void *b);               
+int dcompare(const void *a, const void *b);
 void dvecsort(double *v, int size);                           //sort a vector using qsort from stdlib
 void dindexsort(double *x, int *index, int ilo, int ihi, int incr); //sort a vector of indexes using self-written quicksort routine
 void iindexsort(int *x, int *index, int ilo, int ihi, int incr); //like dindexsort but for integers
@@ -339,6 +321,10 @@ double qtC(double p, int nu);  //quantile from t-Student with nu degrees of free
 double ptC(double x, int nu);  //CDF of t-Student with nu degrees of freedom
 void rmvtC(double *y, int n, const double *mu, double **chols, int nu); //draw from multivar T with nu degrees of freedom
 
+//chi-square
+double rchisqC(int df);
+void rwishartC(double **ans, int df, double **cholS, int p, bool returnChol);  //draw from Wishart(df,S), where S= t(cholS) %*% cholS
+
 // Gamma & Inverse gamma
 double rgammaC(double a, double b); //a: shape; b: location; mean=a/b
 double dgammaC(double x, double a, double b); //a: shape; b: location; mean=a/b
@@ -378,7 +364,7 @@ void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, 
 // Posterior sampling under non-local priors
 void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, double *x, int n, int p, int r, double tau, double a_phi, double b_phi, int prior); //NLP posterior samples under linear model
 void rnlp(double *ans, int niter, int burnin, int thinning, double *m, double *Vvec, int p, int r, double tau, int prior); //NLP samples based on mean & covar
-void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //single Gibbs update 
+void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double *tau, double *phi, int r, int prior); //single Gibbs update
 void rnlp_Gibbs_multiple(double *th, double *thini, int p, double *m, double **cholS, double **K, double *tau, int r, int prior, int niter, int burnin, int thinning); //multiple updates
 double pen_mom(double *th, double *phi, double *tau, int r); //MOM penalty (th^2 / (phi*tau))^r
 double pen_emom(double *th, double *phi, double *tau, int logscale); //eMOM penalty exp(-sqrt(2)*tau*phi/th^2)

@@ -13,4 +13,6 @@ extern "C" {
 
 void normalmixGibbsC(double *pponeempty, double *eta, double *mu, double *cholSigmainv, double *x, int *n, int *p, int *ncomp, int *z, double *mu0, double *g, int *nu0, double *S0, double *q, int *B, int *burnin, int *verbose);
 
+void crossprod2sumsq_byclus(double ***crossprodx, double **xsum, int *zcount, int *nclus, int *p, double ***S, double **xbar);
+
 #endif /* MIXTURES_H */

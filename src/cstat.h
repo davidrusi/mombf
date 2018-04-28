@@ -82,6 +82,9 @@ void colCVinv(double *cv, const double *x, int nrow, int ncol); //CV of 1/x
 void covxvec(double *x, int n, int ncol, double **S); //sample covariance. x is a matrix arranged by columns (0-indexed). Answer stored in S[1][1],...,S[p][p]
 void sumsq(double *x, int n, int p, bool lowertri, double **S); //sum of squares and cross-products, that is n*cov(x)
 void sumsqbyclus(double *x, int n, int p, int *z, int nclus, bool lowertri, double ***S); //sum of squares within clusters indicated by z
+void sum_crossprod(double *x, int n, int p, bool lowertri, double *sumx, double **crossprodx); //colSums(x) and cross-prod X'X
+void crossprod2sumsq(double **crossprodx, double *xsum, int n, int p, double **S, double *xbar, bool lowertri); //convert sums into means, cross-products into sums of squares
+
 
 /************************************************************************
                          BASIC BAYESIAN MODELS

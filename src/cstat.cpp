@@ -495,6 +495,7 @@ void covxvec(double *x, int n, int p, bool lowertri, double **S) {
 }
 
 
+
 //Matrix with sum of squares and cross-product, that is n * cov(x)
 //Input: x is an n * p matrix arranged by columns (0-indexed).
 //Output: stored in S[1][1],...,S[p][p]
@@ -572,6 +573,62 @@ void sumsqbyclus(double *x, int n, int p, int *z, int nclus, bool lowertri, doub
   }
   free_ivector(zcount,1,nclus);  free_dmatrix(xbar,1,nclus,1,p); free_dmatrix(m2,1,nclus,1,p);
 }
+
+
+//Column sums colSums(x) and cross-products X'X
+//Input:
+// - x is an n * p matrix arranged by columns (0-indexed)
+// - lowertri: if false only diagonal and upper-diagonal elements of S are returned
+//
+//Output:
+// - Column sums stored in sums[1],...,sums[n]
+// - Cross-products stored in S[1][1],...,S[p][p]
+void sum_crossprod(double *x, int n, int p, bool lowertri, double *sumx, double **crossprodx) {
+  int i, j, l, idxj, idxl;
+  for (j=1; j<=p; j++) {
+    idxj= (j-1)*n;
+    sumx[j]= crossprodx[j][j]= 0;
+    for (i=0; i<n; i++) {
+      sumx[j]+= x[i+idxj];
+      crossprodx[j][j]+= x[i+idxj]*x[i+idxj];
+    }
+    for (l=j+1; l<=p; l++) {
+      idxl= (l-1)*n;
+      crossprodx[j][l]= 0;
+      for (i=0; i<n; i++) { crossprodx[j][l]+= x[i+idxj]*x[i+idxl]; }
+    }
+  }
+  if (lowertri) {
+    for (j=1; j<=p; j++) { for (l=1; l<j; l++) { crossprodx[l][j]= crossprodx[j][l]; } }
+  }
+}
+
+
+//Convert column sums xsum into means xbar and cross-prod crossprodx into sum of squares S
+//Input
+// - crossprodx: matrix indexed [1..p][1..p] containing cross-products X'X. 
+// - xsum: vector indexed [1..p] containing colSums(X)
+// - n: number of rows in X
+// - p: number of columns in X
+// - lowertri: if false only diagonal and upper-diagonal elements of S are returned
+//Output
+// - S: a p x p matrix containing sums of squares (X-colMeans(X))' (X-colMeans(X))
+// - xbar: a p-vector containing colMeans(X)
+void crossprod2sumsq(double **crossprodx, double *xsum, int n, int p, double **S, double *xbar, bool lowertri) {
+  int j, jj;
+  for (j=1; j<=p; j++) {
+    xbar[j]= xsum[j] / ((double) n);
+    S[j][j]= crossprodx[j][j] - xbar[j] * xsum[j];
+    for (jj=j+1; jj<=p; jj++) {
+      S[j][jj]= crossprodx[j][jj] - xbar[j] * xsum[jj];
+    }
+  }
+  if (lowertri) {
+    for (j=1; j<p; j++) { for (jj=1; jj<j; jj++) { S[j][jj]= S[jj][j]; } }
+  }
+}
+
+
 
 
 /************************************************************************

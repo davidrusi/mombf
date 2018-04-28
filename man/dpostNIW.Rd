@@ -1,11 +1,13 @@
 \name{dpostNIW}
 \alias{dpostNIW}
+\alias{rpostNIW}
 \title{Posterior Normal-IWishart density}
 \description{
-  Posterior Normal-IWishart density evaluated at (mu,Sigma).
+  dpostNIW evalutes the posterior Normal-IWishart density at (mu,Sigma).
+  rpostNIW draws independent samples.
   This posterior corresponds to a Normal model for the data
 
-  x[i] ~ N(mu,Sigma) iid i=1,...,n
+  x[i,] ~ N(mu,Sigma) iid i=1,...,n
 
   under conjugate priors
 
@@ -15,6 +17,8 @@
 \usage{
 dpostNIW(mu, Sigma, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0,
   logscale=FALSE)
+
+rpostNIW(n, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0, precision=FALSE)
 }
 \arguments{
   \item{mu}{Vector of length p}
@@ -25,9 +29,18 @@ dpostNIW(mu, Sigma, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0,
   \item{nu0}{Prior degrees of freedom for Sigma}
   \item{S0}{Prior scale matrix for Sigma, by default set to I/nu0}
   \item{logscale}{set to TRUE to get the log-posterior density}
+  \item{n}{Number of samples to draw}
+  \item{precision}{If set to \code{TRUE}, samples from the precision
+    matrix (inverse of Sigma) are returned instead}
 }
 \value{
-Normal-IW posterior density evaluated at (mu,Sigma)
+\code{dpostNIW} returns the Normal-IW posterior density evaluated at
+(mu,Sigma).
+
+\code{rpostNIW} returns a list with two elements. The first element are
+posterior draws for the mean. The second element are posterior draws for
+the covariance (or its inverse if \code{precision==TRUE}). Only
+lower-diagonal elements are returned (\code{Sigma[lower.tri(Sigma,diag=TRUE)]}).
 }
 \author{ David Rossell }
 \seealso{ \code{\link{diwish}} for the inverse Wishart prior density,

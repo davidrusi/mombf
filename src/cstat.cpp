@@ -606,7 +606,7 @@ void sum_crossprod(double *x, int n, int p, bool lowertri, double *sumx, double 
 
 //Convert column sums xsum into means xbar and cross-prod crossprodx into sum of squares S
 //Input
-// - crossprodx: matrix indexed [1..p][1..p] containing cross-products X'X. 
+// - crossprodx: matrix indexed [1..p][1..p] containing cross-products X'X.
 // - xsum: vector indexed [1..p] containing colSums(X)
 // - n: number of rows in X
 // - p: number of columns in X
@@ -2660,6 +2660,45 @@ double isign(int x)
                             VECTOR ALGEBRA
 ************************************************************************/
 
+//Squared Mahalanobis distances (x[i,] - x[j,])' [ cholA %*% t(cholA) ] (x[i,] - x[j,])
+// Input
+// - x: an n x p matrix, formatted as a 0-indexed vector containing the rows in x, that is x[1,],x[2,],...,x[n,]
+// - n: number of rows in x
+// - p: number of columns in x
+// - cholA: Cholesky decomposition of the scale matrix (p x p matrix, upper diagonal elements ignored)
+//
+// Output
+// - ans: ans[1],...,ans[n*(n-1)/2] contain squared Mahalanobis distances between (1,2), (1,3), etc.
+void mahaldist(double *x, int n, int p, double **cholA, bool squared, double *ans) {
+  int i, j, l, idx;
+  double **z;
+
+  z= dmatrix(1,n,1,p);
+
+  //Compute z= t(cholA) %*% x
+  for (i=1; i<=n; i++) {
+    idx= (i-1)*p;
+    for (j=1; j<=p; j++) {
+      z[i][j]= 0;
+      for (l=i; l<=p; l++) { z[i][j] += cholA[l][j] * x[idx +l]; }
+    }
+  }
+
+  //Euclidean distances on z
+  for (i=1; i<=n; i++) {
+    for (j=i+1; j<=n; j++) {
+      ans[idx]= 0;
+      for (l=0; l<=p; l++) { ans[idx] += pow(z[i][l] - z[j][l],2.0); }
+    }
+    if (!squared) ans[idx]= sqrt(ans[idx]);
+    idx++;
+  }
+
+  free_dmatrix(z,1,n,1,p);
+}
+
+
+
 void grid(double x0,
           double xn,
           int n,
@@ -4641,11 +4680,12 @@ double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, dou
 //same as dmvnorm, but y is a 0-indexed n x p matrix and the density of each row of y is returned in ans[0],...,ans[n-1]
 void dmvnormmatC(double *ans, const double *y, int n, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
   int i, j;
-  double *z, *z2, res = 0.0;
+  double *z, *z2, res = 0.0, ct;
 
   z  = dvector(1, p);
   z2 = dvector(1, p);
 
+  ct= - ((double) p) * log(SQ_M_PI_2) + 0.5 * log(det);
   for (i=0; i<n; i++) {
 
     for (j = 1; j <= p; j++) { z[j] = y[i + (j-1)*n] - mu[j]; }
@@ -4654,12 +4694,11 @@ void dmvnormmatC(double *ans, const double *y, int n, int p, const double *mu, d
     } else {
       Atx(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv * cholsinv' * (y-mu) */
     }
-    for (j = 1; j <= p; j++) {
-        res += z2[j] * z2[j];
-    }
+    res= 0;
+    for (j = 1; j <= p; j++) { res += z2[j] * z2[j]; }
 
-    ans[i] = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
-    if (logscale) { ans[i]= exp(ans[i]); }
+    ans[i] = ct - 0.5 * res;
+    if (!logscale) { ans[i]= exp(ans[i]); }
   }
 
   free_dvector(z, 1, p);

@@ -48,22 +48,25 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
         #if MLE failed, set prior to prevent 0 variances
         if (class(em)=="NULL")  em <- try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
         if (class(em)=='try-error') { z <- as.integer(kmeans(x, centers=G)$cluster) } else { z= as.integer(em$classification) }
-        #Gibbs sampling
+        #Gibbs sampling (version using bayesm)
         Prior=list(ncomp=k[i],Mubar=mu0,A=matrix(1/g),nu=nu0,V=S0,a=rep(q.niw,k[i]))
         mcmcfit= rnmixGibbsMod(x, Prior=Prior, Mcmc=list(R=B,keep=1), z=z, verbose=FALSE)$nmix
+        probone= ppOneEmptyBayesm(x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcfit,burnin=burnin,verbose=TRUE)
+        #Gibbs sampling (version using mombf)
         mcmcfit2= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
-        if (returndraws) {
-            eta= t(matrix(mcmcfit2[[2]],ncol=(B-burnin)))
-            mu= t(matrix(mcmcfit2[[3]],ncol=(B-burnin)))
-            cholSigmainv= t(matrix(mcmcfit2[[4]],ncol=(B-burnin))) #Cholesky decomp. Sigma^{-1}= cholSigmainv %*% t(cholSigmainv)
-            mcmcout[[i]]= list(eta=eta,mu=mu,cholSigmainv=cholSigmainv)
-        }
-        #Estimate probability of one empty cluster
-        probone= posprobOneEmptyClus(x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcfit,burnin=burnin,verbose=TRUE)
+        eta= t(matrix(mcmcfit2[[3]],ncol=(B-burnin)))
+        mu= t(matrix(mcmcfit2[[4]],ncol=(B-burnin)))
+        cholSigmainv= t(matrix(mcmcfit2[[5]],ncol=(B-burnin))) #Cholesky decomp. Sigma^{-1}= cholSigmainv %*% t(cholSigmainv)
+        mcmcout[[i]]= list(eta=eta,mu=mu,cholSigmainv=cholSigmainv)
+        probone= ppOneEmpty(x=x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcout[[i]],logscale=TRUE,verbose=TRUE)
+        qdif= q-q.niw; constddir= lgamma(k[i]*q) - lgamma(k[i]*q.niw) + k[i]*(lgamma(q.niw)-lgamma(q))
+        logpen.mcmc= mcmcfit2[[2]] - normctNMix(k=k,p=p) + constddir + qdif * sum(log(eta))
+        logpen[i]= max(logpen.mcmc) + log(mean(exp(logpen.mcmc-max(logpen.mcmc)))) #log MOM-IW penalty
+        #Bayes factors
         logprobempty[i]= probone['logprobempty']
         ak= lgamma(k[i]*q.niw) - lgamma(k[i]*q.niw-q.niw) + lgamma(n+k[i]*q.niw-q.niw) - lgamma(n+k[i]*q.niw)
         logbf.niw[i-1]= probone['logprobempty']-ak #log-BF for k-1 vs k clusters under a Normal-IW-Dir(q.niw) prior
-        logpen[i]= probone['logpen'] #log MOM-IW penalty
+        #logpen[i]= probone['logpen'] #log MOM-IW penalty
     }
     logbf.niw= -c(0,cumsum(logbf.niw))  #BF of all models vs k=1 under Normal-IW-Dir(q.niw) prior
     logbf.momiw= logbf.niw + logpen    #BF of all models vs k=1 under MOM-IW-Dir(q) prior
@@ -72,6 +75,7 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     pp.niw= exp(logbf.niw - max(logbf.niw)); pp.niw= pp.niw/sum(pp.niw)
     ans= cbind(k,pp.momiw,pp.niw,logprobempty,logbf.momiw,logpen,logbf.niw)
     if (!logscale) { ans[,-1:-3]= exp(ans[,-1:-3]); names(ans)= sub('log','',names(ans)) }
+    if (returndraws) ans= list(posprob=ans,mcmcout)
     return(ans)
 }
 
@@ -183,7 +187,70 @@ rnmixGibbsMod= function(y, Prior, Mcmc, z, verbose=TRUE) {
 ## POSTERIOR PROBABILITY OF EMPTY CLUSTERS
 ######################################################################################
 
-posprobOneEmptyClus <- function(x,g,q,q.niw,mcmcfit,burnin,logscale=TRUE,verbose=TRUE) {
+ppOneEmpty <- function(x,g,q,q.niw,mcmcfit,logscale=TRUE,verbose=TRUE) {
+    # Posterior probability that one cluster is empty and posterior mean of MOM-IW penalty
+    # Input arguments
+    # - x: n * p data matrix
+    # - mcmcfit: MCMC output fitting a Normal mixture. A list with elements list(eta=eta,mu=mu,cholSigmainv=cholSigmainv), where Sigma^{-1}= cholSigmainv %*% t(cholSigmainv) is the precision matrix
+    # - logscale: if TRUE log-prob is returned
+    # - verbose: set to TRUE to print iteration progress
+    # Output
+    # - logprobempty: mean P(n_j=0|y,k) under a Dir(q.niw) prior, where n_j is the number of individuals in cluster j
+    # - logpen: posterior mean of the MOM penalty d(theta) under a product Normal-IW-Dirichlet prior, that is E(d(theta) | y,k)
+    #   where d(theta)= (1/C_k) [ Dir(eta; q) / Dir(eta; q.niw)] [ prod_{i<j} (mu_i-mu_j)' A^{-1} (mu_i-mu_j)/g ] [ prod_j N(mu_j; 0, g A) IW(Sigma_j; nu0, S0) ]
+    #         C_k: MOM-IW prior norm constant
+    #         g: prior dispersion parameter
+    #         A^{-1}= sum_j Sigma_j^{-1} / k
+    niter= nrow(mcmcfit$eta) #number of MCMC draws
+    p= ncol(x); k= ncol(mcmcfit$eta)
+    probOneEmpty= matrix(NA,nrow=niter,ncol=k)
+    logpen= double(niter)
+    if (verbose) cat("Post-processing MCMC output")
+    qdif= q-q.niw; constddir= lgamma(k*q) - lgamma(k*q.niw) + k*(lgamma(q.niw)-lgamma(q))
+    getSigmainv= function(j,cholSigmainv) {
+        ans= matrix(0,nrow=p,ncol=p)
+        ans[lower.tri(ans,diag=TRUE)]= cholSigmainv[(1+(j-1)*p*(p+1)/2):(j*p*(p+1)/2)]
+        return(ans %*% t(ans))
+    }
+    for (i in 1:niter) {
+        #Extract (eta,mu,Sigma)
+        eta= mcmcfit$eta[i,]
+        mu= lapply(1:k, function(j) mcmcfit$mu[i,(1+(j-1)*p):(j*p)])
+        Sigmainv= lapply(1:k, function(j) { getSigmainv(j,mcmcfit[[3]][i,]) })
+        Sigma= lapply(Sigmainv, solve)
+        #Cluster allocation probabilities (n x k matrix)
+        pp= sapply(1:k, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
+        pp= exp(pp-rowMaxs(pp)); pp= pp/rowSums(pp)
+        pp[pp> 1-1e-13]= 1-1e-13
+        #log-probability of each cluster being empty
+        probOneEmpty[i,]= colSums(log(1-pp))
+        #MOM-IW penalty
+        Ainv= Reduce("+",Sigmainv) / k
+        mumat= do.call(rbind,mu)
+        logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + constddir + qdif * sum(log(eta))
+        #same as logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + ddir(eta,q=q,logscale=TRUE) - ddir(eta,q=q.niw,logscale=TRUE)
+        for (jj in 1:k) logprior= logprior - dmvnorm(mu[[jj]],sigma=g*Sigma[[jj]],log=TRUE)
+        d= as.vector(dist(mumat %*% t(chol(Ainv))))^2 #Pairwise Mahalanobis distances between mu's
+        logpen[i]= logprior + sum(log(d)) - k*(k-1)/2*log(g) - normctNMix(k=k,p=p)
+        if (verbose & ((i %% (niter/10))==0)) cat(".")
+    }
+    if (verbose) cat("\n")
+    #Compute mean log-prob, in a way that helps prevent numerical overflow
+    logprob= double(k)
+    for (i in 1:k) {
+        m= max(probOneEmpty[,i])
+        logprob[i]= m + log(mean(exp(probOneEmpty[,i] - m)))
+    }
+    logprob= max(logprob) + log(mean(exp(logprob - max(logprob))))
+    logpen= max(logpen) + log(mean(exp(logpen-max(logpen))))
+    ans= c(logprobempty=logprob, logpen=logpen)
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+
+
+
+ppOneEmptyBayesm <- function(x,g,q,q.niw,mcmcfit,burnin,logscale=TRUE,verbose=TRUE) {
     # Posterior probability that one cluster is empty and posterior mean of MOM-IW penalty
     # Input arguments
     # - x: n * p data matrix
@@ -199,7 +266,6 @@ posprobOneEmptyClus <- function(x,g,q,q.niw,mcmcfit,burnin,logscale=TRUE,verbose
     #         g: prior dispersion parameter
     #         A^{-1}= sum_j Sigma_j^{-1} / k
     B= nrow(mcmcfit$zdraw) #number of MCMC draws
-    ncomp= ncol(mcmcfit$probdraw)
     p= ncol(x); k= ncol(mcmcfit$probdraw)
     niter= B-burnin
     probOneEmpty= matrix(NA,nrow=niter,ncol=k)
@@ -210,21 +276,21 @@ posprobOneEmptyClus <- function(x,g,q,q.niw,mcmcfit,burnin,logscale=TRUE,verbose
         iter= burnin+i
         #Extract (eta,mu,Sigma)
         eta= mcmcfit$probdraw[iter,]
-        mu= lapply(1:ncomp, function(j) mcmcfit$compdraw[[iter]][[j]]$mu)
-        Sigma= lapply(1:ncomp, function(j) { A= solve(mcmcfit$compdraw[[iter]][[j]]$rooti); return(t(A) %*% A)})
-        #Cluster allocation probabilities (n x ncomp matrix)
-        pp= sapply(1:ncomp, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
+        mu= lapply(1:k, function(j) mcmcfit$compdraw[[iter]][[j]]$mu)
+        Sigma= lapply(1:k, function(j) { A= solve(mcmcfit$compdraw[[iter]][[j]]$rooti); return(t(A) %*% A)})
+        #Cluster allocation probabilities (n x k matrix)
+        pp= sapply(1:k, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
         pp= exp(pp-rowMaxs(pp)); pp= pp/rowSums(pp)
         #log-probability of each cluster being empty
         probOneEmpty[i,]= colSums(log(1-pp))
         #MOM-IW penalty
-        Ainv= Reduce("+",lapply(Sigma,solve)) / ncomp
+        Ainv= Reduce("+",lapply(Sigma,solve)) / k
         mumat= do.call(rbind,mu)
         logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + constddir + qdif * sum(log(eta))
         #same as logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + ddir(eta,q=q,logscale=TRUE) - ddir(eta,q=q.niw,logscale=TRUE)
         for (jj in 1:k) logprior= logprior - dmvnorm(mu[[jj]],sigma=g*Sigma[[jj]],log=TRUE)
         d= as.vector(dist(mumat %*% t(chol(Ainv))))^2 #Pairwise Mahalanobis distances between mu's
-        logpen[i]= logprior + sum(log(d)) - ncomp*(ncomp-1)/2*log(g) - normctNMix(k=ncomp,p=p)
+        logpen[i]= logprior + sum(log(d)) - k*(k-1)/2*log(g) - normctNMix(k=k,p=p)
         if (verbose & ((i %% (niter/10))==0)) cat(".")
     }
     if (verbose) cat("\n")

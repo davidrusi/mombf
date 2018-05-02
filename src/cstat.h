@@ -178,8 +178,10 @@ double dsign(double x);  //returns 1.0 if x>=0, -1.0 if x<0
 double isign(int x); //returns 1.0 if x>0, 0 if x==0, -1.0 if x<0
 
 /**************************************************************/
-/* Vector algebra (vector)                                    */
+/* Basic algebra                                              */
 /**************************************************************/
+
+void mahaldist(double *x, int n, int p, double **cholA, bool squared, double *ans); //Squared Mahalanobis distances (x[i,] - x[j,])' [ cholA %*% t(cholA) ] (x[i,] - x[j,])
 
 void grid(double x0, double xn, int n, double *x);
 void rA(double r, double **A, double **B, int rowini, int rowfi, int colini, int colfi);  //matrix*scalar

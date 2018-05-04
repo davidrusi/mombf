@@ -336,7 +336,7 @@ pmomMargKuniv <- function(y,x,phi,tau=1,r=1,logscale=TRUE) {
   if (missing(tau)) tau <- n
   s <- sum(x^2) + 1/tau
   m <- sum(x*y)/s
-  I <- log(actuar::mnorm(2*r, mean=m, sd=sqrt(phi/s)))
+  I <- log(.Call("mnormCI",as.double(2*r), as.double(m), as.double(sqrt(phi/s))))  #Raw moment of N(m,phi/s) of order 2*r
   ans <- I -.5*(sum(y^2) - s*m^2)/phi - .5*n*log(2*pi*phi) - .5*(log(s)+log(tau)) - sum(log(seq(1,2*r-1,by=2))) - r*log(tau*phi)
   if (!logscale) ans <- exp(ans)
   return(ans)

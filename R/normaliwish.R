@@ -55,7 +55,7 @@ dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,l
 
 
 
-rpostNIW <- function(n,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,precision=FALSE) {
+rpostNIW <- function(n,x,g=1,mu0=0,nu0,S0,precision=FALSE) {
 #Draws from posterior Normal-IW density
 #   x[i]       ~ N(mu,Sigma)
 #   mu | Sigma ~ N(mu0, g Sigma)
@@ -71,6 +71,7 @@ rpostNIW <- function(n,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,precisio
 # Output: independent random draws from Normal-IW posterior
     if (!is.matrix(x)) stop("x must be a matrix")
     samplesize= nrow(x); p= ncol(x)
+    if (missing(nu0)) { nu0= nrow(Sigma)+1 }
     if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
     xbar= colMeans(x)
     nu1= nu0+samplesize

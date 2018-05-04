@@ -18,7 +18,7 @@
 dpostNIW(mu, Sigma, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0,
   logscale=FALSE)
 
-rpostNIW(n, x, g=1, mu0=rep(0,length(mu)), nu0=nrow(Sigma)+1, S0, precision=FALSE)
+rpostNIW(n, x, g=1, mu0=0, nu0, S0, precision=FALSE)
 }
 \arguments{
   \item{mu}{Vector of length p}

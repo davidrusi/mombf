@@ -2,6 +2,55 @@
 ## FUNCTIONS TO PERFORM MODEL SELECTION ON NORMAL MIXTURES
 ######################################################################################
 
+
+setMethod("show", signature(object='mixturebf'), function(object) {
+  cat('mixturebf object with',object@p,'variables\n\n')
+  cat("Use draw() to obtain posterior samples. postProb() returns posterior probabilities as given below\n\n")
+  print(object@postprob)
+}
+)
+
+
+setMethod("postProb", signature(object='mixturebf'), function(object, nmax, method='norm') {
+  object@postprob
+}
+)
+
+setMethod("postSamples", signature(object='mixturebf'), function(object) {
+    if (!is.null(object@mcmc)) { ans= object@mcmc } else { ans= NULL }
+    return(ans)
+}
+)
+
+#setMethod("coef", signature(object='mixturebf'), function(object, ...) {})
+coef.mixturebf <- function(object,...) {
+    if (length(object@mcmc)==0) stop('No MCMC samples are available, posterior means cannot be computed')
+    ans= vector("list",length(object@mcmc))
+    names(ans)= names(object@mcmc)
+    for (i in 1:length(ans)) {
+        k= as.integer(sub('k=','',names(object@mcmc)[i]))
+        if ((k>1) & (!is.null(object@mcmc[[i]]))) {
+            sel= which(names(object@mcmc[[i]])=='cholSigmainv')
+            ans[[i]]= lapply(object@mcmc[[i]][-sel],colMeans)
+            cholSigmainv= object@mcmc[[i]][[sel]]
+            ans[[i]]$Sigmainv= vector("list",k)
+            for (j in 1:k) { ans[[i]]$Sigmainv[[j]]= Reduce("+",lapply(1:nrow(cholSigmainv),function(z) getSigmainv(j,p=object@p,cholSigmainv[z,])))/nrow(cholSigmainv) }
+        }
+        if ((k==1) & (length(grep('Normal',object@postprob[i,'model']))==1)) {
+            ans[[i]]= list(eta=1, mu= object@postpars$mu1, Sigmainv=solve(object@postpars$S1)*object@postpars$nu1)
+        }
+    }
+    return(ans)
+}
+
+
+getSigmainv= function(j,p,cholSigmainv) {
+    ans= matrix(0,nrow=p,ncol=p)
+    ans[lower.tri(ans,diag=TRUE)]= cholSigmainv[(1+(j-1)*p*(p+1)/2):(j*p*(p+1)/2)]
+    return(ans %*% t(ans))
+}
+
+
 ######################################################################################
 ## BAYES FACTORS
 ######################################################################################
@@ -43,30 +92,26 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     logbf.niw= double(length(k)-1)
     if (returndraws) { mcmcout= vector("list",length(k)); names(mcmcout)= paste('k=',k,sep='') }
     for (i in length(k):2) {
+        ak= lgamma(k[i]*q.niw) - lgamma(k[i]*q.niw-q.niw) + lgamma(n+k[i]*q.niw-q.niw) - lgamma(n+k[i]*q.niw)
         #Initialize clusters via MLE
         em= Mclust(data=x, G=k[i], modelNames=ifelse(p==1,'V','VVV'),verbose=0)
         #if MLE failed, set prior to prevent 0 variances
         if (class(em)=="NULL")  em <- try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
-        if (class(em)=='try-error') { z <- as.integer(kmeans(x, centers=G)$cluster) } else { z= as.integer(em$classification) }
-        #Gibbs sampling (version using bayesm)
-        Prior=list(ncomp=k[i],Mubar=mu0,A=matrix(1/g),nu=nu0,V=S0,a=rep(q.niw,k[i]))
-        mcmcfit= rnmixGibbsMod(x, Prior=Prior, Mcmc=list(R=B,keep=1), z=z, verbose=FALSE)$nmix
-        probone= ppOneEmptyBayesm(x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcfit,burnin=burnin,verbose=TRUE)
+        if (class(em)=='try-error') { z <- as.integer(kmeans(x, centers=k[i])$cluster) } else { z= as.integer(em$classification) }
         #Gibbs sampling (version using mombf)
-        mcmcfit2= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
-        eta= t(matrix(mcmcfit2[[3]],ncol=(B-burnin)))
-        mu= t(matrix(mcmcfit2[[4]],ncol=(B-burnin)))
-        cholSigmainv= t(matrix(mcmcfit2[[5]],ncol=(B-burnin))) #Cholesky decomp. Sigma^{-1}= cholSigmainv %*% t(cholSigmainv)
+        mcmcfit= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
+        names(mcmcfit)= c('logprobempty','logpen','eta','mu','cholSigmainv')
+        logprobempty[i]= mcmcfit$logprobempty
+        eta= t(matrix(mcmcfit$eta,ncol=(B-burnin)))
+        mu= t(matrix(mcmcfit$mu,ncol=(B-burnin)))
+        cholSigmainv= t(matrix(mcmcfit$cholSigmainv,ncol=(B-burnin))) #Cholesky decomp. Sigma^{-1}= cholSigmainv %*% t(cholSigmainv)
         mcmcout[[i]]= list(eta=eta,mu=mu,cholSigmainv=cholSigmainv)
-        probone= ppOneEmpty(x=x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcout[[i]],logscale=TRUE,verbose=TRUE)
+        #probone= ppOneEmpty(x=x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcout[[i]],logscale=TRUE,verbose=TRUE) #to debug only, can be ignored
         qdif= q-q.niw; constddir= lgamma(k[i]*q) - lgamma(k[i]*q.niw) + k[i]*(lgamma(q.niw)-lgamma(q))
-        logpen.mcmc= mcmcfit2[[2]] - normctNMix(k=k,p=p) + constddir + qdif * sum(log(eta))
+        logpen.mcmc= mcmcfit$logpen - normctNMix(k=k[i],p=p) + constddir + qdif * rowSums(log(eta))
         logpen[i]= max(logpen.mcmc) + log(mean(exp(logpen.mcmc-max(logpen.mcmc)))) #log MOM-IW penalty
         #Bayes factors
-        logprobempty[i]= probone['logprobempty']
-        ak= lgamma(k[i]*q.niw) - lgamma(k[i]*q.niw-q.niw) + lgamma(n+k[i]*q.niw-q.niw) - lgamma(n+k[i]*q.niw)
-        logbf.niw[i-1]= probone['logprobempty']-ak #log-BF for k-1 vs k clusters under a Normal-IW-Dir(q.niw) prior
-        #logpen[i]= probone['logpen'] #log MOM-IW penalty
+        logbf.niw[i-1]= mcmcfit$logprobempty - ak
     }
     logbf.niw= -c(0,cumsum(logbf.niw))  #BF of all models vs k=1 under Normal-IW-Dir(q.niw) prior
     logbf.momiw= logbf.niw + logpen    #BF of all models vs k=1 under MOM-IW-Dir(q) prior
@@ -75,111 +120,24 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     pp.niw= exp(logbf.niw - max(logbf.niw)); pp.niw= pp.niw/sum(pp.niw)
     ans= cbind(k,pp.momiw,pp.niw,logprobempty,logbf.momiw,logpen,logbf.niw)
     if (!logscale) { ans[,-1:-3]= exp(ans[,-1:-3]); names(ans)= sub('log','',names(ans)) }
-    if (returndraws) ans= list(posprob=ans,mcmcout)
+    ans= data.frame(ans, model='Normal, VVV')
+    #For 1 component, (mu,Sigma)|x ~ N(mu; mu1, Sigma/prec) IWishart(Sigma; nu=nu1, S=S1)
+    xbar = colMeans(x)
+    nu1 = nu0 + n
+    S1 = S0 + cov(x)*(n-1) + n/(1+n*g) * (matrix(xbar-mu0,ncol=1) %*% matrix(xbar-mu0,nrow=1))
+    w = n/(n + 1/g)
+    m1 = w * xbar + (1 - w) * mu0
+    postpars= list(mu1=m1, prec= n+1/g, nu1=nu1, S1=S1) 
+    #Return answer
+    ans= new("mixturebf", postprob=ans, p=p, n=n, priorpars=list(mu0=mu0, g=g, nu0=nu0, S0=S0, q=q, q.niw=q.niw), postpars=postpars)
+    if (returndraws) ans@mcmc= mcmcout
     return(ans)
 }
 
 
-#Density of a Dirichlet(q) ditribution evaluated at eta
-ddir= function (eta, q, logscale=TRUE) {
-    if (length(q)==1) q= rep(q,length(eta))
-    if (any(eta < 0 | eta > 1)) {
-        ans= -Inf
-    } else {
-        if (sum(eta) != 1) eta= eta/sum(eta)
-        ans= sum((q - 1) * log(eta)) + lgamma(sum(q)) - sum(lgamma(q))
-    }
-    if (!logscale) ans= exp(ans)
-    return(ans)
-}
 
 
 
-
-######################################################################################
-## POSTERIOR SAMPLING
-######################################################################################
-
-#Function rnmixGibbs from bayesm with the following adaptations
-# - Input argument is a matrix instead of a list
-# - Option z to input initial cluster allocations
-# - Option verbose to not print output
-# - Default a=5 changed to a=3
-rnmixGibbsMod= function(y, Prior, Mcmc, z, verbose=TRUE) {
-    llnmix = function(Y, z, comps) {
-        zu = unique(z)
-        ll = 0
-        for (i in 1:length(zu)) {
-            Ysel = Y[z == zu[i], , drop = FALSE]
-            ll = ll + sum(apply(Ysel, 1, lndMvn, mu = comps[[zu[i]]]$mu, rooti = comps[[zu[i]]]$rooti))
-        }
-        return(ll)
-    }
-    if (missing(y)) stop("Requires y argument")
-    if (!is.matrix(y)) stop("y must be a matrix")
-    nobs = nrow(y)
-    dimy = ncol(y)
-    if (missing(Prior)) stop("requires Prior argument ")
-    if (is.null(Prior$ncomp)) { stop("requires number of mix comps -- Prior$ncomp") } else { ncomp = Prior$ncomp }
-    if (is.null(Prior$Mubar)) {
-        Mubar = matrix(rep(0, dimy), nrow = 1)
-    } else {
-        Mubar = Prior$Mubar
-        if (is.vector(Mubar)) Mubar = matrix(Mubar, nrow = 1)
-    }
-    if (is.null(Prior$A)) { A = matrix(0.01, ncol = 1) } else { A = Prior$A }
-    if (is.null(Prior$nu)) { nu = dimy + 3 } else { nu = Prior$nu }
-    if (is.null(Prior$a)) { a = c(rep(3,ncomp)) } else { a = Prior$a }
-    if (is.null(Prior$V)) { V = nu * diag(dimy) } else { V = Prior$V }
-    if (nobs < 2 * ncomp) stop("too few obs, nobs should be >= 2*ncomp")
-    if (ncol(A) != nrow(A) || ncol(A) != 1) stop(paste("bad dimensions for A", dim(A)))
-    if (!is.matrix(Mubar)) stop("Mubar must be a matrix")
-    if (nrow(Mubar) != 1 || ncol(Mubar) != dimy) stop(paste("bad dimensions for Mubar", dim(Mubar)))
-    if (ncol(V) != nrow(V) || ncol(V) != dimy) stop(paste("bad dimensions for V", dim(V)))
-    if (length(a) != ncomp) stop(paste("a wrong length, length= ", length(a)))
-    if (any(a<0)) stop("all elements in a must be positive")
-    if (missing(Mcmc)) stop("requires Mcmc argument")
-    if (is.null(Mcmc$R)) { stop("requires Mcmc element R") } else { R = Mcmc$R }
-    if (is.null(Mcmc$keep)) { keep = 1 } else { keep = Mcmc$keep }
-    if (is.null(Mcmc$nprint)) { nprint = round(R/10) } else { nprint = Mcmc$nprint }
-    if (nprint < 0) stop("nprint must be an integer greater than or equal to 0")
-    if (is.null(Mcmc$LogLike)) { LogLike = FALSE } else { LogLike = Mcmc$LogLike }
-    if (verbose) {
-        cat(" Gibbs Sampler for Mixture of Normals", fill = TRUE)
-        cat(" ", nobs, " observations, ", dimy, " variables, ", ncomp," components", fill = TRUE)
-        cat(" ", fill = TRUE)
-        cat(" Mcmc Parms: R= ", R, " keep= ", keep, " nprint= ", nprint, " LogLike= ", LogLike, fill = TRUE)
-    }
-    compsd = list()
-    if (LogLike) ll = double(floor(R/keep))
-    if (missing(z)) {
-        z = rep(c(1:ncomp), (floor(nobs/ncomp) + 1))
-        z = z[1:nobs]
-        p = c(rep(1, ncomp))/ncomp
-    } else {
-        tabz= table(z)/length(z)
-        p= rep(0,ncomp)
-        p[as.numeric(names(z))]= z
-    }
-    if (verbose) {
-        cat(" ", fill = TRUE)
-        cat("starting value for z", fill = TRUE)
-        print(table(z))
-        cat(" ", fill = TRUE)
-    }
-    nmix= .Call("bayesm_rnmixGibbs_rcpp_loop", PACKAGE = "bayesm", y, Mubar, A, nu, V, a, p, z, R, keep, nprint)
-    #nmix = rnmixGibbs_rcpp_loop(y, Mubar, A, nu, V, a, p, z, R, keep, nprint)
-    attributes(nmix)$class = "bayesm.nmix"
-    if (LogLike) {
-        zdraw = nmix$zdraw
-        compdraw = nmix$compdraw
-        ll = lapply(seq_along(compdraw), function(i) llnmix(y, zdraw[i, ], compdraw[[i]]))
-        return(list(ll = ll, nmix = nmix))
-    }
-    else {
-        return(list(nmix = nmix))
-    }
-}
 
 
 
@@ -207,20 +165,15 @@ ppOneEmpty <- function(x,g,q,q.niw,mcmcfit,logscale=TRUE,verbose=TRUE) {
     logpen= double(niter)
     if (verbose) cat("Post-processing MCMC output")
     qdif= q-q.niw; constddir= lgamma(k*q) - lgamma(k*q.niw) + k*(lgamma(q.niw)-lgamma(q))
-    getSigmainv= function(j,cholSigmainv) {
-        ans= matrix(0,nrow=p,ncol=p)
-        ans[lower.tri(ans,diag=TRUE)]= cholSigmainv[(1+(j-1)*p*(p+1)/2):(j*p*(p+1)/2)]
-        return(ans %*% t(ans))
-    }
     for (i in 1:niter) {
         #Extract (eta,mu,Sigma)
         eta= mcmcfit$eta[i,]
         mu= lapply(1:k, function(j) mcmcfit$mu[i,(1+(j-1)*p):(j*p)])
-        Sigmainv= lapply(1:k, function(j) { getSigmainv(j,mcmcfit[[3]][i,]) })
+        Sigmainv= lapply(1:k, function(j) { getSigmainv(j,p,mcmcfit[[3]][i,]) })
         Sigma= lapply(Sigmainv, solve)
         #Cluster allocation probabilities (n x k matrix)
         pp= sapply(1:k, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
-        pp= exp(pp-rowMaxs(pp)); pp= pp/rowSums(pp)
+        pp= exp(pp-apply(pp,1,'max')); pp= pp/rowSums(pp)
         pp[pp> 1-1e-13]= 1-1e-13
         #log-probability of each cluster being empty
         probOneEmpty[i,]= colSums(log(1-pp))
@@ -249,63 +202,6 @@ ppOneEmpty <- function(x,g,q,q.niw,mcmcfit,logscale=TRUE,verbose=TRUE) {
 }
 
 
-
-ppOneEmptyBayesm <- function(x,g,q,q.niw,mcmcfit,burnin,logscale=TRUE,verbose=TRUE) {
-    # Posterior probability that one cluster is empty and posterior mean of MOM-IW penalty
-    # Input arguments
-    # - x: n * p data matrix
-    # - mcmcfit: MCMC output fitting a Normal mixture, this is the element named 'nmix' returned by rnmixGibbs from bayesm package
-    # - burnin: number of burnin iterations to be discarded
-    # - logscale: if TRUE log-prob is returned
-    # - verbose: set to TRUE to print iteration progress
-    # Output
-    # - logprobempty: mean P(n_j=0|y,k) under a Dir(q.niw) prior, where n_j is the number of individuals in cluster j
-    # - logpen: posterior mean of the MOM penalty d(theta) under a product Normal-IW-Dirichlet prior, that is E(d(theta) | y,k)
-    #   where d(theta)= (1/C_k) [ Dir(eta; q) / Dir(eta; q.niw)] [ prod_{i<j} (mu_i-mu_j)' A^{-1} (mu_i-mu_j)/g ] [ prod_j N(mu_j; 0, g A) IW(Sigma_j; nu0, S0) ]
-    #         C_k: MOM-IW prior norm constant
-    #         g: prior dispersion parameter
-    #         A^{-1}= sum_j Sigma_j^{-1} / k
-    B= nrow(mcmcfit$zdraw) #number of MCMC draws
-    p= ncol(x); k= ncol(mcmcfit$probdraw)
-    niter= B-burnin
-    probOneEmpty= matrix(NA,nrow=niter,ncol=k)
-    logpen= double(niter)
-    if (verbose) cat("Post-processing MCMC output")
-    qdif= q-q.niw; constddir= lgamma(k*q) - lgamma(k*q.niw) + k*(lgamma(q.niw)-lgamma(q))
-    for (i in 1:niter) {
-        iter= burnin+i
-        #Extract (eta,mu,Sigma)
-        eta= mcmcfit$probdraw[iter,]
-        mu= lapply(1:k, function(j) mcmcfit$compdraw[[iter]][[j]]$mu)
-        Sigma= lapply(1:k, function(j) { A= solve(mcmcfit$compdraw[[iter]][[j]]$rooti); return(t(A) %*% A)})
-        #Cluster allocation probabilities (n x k matrix)
-        pp= sapply(1:k, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
-        pp= exp(pp-rowMaxs(pp)); pp= pp/rowSums(pp)
-        #log-probability of each cluster being empty
-        probOneEmpty[i,]= colSums(log(1-pp))
-        #MOM-IW penalty
-        Ainv= Reduce("+",lapply(Sigma,solve)) / k
-        mumat= do.call(rbind,mu)
-        logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + constddir + qdif * sum(log(eta))
-        #same as logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + ddir(eta,q=q,logscale=TRUE) - ddir(eta,q=q.niw,logscale=TRUE)
-        for (jj in 1:k) logprior= logprior - dmvnorm(mu[[jj]],sigma=g*Sigma[[jj]],log=TRUE)
-        d= as.vector(dist(mumat %*% t(chol(Ainv))))^2 #Pairwise Mahalanobis distances between mu's
-        logpen[i]= logprior + sum(log(d)) - k*(k-1)/2*log(g) - normctNMix(k=k,p=p)
-        if (verbose & ((i %% (niter/10))==0)) cat(".")
-    }
-    if (verbose) cat("\n")
-    #Compute mean log-prob, in a way that helps prevent numerical overflow
-    logprob= double(k)
-    for (i in 1:k) {
-        m= max(probOneEmpty[,i])
-        logprob[i]= m + log(mean(exp(probOneEmpty[,i] - m)))
-    }
-    logprob= max(logprob) + log(mean(exp(logprob - max(logprob))))
-    logpen= max(logpen) + log(mean(exp(logpen-max(logpen))))
-    ans= c(logprobempty=logprob, logpen=logpen)
-    if (!logscale) ans= exp(ans)
-    return(ans)
-}
 
 
 
@@ -347,15 +243,7 @@ Cktab[16,]= c(241.375,229.919,285.081,338.441,357.618,381.691,401.358,415.652,43
 Cktab[17,]= c(277.770,254.477,321.324,370.048,395.518,425.777,449.232,463.807,483.476,503.058,510.875,527.850,533.347,547.950,555.441,564.276,575.912,578.512,585.708,593.824)
 Cktab[18,]= c(317.110,274.729,354.350,418.900,445.156,478.831,500.711,524.482,547.148,557.461,578.541,584.673,594.984,611.518,618.742,628.901,638.195,648.375,656.415,666.447)
 Cktab[19,]= c(359.446,317.930,397.421,452.398,504.381,536.868,556.158,578.169,600.491,627.437,633.916,657.388,661.210,671.309,683.771,700.666,706.412,725.335,732.537,739.385)
-#Cktab[1,]= c(0.69 , 1.39 , 1.79 , 2.08 ,  2.30,  2.48,  2.64,  2.77,  2.89,  3.00)
-#Cktab[2,]= c(2.49 , 4.57 , 5.70 , 6.51 ,  7.14,  7.66,  8.09,  8.48,  8.82,  9.12)
-#Cktab[3,]= c(5.66 , 9.83 , 11.98, 13.51, 14.70, 15.68, 16.51, 17.25, 17.90, 18.49)
-#Cktab[4,]= c(10.45, 17.36, 20.83, 23.25, 25.16, 26.72, 28.04, 29.23, 30.26, 31.22)
-#Cktab[5,]= c(17.03, 27.27, 32.26, 35.99, 38.58, 40.81, 42.78, 44.47, 45.99, 47.35)
-#Cktab[6,]= c(25.55, 38.81, 46.33, 51.11, 55.01, 58.21, 60.78, 63.05, 65.15, 67.08)
-#Cktab[7,]= c(36.16, 53.01, 62.05, 69.70, 74.51, 78.44, 82.13, 84.96, 88.01, 90.19)
-#Cktab[8,]= c(48.96, 66.46, 80.73, 89.83, 96.35,101.82,106.15,110.12,113.81,116.87)
-#Cktab[9,]= c(64.07, 82.71,100.43,111.81,120.87,127.88,133.19,138.22,143.08,146.70)
+
 
 normctNMixEstimate= function(k,p,B=10^4) {
 #Monte Carlo estimate of MOM-IW normalization constant (B is the number of MC samples)

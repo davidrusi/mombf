@@ -48,6 +48,8 @@
 
 extern "C" {
 
+  SEXP mnormCI(SEXP order, SEXP m, SEXP sd); //Raw moment of N(m,sd) of order "order"
+
   //Non-local prior sampling
   SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
   SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);

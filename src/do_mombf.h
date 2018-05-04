@@ -13,6 +13,7 @@
 
 static R_CallMethodDef callMethods[]  = {
   {"bsplineCI", (DL_FUNC) &bsplineCI, 3},
+  {"mnormCI", (DL_FUNC) &mnormCI, 3},
   {"eprod_I", (DL_FUNC) &eprod_I, 5},
   {"pmomLM_I", (DL_FUNC) &pmomLM_I, 36},
   {"modelSelectionEnumCI", (DL_FUNC) &modelSelectionEnumCI, 27},

@@ -4,6 +4,18 @@
 
 #require(methods)
 
+
+##=============================================================================
+setClass("mixturebf",
+         representation(postprob="data.frame",
+                        p='numeric',
+                        n='numeric',
+                        priorpars="list",
+                        postpars="list",
+                        mcmc="list"),
+         prototype(priorpars=list(), postpars=list(), mcmc=list()))
+
+
 ##=============================================================================
 setClass("msPriorSpec",
          representation(priorType="character",

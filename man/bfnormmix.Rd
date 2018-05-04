@@ -8,8 +8,8 @@
   of components k in multivariate Normal mixtures.
 
   \code{bfnormmix} computes posterior probabilities under non-local
-  MOM-IW-Dir priors, and also for local Normal-IW-Dir priors. It also
-  computes posterior probabilities on cluster occupancy
+  MOM-IW-Dir(q) priors, and also for local Normal-IW-Dir(q.niw) priors.
+  It also computes posterior probabilities on cluster occupancy
   and posterior samples on the model parameters for several k.
 }
 \usage{
@@ -26,7 +26,8 @@ B=10^4, burnin= round(B/10), logscale=TRUE, returndraws=TRUE, verbose=TRUE)
   prior probability to any pair of mu's giving a bimodal mixture, see details}
 \item{S0}{Prior on Sigma[j] is IW(Sigma_j; nu0, S0)}
 \item{nu0}{Prior on Sigma[j] is IW(Sigma_j; nu0, S0)}
-\item{q}{Prior on mixture weights is Dir(q)}
+\item{q}{Prior parameter in MOM-IW-Dir(q) prior}
+\item{q.niw}{Prior parameter in Normal-IW-Dir(q.niw) prior}
 \item{B}{Number of MCMC iterations}
 \item{burnin}{Number of burn-in iterations}
 \item{logscale}{If set to TRUE then log-Bayes factors are returned}

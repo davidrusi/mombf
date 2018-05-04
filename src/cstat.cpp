@@ -2680,17 +2680,18 @@ void mahaldist(double *x, int n, int p, double **cholA, bool squared, double *an
     idx= (i-1)*p;
     for (j=1; j<=p; j++) {
       z[i][j]= 0;
-      for (l=i; l<=p; l++) { z[i][j] += cholA[l][j] * x[idx +l]; }
+      for (l=j; l<=p; l++) { z[i][j] += cholA[l][j] * x[idx +l-1]; }
     }
   }
 
   //Euclidean distances on z
+  idx= 1;
   for (i=1; i<=n; i++) {
     for (j=i+1; j<=n; j++) {
       ans[idx]= 0;
-      for (l=0; l<=p; l++) { ans[idx] += pow(z[i][l] - z[j][l],2.0); }
+      for (l=1; l<=p; l++) { ans[idx] += pow(z[i][l] - z[j][l],2.0); }
+      if (!squared) ans[idx]= sqrt(ans[idx]);
     }
-    if (!squared) ans[idx]= sqrt(ans[idx]);
     idx++;
   }
 
@@ -4596,6 +4597,7 @@ double pnormC(double y, double m, double s) {
 }
 
 
+
 /*
  * Density of univariate Normal(m,s^2) evaluated at y.
  * log==1 returns in log-scale.
@@ -5538,14 +5540,23 @@ void rmvnormC(double *y,
 }
 
 
+
+ //Raw moment of N(m,sd) of order "order"
+SEXP mnormCI(SEXP order, SEXP m, SEXP sd) {
+  SEXP ans;
+
+  ans= PROTECT(allocVector(REALSXP, 1));
+  REAL(ans)[0]= mnorm(REAL(order)[0], REAL(m)[0], REAL(sd)[0]);
+  UNPROTECT(1);
+  return ans;
+
+}
+
 /*
  * Raw moment of N(m,sd) of order "order"
  * Adapted from that in R package "actuar"
  */
-double mnorm(double order,
-             double m,
-             double sd)
-{
+double mnorm(double order, double m, double sd) {
     int n = (int) order;
     double ans;
 

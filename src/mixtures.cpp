@@ -81,7 +81,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
   (*pponeempty)= 0;
   nelemmu= (*ncomp)*(*p); nelemSigma= (*ncomp)*(*p)*(*p +1)/2;
   ginv= 1/(*g); gsqrt= sqrt(*g);
-  for (l=1; l<(*ncomp); l++) { maxlogpempty[l]= R_NegInf; }
+  for (l=1; l<=(*ncomp); l++) { maxlogpempty[l]= R_NegInf; }
 
   //sum of squares and cross-products within cluster
   for (l=1; l<=(*ncomp); l++) {
@@ -176,7 +176,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
       for (l=1; l<= *ncomp; l++) { sumi += exp(logpclus[l][i] - maxi); }
       for (l=1; l<= *ncomp; l++) {
 	zprob[l]= exp(logpclus[l][i] - maxi)/sumi;
-	if (b>=(*burnin)) { logpempty[b+1][l] += log(1-zprob[l]); }
+	if (b>=(*burnin)) { logpempty[b+1][l] += max_xy(log(1-zprob[l]), -230.25850929940458); }  //prevent values <log(1e-100)= -230.258
       }
       znew= rdisc(zprob+1, *ncomp) + 1;
       if (znew != z[i-1]) {
@@ -207,7 +207,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
     }
 
     if (b>=(*burnin)) {
-      if (logpempty[b+1][l] > maxlogpempty[l]) { maxlogpempty[l]= logpempty[b+1][l]; }
+      for (l=1; l<=(*ncomp); l++) { maxlogpempty[l]= max_xy(maxlogpempty[l], logpempty[b+1][l]); }
       idxeta+= (*ncomp);
       idxmu+= nelemmu;
       idxSigma+= nelemSigma;

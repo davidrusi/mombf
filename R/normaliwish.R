@@ -2,30 +2,6 @@
 ## GENERAL FUNCTIONS FOR NORMAL-INVERSE WISHART
 ######################################################################################
 
-#log of the Multivariate gamma function
-lmgamma= function(p,a) { 0.25*p*(p-1)*log(pi) + sum(lgamma(a + 0.5*(1-(1:p)))) }
-
-diwish <- function(Sigma, nu, S, logscale=FALSE) {
-    #Inverse Wishart density, adapted from LaplacesDemon package
-    if (!is.matrix(Sigma)) Sigma <- matrix(Sigma)
-    if (!is.matrix(S)) S <- matrix(S)
-    if (!identical(dim(S), dim(Sigma))) stop("The dimensions of Sigma and S differ.")
-    if (nu < nrow(S)) stop("The nu parameter is less than the dimension of S.")
-    p <- nrow(Sigma)
-    detSigma= as.numeric(determinant(Sigma,logarithm=TRUE)$modulus)
-    detS= as.numeric(determinant(S,logarithm=TRUE)$modulus)
-    ans <- -(nu * p/2) * log(2) - lmgamma(p,.5*nu) + (nu/2) * detS - ((nu + p + 1)/2) * detSigma - 0.5 * sum(diag((S %*% solve(Sigma))))
-    if (!logscale) ans <- exp(ans)
-    return(ans)
-}
-
-
-riwish <- function(nu, S, Sinv) {
-    if (missing(Sinv)) Sinv <- solve(S)
-    solve(rWishart(1, df=nu, Sigma=Sinv)[,,1])
-}
-
-
 dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,logscale=FALSE) {
 #Posterior Normal-IW density
 #   x[i]       ~ N(mu,Sigma)

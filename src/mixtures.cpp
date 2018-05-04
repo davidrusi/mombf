@@ -64,7 +64,7 @@ SEXP normalmixGibbsCI(SEXP Sx, SEXP Sn, SEXP Sp, SEXP Sncomp, SEXP Sz, SEXP Smu0
 
 void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu, double *cholSigmainv, double *x, int *n, int *p, int *ncomp, int *z, double *mu0, double *g, int *nu0, double *S0, double *q, int *B, int *burnin, int *verbose) {
   bool posdef;
-  int b, i, j, jj, l, idxj, idxeta=0, idxmu=0, idxSigma=0, idxctr, nelemmu, nelemSigma, znew, *zcount;
+  int b, bidx, i, j, jj, l, idxj, idxeta=0, idxmu=0, idxSigma=0, idxctr, nelemmu, nelemSigma, znew, *zcount;
   double det, detA, detprior, ginv, gsqrt, logprior, maxi, maxpponeempty, nplusginv, shrin, sumi, tmp, w;
   double *pponeemptybyclus, *maxlogpempty, *dd, *dm, **A, **logpempty, **xbar, **xsum, *muz, *zprob, *qpost;
   double **cholA, **cholSigma, **Sinv, **cholSinv, **cholSigmainvcur, **cholSigmainvprior, **logpclus, ***S, ***crossprodx;
@@ -148,22 +148,25 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
     } //end for each cluster
 
     //pMOM penalty term
+    bidx= b - *burnin;
     if (b>=(*burnin)) {
       //Sum of log-Mahalanobis distances between mu's
       choldc(A, *p, cholA, &posdef);
       detA= choldc_det(cholA, *p);
       mahaldist(mu + idxmu, *ncomp, *p, cholA, true, dd); //dd= squared Mahalanobis distances (mu_j - mu_l)' A (mu_j - mu_l)
-      logpen[b]= 0;
-      for (j=1; j<= (*ncomp)*(*ncomp -1)/2; j++) logpen[b] += log(dd[j]);
+
+      logpen[bidx]= 0;
+      for (j=1; j<= (*ncomp)*(*ncomp -1)/2; j++) logpen[bidx] += log(dd[j]);
       //Contribution from the prior (sum_l log dmvnorm(mu_l, mu0, A^{-1}) - log dmvnorm(mu_l, mu0, g*Sigma_l)
       for (l=1; l<=(*ncomp); l++) {
 	logprior += dmvnormC(mu-1 + idxmu + (l-1)*(*p), *p, mu0-1, cholA, detA, false, true); //log dmvnorm(mu_l, mu0, A^{-1})
       }
-      logpen[b] += logprior;
+      logpen[bidx] += logprior;
     }
 
     //Sample latent clusters (z)
-    if (b>=(*burnin)) { for (l=1; l<=(*ncomp); l++) { logpempty[b+1- *burnin][l]= 0; } }
+    if (b>=(*burnin)) { for (l=1; l<=(*ncomp); l++) { logpempty[bidx+1][l]= 0; } }
+    //Rprintf("Debugging b=%d\n",b); //debug
     for (i=1; i<= *n; i++) {
       logpclus[1][i]+= log(eta[idxeta]);
       maxi= logpclus[1][i];
@@ -176,7 +179,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
       for (l=1; l<= *ncomp; l++) { sumi += exp(logpclus[l][i] - maxi); }
       for (l=1; l<= *ncomp; l++) {
 	zprob[l]= exp(logpclus[l][i] - maxi)/sumi;
-	if (b>=(*burnin)) { logpempty[b+1][l] += max_xy(log(1-zprob[l]), -230.25850929940458); }  //prevent values <log(1e-100)= -230.258
+	if (b>=(*burnin)) { logpempty[bidx +1][l] += max_xy(log(1-zprob[l]), -230.25850929940458); }  //prevent values <log(1e-100)= -230.258
       }
       znew= rdisc(zprob+1, *ncomp) + 1;
       if (znew != z[i-1]) {
@@ -207,7 +210,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
     }
 
     if (b>=(*burnin)) {
-      for (l=1; l<=(*ncomp); l++) { maxlogpempty[l]= max_xy(maxlogpempty[l], logpempty[b+1][l]); }
+      for (l=1; l<=(*ncomp); l++) { maxlogpempty[l]= max_xy(maxlogpempty[l], logpempty[bidx +1][l]); }
       idxeta+= (*ncomp);
       idxmu+= nelemmu;
       idxSigma+= nelemSigma;

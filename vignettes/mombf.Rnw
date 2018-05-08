@@ -38,10 +38,11 @@
 \maketitle
 
 The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
-for linear, asymmetric linear, median and quantile regression.
+for several regression (linear, asymmetric linear, median and quantile regression)
+and mixture models.
 This is the main package implementing the family of {\it non-local prior} (NLP) distributions
 (briefly reviewed here, see \cite{johnson:2010,johnson:2012} for a more detailed treatment),
-although other priors (mainly Zellner's) are also implemented.
+although other priors are also implemented (e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures).
 The main features are:
 
 \begin{itemize}
@@ -60,12 +61,14 @@ The main features are:
 
 \item BMS in linear regression with non-normal residuals \citep{rossell:2016b}. Particular cases are Bayesian versions
   of asymmetric least squares, median and quantile regression.
+
+\item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures), see \cite{fuquene:2018}.
 \end{itemize}
 
 This manual introduces some basic notions underlying NLPs
 and illustrates the use of R functions implementing the main operations required for model selection and averaging.
 Most of these are internally implemented in C++ so, while they are not optimal in any sense
-they are designed to be minimally scalable to high dimensions (large $p$).
+they are designed to be minimally scalable to large sample sizes $n$ and high dimensions (large $p$).
 
 
 \section{Basics on non-local priors}
@@ -83,11 +86,11 @@ however that for $M_2$ will also be relatively large given that $M_1$ is contain
 We remark that the notion remains valid when none of the posed models are true,
 in that case $M_1$ is the model of smallest dimension
 minimizing Kullback-Leibler divergence to the data-generating distribution of $y$.
-A common mantra is that performing Bayesian model selection via posterior model probabilities
+A usual mantra is that performing Bayesian model selection via posterior model probabilities
 (equivalently, Bayes factors)
-automatically incorporate Occam's razor, e.g. $M_1$ will eventually be favoured over $M_2$
+automatically incorporates Occam's razor, e.g. $M_1$ will eventually be favoured over $M_2$
 as the sample size $n \rightarrow \infty$.
-This statement is correct but can be misleading: there is no guarantee that the extent to which parsimony is enforced is adequate,
+This statement is correct but can be misleading: there is no guarantee that parsimony is enforced to an adequate extent,
 indeed it turns out to be insufficient in many practical situations even for small $p$.
 This issue is exacerbated for large $p$ to the extent
 that one may even loose consistency of posterior model probabilities \citep{johnson:2012}
@@ -168,9 +171,9 @@ For instance, there are closed-form expressions and Laplace approximations to $p
 and one may sample from $p(\theta \mid M_k,y)$ via simple latent truncation representations \citep{rossell:2016}.
 
 
-Up to this point we kept the discussion as generic as possible, in the next section we proceed to illustrate the use of NLPs for variable selection.
-For extensions to other settings see for instance
-\cite{consonni:2010} for directed acyclic graphs under an objective Bayes framework,
+Up to this point we kept the discussion as generic as possible, Section \ref{sec:prodvsadditive} illustrates NLPs for variable selection
+and mixture models.
+For extensions to other settings see \cite{consonni:2010} for directed acyclic graphs under an objective Bayes framework,
 \cite{chekouo:2015} for gene regulatory networks, \cite{collazo:2016} for chain event graphs, or \cite{fuquene:2016} for finite mixture models.
 We also remark that this manual focuses mainly on practical aspects. Readers interested in theoretical NLP properties
 should see \cite{johnson:2010} and \cite{rossell:2016} for an asymptotic characterization
@@ -194,6 +197,8 @@ under certain specific NLPs.
 
 \section{Some default non-local priors}
 \label{sec:prodvsadditive}
+
+\subsection{Regression models}
 
 Definition \ref{def:nlp} in principle allows one to define NLPs in any manner that is convenient,
 as long as $p(\theta \mid M_k)$ vanishes for any value $\theta_0$ that would be consistent with a submodel of $M_k$.
@@ -331,6 +336,93 @@ taumom
 tauimom
 @
 \normalsize
+
+
+\subsection{Mixture models}
+
+Let $y=(y_1,\ldots,y_n)$ be the observed data, where $n$ is the sample size.
+Denote by $M_k$ a mixture model with $k$ components and density
+\begin{align}
+p(y_i \mid \vartheta_k, M_k)= \sum_{j=1}^{k} \eta_j p(y_i \mid \theta_j),
+\label{eq:mixture}
+\end{align}
+where $\eta=(\eta_1,\ldots,\eta_k)$ are the mixture weights,
+$\theta=(\theta_1,\ldots,\theta_k)$ component-specific parameters,
+and $\vartheta_k=(\eta,\theta)$ denotes the whole parameter vector.
+For instance, for Normal mixtures $\theta_j=(\mu_j,\Sigma_j)$, where $\mu_j$ is the mean
+and $\Sigma_j$ the covariance matrix.
+A standard prior choice for such location-scale mixtures is the Normal-IW-Dir prior
+\begin{align}
+\tilde{p}(\vartheta_k \mid M_k)=
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g \Sigma_j) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \mbox{Dir}(\eta; \tilde{q})
+\label{eq:normal_iw_dir}
+\end{align}
+for some given prior parameters $(\mu_0,g,\nu_0,S_0,\tilde{q})$. This choice defines a local prior,
+which we view as unappealing in this setting: it assigns positive prior density to two components
+having the same parameters and, if $\tilde{q} \leq 1$, also to having some mixture weights $\eta_j=0$.
+
+A non-local prior on $\vartheta_k$ must penalize parameter values that would make the $k$-component
+mixture equivalent to a mixture with $<k$ components.
+As formalized in \cite{fuquene:2018} for any generically identifiable mixture this is achieved by
+penalizing zero weights ($\eta_j=0$) and any two components having the same parameter values (i.e. $\theta_j=\theta_l$ for $j\neq l$).
+Specifically, for location scale mixtures where $\theta_j=(\mu_j,\Sigma_j)$ we consider the MOM-IW-Dir prior
+$p(\vartheta_k \mid M_k)=$
+\begin{align}
+ C_k^{-1} \left[  \prod_{j<l}^{} (\mu_j-\mu_l)' A^{-1} (\mu_j-\mu_l)  \right]
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g A) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \mbox{Dir}(\eta; q)
+\label{eq:mom_iw_dir}
+\end{align}
+where $C_k$ is the prior normalization constant (implemented in mombf),
+$A^{-1}= \frac{1}{k} \sum_{j=1}^{k} \Sigma_j^{-1}$ the average precision matrix,
+$(\mu_0,g,\nu_0,S_0)$ are given prior parameters (mombf implements defaults for all of them)
+and one must have $q>1$ for \eqref{eq:mom_iw_dir} to define a non-local prior.
+
+Computing Bayes factors and posterior model probabilities turns out to be surprisingly easy
+due to two results by \cite{fuquene:2018}.
+First, the integrated likelihood under a MOM-IW-Dir prior
+\begin{align}
+  p(y \mid M_k)= \tilde{p}(y \mid M_k) \int d_k(\vartheta_k) \tilde{p}(\vartheta_k \mid y, M_k),
+  \nonumber
+\end{align}
+where $\tilde{p}(y \mid M_k)$ is the integrated likelihood associated to the Normal-IW-Dir prior,
+$\tilde{p}(\vartheta_k \mid y,M_k) \propto p(y \mid \vartheta_k,M_k) \tilde{p}(\vartheta_k \mid M_k)$ the corresponding posterior
+and $d_k(\vartheta_k)=$
+\begin{align}
+  C_k^{-1} \left[  \prod_{j<l}^{} (\mu_j-\mu_l)' A^{-1} (\mu_j-\mu_l)  \right]
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g A) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \frac{\mbox{Dir}(\eta; q)}{\mbox{Dir}(\eta; \tilde{q})}
+\label{eq:momiwdir_penalty}
+\end{align}
+is a penalty term straightforward to estimate provided one has access to posterior samples from
+$\tilde{p}(\vartheta_k \mid y,M_k)$.
+
+The second result is the following simple connection between Bayes factors and empty-component posterior probabilities:
+$$
+\frac{\tilde{p}(y \mid M_{k-1})}{\tilde{p}(y \mid M_k)}
+\frac{1}{k a_k} \sum_{j=1}^{k} P(n_j=0 \mid y,M_k)
+$$
+where $a_k=\Gamma(kq) \Gamma(n+kq-q) / (\Gamma(kq-q) \Gamma(n+kq))$
+and $n_j$ is the number of individuals allocated to cluster $j$.
+The right-hand side requires the average marginal posterior probability of one cluster being empty $P(n_j=0 \mid y,M_k)$.
+Given $T$ posterior samples $\vartheta_k^{(1)},\ldots,\vartheta_k^{(T)}$ this
+can be estimated in a Rao-Blackwellized fashion as
+$\hat{P}(n_j=0 \mid y,M_k)=$
+$$
+\frac{1}{T} \sum_{t=1}^{T} P(n_j=0 \mid y,\vartheta_k^{(t)},M_k)=
+\frac{1}{T} \sum_{t=1}^{T} \prod_{i=1}^{n} P(z_i \neq j \mid y,\vartheta_k^{(t)},M_k),
+$$
+where $z_i \in \{1,\ldots,k\}$ for $i=1,\ldots,n$ are latent cluster indicators.
+mombf implements this computational strategy, see Section \ref{sec:mixtures} for examples.
+
+We remark that $\hat{P}(n_j=0 \mid y,M_k)$ only requires cluster allocation probabilities
+$P(z_i \neq j \mid y,\vartheta_k^{(t)},M_k)$. The latter are readily available as a by-product of any standard MCMC algorithm
+and for any parametric mixture model.
+That is relative to running a standard MCMC one can obtain $\hat{P}(n_j=0 \mid y,M_k)$
+at very little cost, further the estimator is readily applicable to non-conjugate models
+(in constrast to other estimators, see \cite{marin:2008}).
+
 
 
 \section{Variable selection for linear models}
@@ -844,6 +936,87 @@ The model with the highest posterior probability is the one including only \text
 and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
 
 
+\section{Model selection for mixtures}
+\label{sec:mixtures}
+
+\texttt{bfnormmix} is the main function to obtain posterior probabilities on the number of mixture components,
+as well as posterior samples for any given number of components.
+We start by simulating univariate Normal data truly arising from a single component.
+
+\footnotesize
+<<mixtures1>>=
+set.seed(1)
+n=200; k=1:3
+x= rnorm(n)
+@
+\normalsize
+
+We run \texttt{bfnormmix} based on \texttt{B=10000} MCMC iterations and default prior parameters.
+The prior dispersion $g$ in \eqref{eq:mom_iw_dir} is an important parameter
+that determines how separated one expects components to be a priori.
+Roughly speaking its default value assigns 0.95 prior probability to any two components giving a multimodal density,
+this default helps focus the analysis on detecting well-separated components and enforcing parsimony whenever components
+are poorly separated.
+The Dirichlet prior parameter $q$ is also important, \texttt{bfnormmix} allows one to specify different values for the
+MOM-IW-Dir prior in \eqref{eq:mom_iw_dir} (argument \texttt{q})
+and the Normal-IW-Dir prior in \eqref{eq:normal_iw_dir} (argument \texttt{q.niw}).
+The default $\texttt{q}$=3 helps discard components with small weights, since these could be due to over-fitting or outliers.
+
+\footnotesize
+<<mixtures2>>=
+fit= bfnormmix(x=x,k=k,q=3,q.niw=1,B=10^4)
+postProb(fit)
+@
+\normalsize
+
+Under a MOM-Dir-IW prior one assigns high posterior probability $P(M_1 \mid y) \approx 0.96$ to the data-generating truth,
+for the Normal-Dir-IW this probability is $\approx 0.753$.
+
+We can use \texttt{postSamples} to retrieve samples from the Normal-Dir-IW posterior,
+and \texttt{coef} to obtain the coresponding posterior means.
+
+
+\footnotesize
+<<mixturesNIW>>=
+mcmcout= postSamples(fit)
+names(mcmcout)
+names(mcmcout[[2]])
+colMeans(mcmcout[[2]]$eta)
+
+parest= coef(fit)
+names(parest)
+parest[[2]]
+@
+\normalsize
+
+We remark that one can reweight these samples to obtain posterior samples from the non-local MOM-Dir-IW posterior,
+these weights are given by the term $d_k(\vartheta_k)$ in \eqref{eq:momiwdir_penalty}
+and are stored in \texttt{momiw.weight}.
+As illustrated below in our example under the 2-component model the location parameters under the MOM-Dir-IW posterior
+are more separated than under the Normal-Dir-IW, as one would expect from the repulsive force between components.
+
+\footnotesize
+<<mixturesMOMIW>>=
+w= postSamples(fit)[[2]]$momiw.weight
+apply(mcmcout[[2]]$eta, 2, weighted.mean, w=w)
+apply(mcmcout[[2]]$mu, 2, weighted.mean, w=w)
+@
+\normalsize
+
+To further illustrate we simulate another dataset, this time where the data-generating truth are $k=2$ components.
+Interestingly the MOM-IW-Dir favours $k=2$ more than the Normal-IW-Dir and both clearly discard $k=1$,
+as expected given that the two components are well-separated (the means are 3 standard deviations away from each other).
+
+\footnotesize
+<<mixture2comp>>=
+set.seed(1)
+n=200; k=1:3; probs= c(1/2,1/2)
+mu1= -1.5; mu2=  1.5
+x= rnorm(n) + ifelse(runif(n)<probs[1],mu1,mu2)
+fit= bfnormmix(x=x,k=k,q=3,q.niw=1,B=10^4)
+postProb(fit)
+@
+\normalsize
 
 \bibliographystyle{plainnat}
 \bibliography{references}

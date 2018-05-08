@@ -166,7 +166,6 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
 
     //Sample latent clusters (z)
     if (b>=(*burnin)) { for (l=1; l<=(*ncomp); l++) { logpempty[bidx+1][l]= 0; } }
-    //Rprintf("Debugging b=%d\n",b); //debug
     for (i=1; i<= *n; i++) {
       logpclus[1][i]+= log(eta[idxeta]);
       maxi= logpclus[1][i];

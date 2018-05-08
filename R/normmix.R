@@ -31,7 +31,8 @@ coef.mixturebf <- function(object,...) {
         k= as.integer(sub('k=','',names(object@mcmc)[i]))
         if ((k>1) & (!is.null(object@mcmc[[i]]))) {
             sel= which(names(object@mcmc[[i]])=='cholSigmainv')
-            ans[[i]]= lapply(object@mcmc[[i]][-sel],colMeans)
+            sel2= which(names(object@mcmc[[i]])=='momiw.weight')
+            ans[[i]]= lapply(object@mcmc[[i]][-c(sel,sel2)],colMeans)
             cholSigmainv= object@mcmc[[i]][[sel]]
             ans[[i]]$Sigmainv= vector("list",k)
             for (j in 1:k) { ans[[i]]$Sigmainv[[j]]= Reduce("+",lapply(1:nrow(cholSigmainv),function(z) getSigmainv(j,p=object@p,cholSigmainv[z,])))/nrow(cholSigmainv) }
@@ -90,7 +91,7 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
     logprobempty= logpen= double(length(k))
     logbf.niw= double(length(k)-1)
-    if (returndraws) { mcmcout= vector("list",length(k)); names(mcmcout)= paste('k=',k,sep='') }
+    mcmcout= vector("list",length(k)); names(mcmcout)= paste('k=',k,sep='')
     for (i in length(k):2) {
         ak= lgamma(k[i]*q.niw) - lgamma(k[i]*q.niw-q.niw) + lgamma(n+k[i]*q.niw-q.niw) - lgamma(n+k[i]*q.niw)
         #Initialize clusters via MLE
@@ -109,7 +110,9 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
         #probone= ppOneEmpty(x=x,g=g,q=q,q.niw=q.niw,mcmcfit=mcmcout[[i]],logscale=TRUE,verbose=TRUE) #to debug only, can be ignored
         qdif= q-q.niw; constddir= lgamma(k[i]*q) - lgamma(k[i]*q.niw) + k[i]*(lgamma(q.niw)-lgamma(q))
         logpen.mcmc= mcmcfit$logpen - normctNMix(k=k[i],p=p) + constddir + qdif * rowSums(log(eta))
-        logpen[i]= max(logpen.mcmc) + log(mean(exp(logpen.mcmc-max(logpen.mcmc)))) #log MOM-IW penalty
+        mcmcout[[i]]$momiw.weight= exp(logpen.mcmc-max(logpen.mcmc))
+        logpen[i]= max(logpen.mcmc) + log(mean(mcmcout[[i]]$momiw.weight)) #log MOM-IW penalty
+        mcmcout[[i]]$momiw.weight= mcmcout[[i]]$momiw.weight / sum(mcmcout[[i]]$momiw.weight)
         #Bayes factors
         logbf.niw[i-1]= mcmcfit$logprobempty - ak
     }
@@ -127,7 +130,7 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     S1 = S0 + cov(x)*(n-1) + n/(1+n*g) * (matrix(xbar-mu0,ncol=1) %*% matrix(xbar-mu0,nrow=1))
     w = n/(n + 1/g)
     m1 = w * xbar + (1 - w) * mu0
-    postpars= list(mu1=m1, prec= n+1/g, nu1=nu1, S1=S1) 
+    postpars= list(mu1=m1, prec= n+1/g, nu1=nu1, S1=S1)
     #Return answer
     ans= new("mixturebf", postprob=ans, p=p, n=n, priorpars=list(mu0=mu0, g=g, nu0=nu0, S0=S0, q=q, q.niw=q.niw), postpars=postpars)
     if (returndraws) ans@mcmc= mcmcout

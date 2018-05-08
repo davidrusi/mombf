@@ -614,13 +614,22 @@ void sum_crossprod(double *x, int n, int p, bool lowertri, double *sumx, double 
 //Output
 // - S: a p x p matrix containing sums of squares (X-colMeans(X))' (X-colMeans(X))
 // - xbar: a p-vector containing colMeans(X)
+//
+//Note: if n==0, then xbar and S are set to 0
 void crossprod2sumsq(double **crossprodx, double *xsum, int n, int p, double **S, double *xbar, bool lowertri) {
   int j, jj;
-  for (j=1; j<=p; j++) {
-    xbar[j]= xsum[j] / ((double) n);
-    S[j][j]= crossprodx[j][j] - xbar[j] * xsum[j];
-    for (jj=j+1; jj<=p; jj++) {
-      S[j][jj]= crossprodx[j][jj] - xbar[j] * xsum[jj];
+  if (n>0) {
+    for (j=1; j<=p; j++) {
+      xbar[j]= xsum[j] / ((double) n);
+      S[j][j]= crossprodx[j][j] - xbar[j] * xsum[j];
+      for (jj=j+1; jj<=p; jj++) {
+        S[j][jj]= crossprodx[j][jj] - xbar[j] * xsum[jj];
+      }
+    }
+  } else {
+    for (j=1; j<=p; j++) {
+      xbar[j]= S[j][j]= 0;
+      for (jj=j+1; jj<=p; jj++) { S[j][jj]= 0; }
     }
   }
   if (lowertri) {
@@ -2691,8 +2700,8 @@ void mahaldist(double *x, int n, int p, double **cholA, bool squared, double *an
       ans[idx]= 0;
       for (l=1; l<=p; l++) { ans[idx] += pow(z[i][l] - z[j][l],2.0); }
       if (!squared) ans[idx]= sqrt(ans[idx]);
+      idx++;
     }
-    idx++;
   }
 
   free_dmatrix(z,1,n,1,p);

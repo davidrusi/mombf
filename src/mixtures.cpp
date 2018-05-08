@@ -3,7 +3,6 @@
 #include <R.h>
 #include <Rinternals.h>
 #include "cstat.h"
-//#include "do_mombf.h"
 #include "mixtures.h"
 
 

@@ -400,7 +400,7 @@ $\tilde{p}(\vartheta_k \mid y,M_k)$.
 
 The second result is the following simple connection between Bayes factors and empty-component posterior probabilities:
 $$
-\frac{\tilde{p}(y \mid M_{k-1})}{\tilde{p}(y \mid M_k)}
+\frac{\tilde{p}(y \mid M_{k-1})}{\tilde{p}(y \mid M_k)}=
 \frac{1}{k a_k} \sum_{j=1}^{k} P(n_j=0 \mid y,M_k)
 $$
 where $a_k=\Gamma(kq) \Gamma(n+kq-q) / (\Gamma(kq-q) \Gamma(n+kq))$

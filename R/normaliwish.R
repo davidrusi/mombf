@@ -137,7 +137,7 @@ setMethod("marginalNIW", signature("matrix","missing","missing","missing","missi
     } else {
         if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
         nupost= nu0+n
-        txc= t(x-colMeans(x)); S= txc %*% t(txc)
+        txc= t(x)-colMeans(x); S= txc %*% t(txc)
         m= matrix(colMeans(x)-mu0,ncol=1)
         Spost= S0 + S + n/(1+n*g) * (m %*% t(m))
         detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
@@ -193,3 +193,98 @@ setMethod("marginalNIW", signature("missing","list","list","numeric","missing"),
 }
 )
 
+
+
+######################################################################################
+## NORMAL-INVERSE WISHART ACROSS MULTIPLE CLUSTERS WITH COMMON COVARIANCE
+######################################################################################
+
+
+dpostNIWCommon <- function(mu,Sigma,x,z,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,logscale=FALSE) {
+#Posterior Normal-IW density
+#   x[i] | z[i]=k      ~ N(mu[k],Sigma)
+#   mu[k] | Sigma ~ N(mu0, g Sigma)
+#   Sigma^{-1} ~ IW(nu0, S0)
+# Input
+# - mu: list with cluster means (length equal to number of distinct elements in z)
+# - x: n x p data matrix
+# - z: cluster allocations
+# - g: prior dispersion parameter in the prior for mu
+# - mu0: prior mean in the prior for mu
+# - nu0: prior degrees of freedom for Sigma
+# - S0: prior scale matrix for Sigma, by default set to I/nu0
+# - logscale: set to TRUE to get the log-posterior density
+# Output: Normal-IW posterior density evaluated at (mu,Sigma)
+    if (!is.matrix(x)) stop("x must be a matrix")
+    n= nrow(x); p= ncol(x)
+    if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
+    cluslabels= unique(z)
+    if (length(cluslabels) != length(mu)) stop('mu must be a list with length equal to length(unique(z))')
+    cluslabels= cluslabels[order(cluslabels)]
+    if (!is.null(names(mu))) {
+        if (any(cluslabels %in% names(mu))) stop("names(mu) must coindice with unique(z)")
+        mu= mu[cluslabels]
+    }
+    xbar= vector("list",length(cluslabels))
+    zcount= integer(length(cluslabels))
+    S1= S0
+    ans= 0
+    for (i in 1:length(cluslabels)) {
+        sel= (z==cluslabels[i])
+        xbar[[i]]= colMeans(x[sel,,drop=FALSE])
+        zcount[i]=sum(sel)
+        dm= matrix(xbar[[i]]-mu0,ncol=1)
+        txc= t(x[sel,,drop=FALSE])-xbar[[i]]
+        S1= S1 + (txc %*% t(txc)) + zcount[i]/(1+zcount[i]*g) * (dm %*% t(dm))
+        w= zcount[i]/(zcount[i]+1/g)
+        m1= w * xbar[[i]] + (1-w) * mu0
+        ans= ans + dmvnorm(mu[[i]],m1,Sigma/(zcount[i]+1/g),log=TRUE)
+    }
+    nu1= nu0+n
+    ans= ans + diwish(Sigma,nu=nu1,S=S1,logscale=TRUE)
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+
+
+marginalNIWCommon <- function(x, z, g,  mu0=rep(0,ncol(x)), nu0=ncol(x)+4, S0,logscale=TRUE) {
+#Integrated likelihood for common covariances model given cluster allocations z
+#   x[i] | z[i]=k      ~ N(mu[k],Sigma)
+#   mu[k] | Sigma ~ N(mu0, g Sigma)
+#   Sigma ~ IW(nu0, S0)
+#
+# Input
+# - x: n x p data matrix
+# - g: prior dispersion parameter in the prior for mu
+# - mu0: prior mean in the prior for mu
+# - nu0: prior degrees of freedom for Sigma^{-1}
+# - S0: prior scale matrix for Sigma^{-1}, by default set to I/nu0
+# - logscale: set to TRUE to get the log-integrated likelihood
+    if (!is.matrix(x)) stop("x must be a matrix")
+    n= nrow(x); p= ncol(x)
+    if (n==0) {
+        ans= 0
+    } else {
+        if (missing(S0)) { if (p==1) { S0= matrix(1/nu0) } else { S0= diag(p)/nu0 } }
+        nupost= nu0+n
+        cluslabels= unique(z)
+        cluslabels= cluslabels[order(cluslabels)]
+        xbar= vector("list",length(cluslabels))
+        zcount= integer(length(cluslabels))
+        Spost= S0
+        for (i in 1:length(cluslabels)) {
+            sel= (z==cluslabels[i])
+            xbar[[i]]= colMeans(x[sel,,drop=FALSE])
+            zcount[i]=sum(sel)
+            m= matrix(xbar[[i]]-mu0,ncol=1)
+            txc= t(x[sel,,drop=FALSE])-xbar[[i]]
+            Spost= Spost + (txc %*% t(txc)) + zcount[i]/(1+zcount[i]*g) * (m %*% t(m))
+         }
+         detS0= as.numeric(determinant(S0,logarithm=TRUE)$modulus)
+         detSpost= as.numeric(determinant(Spost,logarithm=TRUE)$modulus)
+         ans= -.5*n*p*log(pi) + lmgamma(p,.5*nupost) - lmgamma(p,.5*nu0) + .5*nu0*detS0 - .5*nupost*detSpost - 0.5*p*sum(log(1+zcount*g))
+    }
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+)

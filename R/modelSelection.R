@@ -212,7 +212,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
           maxvars=25
       }
       if (maxvars>=ncol(x)) {
-          models= expand.grid(lapply(1:nvars), function(z) c(FALSE,TRUE))
+          models= expand.grid(lapply(1:nvars, function(z) c(FALSE,TRUE)))
           if (any(includevars)) {
               newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
               newmodels[,includevars==0] <- as.matrix(models)

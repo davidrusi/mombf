@@ -206,28 +206,33 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 
     #Model enumeration
     if (verbose) cat("Enumerating models...\n")
-    if (maxvars>=ncol(x)) {
-      models= expand.grid(lapply(1:ifelse(familyint==0,ncol(x)+2-sum(includevars),ncol(x)-sum(includevars)), function(z) c(FALSE,TRUE)))
-      if (any(includevars)) {
-          newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
-          newmodels[,includevars==0] <- as.matrix(models)
-          newmodels[,includevars==1] <- 1
-          models <- newmodels
+      nvars= ifelse(familyint==0,ncol(x)+2-sum(includevars),ncol(x)-sum(includevars))
+      if (nvars>25) {
+          cat("Cannot enumerate all models, setting maxvars=25\n")
+          maxvars=25
       }
-      nmodels= as.integer(nrow(models))
-    } else {
-      if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
-      nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(x)-sum(includevars),z))))
-      idx <- rep(FALSE,ncol(x))
-      models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(x),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
-      if (any(includevars)) {
-          newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
-          newmodels[,includevars==0] <- as.matrix(models)
-          newmodels[,includevars==1] <- 1
-          models <- newmodels
-      }
-      if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
-    }
+      if (maxvars>=ncol(x)) {
+          models= expand.grid(lapply(1:nvars), function(z) c(FALSE,TRUE))
+          if (any(includevars)) {
+              newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
+              newmodels[,includevars==0] <- as.matrix(models)
+              newmodels[,includevars==1] <- 1
+              models <- newmodels
+          }
+          nmodels= as.integer(nrow(models))
+      } else {
+          if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
+          nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(x)-sum(includevars),z))))
+          idx <- rep(FALSE,ncol(x))
+          models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(x),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
+          if (any(includevars)) {
+              newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
+              newmodels[,includevars==0] <- as.matrix(models)
+              newmodels[,includevars==1] <- 1
+              models <- newmodels
+          }
+          if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
+        }
     models= as.integer(unlist(models))
     ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]

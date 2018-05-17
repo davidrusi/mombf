@@ -287,4 +287,4 @@ marginalNIWCommon <- function(x, z, g,  mu0=rep(0,ncol(x)), nu0=ncol(x)+4, S0,lo
     if (!logscale) ans= exp(ans)
     return(ans)
 }
-)
+

@@ -5,7 +5,7 @@
 ##########################################################################################
 
 
-postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100) {
+postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),priorVar=igprior(0.01,0.01), bma=FALSE, includeModels, maxvars=100) {
     #Find posterior mode for linear regression under orthogonal X'X
     # - y: outcome
     # - x: predictors
@@ -13,6 +13,7 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     # - priorDelta: prior on model space
     # - priorVar: prior on residual variance
     # - bma: set to TRUE to obtain Bayesian model averaging parameter estimates
+    # - includeModels: list of models that should always be included when computing posterior model probabilities. Each element should be a vector z where x[,z] selects the required variables
     # - integrateMethod: if exactpp=TRUE this is the numerical integration method to obtain logpy. Set to 'CSR' to compound Simpson's rule based on an adaptive grid defined by enumerating highly probable models, to 'AQ' to use adaptive quadrature as implemented in R function 'integrate'
     # - maxvars: the search is restricted to models with up to maxvars variables (note: posterior model prob and BMA are valid regardless of maxvars)
     # Output
@@ -28,8 +29,15 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
         priorModel <- function(nvar) lbeta(nvar + alpha, p - nvar + beta) - lbeta(alpha, beta)
         rho <- alpha/(alpha+beta)
     } else if (priorDelta@priorDistr=='uniform') {
-        rho <- 0.5
-        priorModel <- function(nvar) return(-p*log(2))
+        priorModel <- function(nvar) -p*log(2)
+        rho <- 1/2
+    } else if (priorDelta@priorDistr=='complexity') {
+        priorc= priorDelta@priorPars['c']
+        priornorm= log(1-1/p^(priorc*(p+1))) - log(1-1/p^priorc)
+        priorModel <- function(nvar) lbeta(nvar + 1, p - nvar + 1) - (priorc*nvar)*log(p) - priornorm
+        lseq= 1:(p+1)
+        rho= sapply(lseq, function(l) -(priorc*l)*log(p) + lchoose(p-1,l-1) - lchoose(p,l) - priornorm )
+        rho= sum(exp(rho[!is.nan(rho)]))
     } else { stop("Prior on model space not recognized. Use modelbbprior(), modelunifprior() or modelbinomprior()") }
     if (priorCoef@priorDistr == 'zellner') {
         g <- as.double(priorCoef@priorPars['tau'])
@@ -58,13 +66,36 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     o <- order(u,decreasing=TRUE)
     uord <- u[o]
     cumsumu <- cumsum(uord)
-    gamma <- rep(FALSE,ncol(x))
+    #gamma <- rep(FALSE,ncol(x))
     modelid <- character(length(o)+1)
     modelusum <- c(0,cumsumu)
     iseq <- 0:length(o)
     lpos <- sumy2 - shrinkage * c(0,cumsumu)
     pp <- priorModel(iseq) - 0.5*iseq*log(1+g) - 0.5*apos * log(lpos)
-    for (i in 1:length(o)) { modelid[i+1] <- paste(o[1:i],collapse=',') }
+    for (i in 1:length(o)) { modelid[i+1] <- paste((o[1:i])[order(o[1:i])],collapse=',') }
+    #Compute lpos, modelid, modelusum for includeModels
+    if (!missing(includeModels)) {
+        iextra= modelusumextra= double(length(includeModels))
+        modelidextra= character(length(includeModels))
+        for (i in 1:length(includeModels)) {
+            if (is.numeric(includeModels[[i]])) {
+                modelidextra[i]= paste(includeModels[[i]][order(includeModels[[i]])],collapse=',')
+                iextra[i]= length(includeModels[[i]])
+            } else if (is.logical(includeModels[[i]])) {
+                modelidextra[i]= paste(which(includeModels[[i]]),collapse=',')
+                iextra[i]= sum(includeModels[[i]])
+            } else { stop("includeModels must be a list, each element either a logical or numeric vector indicating the variables to be included") }
+            modelusumextra[i]= sum(u[includeModels[[i]]])
+        }
+        sel= !(modelidextra %in% modelid)
+        if (any(sel)) {
+            modelid= c(modelid,modelidextra[sel])
+            modelusum= c(modelusum,modelusumextra[sel])
+            lposextra= sumy2 - shrinkage * modelusumextra[sel]
+            lpos= c(lpos, lposextra)
+            pp= c(pp, priorModel(iextra[sel]) - 0.5*iextra[sel]*log(1+g) - 0.5*apos * log(lposextra[sel]))
+        }
+    }
     maxpp <- max(pp)
     variableids <- strsplit(as.character(modelid),split=',')
     nvars <- sapply(variableids,length)
@@ -99,7 +130,7 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
                           }
                       }
                       idx <- idx[1:min(length(idx),ifelse(maxmodels>=log(6),5,exp(maxmodels)-1))]  #if <5 extra models available, just take those
-                      modelidextra[[i]] <- sapply(idx,function(z) paste(o[z],collapse=','))
+                      modelidextra[[i]] <- sapply(idx,function(z) paste(o[z][order(o[z])],collapse=','))
                       modelusumextra[[i]] <- sapply(idx, function(z) sum(uord[z]))
                       lposextra <- sumy2 - shrinkage * modelusumextra[[i]]
                       phiseqextra[[i]] <- .5* lposextra / (.5*apos + 1)
@@ -169,8 +200,15 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
       modelidx <- sapply(strsplit(modelid,split=','),as.numeric)
       nvars <- sapply(modelidx,length)
       if (priorCoef@priorDistr=='zellner') {
-          pp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
-          pp <- exp(pp)
+          #Old version. It was numerically unstable
+          #pp <- priorModel(nvars) - 0.5*nvars*log(g+1) - logpy + lgamma(0.5*apos) - 0.5*apos * log((sumy2 - shrinkage * modelusum)/2)
+          #pp <- exp(pp)
+          pp <- double(length(modelid))
+          w <- phi[,2]/sum(phi[,2])
+          for (i in 1:length(modelid)) {
+              ppcond <- sapply(phi[,1],jointppZellnerKnownOrtho,sel=modelidx[[i]],u=u,g=g,shrinkage=shrinkage,rho=rho,logscale=FALSE)
+              pp[i] <- sum(ppcond * w)
+          }
       } else {
           pp <- double(length(modelid))
           w <- phi[,2]/sum(phi[,2])
@@ -837,6 +875,27 @@ margppMomKnownOrtho <- function(phi,u,g,shrinkage=g/(1+g),rho,logscale=TRUE) {
 # - u: u-scores for all variables (i.e. u[sel] selects those for active variables)
 # - g, shrinkage, rho, logscale: as in margppMomKnown
 #Output: posterior probability of the model conditional on phi
+jointppZellnerKnownOrtho <- function(phi,sel,u,g,shrinkage=g/(1+g),rho,logscale=TRUE) {
+    uu <- shrinkage*u/phi
+    odds01 <- sqrt(1+g) * exp(-.5 * uu) * (1-rho)/rho
+    if (length(sel)>0 & length(sel)<length(u)) {
+        ans <- -sum(log(1+odds01[sel])) -sum(log(1+1/odds01[-sel]))
+    } else if (length(sel)==0) {
+        ans <- -sum(log(1+1/odds01))
+    } else {
+        ans <- -sum(log(1+odds01))
+    }
+    if (!logscale) ans <- exp(ans)
+    return(ans)
+}
+
+#Joint model probability conditional on a single phi value
+#Input
+# - phi: single value for residual variance
+# - sel: model indicator, i.e. vector indicating indexes of active variables under current model
+# - u: u-scores for all variables (i.e. u[sel] selects those for active variables)
+# - g, shrinkage, rho, logscale: as in margppMomKnown
+#Output: posterior probability of the model conditional on phi
 jointppMomKnownOrtho <- function(phi,sel,u,g,shrinkage=g/(1+g),rho,logscale=TRUE) {
     uu <- shrinkage*u/phi
     odds01 <- (1+g)^(1.5) * exp(-.5 * uu) * (1-rho)/(rho * (1+uu))
@@ -854,17 +913,16 @@ jointppMomKnownOrtho <- function(phi,sel,u,g,shrinkage=g/(1+g),rho,logscale=TRUE
 
 #Evaluate quantity proportional to joint of (phi,y) on a grid
 jointPhiyZellnerOrtho <- function(phiseq, sumy2, apos, shrinkage, u, g, rho, logscale=TRUE) {
-    #Old code: ok but gave overflow
-    #fseqnew <- do.call(cbind,lapply(phiseq, function(phi) exp(0.5 * shrinkage * u / phi)))
-    #ans <- -0.5*sumy2/phiseq - (.5*apos+1)*log(phiseq) + colSums(log(1 + rho*(fseqnew/sqrt(1+g) -1)))
-    #ans <- -0.5*sumy2/phiseq - (.5*apos+1)*log(phiseq) + colSums(log(1-rho + rho*fseqnew/sqrt(1+g)))
-    #New code
-    ans <- double(length(phiseq))
-    ct <- -0.5*sumy2/length(u)
-    for (i in 1:length(phiseq)) {
-        fseqnew <- exp((ct + 0.5 * shrinkage * u) / phiseq[i])
-        ans[i] <- -(.5*apos+1)*log(phiseq[i]) + sum(log((1-rho)*exp(ct/phiseq[i]) + rho*fseqnew/sqrt(1+g)))
-    }
+    #Code version 1
+    fseqnew <- do.call(cbind,lapply(phiseq, function(phi) exp(0.5 * shrinkage * u / phi)))
+    ans <- -0.5*sumy2/phiseq - (.5*apos+1)*log(phiseq) + colSums(log(1 + rho*(fseqnew/sqrt(1+g) -1)))
+    #Code version 2. Smarter algebra but often causes overflow
+    #ans <- double(length(phiseq))
+    #ct <- -0.5*sumy2/length(u)
+    #for (i in 1:length(phiseq)) {
+    #    fseqnew <- exp((ct + 0.5 * shrinkage * u) / phiseq[i])
+    #    ans[i] <- -(.5*apos+1)*log(phiseq[i]) + sum(log((1-rho)*exp(ct/phiseq[i]) + rho*fseqnew/sqrt(1+g)))
+    #}
     ans[is.infinite(ans)] <- -Inf  #avoid numerical overflow
     if (!logscale) ans <- exp(ans)
     return(ans)

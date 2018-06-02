@@ -67,7 +67,7 @@ struct marginalPars {
   double *taualpha; //dispersion parameter in prior for asymmetry parameter in two-piece Normal or two-piece Laplace residuals
   double *fixatanhalpha; //fixed value for asymmetry parameter (usedful for quantile regression at fixed quantile levels)
   int *r;           //MOM power parameter for prior on coefficients
-  double *prDeltap; //For Binomial prior on model space, prDeltap is the prob of success
+  double *prDeltap; //For Binomial prior on model space, prDeltap is the prob of success. For complexity prior, the power parameter in the exponential
   double *parprDeltap; //For Beta-Binomial prior on model space, parprDeltap[0],parprDeltap[1] are the prior parameters
   int *logscale;
   double *offset;
@@ -171,6 +171,10 @@ double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 double betabinPrior(int *sel, int *nsel, struct marginalPars *pars);
 double betabinPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
+
+double complexityPrior(int *sel, int *nsel, struct marginalPars *pars);
+double complexityPriorTP(int *sel, int *nsel, struct marginalPars *pars);
+double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 
 
 //*************************************************************************************

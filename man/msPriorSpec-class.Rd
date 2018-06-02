@@ -10,6 +10,7 @@
 \alias{modelunifprior}
 \alias{modelbinomprior}
 \alias{modelbbprior}
+\alias{modelcomplexprior}
 \alias{igprior}
 
 \title{Class "msPriorSpec"}
@@ -28,6 +29,7 @@ zellnerprior(tau, tau.adj=10^6)
 modelunifprior()
 modelbinomprior(p=0.5)
 modelbbprior(alpha.p=1, beta.p=1)
+modelcomplexprior(c=1)
 
 igprior(alpha=.01, lambda=.01)
 }
@@ -37,7 +39,10 @@ igprior(alpha=.01, lambda=.01)
   \item{r}{MOM prior parameter is \code{2*r}}
   \item{p}{Prior inclusion probability for binomial prior on model space}
   \item{alpha.p}{Beta-binomial prior on model space has parameters alpha.p, beta.p}
-  \item{beta.p}{Beta-binomial prior on model space has parameters alpha.p, beta.p}
+  \item{beta.p}{Beta-binomial prior on model space has parameters
+    alpha.p, beta.p}
+  \item{c}{Under the Complexity prior the prior
+    probability of having k variables in the model is proportional to \code{1/p^(ck)}}
   \item{alpha}{Inverse gamma prior has parameters alpha/2, lambda/2}
   \item{lambda}{Inverse gamma prior has parameters alpha/2, lambda/2}
 }
@@ -48,7 +53,7 @@ Objects can be created by calls of the form \code{new("msPriorSpec",
 For priors on regression coefficients use \code{momprior},
 \code{imomprior} or \code{emomprior}.
 For prior on model space \code{modelunifprior}, \code{modelbinomprior}
-or \code{modelbbprior}.
+\code{modelbbprior}, or \code{modelcomplexprior}.
 For prior on residual variance use \code{igprior}.
 }
 \section{Slots}{
@@ -65,10 +70,15 @@ If \code{priorType=="coefficients"}, \code{priorDistr} can be equal to
 "pMOM", "piMOM", "peMOM" or "zellner"
 (product moment, product inverse moment, product exponential moment or Zellner prior, respectively).
 If \code{priorType=="modelIndicator"}, \code{priorDistr} can be equal to "uniform" or "binomial"
-to specify a uniform prior (all models equaly likely a priori) or a binomial prior. For a binomial prior,
+to specify a uniform prior (all models equaly likely a priori) or a
+binomial prior, or to "complexity" for the Complexity prior of Castillo
+et al 2015. For a binomial prior,
 the prior inclusion probability for any single variable must be
 specified in slot \code{priorPars['p']}. For a beta-binomial prior, the
-Beta hyper-prior parameters must be in \code{priorPars['alpha.p']} and \code{priorPars['beta.p']}.
+Beta hyper-prior parameters must be in \code{priorPars['alpha.p']} and
+\code{priorPars['beta.p']}.
+For the Complexity prior, the prior parameter must be in the slot
+\code{priorPars['c']}.
 If \code{priorType=="nuisancePars"}, \code{priorDistr} must be equal to "invgamma". This corresponds to an
 inverse gamma distribution for the residual variance, with parameters
 specified in the slot \code{priorPars}.}
@@ -92,6 +102,17 @@ is an inverse gamma with parameteres \code{.5*alpha} and \code{.5*lambda}.
 }
 \section{Methods}{
 No methods defined with class "msPriorSpec" in the signature.
+}
+\details{
+Under the uniform prior, the prior probability of any model is
+proportional to 1 / number of models.
+
+Under the Binomial, Beta-Binomial and Complexity priors a model with k
+out of K active variables has prior probability
+P(Z=k) / (K choose k), where
+where Z ~ Binomial(K,p),
+Z ~ BetaBinomial(K,alpha.p,beta.p)
+or for the Complexity prior P(Z=k) proportional to \code{1/K^(c*k)}.
 }
 \references{
 Johnson VE, Rossell D. Non-Local Prior Densities for Default Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B, 2010, 72, 143-170

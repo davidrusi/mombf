@@ -4878,6 +4878,25 @@ double bbPrior(int k,
 }
 
 
+/*
+ * Complexity prior probability for a model including
+ * k out of p variables.
+ */
+double complexPrior(int k,
+               int p,
+               double priorc,
+               int logscale)
+{
+  double priornorm, ans;
+
+    //assert((logscale == 0) || (logscale == 1));
+  priornorm= log(1.0 - 1.0/pow((double) p, priorc * ((double) p +1.0))) - log(1.0 - 1.0/pow((double) p, priorc));
+  ans= lnbeta(1.0 + (double) k, 1.0 + (double) (p - k)) - (priorc* (double) k) * log((double) p) - priornorm;
+
+  return (logscale == 1) ? ans : exp(ans);
+}
+
+
 /* Draw from univariate Normal(mu,s^2) */
 double rnormC(double mu,
               double s)

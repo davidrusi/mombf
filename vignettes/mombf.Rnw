@@ -452,7 +452,10 @@ which targets the detection of standardized effect sizes above 0.2.
 Regarding the model space we use a Beta-binomial(1,1) prior \citep{scott:2010}.
 Finally, for the residual variance we set a minimally informative inverse gamma prior.
 For defining other prior distributions see the help for \texttt{msPriorSpec}
-({\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} can be used to define MOM, eMOM and Zellner priors, respectively).
+{\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} define MOM, eMOM and Zellner priors,
+and \texttt{modelunifprior}, \texttt{modelcomplexprior} set uniform and complexity priors on the model space
+(the latter as defined in \cite{castillo:2015}).
+
 
 \footnotesize
 <<varsel2>>=

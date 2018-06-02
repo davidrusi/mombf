@@ -87,7 +87,8 @@ valid_msPriorSpec <- function(object) {
            },
            modelIndicator = {
                valid_ind_prior_distrs <- c("uniform",
-                                           "binomial")
+                                           "binomial",
+                                           "complexity")
                found <- object@priorDistr %in% valid_ind_prior_distrs
                if (!found) {
                    msg <- c(msg,
@@ -100,7 +101,7 @@ valid_msPriorSpec <- function(object) {
                                         "alpha.p",
                                         "beta.p")
                    found <- has_either_or(reqd_prior_pars[1],
-                                          reqd_prior_pars[-1], 
+                                          reqd_prior_pars[-1],
                                           names(object@priorPars))
                    if (!found) {
                        msg <- c(msg,
@@ -111,6 +112,15 @@ valid_msPriorSpec <- function(object) {
                                               collapse=" and "),
                                         sQuote("binomial")))
                    }
+               } else if (object@priorDistr == "complexity") {
+                   reqd_prior_pars <- "c"
+                   found <- reqd_prior_pars %in% names(object@priorPars)
+                   if (!found) {
+                       msg <- c(msg,
+                                sprintf("slot %s must be vector with names element %s",
+                                        sQuote("priorPars"),
+                                        dQuote(reqd_prior_pars[1])))
+                   }
                }
            },
            nuisancePars = {
@@ -119,7 +129,7 @@ valid_msPriorSpec <- function(object) {
                if (!found) {
                  msg <- c(msg,
                           sprintf("slot %s must be %s",
-                                  sQuote("priorDistr"), 
+                                  sQuote("priorDistr"),
                                   dQuote(valid_nuisance_prior_distrs)))
                }
                reqd_prior_pars <- c("alpha",
@@ -129,7 +139,7 @@ valid_msPriorSpec <- function(object) {
                    msg <- c(msg,
                             sprintf("slot %s must contain named elements %s",
                                     sQuote("priorPars"),
-                                    paste(dQuote(reqd_prior_pars), 
+                                    paste(dQuote(reqd_prior_pars),
                                           collapse=", ")))
                }
            })
@@ -200,6 +210,10 @@ modelbinomprior <- function(p=0.5) {
 
 modelbbprior <- function(alpha.p=1, beta.p=1) {
     new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(alpha.p=alpha.p,beta.p=beta.p))
+}
+
+modelcomplexprior <- function(c=1) {
+    new("msPriorSpec",priorType='modelIndicator',priorDistr='complexity',priorPars=c(c=c))
 }
 
 

@@ -86,9 +86,9 @@ pt2margFun set_priorFunction(int *prDelta, int *family) {
   // - prDelta: 0 for uniform, 1 for binomial, 2 for beta-binomial
   pt2margFun ans=NULL;
   if (*family != 0) {
-    if (*prDelta==0) { ans= unifPrior; } else if (*prDelta==1) { ans= binomPrior; } else if (*prDelta==2) { ans= betabinPrior; }
+    if (*prDelta==0) { ans= unifPrior; } else if (*prDelta==1) { ans= binomPrior; } else if (*prDelta==2) { ans= betabinPrior; } else if (*prDelta==3) { ans= complexityPrior; }
   } else {
-    if (*prDelta==0) { ans= unifPriorTP; } else if (*prDelta==1) { ans= binomPriorTP; } else if (*prDelta==2) { ans= betabinPriorTP; }
+    if (*prDelta==0) { ans= unifPriorTP; } else if (*prDelta==1) { ans= binomPriorTP; } else if (*prDelta==2) { ans= betabinPriorTP; } else if (*prDelta==3) { ans= complexityPrior; }
   }
   return ans;
 }
@@ -97,7 +97,7 @@ pt2modavgPrior set_priorFunction_modavg(int *priorModel) {
   //Returns pointer to function to compute the prior probability of a model indicator
   // - priorModel: 0 for uniform, 1 for binomial, 2 for beta-binomial
   pt2modavgPrior ans=NULL;
-  if (*priorModel==0) { ans= unifPrior_modavg; } else if (*priorModel==1) { ans= binomPrior_modavg; } else if (*priorModel==2) { ans= betabinPrior_modavg; }
+  if (*priorModel==0) { ans= unifPrior_modavg; } else if (*priorModel==1) { ans= binomPrior_modavg; } else if (*priorModel==2) { ans= betabinPrior_modavg; } else if (*priorModel==3) { ans= complexityPrior_modavg; }
   return ans;
 }
 
@@ -1039,16 +1039,27 @@ double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
 
 //nsel ~ Beta-Binomial(prModelpar[0],prModelPar[1])
 double betabinPrior(int *sel, int *nsel, struct marginalPars *pars) {
-  return bbPrior(*nsel,*(*pars).p,(*pars).parprDeltap[0],(*pars).parprDeltap[1],1);
+  return bbPrior(*nsel, *(*pars).p, (*pars).parprDeltap[0], (*pars).parprDeltap[1],1);
 }
 
 double betabinPriorTP(int *sel, int *nsel, struct marginalPars *pars) {
-  return bbPrior(*nsel -1,*(*pars).p,(*pars).parprDeltap[0],(*pars).parprDeltap[1],1) - 2.0*log(2.0);
+  return bbPrior(*nsel -1, *(*pars).p, (*pars).parprDeltap[0], (*pars).parprDeltap[1], 1) - 2.0*log(2.0);
 }
-
 
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
   return bbPrior(*nsel,*(*pars).p1,(*pars).prModelpar[0],(*pars).prModelpar[1],1);
+}
+
+double complexityPrior(int *sel, int *nsel, struct marginalPars *pars) {
+  return complexPrior(*nsel,*(*pars).p,(*pars).prDeltap[0],1);
+}
+
+double complexityPriorTP(int *sel, int *nsel, struct marginalPars *pars) {
+  return complexPrior(*nsel -1,*(*pars).p,(*pars).prDeltap[0],1) - 2.0*log(2.0);
+}
+
+double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
+  return complexPrior(*nsel,*(*pars).p1,(*pars).prModelpar[0],1);
 }
 
 
@@ -3443,7 +3454,9 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
       } else if (*(*pars).method ==2) {  //Plug-in
 
-        ans= rsumlogsq(m,(*pars).r,nsel);
+        //ans= rsumlogsq(m,(*pars).r,nsel); //old version
+	term1= ss / ((double) (nu-2)); // (ss/nu) * nu / (nu-2)
+        for (i=1, ans=0; i<=(*nsel); i++) { ans+= log(pow(m[i],2.0) + Sinv[i][i] * term1); }
 
       } else if ((*(*pars).method == -1) & ((*nsel)<=10)) { //Exact
 

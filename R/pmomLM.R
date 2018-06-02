@@ -21,7 +21,7 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
   } else {
     p2 <- as.integer(0); xadj <- double(1)
   }
-  
+
   #Format arguments for .Call
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning)
   isbinary <- as.integer(0); ybinary <- integer(0)
@@ -38,7 +38,7 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
     stop("When calling pmomLM priorCoef@priorDistr must be equal to 'pMOM'")
   }
 
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda']) 
+  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
   if (priorDelta@priorDistr=='uniform') {
     priorModel <- as.integer(0)
     prModelpar <- as.double(0)
@@ -51,6 +51,11 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
       priorModel <- as.integer(2)
       prModelpar <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])
     }
+  } else if (priorDelta@priorDistr=='complexity') {
+      prDelta <- as.integer(3)
+      prDeltap <- as.double(priorDelta@priorPars['c'])
+      if (prDeltap<0) stop("c must be >0 for priorDelta@priorDistr=='complexity'")
+      parprDeltap <- double(2)
   } else {
     stop('Prior specified in priorDelta not recognized')
   }
@@ -61,11 +66,11 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
   } else {
     S2 <- cholS2 <- S2inv <- cholS2inv <- double(1)
   }
-  
+
   #Initialize
   if (initSearch=='greedy') {
     niterGreed <- as.integer(100)
-    msfit <- modelSelection(y=y,x=x,center=center,scale=scale,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE) 
+    msfit <- modelSelection(y=y,x=x,center=center,scale=scale,niter=1,priorCoef=priorCoef,priorDelta=priorDelta,priorVar=priorVar,initSearch="greedy",method='Laplace',verbose=FALSE)
     ndeltaini <- as.integer(sum(msfit$postMode)); deltaini <- as.integer(msfit$postMode)
   } else if (initSearch=='SCAD') {
     #require(ncvreg)
@@ -83,12 +88,12 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
     if (ndeltaini>0) {
       lmini <- lm(y ~ -1 + x[,deltaini==1] + xadj)
       iniCoef1[deltaini==1] <- coef(lmini)[1:ndeltaini];
-      iniCoef2 <- coef(lmini)[-1:-ndeltaini]  
+      iniCoef2 <- coef(lmini)[-1:-ndeltaini]
     } else { lmini <- lm(y ~ -1+xadj); iniCoef2 <- coef(lmini) }
     iniCoef1 <- as.double(iniCoef1)
     iniPhi <- as.double(summary(lmini)$sigma^2)
   } else {
-    lmini <- lm(y ~ -1+xadj); iniCoef2 <- coef(lmini) 
+    lmini <- lm(y ~ -1+xadj); iniCoef2 <- coef(lmini)
     iniCoef1 <- as.double(rep(0,p1))
     iniPhi <- as.double(summary(lmini)$sigma^2)
   }
@@ -158,7 +163,7 @@ if (initSearch=='none') {
 ndeltaini <- sum(postDelta[1,])
 if (((ndeltaini+p2)<n) & (p2>0)) {
   if (ndeltaini>0) {
-    lmini <- lm(y ~ -1 + x[,postDelta[1,]] + xadj) 
+    lmini <- lm(y ~ -1 + x[,postDelta[1,]] + xadj)
     postTheta1[1,postDelta[1,]] <- coef(lmini)[1:ndeltaini]
     postTheta2[1,] <- coef(lmini)[-1:-ndeltaini]
   } else { lmini <- lm(y ~ -1 + xadj); postTheta1[1,] <- rep(0,p1); postTheta2[1,] <- coef(lmini) }

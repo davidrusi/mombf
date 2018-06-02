@@ -21,7 +21,7 @@ priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
 
 postModeBlockDiag(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
 priorDelta=modelbinomprior(p=1/ncol(x)),priorVar=igprior(0.01,0.01), bma=FALSE,
-maxvars=100, momcoef)
+includeModels, maxvars=100, momcoef)
 
 }
 \arguments{
@@ -37,13 +37,20 @@ maxvars=100, momcoef)
     with \code{momprior}, \code{imomprior}, \code{emomprior} or \code{zellnerprior}.}
 
    \item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior,
-   \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p},
+   \code{modelbinomprior(p)} for Binomial prior with prior inclusion
+   probability \code{p},
+   \code{modelcomplexprior} for Complexity prior,
    or \code{modelunifprior()} for Uniform prior}
 
    \item{priorVar}{Inverse gamma prior on residual variance, created with \code{igprior()}}
 
    \item{bma}{Set to TRUE to obtain marginal inclusion probabilities and
-   Bayesian model averaging parameter estimates for each column of x.}
+     Bayesian model averaging parameter estimates for each column of x.}
+
+   \item{includeModels}{Models that should always be included when
+   computing posterior model probabilities. It must be a list, each
+   element in the list corresponds to a model and must be a logical or
+   numeric vector indicating the variables in that model}
 
    \item{maxvars}{The search for the HPM is restricted to models with up to maxvars variables
    (note: posterior model probabilities and BMA are valid regardless of maxvars)}

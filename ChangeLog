@@ -1,3 +1,8 @@
+CHANGES IN VERSION 2.1.2
+- Added complexity prior to modelSelection and bms_ortho
+- Added option includeModels to postModeOrtho.
+- Fixed bug in postModeOrtho under Zellner's prior that caused it to return wrong posterior model probabilities
+
 CHANGES IN VERSION 2.1.1
 - Fixed R_registerRoutines and R_useDynamicSymbols NOTE when running R CMD check
 

@@ -62,7 +62,11 @@ not performed for these variables}
   Prior dispersion is on coefficients/sqrt(scale) for Normal and
   two-piece Normal, and on coefficients/sqrt(2*scale) for Laplace
   and two-piece Laplace.}
-\item{priorDelta}{Prior on model space. Use \code{modelbbprior()} for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial prior with prior inclusion probability \code{p}, or \code{modelunifprior()} for Uniform prior}
+\item{priorDelta}{Prior on model space. Use \code{modelbbprior()}
+  for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial
+  prior with prior inclusion probability \code{p},
+  \code{modelcomplexprior} for Complexity prior,
+  or \code{modelunifprior()} for Uniform prior}
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
   \code{igprior(). For Normal variance=scale, for Laplace
     variance=2*scale.}}

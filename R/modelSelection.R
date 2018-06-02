@@ -169,6 +169,11 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
       prDeltap <- as.double(.5)
       parprDeltap <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])
     }
+  } else if (priorDelta@priorDistr=='complexity') {
+      prDelta <- as.integer(3)
+      prDeltap <- as.double(priorDelta@priorPars['c'])
+      if (prDeltap<0) stop("c must be >0 for priorDelta@priorDistr=='complexity'")
+      parprDeltap <- double(2)
   } else {
     stop('Prior specified in priorDelta not recognized')
   }

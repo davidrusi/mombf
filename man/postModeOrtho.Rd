@@ -17,11 +17,11 @@
 }
 \usage{
 postModeOrtho(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(1,1),
-priorVar=igprior(0.01,0.01), bma=FALSE, maxvars=100)
+priorVar=igprior(0.01,0.01), bma=FALSE, includeModels, maxvars=100)
 
 postModeBlockDiag(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
 priorDelta=modelbinomprior(p=1/ncol(x)),priorVar=igprior(0.01,0.01), bma=FALSE,
-includeModels, maxvars=100, momcoef)
+maxvars=100, momcoef)
 
 }
 \arguments{

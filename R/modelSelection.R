@@ -93,6 +93,8 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
   ct <- (colMeans(x^2)-colMeans(x)^2)==0
+  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  if (any(is.na(ct))) stop('x contains NAs, this is currently not supported, please remove the NAs')
   y <- scale(y,center=center,scale=scale); x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   p <- ncol(x); n <- length(y)

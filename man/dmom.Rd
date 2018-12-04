@@ -52,8 +52,9 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
   \item{phi}{ Prior dispersion parameter is \code{tau*phi}. See
     details. }
   \item{r}{Prior power parameter for MOM prior is \code{2*r}}
-  \item{baseDensity}{For \code{baseDensity=='normal'} a normal MOM prior
-  is used, for \code{baseDensity=='t'} a T MOM prior with \code{nu}
+  \item{baseDensity}{For \code{baseDensity=='normal'} a Normal MOM prior
+    is used, for \code{baseDensity=='laplace'} a Laplace MOM prior,
+    for \code{baseDensity=='t'} a T MOM prior with \code{nu}
   degrees of freedom is used.}
   \item{nu}{ Prior parameter indicating the degrees of freedom for the
     quadratic T MOM and iMOM prior densities. The

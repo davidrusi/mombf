@@ -25,14 +25,18 @@ dmom <- function(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=
 ##Product MOM density
 
 setMethod("dpmom", signature(x='vector'), function(x, tau, a.tau, b.tau, phi=1, r=1, baseDensity='normal', logscale=FALSE) {
-  if (baseDensity!='normal') stop("Only baseDensity=='normal' is implemented for the product MOM")
-  if (missing(tau) & (missing(a.tau) | missing(b.tau))) stop("Either tau or (a.tau,b.tau) must be specified")
-  if (!missing(tau)) {
-    ans <- dnorm(x,0,sd=sqrt(tau*phi),log=TRUE) + r*log(x^2/(tau*phi)) - sum(log(seq(1,2*r-1,by=2)))
-  } else {
-    ct <- lgamma(r+.5*(a.tau+1)) + r*log(2) - lgamma(.5*a.tau) - .5*log(pi) - (r+.5)*log(b.tau) - .5*log(phi)
-    ans <- ct + r*log(x^2/phi) - sum(log(seq(1,2*r-1,by=2))) - (r+.5*(a.tau+1))*log(1+x^2/(b.tau*phi))
-  }
+    if (missing(tau) & (missing(a.tau) | missing(b.tau))) stop("Either tau or (a.tau,b.tau) must be specified")
+    if (baseDensity=='normal') {
+        if (!missing(tau)) {
+            ans <- dnorm(x,0,sd=sqrt(tau*phi),log=TRUE) + r*log(x^2/(tau*phi)) - sum(log(seq(1,2*r-1,by=2)))
+        } else {
+            ct <- lgamma(r+.5*(a.tau+1)) + r*log(2) - lgamma(.5*a.tau) - .5*log(pi) - (r+.5)*log(b.tau) - .5*log(phi)
+            ans <- ct + r*log(x^2/phi) - sum(log(seq(1,2*r-1,by=2))) - (r+.5*(a.tau+1))*log(1+x^2/(b.tau*phi))
+        }
+    } else if (baseDensity=='laplace') {
+        if (r!=1) stop("Only r=1 is implemented for baseDensity='normal'")
+        ans= log(x^2) + dalapl(x,0,scale=tau*phi,logscale=TRUE) - log(2*tau*phi)
+    } else { stop("Only baseDensity=='normal' or 'laplace' is implemented for the product MOM") }
   if (!logscale) ans <- exp(ans)
   ans
 }
@@ -345,3 +349,39 @@ priorp2g <- function(priorp,
          })
 }
 
+
+
+##############################################################################################
+## CONTINUOUS SPIKE & SLAB PRIORS
+##############################################################################################
+
+
+dmomss= function(x,tau0,tau1,pspike=0.5,baseDensity="normal",logscale=FALSE) {
+#Spike & Slab MOM prior
+# (1-pspike) * p(x; 0,tau0) + pspike * (x^2/c) * p(x; 0,tau1), where p(x;0,tauj) is Normal for baseDensity="normal" and Laplace for baseDensity="laplace" and c the MOM normalization constant
+    if (baseDensity=="normal") {
+        d0= dnorm(x,0,tau0,log=TRUE) + log(1-pspike)
+        d1= dmom(x,tau=tau1,phi=1,baseDensity="normal",logscale=TRUE) + log(pspike)
+    } else if (baseDensity=="laplace") {
+        d0= dalapl(x,0,scale=tau0,logscale=TRUE) + log(1-pspike)
+        d1= dmom(x,tau=tau1,baseDensity="laplace",logscale=TRUE) + log(pspike)
+    }
+    ans= exp(d0) + exp(d1)
+    if (logscale) ans= log(ans)
+    return(ans)       
+}
+
+dss= function(x,tau0,tau1,pspike=0.5,baseDensity="normal",logscale=FALSE) {
+#Spike & Slab prior
+# (1-pspike) * p(x; 0,tau0) + pspike * p(x; 0,tau1), where p(x;0,tauj) is Normal for baseDensity="normal" and Laplace for baseDensity="laplace"
+    if (baseDensity=="normal") {
+        d0= dnorm(x,0,tau0,log=TRUE) + log(1-pspike)
+        d1= dnorm(x,0,tau1,log=TRUE) + log(pspike)
+    } else if (baseDensity=="laplace") {
+        d0= dalapl(x,0,scale=tau0,logscale=TRUE) + log(1-pspike)
+        d1= dalapl(x,0,scale=tau1,logscale=TRUE) + log(pspike)
+    }
+    ans= exp(d0) + exp(d1)
+    if (logscale) ans= log(ans)
+    return(ans)       
+}

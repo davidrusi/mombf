@@ -13,6 +13,8 @@
 \alias{pemom}
 \alias{dmomigmarg}
 \alias{pmomigmarg}
+\alias{demomigmarg}
+\alias{pemomigmarg}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Non-local prior density, cdf and quantile functions. }
 \description{
@@ -23,7 +25,9 @@
   \code{qmom} and \code{qimom} return the quantiles for the univariate
   moment and inverse moment priors.
   \code{dmomigmarg} returns the marginal density implied by a
-  MOM(x;tau*phi)*Invgamma(phi;a/2,b/2), \code{pmomigmarg} its cdf
+  MOM(x;tau*phi)*Invgamma(phi;a/2,b/2), \code{pmomigmarg} its cdf.
+  Analogously \code{demomigmarg} and \code{demomigmarg} for
+  eMOM(x;tau*phi)*Invgamma(phi;a/2,b/2)
 }
 \usage{
 dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, 
@@ -40,6 +44,9 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
 
 dmomigmarg(x,tau,a,b,logscale=FALSE)
 pmomigmarg(x,tau,a,b)
+
+demomigmarg(x,tau,a,b,logscale=FALSE)
+pemomigmarg(x,tau,a,b)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

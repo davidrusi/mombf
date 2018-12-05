@@ -368,12 +368,53 @@ dmomigmarg= function(x,tau,a,b,logscale=FALSE) {
 pmomigmarg= function(x,tau,a,b) { integrate(dmomigmarg,-Inf,x,tau=tau,a=a,b=b)$value }
 
 
+
+#Marginal eMOM density p(x)= int eMOM(x;0,tau*phi) IG(phi;a/2,b/2) dphi
+demomigmarg= function(x,tau,a,b,logscale=FALSE) {
+    apos= (a+1)/2; bpos= (b+x^2/tau)/2
+    ans= log(mgfIG(-tau/x^2,apos,bpos))
+    ans= ans + sqrt(2) + lgamma((a+1)/2) - lgamma(a/2) - 0.5*log(pi*tau*b) - 0.5*(a+1) * log(1+x^2/(tau*b))
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+
+#Marginal MOM cdf 
+pemomigmarg= function(x,tau,a,b) { integrate(demomigmarg,-Inf,x,tau=tau,a=a,b=b)$value }
+
+
+#Moment-generating function of IG(a,b) evaluated at t
+mgfIG= function(t,a,b) {
+    if (length(a)==1) a= rep(a,length(t))
+    if (length(b)==1) b= rep(b,length(t))
+    ans= double(length(t))
+    for (i in 1:length(t)) {
+        f= function(x) { exp(t[i] * x) * dinvgamma(x,a[i],b[i]) }
+        ans[i]= integrate(f,0,Inf)$value
+    }
+    return(ans)
+}
+
+
+
 minbeta2tauMOMIGmarg= function(minbeta,a=3,b=3,targetprob=0.99) {
 #Find tau such that P(|x| > minbeta)= targetprob, where p(x) is the MOM-IG marginal
     if (minbeta<0) stop("minbeta must be >0")
     f= function(z) abs(targetprob - 2*pmomigmarg(-minbeta,tau=z,a=a,b=b))
     optimize(f,interval=c(.01,5))$minimum
 }
+
+
+minbeta2taueMOMIGmarg= function(minbeta,a=3,b=3,targetprob=0.99) {
+#Find tau such that P(|x| > minbeta)= targetprob, where p(x) is the MOM-IG marginal
+    if (minbeta<0) stop("minbeta must be >0")
+    f= function(z) abs(targetprob - 2*pemomigmarg(-minbeta,tau=z,a=a,b=b))
+    tauseq= c(seq(.01,.3,length=10),seq(.4,2,by=.1))
+    fseq= sapply(tauseq, f)
+    o= order(fseq)
+    optimize(f,interval=tauseq[o[1:2]])$minimum
+}
+
+
 
 ##############################################################################################
 ## CONTINUOUS SPIKE & SLAB PRIORS

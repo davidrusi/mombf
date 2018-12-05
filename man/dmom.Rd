@@ -11,8 +11,10 @@
 \alias{demom,matrix-method}
 \alias{demom,vector-method}
 \alias{pemom}
+\alias{dmomigmarg}
+\alias{pmomigmarg}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{ Moment prior and inverse moment prior. }
+\title{ Non-local prior density, cdf and quantile functions. }
 \description{
   \code{dmom}, \code{dimom} and \code{demom} return the density for the
   moment, inverse moment and exponential moment priors.
@@ -20,6 +22,8 @@
   moment, inverse moment and exponential moment priors (respectively).
   \code{qmom} and \code{qimom} return the quantiles for the univariate
   moment and inverse moment priors.
+  \code{dmomigmarg} returns the marginal density implied by a
+  MOM(x;tau*phi)*Invgamma(phi;a/2,b/2), \code{pmomigmarg} its cdf
 }
 \usage{
 dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, 
@@ -33,6 +37,9 @@ pemom(q, tau, a.tau, b.tau)
 
 qmom(p, V1 = 1, tau = 1)
 qimom(p, V1 = 1, tau = 1, nu = 1)
+
+dmomigmarg(x,tau,a,b,logscale=FALSE)
+pmomigmarg(x,tau,a,b)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -64,6 +71,8 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
     be used. \code{penalty=='quadratic'} indicates quadratic iMOM. See Details.}
   \item{logscale}{ For \code{logscale==TRUE}, \code{dimom} returns the
     natural log of the prior density.}
+  \item{a}{The marginal prior on phi is IG(a/2,b/2)}
+  \item{b}{The marginal prior on phi is IG(a/2,b/2)}
 }
 \details{
  For \code{type=='quadratic'} the density is as follows.
@@ -82,11 +91,14 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
    MOM is equivalent to the quadratic MOM. The same happens for the
    iMOM.
 
-   Only the product eMOM prior is implemented.
+   \code{dmomigmarg} returns the marginal density
+   
+   p(x)= int MOM(x;0,tau*phi) IG(phi;a/2,b/2) dphi
+
+   
 }
 \value{
-  \code{dmom} returns the value of the moment prior density.
-  \code{dimom} returns the value of the inverse moment prior density.
+  Prior density, cumulative distribution function or quantile.
 }
 \references{
     Johnson V.E., Rossell D. Non-Local Prior Densities for Default
@@ -94,8 +106,9 @@ qimom(p, V1 = 1, tau = 1, nu = 1)
   2010, 72, 143-170.
   
   Johnson V.E., Rossell D. Bayesian model selection in high-dimensional
-  settings. Technical report. 2011
-
+  settings. Journal of the American Statistical Assocation, 2012, 107,
+  649-660
+  
 See http://rosselldavid.googlepages.com for technical
   reports. }
 \author{ David Rossell }

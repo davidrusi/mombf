@@ -1,5 +1,6 @@
 CHANGES IN VERSION 2.1.3
 - Added baseDensity='laplace' to dmom
+- Added dmomigmarg, pmomigmarg
 
 CHANGES IN VERSION 2.1.2
 - Added complexity prior to modelSelection and bms_ortho

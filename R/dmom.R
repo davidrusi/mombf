@@ -351,6 +351,30 @@ priorp2g <- function(priorp,
 
 
 
+
+##############################################################################################
+## MARGINAL NLP * IG PRIORS
+##############################################################################################
+
+
+dmomigmarg= function(x,tau,a,b,logscale=FALSE) {
+#Marginal MOM density p(x)= int MOM(x;0,tau*phi) IG(phi;a/2,b/2) dphi
+    ans= log(2) + lgamma((a+3)/2) - 0.5*log(pi) - 1.5*log(b*tau) - lgamma(a/2) + log(x^2) - ((a+3)/2) * log(1 + x^2/(b*tau))
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+
+#Marginal MOM cdf 
+pmomigmarg= function(x,tau,a,b) { integrate(dmomigmarg,-Inf,x,tau=tau,a=a,b=b)$value }
+
+
+minbeta2tauMOMIGmarg= function(minbeta,a=3,b=3,targetprob=0.99) {
+#Find tau such that P(|x| > minbeta)= targetprob, where p(x) is the MOM-IG marginal
+    if (minbeta<0) stop("minbeta must be >0")
+    f= function(z) abs(targetprob - 2*pmomigmarg(-minbeta,tau=z,a=a,b=b))
+    optimize(f,interval=c(.01,5))$minimum
+}
+
 ##############################################################################################
 ## CONTINUOUS SPIKE & SLAB PRIORS
 ##############################################################################################

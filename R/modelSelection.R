@@ -8,9 +8,33 @@ setMethod("show", signature(object='msfit'), function(object) {
   cat('msfit object with',object$p,'variables and',object$family,'residual distribution\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
   cat("Use postProb() to get posterior model probabilities\n")
+  cat("Use coef() to get BMA parameter estimates, 95% intervals and marginal inclusion probabilities\n")
   cat("Elements $margpp, $postMode, $postSample and $coef contain further information (see help('msfit') and help('modelSelection') for details)\n")
 }
 )
+
+
+#setMethod("bmaCoef", signature(y='ANY',x='matrix',msfit='msfit'), function(y, x, msfit, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+#
+#}
+#)
+
+coef.msfit <- function(object,...) {
+    th= rnlp(msfit=object,niter=10^4)
+    ct= (object$stdconstants[-1,'sd']==0)
+    if (any(ct)) {
+        margpp= c(object$margpp,1)
+        nn= c(names(object$margpp),'phi')
+    } else {
+        margpp= c(mean(th[,1]!=0),object$margpp,1)
+        nn= c('intercept',names(object$margpp),'phi')
+    }
+    ans= cbind(colMeans(th),t(apply(th,2,quantile,probs=c(.025,0.975))),margpp=margpp)
+    colnames(ans)= c('estimate','2.5%','97.5%','margpp')
+    rownames(ans)= nn
+    return(ans)
+}
+
 
 setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
 if (!is.null(object$models)) {
@@ -89,15 +113,21 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 # - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 # - postProb: unnormalized posterior prob of each visited model (log scale)
 
-  #Check input
+  #Check input, standardize (y,x) to mean 0 and variance 1
+  p= ncol(x); n= length(y)
+  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
-  ct <- (colMeans(x^2)-colMeans(x)^2)==0
-  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  mx= colMeans(x); sx= sqrt(colMeans(x^2) - mx^2) * sqrt(n/(n-1))
+  ct= (sx==0)
   if (any(is.na(ct))) stop('x contains NAs, this is currently not supported, please remove the NAs')
-  y <- scale(y,center=center,scale=scale); x[,!ct] <- scale(x[,!ct],center=center,scale=scale)
+  if (sum(ct)>1) stop('There are >1 constant columns in x (e.g. two intercepts)')
+  if (!center) { my=0; mx= rep(0,p) } else { my= mean(y) }
+  if (!scale) { sy=1; sx= rep(1,p) } else { sy= sd(y) }
+  ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx)/sx)
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
-  p <- ncol(x); n <- length(y)
+  stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
+
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(deltaini)) {
     deltaini <- as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
@@ -129,7 +159,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 
   #Format arguments for .Call
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
-  sumy2 <- as.double(sum(y^2)); XtX <- t(x) %*% x; ytX <- as.vector(matrix(y,nrow=1) %*% x)
+  sumy2 <- as.double(sum(ystd^2)); XtX <- t(xstd) %*% xstd; ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
 
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
@@ -137,7 +167,6 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     r <- as.integer(1); prior <- as.integer(1)
   } else if (priorCoef@priorDistr=='peMOM') {
     r <- as.integer(1); prior <- as.integer(2)
-    #stop('eMOM prior not currently implemented. Try function emomLM instead')
   } else if (priorCoef@priorDistr=='zellner') {
     r <- as.integer(1); prior <- as.integer(3)
   } else {
@@ -179,7 +208,7 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   } else {
     stop('Prior specified in priorDelta not recognized')
   }
-  if (!is.null(colnames(x))) { nn <- colnames(x) } else { nn <- paste('x',1:ncol(x),sep='') }
+  if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
   includevars <- as.integer(includevars)
 
   if (!enumerate) {
@@ -189,23 +218,23 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,y,sumy2,x,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
       ndeltaini <- as.integer(sum(postMode)); deltaini <- as.integer(which(as.logical(postMode))-1)
     } else if (initSearch=='SCAD') {
       if (verbose) cat("Initializing via SCAD cross-validation...")
-      deltaini <- rep(TRUE,ncol(x))
-      cvscad <- cv.ncvreg(X=x[,!ct],y=y-mean(y),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
-      deltaini[!ct] <- ncvreg(X=x[,!ct],y=y-mean(y),penalty='SCAD',dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1,1]!=0
+      deltaini <- rep(TRUE,ncol(xstd))
+      cvscad <- cv.ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
+      deltaini[!ct] <- ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),penalty='SCAD',dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1,1]!=0
       deltaini[includevars==1] <- TRUE
       ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1)
       if (verbose) cat(" Done\n")
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -213,12 +242,12 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 
     #Model enumeration
     if (verbose) cat("Enumerating models...\n")
-      nvars= ifelse(familyint==0,ncol(x)+2-sum(includevars),ncol(x)-sum(includevars))
+      nvars= ifelse(familyint==0,ncol(xstd)+2-sum(includevars),ncol(xstd)-sum(includevars))
       if (nvars>25) {
           cat("Cannot enumerate all models, setting maxvars=25\n")
           maxvars=25
       }
-      if (maxvars>=ncol(x)) {
+      if (maxvars>=ncol(xstd)) {
           models= expand.grid(lapply(1:nvars, function(z) c(FALSE,TRUE)))
           if (any(includevars)) {
               newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
@@ -229,9 +258,9 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
           nmodels= as.integer(nrow(models))
       } else {
           if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
-          nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(x)-sum(includevars),z))))
-          idx <- rep(FALSE,ncol(x))
-          models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(x),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
+          nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(xstd)-sum(includevars),z))))
+          idx <- rep(FALSE,ncol(xstd))
+          models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(xstd),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
           if (any(includevars)) {
               newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
               newmodels[,includevars==0] <- as.matrix(models)
@@ -241,16 +270,16 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
           if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
         }
     models= as.integer(unlist(models))
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,y,sumy2,as.double(x),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
     pp <- exp(postProb-postModeProb); pp <- matrix(pp/sum(pp),ncol=1)
     margpp <- as.vector(t(models) %*% pp)
-    modelid= apply(models[,1:ncol(x),drop=FALSE]==1, 1, function(z) paste(which(z),collapse=','))
+    modelid= apply(models[,1:ncol(xstd),drop=FALSE]==1, 1, function(z) paste(which(z),collapse=','))
     if (familyint==0) {
-        modelfam= models[,ncol(x)+1] + 2*models[,ncol(x)+2]
-        margpp= c(margpp[1:ncol(x)],sum(pp[modelfam==0]),sum(pp[modelfam==1]),sum(pp[modelfam==2]),sum(pp[modelfam==3]))
+        modelfam= models[,ncol(xstd)+1] + 2*models[,ncol(xstd)+2]
+        margpp= c(margpp[1:ncol(xstd)],sum(pp[modelfam==0]),sum(pp[modelfam==1]),sum(pp[modelfam==2]),sum(pp[modelfam==3]))
         modeltxt= ifelse(modelfam==0,'normal',ifelse(modelfam==1,'twopiecenormal',ifelse(modelfam==2,'laplace','twopiecelaplace')))
         models= data.frame(modelid=modelid,family=modeltxt,pp=pp)
     } else {
@@ -266,17 +295,19 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     names(margpp) <- c(nn,'family.normal','family.tpnormal','family.laplace','family.tplaplace')
   }
 
-  if (family=='normal') {
-    coef <- rep(0,ncol(x))
-    if (any(postMode==1)) {
-      pm <- postMode(y=y,x=x[,postMode[1:ncol(x)]==1,drop=FALSE],priorCoef=priorCoef)
-      coef[postMode==1] <- pm$coef
-    }
-  } else {
-    coef <- rep(NA,ncol(x))
-  }
+#DEPRECATED: RETURNING POSTERIOR MODE UNDER TOP MODEL. REPLACED BY METHOD TO EXTRACT BMA COEF
+#  if (family=='normal') {
+#    coef <- rep(0,ncol(xstd))
+#    if (any(postMode==1)) {
+#      pm <- postMode(y=ystd,x=xstd[,postMode[1:ncol(x)]==1,drop=FALSE],priorCoef=priorCoef)
+#      coef[postMode==1] <- pm$coef
+#    }
+#  } else {
+#    coef <- rep(NA,ncol(xstd))
+#  }
 
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,coef=coef,family=family,p=ncol(x),enumerate=enumerate)
+  priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }

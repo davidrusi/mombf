@@ -1,4 +1,6 @@
 CHANGES IN VERSION 2.1.3
+- Added rnlp method that only requires msfit
+- msfit objects now store priorCoef, priorDelta, priorVar and standardized versions of (y,x)
 - Added baseDensity='laplace' to dmom
 - Added dmomigmarg, pmomigmarg
 

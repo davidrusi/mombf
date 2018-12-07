@@ -595,6 +595,10 @@ The number of samples is proportional to its posterior probability $p(\gamma \mi
 thus averaging the output gives Bayesian model averaging estimates
 $E(\theta \mid y)= \sum_{\gamma}^{} E(\theta \mid \gamma,y) p(\gamma \mid y)$
 and likewise for the residual variance $E(\phi \mid y)$.
+For convenience the method \texttt{coef} extracts such BMA estimates,
+along with BMA 95\% posterior intervals and marginal posterior inclusion probabilities
+(i.e. when such inclusion probability is large there's Bayesian evidence that the
+variable has an effect).
 
 \footnotesize
 <<rnlp>>=
@@ -602,6 +606,8 @@ priorCoef <- momprior(tau=.348)
 priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
 priorCoef=priorCoef, priorDelta=priorDelta)
+b <- coef(fit1)
+head(b)
 th <- rnlp(y=as.numeric(y),x=x,msfit=fit1,priorCoef=priorCoef,niter=10000)
 colMeans(th)
 head(th)

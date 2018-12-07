@@ -162,8 +162,7 @@ Object of class \code{msfit}, which extends a list with elements
 \item{postModeProb}{Unnormalized posterior prob of posterior mode (log scale)}
 \item{postProb}{Unnormalized posterior prob of each visited model (log
   scale)}
-\item{coef}{Estimated coefficients (via posterior mode) for highest
-  posterior probability model}
+\item{priors}{List with priors specified when calling \code{modelSelection}}
 }
 \references{
   Johnson V.E., Rossell D. Non-Local Prior Densities for Default
@@ -196,21 +195,18 @@ theta <- matrix(c(1,1,0),ncol=1)
 y <- x \%*\% theta + rnorm(100)
 
 #Specify prior parameters
-priorCoef <- imomprior(tau=1)
+priorCoef <- momprior(tau=0.348)
 priorDelta <- modelunifprior()
-priorVar <- igprior(alpha=.01,lambda=.01)
 
-#Alternative prior for model space: 0.5 prior prob for including any covariate
+#Alternative model space prior: 0.5 prior prob for including any covariate
 priorDelta <- modelbinomprior(p=0.5)
 
-#Alternative prior for model space: Beta hyper-prior for prob of inclusion
+#Alternative: Beta-Binomial prior for model space
 priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 
 #Model selection
-fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
-priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, phi=1,
-method='Laplace')
-fit1$postMode
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta)
 fit1$margpp
 postProb(fit1)
 

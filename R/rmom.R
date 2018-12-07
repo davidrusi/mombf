@@ -2,15 +2,18 @@
 ## Routines to simulate from MOM prior and posterior
 ##################################################################################
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if (msfit$family != 'normal') stop("Posterior sampling only implemented for Normal residuals")
-  if (is.matrix(y)) y= as.vector(y)
-  if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
+  y= msfit$ystd; x= msfit$xstd
+  #if (is.matrix(y)) y= as.vector(y)
+  #if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
   #Draw model
   pp <- postProb(msfit,method=pp)
   modelid <- strsplit(as.character(pp$modelid), split=',')
   ndraws <- as.numeric(rmultinom(1, size=niter, prob=pp$pp))
   sel <- ndraws>0; modelid <- modelid[sel]; ndraws <- ndraws[sel]
+  priorCoef= msfit$priors$priorCoef
+  priorVar= msfit$priors$priorVar
   #Draw coefficients
   idx <- c(0,cumsum(ndraws))
   if (class(y) == 'numeric') { ##Linear model
@@ -20,7 +23,8 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='ms
       colsel <- as.numeric(modelid[[i]])
       ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
     }
-    if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
+    if (is.null(colnames(x))) nn <- c(paste('beta',1:ncol(x),sep=''),'phi') else nn <- c(colnames(x),'phi')
+    colnames(ans)= nn
   } else if (class(y) == 'Surv') {
     ans <- matrix(0, nrow=niter, ncol=ncol(x))
     for (i in 1:length(modelid)) {
@@ -30,14 +34,36 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='ms
         ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
       }
     }
-    if (is.null(colnames(x))) colnames(ans) <- paste('beta',1:ncol(x),sep='') else colnames(ans) <- colnames(x)
+    if (is.null(colnames(x))) nn <- paste('beta',1:ncol(x),sep='') else nn <- colnames(x)
+    colnames(ans)= nn
+  }
+  #Return posterior samples in non-standardized parameterization
+  my= msfit$stdconstants[1,'mean']; mx= msfit$stdconstants[-1,'mean']
+  sy= msfit$stdconstants[1,'sd']; sx= msfit$stdconstants[-1,'sd']
+  ct= (sx==0)
+  b= ans[,1:ncol(x)]
+  b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
+  ans[,1:ncol(x)]= b
+  if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
+  if (any(ct)) {
+      ans[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+  } else {
+      intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
+      ans= cbind(intercept,ans); colnames(ans)= c('intercept',nn)
   }
   return(ans)
 }
 )
 
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+    warning("If msfit is specified arguments y and x are ignored")
+    rnlp(msfit=msfit,niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
+}
+)
+
+
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   tau <- as.double(priorCoef@priorPars['tau'])
   if (class(y) == 'numeric') {  ##Linear model
     p <- ncol(x); n <- length(y)
@@ -102,7 +128,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 )
 
 
-setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing'), function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   p <- ncol(V)
   tau <- as.double(priorCoef@priorPars['tau'])
   if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
@@ -181,11 +207,4 @@ rtmvnormProd <- function(n, m, Sigma, k=1, lower=0, upper=Inf, burnin=round(.1*n
   matrix(ans,nrow=n)
 }
 
-#rmvnormTrunc0 <- function(n, m, S, Sinv, t0) {
-#  if (length(m) != nrow(S)) stop('Dimensions of m and S must match')
-#  if (length(t0)==1) t0 <- as.double(rep(t0,length(m)))
-#  if (length(t0)!= length(m)) stop('Dimensions of m and t0 must match')
-#  if (missing(Sinv)) Sinv <- solve(S)
-#  ans <- .Call("rmvnorm_trunc0R", as.integer(n), as.double(m), as.double(Sinv), as.double(t0))
-#  matrix(ans,nrow=n)
-#}
+

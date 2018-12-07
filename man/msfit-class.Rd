@@ -42,11 +42,19 @@ regression coefficients, as indicated below.
     \item{postModeProb}{Unnormalized posterior prob of posterior mode (log scale)}
     \item{postProb}{Unnormalized posterior prob of each visited model (log
       scale)}
-    \item{coef}{Estimated coefficients (via posterior mode) for highest
-      posterior probability model}
     \item{family}{Residual distribution, i.e. argument \code{family}
       when calling \code{modelSelection}}
     \item{p}{Number of variables}
+    \item{priors}{Priors specified when calling \code{modelSelection}}
+    \item{ystd}{For internal use. Stores the response variable,
+      standardized if \code{center} or \code{scale} were set to
+      \code{TRUE}}
+    \item{xstd}{For internal use. Stores the covariates,
+      standardized if \code{center} or \code{scale} were set to
+      \code{TRUE}}
+    \item{stdconstants}{For internal use. If \code{center} or
+      \code{scale} were set to \code{TRUE}, stores the sample mean
+      and standard deviation of the outcome and covariates}
   }
 }
 \section{Methods}{

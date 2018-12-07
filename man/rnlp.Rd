@@ -1,6 +1,7 @@
 \name{rnlp}
 \alias{rnlp}
 \alias{rnlp-methods}
+\alias{rnlp,missing,missing,missing,missing,msfit-method}
 \alias{rnlp,ANY,matrix,missing,missing,missing-method}
 \alias{rnlp,ANY,matrix,missing,missing,msfit-method}
 \alias{rnlp,missing,missing,numeric,matrix,missing-method}
@@ -18,7 +19,7 @@ density proportional to d(theta) N(theta; m, V) are produced,
 where d(theta) is the non-local penalty term.
 }
 \usage{
-rnlp(y, x, m, V, msfit, priorCoef, priorVar=igprior(alpha=0.01,lambda=0.01), niter=10^3,
+rnlp(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3,
 burnin=round(niter/10), thinning=1, pp='norm')
 }
 \arguments{
@@ -28,15 +29,20 @@ burnin=round(niter/10), thinning=1, pp='norm')
   \item{x}{Design matrix with all potential predictors}
   \item{m}{Mean for the Normal kernel}
   \item{V}{Covariance for the Normal kernel}
-  \item{msfit}{Object of class \code{msfit}, e.g. as returned by
-    \code{modelSelection}. If left missing sampling under the full model
-    \code{y ~ x} is performed, otherwise posterior model samples in
-    \code{msfit} are used.}
-  \item{priorCoef}{Prior distribution for the coefficients. Must be
-    object of class \code{msPriorSpec} with slot \code{priorType} set to
-    'coefficients'. Possible values for slot \code{priorDistr} are
-    'pMOM', 'piMOM', 'peMOM' and 'zellner'}
-  \item{priorVar}{Prior on residual variance. Must be object of class \code{msPriorSpec} with slot \code{priorType} set to 'nuisancePars'. Slot \code{priorDistr} must be equal to 'invgamma'}
+  \item{msfit}{Object of class \code{msfit} returned by
+    \code{modelSelection}. If specified Bayesian model averaging
+    posterior samples are returned, according to posterior model
+    probabilities in \code{msfit}, and then arguments \code{y},
+    \code{x}, \code{m}, \code{V}, \code{priorCoef},
+    \code{priorVar} are all ignored. If \code{msfit} is missing then
+    posterior samples under the full model \code{y ~ x} are returned}
+  \item{priorCoef}{Prior distribution for the coefficients. Ignored if
+    \code{msfit} is supplied. Must be object of class
+    \code{msPriorSpec}, e.g. created by \code{momprior},
+    \code{emomprior}, \code{imomprior}, \code{zellnerprior}}
+  \item{priorVar}{Prior on residual variance. Ignored if \code{msfit}
+    supplied. Must be object of class \code{msPriorSpec}, e.g. created
+    with \code{igprior}}
   \item{niter}{Number of MCMC iterations}
   \item{burnin}{Number of burn-in MCMC iterations. Defaults to \code{.1*niter}. Set to 0 for no burn-in}
   \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to no thinning}
@@ -79,19 +85,14 @@ posterior model probabilities.
 For more details on prior specification see \code{\link{msPriorSpec-class}}.
 }
 \examples{
-#Generate data
-set.seed(2)
-n <- 10^3; tau <- 0.133; x <- rmvnorm(n,sigma=matrix(c(2,1,1,2),nrow=2))
-thtrue <- c(0.5,1); phitrue <- 1
-y <- thtrue[1]*x[,1] + thtrue[2]*x[,2] + rnorm(n,sd=sqrt(phitrue))
+#Simulate data
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x \%*\% theta + rnorm(100)
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE)
 
-#Specify prior parameters
-priorCoef <- imomprior(tau=1)
-priorVar <- igprior(alpha=.01,lambda=.01)
-
-th <- rnlp(y=y, x=x, niter=100, priorCoef=priorCoef, priorVar=priorVar)
+th <- rnlp(msfit=fit1, niter=100)
 colMeans(th)
-acf(th[,1])[1]
 }
 \keyword{ models }
 \keyword{ distribution }

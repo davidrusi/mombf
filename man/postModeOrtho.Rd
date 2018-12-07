@@ -99,7 +99,7 @@ to compute its marginal likelihood}
 \examples{
 #Simulate data
 set.seed(1)
-p <- 500; n <- 510
+p <- 400; n <- 410
 x <- scale(matrix(rnorm(n*p),nrow=n,ncol=p),center=TRUE,scale=TRUE)
 S <- cov(x)
 e <- eigen(cov(x))

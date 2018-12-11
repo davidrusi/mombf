@@ -81,14 +81,16 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars= ncol(x), niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors
+# - groups: vector indicating groups for columns in x (defaults to each variable in a separate group)
+# - constraints: constraints on the model space. List with length equal to the number of groups; if group[[i]]=c(j,k) then group i can only be in the model if groups j and k are also in the model
 # - center: if center==TRUE y and x are centered to have zero mean, therefore eliminating the need to include an intercept term in x.
 # - scale: if scale==TRUE y and columns in x are scaled to have standard deviation 1
 # - enumerate: if TRUE all models with up to maxvars are enumerated, else Gibbs sampling is used to explore the model space
-# - includevars: set to TRUE for variables that you want to force into the model
+# - includevars: set to TRUE for variables that you want to force into the model (for grouped variables, TRUE/FALSE is taken from 1st variable in each group)
 # - maxvars: maximum number of variables in models to be enumerated (ignored if enumerate==FALSE)
 # - niter: number of Gibbs sampling iterations
 # - thinning: MCMC thinning factor, i.e. only one out of each thinning iterations are reported. Defaults to thinning=1, i.e. no thinning
@@ -113,8 +115,13 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 # - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 # - postProb: unnormalized posterior prob of each visited model (log scale)
 
-  #Check input, standardize (y,x) to mean 0 and variance 1
   p= ncol(x); n= length(y)
+  #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...
+  tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
+  ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
+    
+  #Check input, standardize (y,x) to mean 0 and variance 1
+  if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
@@ -127,8 +134,9 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx)/sx)
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
-
+        
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
+  if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
   if (missing(deltaini)) {
     deltaini <- as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
   } else {
@@ -209,11 +217,11 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     stop('Prior specified in priorDelta not recognized')
   }
   if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
-  includevars <- as.integer(includevars)
 
   if (!enumerate) {
 
     #Initialize
+    includevars <- as.integer(includevars)
     if (familyint==0) { postMode <- rep(as.integer(0),p+2) } else { postMode <- rep(as.integer(0),p) }
     postModeProb <- double(1)
     if (initSearch=='greedy') {
@@ -242,34 +250,13 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
 
     #Model enumeration
     if (verbose) cat("Enumerating models...\n")
-      nvars= ifelse(familyint==0,ncol(xstd)+2-sum(includevars),ncol(xstd)-sum(includevars))
-      if (nvars>25) {
-          cat("Cannot enumerate all models, setting maxvars=25\n")
-          maxvars=25
-      }
-      if (maxvars>=ncol(xstd)) {
-          models= expand.grid(lapply(1:nvars, function(z) c(FALSE,TRUE)))
-          if (any(includevars)) {
-              newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
-              newmodels[,includevars==0] <- as.matrix(models)
-              newmodels[,includevars==1] <- 1
-              models <- newmodels
-          }
-          nmodels= as.integer(nrow(models))
-      } else {
-          if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
-          nmodels= as.integer(sum(sapply(0:(maxvars-sum(includevars)), function(z) choose(ncol(xstd)-sum(includevars),z))))
-          idx <- rep(FALSE,ncol(xstd))
-          models= t(do.call(cbind,lapply(0:(maxvars-sum(includevars)), function(m) sapply(combn(ncol(xstd),m=m,simplify=FALSE), function(z) { ans <- idx; ans[z] <- TRUE; return(ans) } ))))
-          if (any(includevars)) {
-              newmodels <- matrix(NA,nrow=nrow(models),ncol=ncol(models)+sum(includevars))
-              newmodels[,includevars==0] <- as.matrix(models)
-              newmodels[,includevars==1] <- 1
-              models <- newmodels
-          }
-          if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
-        }
-    models= as.integer(unlist(models))
+    nincludevars= sum(includevars)
+    nvars= ifelse(familyint==0,ncol(xstd)+2-nincludevars,ncol(xstd)-nincludevars)
+    if (familyint==0) { includeenum= c(includevars[groups+1],FALSE,FALSE) } else { includeenum= includevars[groups+1] }
+    models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=constraints, nvaringroup=nvaringroup, maxvars=maxvars)
+    nmodels= as.integer(nrow(models))
+    models= as.integer(models)
+    includevars= as.integer(includevars)
     ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
@@ -295,22 +282,105 @@ modelSelection <- function(y, x, center=TRUE, scale=TRUE, enumerate= ifelse(ncol
     names(margpp) <- c(nn,'family.normal','family.tpnormal','family.laplace','family.tplaplace')
   }
 
-#DEPRECATED: RETURNING POSTERIOR MODE UNDER TOP MODEL. REPLACED BY METHOD TO EXTRACT BMA COEF
-#  if (family=='normal') {
-#    coef <- rep(0,ncol(xstd))
-#    if (any(postMode==1)) {
-#      pm <- postMode(y=ystd,x=xstd[,postMode[1:ncol(x)]==1,drop=FALSE],priorCoef=priorCoef)
-#      coef[postMode==1] <- pm$coef
-#    }
-#  } else {
-#    coef <- rep(NA,ncol(xstd))
-#  }
-
   priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
   ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }
+
+
+
+#Count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...
+codeGroupsAndConstraints= function(p,groups,constraints) {
+    groupsnum= as.numeric(factor(groups)); groupsnum= cumsum(c(TRUE,groupsnum[-1]!=groupsnum[-length(groupsnum)])) #re-code groups as 1,2,3... (in order of appearance)
+    ngroups= max(groupsnum)
+    if (ngroups>p) stop("There cannot be more groups than variables (columns in x)")
+    if (missing(constraints)) {
+        constraints= sapply(1:ngroups, function(i) integer(0))
+    } else {
+        if (length(constraints) != ngroups) stop("length(constraints) must be equal to number of variable groups")
+        #Ensure that constraints match the group order in groupsnum
+        g2code= sapply(names(constraints), function(nn) groupsnum[match(TRUE,groups==nn)])
+        if (any(names(constraints) != as.character(g2code))) {
+            constraints= constraints[g2code]
+            names(constraints)= g2code
+            for (i in 1:length(constraints)) { if (length(constraints[[i]]>0)) constraints[[i]]= g2code[constraints[[i]]] }
+        }
+    }
+    if (ngroups==p) {
+        nvaringroup= as.integer(rep(1,p))
+        groups= as.integer(0:(p-1))
+    } else {
+        nvaringroup= as.integer(table(groupsnum)) #number of variables in each group
+        groups= c(0,as.numeric(cumsum(nvaringroup[-length(nvaringroup)]))) #1st variable in each group (0-indexed)
+    }
+    ans= list(ngroups=ngroups,constraints=constraints,nvaringroup=nvaringroup,groups=groups)
+}
+
+
+#Routine to enumerate all models satisfying hierarchical constraints, e.g. x[i] can only be in model if x[j] and x[k] are in model
+#
+# - vars2list: vector indicating variable groups, e.g. 1:10 means there's 10 variable groups named 1-10
+# - includevars: logical vector of length= length(vars2list). TRUE indicates that all models should include that variable group
+# - constraints: list with length= length(vars2list). Each element indicates hierarchical restrictions. Restrictions must be given in order, i.e. a restriction on group i can only depend on groups < i
+# - nvaringroup: number of variables in each group
+# - fixedvars: for internal use only. When calling the function recursively, fixedvars are the variables that are currently included in the model
+#
+# OUTPUT: matrix with models in rows and variables in columns. If the (i,j) entry is TRUE, model i includes variable j
+#
+# EXAMPLE 1: list models under restriction that x3 included only when (x1,x2) also included
+#
+# listmodels(vars2list=1:3, constraints=list(integer(0),integer(0),c(1,2)))
+#
+# EXAMPLE 2: same but forcing inclusion of x2
+#
+# listmodels(vars2list=1:3, includevars= c(FALSE,TRUE,FALSE), constraints=list(integer(0),integer(0),c(1,2)))
+#
+# EXAMPLE 3: list models under restriction that group 3 included only when (group 1, group 2) also included
+#
+# listmodels(vars2list=1:3, constraints=list(integer(0),integer(0),c(1,2)), nvaringroup= c(1,3,2))
+#
+# EXAMPLE 4: list models under restrictions x4 requires (x1,x2), x5 requires (x1,x3), x6 requires (x2,x3), x7 requires (x1,...,x6)
+#
+# listmodels(vars2list=1:7, constraints=list(integer(0),integer(0),integer(0),c(1,2),c(1,3),c(2,3),1:6))
+
+listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedvars=integer(0), constraints, nvaringroup=rep(1,length(vars2list)), maxvars) {
+    var1= vars2list[1]
+    if (includevars[var1]) { #forcing inclusion of this variable group
+        if (length(vars2list)>1) {
+            ans= listmodels(vars2list[-1], includevars=includevars, fixedvars=c(fixedvars,var1), constraints=constraints, nvaringroup=nvaringroup, maxvars=maxvars)
+        } else {
+            fixedLogical= rep(FALSE,length(constraints)-1)
+            fixedLogical[fixedvars]= TRUE
+            fixedLogical= rep(fixedLogical,nvaringroup[-length(nvaringroup)])
+            ans= c(fixedLogical,rep(TRUE,nvaringroup[length(nvaringroup)]))
+        }
+    } else { #not forcing inclusion of this variable group
+        nfixedvars= length(fixedvars)
+        if (length(constraints[[var1]])>0) {
+            var1constraint= all(constraints[[var1]] %in% fixedvars) #is constraint on var1 satisfied by fixedvars?
+        } else { var1constraint= TRUE }
+        if (length(vars2list)>1) { #if this is not the last variable, call function recursively
+            ans1= listmodels(vars2list[-1], includevars=includevars, fixedvars=fixedvars, constraints=constraints, nvaringroup=nvaringroup, maxvars=maxvars)
+            if (var1constraint & (nfixedvars<maxvars)) {
+                ans2= listmodels(vars2list[-1], includevars=includevars, fixedvars=c(fixedvars,var1), constraints=constraints, nvaringroup=nvaringroup, maxvars=maxvars)
+            } else { ans2= NULL }
+            ans= rbind(ans1,ans2)
+        } else {  #if this is the last variable, return entire variable inclusion vector
+            fixedLogical= rep(FALSE,length(constraints)-1)
+            fixedLogical[fixedvars]= TRUE
+            fixedLogical= rep(fixedLogical,nvaringroup[-length(nvaringroup)])
+            if (var1constraint & (nfixedvars<maxvars)) {
+                ans= rbind(c(fixedLogical,rep(FALSE,nvaringroup[length(nvaringroup)])),c(fixedLogical,rep(TRUE,nvaringroup[length(nvaringroup)])))
+            } else {
+                ans= c(fixedLogical, rep(FALSE,nvaringroup[length(nvaringroup)]))
+            }
+        }
+    }
+    return(ans)
+}
+
+
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
   #Greedy version of modelSelectionR where variables with prob>0.5 at current iteration are included deterministically (prob<.5 excluded)

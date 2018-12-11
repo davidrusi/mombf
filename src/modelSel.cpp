@@ -677,7 +677,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
   priorFunction= set_priorFunction(prDelta, family);
 
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
-  if ((*family)==0) {
+  if ((*family)==0) {  //infer error distribution (Normal/Asymmetric Normal/Laplace/Asymmetric Laplace)
     nbvars= (*(*pars).p)+1;
     integrals= new modselIntegrals(marginalFunction, priorFunction, (*(*pars).p) +4);
   } else {
@@ -837,7 +837,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       if (includevars[j]==0) {
         sel2selnew(j,sel,&nsel,selnew,&nselnew,copylast); //copy sel into selnew, adding/removing jth element
         if (nselnew <= (*(*pars).n)) {
-         	if ((*family)==0) {  //inference is being done on the family
+         	if ((*family)==0) {  //inference is being done on the family (residual error distribution)
          	  nselplus1= nselnew+1;
          	  newJ= integrals->getJoint(selnew,&nselplus1,pars);
          	} else {  //family is fixed

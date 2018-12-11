@@ -16,11 +16,11 @@
   probability model using an iterative block search.
 }
 \usage{
-modelSelection(y, x, center=TRUE, scale=TRUE,
+modelSelection(y, x, groups=1:ncol(x), constraints,
+center=TRUE, scale=TRUE,
 enumerate= ifelse(ncol(x)<15,TRUE,FALSE),
 includevars=rep(FALSE,ncol(x)),
-maxvars= ncol(x),
-niter=10^4, thinning=1,
+maxvars, niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
 priorVar=igprior(alpha=.01,lambda=.01),
@@ -36,6 +36,12 @@ maxenum=10, verbose=TRUE)
 \arguments{
 \item{y}{Vector with observed responses}
 \item{x}{Design matrix with all potential predictors}
+\item{groups}{If variables in \code{x} such be added/dropped in groups,
+  \code{groups} indicates the group that each variable corresponds to
+  (by default each variable goes in a separate group)}
+\item{constraints}{Constraints on the model space. List with length
+  equal to the number of groups; 
+  if group[[i]]=c(j,k) then group i can only be in the model if groups j and k are also in the model}
 \item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
   scaled to have standard deviation1}
@@ -45,7 +51,7 @@ maxenum=10, verbose=TRUE)
 that should always be included in the model, i.e. variable selection is
 not performed for these variables}
 \item{maxvars}{When \code{enumerate==TRUE} only models with up to maxvars variables
-  enumerated. In \code{modelsearchBlockDiag} a sequence of models
+  enumerated (defaults to all variables). In \code{modelsearchBlockDiag} a sequence of models
   is defined from 1 up to \code{maxvars}}
 \item{niter}{Number of Gibbs sampling iterations}
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}

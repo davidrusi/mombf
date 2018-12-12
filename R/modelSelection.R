@@ -115,14 +115,19 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
 # - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 # - postProb: unnormalized posterior prob of each visited model (log scale)
 
+  #Check input
   p= ncol(x); n= length(y)
-  #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...
+  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
+  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
+  if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
+  if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
+    
+  #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
     
-  #Check input, standardize (y,x) to mean 0 and variance 1
-  if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
-  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  #Standardize (y,x) to mean 0 and variance 1
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
   mx= colMeans(x); sx= sqrt(colMeans(x^2) - mx^2) * sqrt(n/(n-1))
@@ -134,99 +139,39 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx)/sx)
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
-        
-  if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
-  if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
+
+  #Format arguments for .Call
   if (missing(deltaini)) {
-    deltaini <- as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
+    deltaini= as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
   } else {
     if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }
   }
-  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
-  if (method=='Laplace') {
-    method <- as.integer(0)
-  } else if (method=='MC') {
-    method <- as.integer(1)
-  } else if (method=='Hybrid') {
-    if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) {
-      warning("method=='Hybrid' is only available for 'piMOM' priors with unknown phi. Using method=='Laplace' instead")
-      method <- as.integer(0)
-    } else {
-      method <- as.integer(2)
-    }
-  } else if (method=='auto') {
-    if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
-  } else if (method=='plugin') {
-    method <- as.integer(2)
-  } else {
-    stop("Invalid 'method'")
-  }
+
+  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=knownphi)
   hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
-
-  #Format arguments for .Call
+    
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
   sumy2 <- as.double(sum(ystd^2)); XtX <- t(xstd) %*% xstd; ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
 
-  if (priorCoef@priorDistr=='pMOM') {
-    r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
-  } else if (priorCoef@priorDistr=='piMOM') {
-    r <- as.integer(1); prior <- as.integer(1)
-  } else if (priorCoef@priorDistr=='peMOM') {
-    r <- as.integer(1); prior <- as.integer(2)
-  } else if (priorCoef@priorDistr=='zellner') {
-    r <- as.integer(1); prior <- as.integer(3)
-  } else {
-    stop('Prior specified in priorDistr not recognized')
-  }
-  tau <- as.double(priorCoef@priorPars['tau'])
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
-
-  if (class(priorSkew)=='msPriorSpec') {
-      taualpha <- as.double(priorSkew@priorPars['tau'])
-      fixatanhalpha <- as.double(-10000)
-  } else {
-      taualpha <- 0.358
-      fixatanhalpha <- as.double(priorSkew)
-  }
+  tmp= formatmsPriors(priorCoef=priorCoef, priorVar=priorVar, priorSkew=priorSkew, priorDelta=priorDelta)
+  r= tmp$r; prior= tmp$prior; tau=tmp$tau; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha;
+  prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
+    
   if (family=='auto') { familyint <- 0 } else if (family=='normal') { familyint <- 1 } else if (family=='twopiecenormal') { familyint <- 2 } else if (family=='laplace') { familyint <- 3 } else if (family=='twopiecelaplace') { familyint <- 4 } else stop("family not available")
   familyint <- as.integer(familyint)
-
-  if (priorDelta@priorDistr=='uniform') {
-    prDelta <- as.integer(0)
-    prDeltap <- as.double(0)
-    parprDeltap <- double(2)
-  } else if (priorDelta@priorDistr=='binomial') {
-    if ('p' %in% names(priorDelta@priorPars)) {
-      prDelta <- as.integer(1)
-      prDeltap <- as.double(priorDelta@priorPars['p'])
-      if ((prDeltap<=0) | (prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
-      parprDeltap <- double(2)
-    } else {
-      prDelta <- as.integer(2)
-      prDeltap <- as.double(.5)
-      parprDeltap <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])
-    }
-  } else if (priorDelta@priorDistr=='complexity') {
-      prDelta <- as.integer(3)
-      prDeltap <- as.double(priorDelta@priorPars['c'])
-      if (prDeltap<0) stop("c must be >0 for priorDelta@priorDistr=='complexity'")
-      parprDeltap <- double(2)
-  } else {
-    stop('Prior specified in priorDelta not recognized')
-  }
   if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
 
+  #Run model selection
   if (!enumerate) {
-
     #Initialize
     includevars <- as.integer(includevars)
     if (familyint==0) { postMode <- rep(as.integer(0),p+2) } else { postMode <- rep(as.integer(0),p) }
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -242,7 +187,7 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -253,11 +198,12 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
     nincludevars= sum(includevars)
     nvars= ifelse(familyint==0,ncol(xstd)+2-nincludevars,ncol(xstd)-nincludevars)
     if (familyint==0) { includeenum= c(includevars[groups+1],FALSE,FALSE) } else { includeenum= includevars[groups+1] }
-    models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=constraints, nvaringroup=nvaringroup, maxvars=maxvars)
+    models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
+    if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
@@ -275,6 +221,7 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
     models= models[order(models$pp,decreasing=TRUE),]
   }
 
+  #Post-process output
   if (familyint!=0) {
     colnames(postSample) <- names(postMode) <- names(margpp) <- nn
   } else {
@@ -292,7 +239,7 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
 
 #Count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...
 codeGroupsAndConstraints= function(p,groups,constraints) {
-    groupsnum= as.numeric(factor(groups)); groupsnum= cumsum(c(TRUE,groupsnum[-1]!=groupsnum[-length(groupsnum)])) #re-code groups as 1,2,3... (in order of appearance)
+    groupsnum= as.numeric(factor(groups)); groupsnum= cumsum(c(TRUE,groupsnum[-1]!=groupsnum[-length(groupsnum)])) #re-code groups (in order of appearance)
     ngroups= max(groupsnum)
     if (ngroups>p) stop("There cannot be more groups than variables (columns in x)")
     if (missing(constraints)) {
@@ -304,7 +251,9 @@ codeGroupsAndConstraints= function(p,groups,constraints) {
         if (any(names(constraints) != as.character(g2code))) {
             constraints= constraints[g2code]
             names(constraints)= g2code
-            for (i in 1:length(constraints)) { if (length(constraints[[i]]>0)) constraints[[i]]= g2code[constraints[[i]]] }
+            for (i in 1:length(constraints)) { if (length(constraints[[i]]>0)) constraints[[i]]= as.integer(g2code[constraints[[i]]]) -as.integer(1) } #group codes start at 0
+        } else {
+            constraints= lapply(constraints,function(z) as.integer(z)-as.integer(1)) #group codes start at 0
         }
     }
     if (ngroups==p) {
@@ -315,6 +264,7 @@ codeGroupsAndConstraints= function(p,groups,constraints) {
         groups= c(0,as.numeric(cumsum(nvaringroup[-length(nvaringroup)]))) #1st variable in each group (0-indexed)
     }
     ans= list(ngroups=ngroups,constraints=constraints,nvaringroup=nvaringroup,groups=groups)
+    return(ans)
 }
 
 
@@ -380,6 +330,83 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
     return(ans)
 }
 
+
+#Routine to format method indicating how integrated likelihoods should be computed in modelSelection
+formatmsMethod= function(method, priorCoef, knownphi) {
+  if (method=='Laplace') {
+    method <- as.integer(0)
+  } else if (method=='MC') {
+    method <- as.integer(1)
+  } else if (method=='Hybrid') {
+    if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) {
+      warning("method=='Hybrid' is only available for 'piMOM' priors with unknown phi. Using method=='Laplace' instead")
+      method <- as.integer(0)
+    } else {
+      method <- as.integer(2)
+    }
+  } else if (method=='auto') {
+    if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
+  } else if (method=='plugin') {
+    method <- as.integer(2)
+  } else {
+    stop("Invalid 'method'")
+  }
+  return(method)
+}
+
+#Routine to format modelSelection prior distribution parameters
+#Input: priorCoef, priorVar, priorSkew, priorDelta
+#Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha), model space prior (prDelta, prDeltap, parprDeltap)
+formatmsPriors= function(priorCoef, priorVar, priorSkew, priorDelta) {
+  if (priorCoef@priorDistr=='pMOM') {
+    r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
+  } else if (priorCoef@priorDistr=='piMOM') {
+    r <- as.integer(1); prior <- as.integer(1)
+  } else if (priorCoef@priorDistr=='peMOM') {
+    r <- as.integer(1); prior <- as.integer(2)
+  } else if (priorCoef@priorDistr=='zellner') {
+    r <- as.integer(1); prior <- as.integer(3)
+  } else {
+    stop('Prior specified in priorDistr not recognized')
+  }
+  tau <- as.double(priorCoef@priorPars['tau'])
+  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
+  #
+  if (class(priorSkew)=='msPriorSpec') {
+      taualpha <- as.double(priorSkew@priorPars['tau'])
+      fixatanhalpha <- as.double(-10000)
+  } else {
+      taualpha <- 0.358
+      fixatanhalpha <- as.double(priorSkew)
+  }
+  #
+  if (priorDelta@priorDistr=='uniform') {
+    prDelta <- as.integer(0)
+    prDeltap <- as.double(0)
+    parprDeltap <- double(2)
+  } else if (priorDelta@priorDistr=='binomial') {
+    if ('p' %in% names(priorDelta@priorPars)) {
+      prDelta <- as.integer(1)
+      prDeltap <- as.double(priorDelta@priorPars['p'])
+      if ((prDeltap<=0) | (prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
+      parprDeltap <- double(2)
+    } else {
+      prDelta <- as.integer(2)
+      prDeltap <- as.double(.5)
+      parprDeltap <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])
+    }
+  } else if (priorDelta@priorDistr=='complexity') {
+      prDelta <- as.integer(3)
+      prDeltap <- as.double(priorDelta@priorPars['c'])
+      if (prDeltap<0) stop("c must be >0 for priorDelta@priorDistr=='complexity'")
+      parprDeltap <- double(2)
+  } else {
+    stop('Prior specified in priorDelta not recognized')
+  }
+  ans= list(r=r,prior=prior,tau=tau,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha,prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap)
+  return(ans)
+}
+    
 
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {

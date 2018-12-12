@@ -735,7 +735,8 @@ PolynomialRootFinder::RootStatus_T Polynomial::FindRoots(double * real_zero_vect
         throw std::bad_alloc();
     }
 
-    std::auto_ptr<PolynomialRootFinder> root_finder_ptr(polynomial_root_finder_ptr);
+    std::unique_ptr<PolynomialRootFinder> root_finder_ptr(polynomial_root_finder_ptr);
+    //std::auto_ptr<PolynomialRootFinder> root_finder_ptr(polynomial_root_finder_ptr);  //auto_ptr deprecated and replaced by unique_ptr
 
     PolynomialRootFinder::RootStatus_T status = root_finder_ptr->FindRoots(m_coefficient_vector_ptr,
                                                                            m_degree,

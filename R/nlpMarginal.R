@@ -85,7 +85,8 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logsc
   if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
   method <- as.integer(method)
   B <- as.integer(B); logscale <- as.integer(logscale)
-  ans <- .Call("pmomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("pmomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
@@ -143,7 +144,8 @@ pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, meth
   method <- as.integer(method)
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("pmomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("pmomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 
@@ -263,7 +265,8 @@ pimomMarginalK <- function(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logs
   phi <- as.double(phi); tau <- as.double(tau)
   if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
-  ans <- .Call("pimomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("pimomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
@@ -333,7 +336,8 @@ pimomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else if (method=='Hybrid') method=3 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("pimomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("pimomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 
@@ -571,7 +575,8 @@ pemomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("pemomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("pemomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 
@@ -627,7 +632,8 @@ nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorV
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,method,optimMethod,B,logscale,alpha,lambda,prior)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,method,optimMethod,B,logscale,alpha,lambda,prior,ngroups,nvaringroup)
   return(ans);
 }
 
@@ -679,6 +685,7 @@ nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("nlpMarginalAlaplI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,symmetric,method,hess,optimMethod,B,logscale,alpha,lambda,prior)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("nlpMarginalAlaplI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,symmetric,method,hess,optimMethod,B,logscale,alpha,lambda,prior,ngroups,nvaringroup)
   return(ans);
 }

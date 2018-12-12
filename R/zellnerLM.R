@@ -177,7 +177,8 @@ zellnerMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
   y <- as.double(y); sumy2 <- sum(y^2)
   phi <- as.double(phi); tau <- as.double(tau)
   logscale <- as.integer(logscale)
-  ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
@@ -211,7 +212,8 @@ zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logsca
   tau <- as.double(tau)
   logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda)
+  ngroups= p; nvaringroup= as.integer(rep(1,p))
+  ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 

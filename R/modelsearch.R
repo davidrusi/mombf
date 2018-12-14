@@ -75,7 +75,7 @@ modelsearchBlockDiag <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta
     if (ans$nvars[sel2enum] > maxenum) { sel2enum <- which(ans$nvars<= maxenum); sel2enum <- sel2enum[length(sel2enum)] }
     sel <- as.numeric(strsplit(ans$modelid[sel2enum],split=',')[[1]])
     sel <- sel[order(sel)]
-    xsel <- x[,sel]
+    xsel <- x[,sel,drop=FALSE]
     if (is.null(colnames(xsel))) colnames(xsel) <- paste("x",sel,sep='')
     ms <- modelSelection(y=y,x=xsel,center=FALSE,scale=FALSE,enumerate=TRUE,maxvars=min(c(ncol(xsel),10)),priorCoef=priorCoef,priorDelta=modelunifprior(),priorVar=priorVar,verbose=FALSE)
     nvarsenum <- sapply(strsplit(as.character(ms$models$modelid),split=','),length)
@@ -152,6 +152,7 @@ spectralClus <- function(x, blocksize=10, scale=FALSE, ndim= min(c(ncol(x)/block
     } else {
         xstd= scale(x,center=TRUE,scale=TRUE)
         S= cov(xstd)^2
+        #if (!inverse) { S= cov(xstd)^2 } else { S= pseudoinverse(cov(xstd))^2 } #pseudoinv from package corpcor
         D= diag(p); diag(D)= 1/sqrt(rowSums(S))
         S= D %*% S %*% D
         eig= eigen(S)

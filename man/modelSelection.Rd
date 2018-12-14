@@ -31,7 +31,7 @@ B=10^5, verbose=TRUE)
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
 blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20,
-maxenum=10, verbose=TRUE)
+maxenum=10, inverse=FALSE, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}
@@ -110,6 +110,9 @@ not performed for these variables}
   spending unnecessary time exploring overly large models}
 \item{maxenum}{If the posterior mode found has less than \code{maxenum}
   variables then do a full enumeration of all its submodels}
+\item{inverse}{Variable blocks are based on spectral clustering using
+  the sample covariance matrix. If \code{inverse} is \code{TRUE} then on
+  its pseudoinverse}
 }
 \details{
   Let delta be the vector indicating inclusion/exclusion of each

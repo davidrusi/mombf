@@ -6,6 +6,7 @@ import(methods, mvtnorm, mgcv, ncvreg, stats)
 importFrom(mclust,Mclust,mclustBIC,priorControl)
 importFrom(survival, Surv, coxph)
 importFrom("utils", "combn")
+importFrom(Rcpp, evalCpp)
 
 useDynLib(mombf, .registration=TRUE)
 
@@ -47,4 +48,3 @@ S3method(zellnerbf,lm)
 export(zellnerprior)
 
 #exportClasses("msPriorSpec")
-

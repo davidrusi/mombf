@@ -1,10 +1,4 @@
-###
-### MAKEVARS
-###
+CXX_STD = CXX11
 
-PKG_CPPFLAGS = -I./
-PKG_CFLAGS = -DNDEBUG
-## :DEBUG: Do Not Distribute with GCC-specific flags enabled...
-#PKG_CFLAGS = -g -Wall -Wextra -DDEBUG -pedantic
-PKG_LIBS =
-
+PKG_CXXFLAGS = -DARMA_DONT_USE_OPENMP
+PKG_LIBS=  $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

@@ -1,16 +1,62 @@
+// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
+
+// we only include RcppArmadillo.h which pulls Rcpp.h in for us
+#include "RcppArmadillo.h"
+
+// via the depends attribute we tell Rcpp to create hooks for
+// RcppArmadillo so that the build process will know what to do
+//
+// [[Rcpp::depends(RcppArmadillo)]]
+
+
+//Include other headers
 #include <math.h>
 #include <R.h>
 #include <Rinternals.h>
 #include "cstat.h"
 #include "modelSel.h"
-#include "do_mombf.h"
 #include "modselIntegrals.h"
 #include <vector>
 #include "Polynomial.h"
 
+
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;
 
+
+
+
+//*************************************************************************************
+//EXAMPLE FUNCTIONS CREATED BY RcppArmadillo
+//*************************************************************************************
+
+
+// another simple example: outer product of a vector, returning a matrix
+//
+// [[Rcpp::export]]
+arma::mat rcpparma_outerproduct(const arma::colvec & x) {
+    arma::mat m = x * x.t();
+    return m;
+}
+
+// and the inner product returns a scalar
+//
+// [[Rcpp::export]]
+double rcpparma_innerproduct(const arma::colvec & x) {
+    double v = arma::as_scalar(x.t() * x);
+    return v;
+}
+
+
+// and we can use Rcpp::List to return both at the same time
+//
+// [[Rcpp::export]]
+Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
+    arma::mat op = x * x.t();
+    double    ip = arma::as_scalar(x.t() * x);
+    return Rcpp::List::create(Rcpp::Named("outer")=op,
+                              Rcpp::Named("inner")=ip);
+}
 
 //*************************************************************************************
 //SETTING PRIOR & MARGINALS
@@ -199,28 +245,28 @@ SEXP pmomLM_I(SEXP niter, SEXP thinning, SEXP burnin, SEXP niniModel, SEXP iniMo
   double *margpp, *postCoef1, *postCoef2, *postPhi, *postOther, tau1copy= REAL(tau1)[0];
   SEXP ans;
 
-  PROTECT(ans= allocVector(VECSXP, 7));
+  PROTECT(ans= Rf_allocVector(VECSXP, 7));
   mcmc2save= floor((INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
 
-  SET_VECTOR_ELT(ans, 0, allocVector(INTSXP, mcmc2save * INTEGER(p1)[0]));
+  SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mcmc2save * INTEGER(p1)[0]));
   postModel= INTEGER(VECTOR_ELT(ans,0));
 
-  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, INTEGER(p1)[0]));
+  SET_VECTOR_ELT(ans, 1, Rf_allocVector(REALSXP, INTEGER(p1)[0]));
   margpp= REAL(VECTOR_ELT(ans,1));
 
-  SET_VECTOR_ELT(ans, 2, allocVector(REALSXP, mcmc2save * INTEGER(p1)[0]));
+  SET_VECTOR_ELT(ans, 2, Rf_allocVector(REALSXP, mcmc2save * INTEGER(p1)[0]));
   postCoef1= REAL(VECTOR_ELT(ans,2));
 
-  SET_VECTOR_ELT(ans, 3, allocVector(REALSXP, mcmc2save * INTEGER(p2)[0]));
+  SET_VECTOR_ELT(ans, 3, Rf_allocVector(REALSXP, mcmc2save * INTEGER(p2)[0]));
   postCoef2= REAL(VECTOR_ELT(ans,3));
 
-  SET_VECTOR_ELT(ans, 4, allocVector(REALSXP, mcmc2save));
+  SET_VECTOR_ELT(ans, 4, Rf_allocVector(REALSXP, mcmc2save));
   postPhi= REAL(VECTOR_ELT(ans,4));
 
   if (INTEGER(priorTau1)[0] != 0) {
-    SET_VECTOR_ELT(ans, 5, allocVector(REALSXP, mcmc2save));
+    SET_VECTOR_ELT(ans, 5, Rf_allocVector(REALSXP, mcmc2save));
   } else {
-    SET_VECTOR_ELT(ans, 5, allocVector(REALSXP, 1));
+    SET_VECTOR_ELT(ans, 5, Rf_allocVector(REALSXP, 1));
   }
   postOther= REAL(VECTOR_ELT(ans,5));
 
@@ -462,7 +508,7 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
 //Expectation of prod_j th_j^{2*power} under multivariate Normal/T with mean m, covariance S, dimension n, degrees of freedom dof (dof=-1 for Normal)
 SEXP eprod_I(SEXP m, SEXP S, SEXP n, SEXP power, SEXP dof) {
   SEXP ans;
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   *REAL(ans)= mvtexpect_vec(REAL(m), REAL(S), INTEGER(n)[0], INTEGER(power)[0], REAL(dof)[0]);
   UNPROTECT(1);
   return ans;
@@ -645,16 +691,16 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
   struct marginalPars pars;
   SEXP ans;
 
-  PROTECT(ans= allocVector(VECSXP, 3));
+  PROTECT(ans= Rf_allocVector(VECSXP, 3));
   if (INTEGER(Sfamily)[0] !=0) { mycols= mycols2= INTEGER(Sp)[0]; } else { mycols= 2 + INTEGER(Sp)[0]; mycols2= mycols+2; }
 
-  SET_VECTOR_ELT(ans, 0, allocVector(INTSXP, mycols));
+  SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mycols));
   postMode= INTEGER(VECTOR_ELT(ans,0));
 
-  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, 1));
+  SET_VECTOR_ELT(ans, 1, Rf_allocVector(REALSXP, 1));
   postModeProb= REAL(VECTOR_ELT(ans,1));
 
-  SET_VECTOR_ELT(ans, 2, allocVector(REALSXP, INTEGER(Snmodels)[0]));
+  SET_VECTOR_ELT(ans, 2, Rf_allocVector(REALSXP, INTEGER(Snmodels)[0]));
   postProb= REAL(VECTOR_ELT(ans,2));
 
 
@@ -750,27 +796,27 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
   intptrlist constraints;
   struct marginalPars pars;
   SEXP ans;
-    
-  PROTECT(ans= allocVector(VECSXP, 5));
+
+  PROTECT(ans= Rf_allocVector(VECSXP, 5));
   mcmc2save= floor((INTEGER(Sniter)[0] - INTEGER(Sburnin)[0] +.0)/(INTEGER(Sthinning)[0] +.0));
   if (INTEGER(Sfamily)[0] !=0) { mycols= mycols2= INTEGER(Sp)[0]; } else { mycols= 2 + INTEGER(Sp)[0]; mycols2= mycols+2; }
 
-  SET_VECTOR_ELT(ans, 0, allocVector(INTSXP, mcmc2save * mycols));
+  SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mcmc2save * mycols));
   postSample= INTEGER(VECTOR_ELT(ans,0));
   for (j=0; j<(mcmc2save*mycols); j++) postSample[j]= 0;
 
-  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, mycols2));
+  SET_VECTOR_ELT(ans, 1, Rf_allocVector(REALSXP, mycols2));
   margpp= REAL(VECTOR_ELT(ans,1));
 
-  SET_VECTOR_ELT(ans, 2, allocVector(INTSXP, mycols));
+  SET_VECTOR_ELT(ans, 2, Rf_allocVector(INTSXP, mycols));
   postMode= INTEGER(VECTOR_ELT(ans,2));
   for (j=0; j<mycols; j++) { postMode[j]= INTEGER(SpostModeini)[j]; }
 
-  SET_VECTOR_ELT(ans, 3, allocVector(REALSXP, 1));
+  SET_VECTOR_ELT(ans, 3, Rf_allocVector(REALSXP, 1));
   postModeProb= REAL(VECTOR_ELT(ans,3));
   postModeProb[0]= REAL(SpostModeiniProb)[0];
 
-  SET_VECTOR_ELT(ans, 4, allocVector(REALSXP, mcmc2save));
+  SET_VECTOR_ELT(ans, 4, Rf_allocVector(REALSXP, mcmc2save));
   postProb= REAL(VECTOR_ELT(ans,4));
 
   nconstraints= ivector(0,INTEGER(Sngroups)[0]);
@@ -816,7 +862,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   nvaringroup= (*pars).nvaringroup;
   firstingroup= ivector(0,ngroups);
   for (j=1, firstingroup[0]=0; j<ngroups; j++) { firstingroup[j]= firstingroup[j-1] + nvaringroup[j-1]; }
-  
+
   sel= ivector(0,nbvars); selnew= ivector(0,nbvars);
 
   //Initialize
@@ -952,7 +998,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       margpp[firstingroup[jgroup+j]]= margpp[firstingroup[jgroup]];
     }
   }
-  
+
   free_ivector(firstingroup,0,ngroups);  free_ivector(sel,0,nbvars); free_ivector(selnew,0,nbvars);
   free_dvector(mfamily,0,nbfamilies-1); free_dvector(pfamily,0,nbfamilies-1);
   delete integrals;
@@ -973,12 +1019,12 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltain
 
   mycols= INTEGER(Sp)[0];
 
-  PROTECT(ans= allocVector(VECSXP, 2));
-  SET_VECTOR_ELT(ans, 0, allocVector(INTSXP, mycols));
+  PROTECT(ans= Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mycols));
   postMode= INTEGER(VECTOR_ELT(ans,0));
   for (j=0; j<mycols; j++) postMode[j]= 0;
 
-  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, 1));
+  SET_VECTOR_ELT(ans, 1, Rf_allocVector(REALSXP, 1));
   postModeProb= REAL(VECTOR_ELT(ans,1));
 
   nconstraints= ivector(0,INTEGER(Sngroups)[0]);
@@ -1322,7 +1368,7 @@ SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),INTEGER(Shesstype),INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
 
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   if (symmetric==0) {
     if (prCoef==0) {
@@ -2203,7 +2249,7 @@ SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),&emptyint,INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
 
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   if (prCoef==0) {
     *rans= pmomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
@@ -3425,7 +3471,7 @@ SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
   SEXP ans;
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),&emptydouble,REAL(SXtX),REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
   UNPROTECT(1);
@@ -3499,7 +3545,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
   SEXP ans;
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
   UNPROTECT(1);
@@ -3802,7 +3848,7 @@ SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   set_marginalPars(&pars,n,p,y,sumy2,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,B,&emptydouble,&emptydouble,phi,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalKC(sel, nsel, &pars);
   UNPROTECT(1);
@@ -4077,7 +4123,7 @@ SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   set_marginalPars(&pars,n,p,y,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalUC(sel, nsel, &pars);
   UNPROTECT(1);
@@ -4166,7 +4212,7 @@ SEXP pemomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   set_marginalPars(&pars,n,p,y,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pemomMarginalUC(sel, nsel, &pars);
   UNPROTECT(1);
@@ -4211,7 +4257,7 @@ SEXP zellnerMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
   SEXP ans;
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),&emptydouble,REAL(SXtX),REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= zellnerMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
   UNPROTECT(1);
@@ -4263,7 +4309,7 @@ SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
   SEXP ans;
 
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),REAL(SXtX),REAL(SytX),&emptyint,&emptyint,&optimMethod,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
-  PROTECT(ans = allocVector(REALSXP, 1));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= zellnerMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
   UNPROTECT(1);
@@ -4315,7 +4361,7 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 SEXP bsplineCI(SEXP x, SEXP degree, SEXP knots) {
   int nknots=LENGTH(knots), nx=LENGTH(x);
   SEXP ans;
-  PROTECT(ans= allocVector(REALSXP, (nknots-INTEGER(degree)[0]-1) * nx));
+  PROTECT(ans= Rf_allocVector(REALSXP, (nknots-INTEGER(degree)[0]-1) * nx));
 
   bspline_vec(REAL(ans), REAL(x), &nx, INTEGER(degree), REAL(knots), &nknots);
 

@@ -1,4 +1,5 @@
 CHANGES IN VERSION 2.2.0
+- Added RcppArmadillo
 - Added option to group variables and impose hierarchical restrictions to
 modelSelection
 - Added rnlp method that only requires msfit

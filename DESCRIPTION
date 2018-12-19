@@ -1,15 +1,19 @@
 Package: mombf
+Type: Package
 Version: 2.2.0
-Date: 2018-12-12
+Date: 2018-12-18
 Title: Moment and Inverse Moment Bayes Factors
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.14.0), methods, mvtnorm, ncvreg, mgcv
-Imports: mclust, survival
+Imports: Rcpp (>= 0.12.16), mclust, survival
 Suggests: parallel
+LinkingTo: Rcpp, RcppArmadillo
 Description: Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R derivatives_nlps.R distribs.R gam.R msPriorSpec.R modelsearch.R modelSelection.R normaliwish.R normmix.R nlpMarginal.R dmom.R mombf.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R cox.R
+Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R gam.R msPriorSpec.R modelsearch.R modelSelection.R normaliwish.R normmix.R nlpMarginal.R dmom.R mombf.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R RcppExports.R
+
+
 

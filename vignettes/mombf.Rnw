@@ -38,9 +38,9 @@
 \maketitle
 
 The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
-for several regression (linear, asymmetric linear, median and quantile regression)
+for regression (linear, asymmetric linear, median and quantile regression)
 and mixture models.
-This is the main package implementing the family of {\it non-local prior} (NLP) distributions
+This is the main package implementing {\it non-local prior} (NLP) distributions
 (briefly reviewed here, see \cite{johnson:2010,johnson:2012} for a more detailed treatment),
 although other priors are also implemented (e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures).
 The main features are:
@@ -52,14 +52,14 @@ The main features are:
 (Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012}).
 
 \item BMA in linear regression
-(Section \ref{sec:bma}, \cite{rossell:2016}).
+(Section \ref{sec:bma}, \cite{rossell:2017}).
 
 \item Exact BMS and BMA under orthogonal and block-diagonal regression
 (Section \ref{sec:block_diag}, \cite{papaspiliopoulos:2016}).
 
 \item BMS and BMA for certain generalized linear models (Section \ref{sec:bfglm}, \cite{johnson:2012,rossell:2013b})
 
-\item BMS in linear regression with non-normal residuals \citep{rossell:2016b}. Particular cases are Bayesian versions
+\item BMS in linear regression with non-normal residuals \citep{rossell:2017b}. Particular cases are Bayesian versions
   of asymmetric least squares, median and quantile regression.
 
 \item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures), see \cite{fuquene:2018}.
@@ -95,6 +95,9 @@ indeed it turns out to be insufficient in many practical situations even for sma
 This issue is exacerbated for large $p$ to the extent
 that one may even loose consistency of posterior model probabilities \citep{johnson:2012}
 unless sufficiently strong sparsity penalities are introduced into the model space prior.
+See \citep{rossell:2018} for theoretical results on what priors achieve model selection consistency
+and a discussion on how set priors that balance sparsity versus power to detect truly active coefficients.
+
 
 Intuitively, NLPs induce a probabilistic separation between the considered models which,
 aside from being philosophically appealing (to us), one can show mathematically leads to stronger parsimony.
@@ -149,7 +152,7 @@ where $p(y \mid M_k)= \int p(y \mid \theta) dP(\theta \mid M_k)$ is the integrat
 and $p(M_k)$ the prior model probability. Similarly, inference on parameters can be carried out
 conditional on any chosen model via $p(\theta \mid M_k,y) \propto p(y \mid \theta) p(\theta \mid M_k)$
 or via Bayesian model averaging $p(\theta \mid y)= \sum_{k}^{} p(\theta \mid M_k,y) p(M_k\mid y)$.
-A useful construction \citep{rossell:2016} is that any NLP can be expressed as
+A useful construction \citep{rossell:2017} is that any NLP can be expressed as
 \begin{align}
 p(\theta \mid M_k)= \frac{p(\theta \mid M_k)}{p^L(\theta \mid M_k)} p^L(\theta \mid M_k)=
 d_k(\theta) p^L(\theta \mid M_k),
@@ -168,7 +171,7 @@ all one needs is $p^L(y \mid M_k)$ or an estimate thereof and posterior samples 
 We remark that most functions in mombf do not rely on construction \eqref{eq:nlp_from_lp}
 but instead work directly with NLPs, as this is typically more efficient computationally.
 For instance, there are closed-form expressions and Laplace approximations to $p(y \mid M_k)$ \citep{johnson:2012},
-and one may sample from $p(\theta \mid M_k,y)$ via simple latent truncation representations \citep{rossell:2016}.
+and one may sample from $p(\theta \mid M_k,y)$ via simple latent truncation representations \citep{rossell:2017}.
 
 
 Up to this point we kept the discussion as generic as possible, Section \ref{sec:prodvsadditive} illustrates NLPs for variable selection
@@ -176,7 +179,7 @@ and mixture models.
 For extensions to other settings see \cite{consonni:2010} for directed acyclic graphs under an objective Bayes framework,
 \cite{chekouo:2015} for gene regulatory networks, \cite{collazo:2016} for chain event graphs, or \cite{fuquene:2016} for finite mixture models.
 We also remark that this manual focuses mainly on practical aspects. Readers interested in theoretical NLP properties
-should see \cite{johnson:2010} and \cite{rossell:2016} for an asymptotic characterization
+should see \cite{johnson:2010} and \cite{rossell:2017} for an asymptotic characterization
 under asymptotically Normal models with fixed $\mbox{dim}(\Theta)$,
 essentially showing that $E^L(d_k(\theta) \mid M_k,y)$ leads to stronger parsimony,
 \cite{fuquene:2016} for similar results in mixture models,
@@ -586,7 +589,7 @@ imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
 \label{sec:bma}
 
 A natural question after performing model selection is obtaining estimates for the parameters.
-\cite{rossell:2016} developed a general posterior sampling framework for NLPs based on Gibbs sampling
+\cite{rossell:2017} developed a general posterior sampling framework for NLPs based on Gibbs sampling
 an augmented probability model that expresses NLPs as mixtures of truncated distributions.
 The methodology is implemented in function \texttt{rnlp}.
 Its basic use is simple, by setting parameter \texttt{msfit} to the output of \texttt{modelSelection}

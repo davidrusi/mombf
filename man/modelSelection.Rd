@@ -31,7 +31,7 @@ B=10^5, verbose=TRUE)
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
 blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20,
-maxenum=10, inverse=FALSE, verbose=TRUE)
+maxenum=10, verbose=TRUE)
 }
 \arguments{
 \item{y}{Vector with observed responses}
@@ -40,7 +40,7 @@ maxenum=10, inverse=FALSE, verbose=TRUE)
   \code{groups} indicates the group that each variable corresponds to
   (by default each variable goes in a separate group)}
 \item{constraints}{Constraints on the model space. List with length
-  equal to the number of groups; 
+  equal to the number of groups;
   if group[[i]]=c(j,k) then group i can only be in the model if groups j and k are also in the model}
 \item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
@@ -110,9 +110,6 @@ not performed for these variables}
   spending unnecessary time exploring overly large models}
 \item{maxenum}{If the posterior mode found has less than \code{maxenum}
   variables then do a full enumeration of all its submodels}
-\item{inverse}{Variable blocks are based on spectral clustering using
-  the sample covariance matrix. If \code{inverse} is \code{TRUE} then on
-  its pseudoinverse}
 }
 \details{
   Let delta be the vector indicating inclusion/exclusion of each

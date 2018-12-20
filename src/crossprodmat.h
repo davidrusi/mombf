@@ -19,30 +19,40 @@
 using namespace std;
 
 
-// THE PURPOSE OF THIS CLASS IS TO STORE CROSS-PRODUCT MATRICES
-// MAIN FEATURE: AVOID RESERVING MEMORY FOR & PRE-COMPUTING ALL ENTRIES.
-// WHEN AN ENTRY IS REQUIRED IT IS COMPUTED ON-THE-FLY AND STORED INTERNALLY INTO A SPARSE MATRIX
+// THIS CLASS HANDLES CROSS-PRODUCTS MATRICES XtX (INNER-PRODUCTS BETWEEN COLUMNS of x)
+// IT ALLOWS INCREMENTALLY POPULATING THE MATRIX AS ELEMENTS ARE NEEDED, SO ONE DOESN'T NEED TO PRE-COMPUTE AND ALLOCATE MEMORY FOR ALL ENTRIES.
+// WHEN AN ENTRY IS REQUIRED IT IS COMPUTED ON-THE-FLY AND STORED INTERNALLY INTO A SPARSE MATRIX USING CLASS SpMat FROM ARMADILLO
 //
-// SECONDARY FEATURE: ACCESS DENSE MATRICES STORED AS VECTORS USING MATRIX ACCESSORS A[i,j]
-
-// Let x be an (nrowx,ncolx) matrix, stored as a vector (column1,column2,...)
+// Let x be an (nrowx,ncolx) matrix stored as a vector (in column-order, i.e. column 1, column 2, etc)
 // The cross-product matrix XtX has (i,j) element equal to the inner product between columns i and j in x
 //
-// Example 1. Create 3x3 sparse XtX matrix from x
-//   crossprodmat *A;
-//   A= new crossprodmat(x,3,3,false); //no inner-products are computed
-//   double a= A(0,1);  //inner product between columns (0,1) is computed, stored internally and saved into a
-//   double b= A(0,1) + 1.0;  //inner product is not re-computed, as it was stored earlier
-//   delete A;
+// NOTE: all indexes in this class start at 0, e.g. A(0,1) returns element in row 0, column 1; A(0) returns element in row 0 column 0
 //
-// Example 2. Create object from XtX
-//   crossprodmat *A;
-//   A= new crossprodmat(XtX, nrow, ncol, true);  //store pointer to pre-computed inner-products in XtX
-//   double a= A(0,1);  //access element (0,1) in XtX
-//   double b= A(0,1) + 1.0;  //inner product is not re-computed, as it was stored earlier
-//   delete A;
+//EXAMPLE: matrix x has 4 rows, 3 columns
+//    int i; double *x;
+//    x= dvector(0,12); 
+//    for (i=0; i<12; i++) x[i]= (double) i;
+//
+// OPTION 1. PRE-COMPUTE XtX
+//    double *XtX;
+//    XtX= dvector(0,9);
+//    XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
+//    XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
+//    XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
+//
+//    crossprodmat *Ad; 
+//    Ad= new crossprodmat(XtX,4,3,true);  //true indicates that 1st argument is the pre-computed XtX
+//    double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
+//    delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9);
+//
+// OPTION 2. COMPUTE XtX ON-THE-FLY
+//    crossprodmat *As;
+//    As= new crossprodmat(x,4,3,false); //false indicates that 1st argument is the matrix x
+//    double tmp= As->at(0,0); //computes and stores internally the inner-product, then returns it
+//    tmp= As->at(0,0); //returns the stored value
+//    delete As; free_dvector(x,0,9); free_dvector(XtX,0,9);
 
-//NOTE: all indexes in this class start at 0, e.g. A(0,1) returns element in row 0, column 1; A(0) returns element in row 0 column 0
+
 
 class crossprodmat {
 
@@ -52,8 +62,8 @@ public:
 
   ~crossprodmat();
 
-  double at(const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
-  double at(const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
+  double at(int i, int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
+  double at(int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
     //  double operator()(const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
     //  double operator()(const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow

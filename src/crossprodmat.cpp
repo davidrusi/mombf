@@ -18,7 +18,8 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense) {
   } else {
     this->x= mymat;
     this->dense= false;
-    arma::SpMat<short> (this->XtXcomputed)= arma::SpMat<short>(nrowx, ncolx);
+    (this->XtXs)= arma::sp_mat(nrowx, ncolx);
+    (this->XtXcomputed)= arma::SpMat<short>(nrowx, ncolx);
   }
 
 }
@@ -30,25 +31,21 @@ crossprodmat::~crossprodmat() { }
 
 
 //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
-double crossprodmat::at(const int i, const int j) {
-//double crossprodmat::operator()(const int i, const int j) {
+double crossprodmat::at(int i, int j) {
   
   if (dense) {
 
-    return XtXd[i + j * nrowx];
+    return XtXd[i + j * ncolx];
 
   } else {
 
     if (XtXcomputed.at(i,j) == 0) {  //if this entry has not been already computed
 
-      int k; double ans= 0;
-      int iini= i * nrowx;
-      int jini= j * nrowx;
+      int iini, jini, k; double ans= 0;
+      for (k=0, iini=i*nrowx, jini=j*nrowx; k< nrowx; k++) ans += x[k + iini] * x[k + jini];
 
-      for (k=0; k< nrowx; k++) ans += x[k + iini] * x[k + jini];
-
-      XtXcomputed.at(i,j)= 1;
-      XtXs.at(i,j)= ans;
+      XtXcomputed(i,j)= 1;
+      XtXs(i,j)= ans;
     }
 
     return XtXs.at(i,j);
@@ -58,11 +55,30 @@ double crossprodmat::at(const int i, const int j) {
 
 
 //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
-double crossprodmat::at(const int k) {
-//double crossprodmat::operator() (const int k) {
+double crossprodmat::at(int k) {
 
-  return (*this).at(k % nrowx, k/nrowx);
-  //return (*this).operator()(k % nrowx, k/nrowx);
+  if (dense) {
+
+    return XtXd[k];
+
+  } else {
+
+    int i= k % ncolx;
+    int j= k / ncolx;
+      
+    if (XtXcomputed.at(i,j) == 0) {  //if this entry has not been already computed
+
+      int iini, jini, k; double ans= 0;
+      for (k=0, iini=i*nrowx, jini=j*nrowx; k< nrowx; k++) ans += x[k + iini] * x[k + jini];
+
+      XtXcomputed(i,j)= 1;
+      XtXs(i,j)= ans;
+    }
+
+    return XtXs.at(i,j);
+
+  }
+
 
 }
 

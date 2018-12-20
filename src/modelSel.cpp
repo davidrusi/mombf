@@ -14,6 +14,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include "cstat.h"
+#include "crossprodmat.h"
 #include "modelSel.h"
 #include "modselIntegrals.h"
 #include <vector>
@@ -25,11 +26,9 @@ struct marginalPars f2opt_pars, f2int_pars;
 
 
 
-
 //*************************************************************************************
 //EXAMPLE FUNCTIONS CREATED BY RcppArmadillo
 //*************************************************************************************
-
 
 // another simple example: outer product of a vector, returning a matrix
 //
@@ -54,9 +53,55 @@ double rcpparma_innerproduct(const arma::colvec & x) {
 Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
     arma::mat op = x * x.t();
     double    ip = arma::as_scalar(x.t() * x);
-    return Rcpp::List::create(Rcpp::Named("outer")=op,
-                              Rcpp::Named("inner")=ip);
+    return Rcpp::List::create(Rcpp::Named("outer")=op, Rcpp::Named("inner")=ip);
 }
+
+
+
+//*************************************************************************************
+//TEST FUNCTION TO HELP IN DEBUGGING
+//*************************************************************************************
+
+
+SEXP testfunctionCI(SEXP x) {
+    SEXP ans;
+
+    testfunction(); //run whatever code
+        
+    PROTECT(ans = Rf_allocVector(REALSXP, 1)); //return 0
+    *REAL(ans)= 0;
+    UNPROTECT(1);
+    return ans;
+}
+
+void testfunction() {
+    int i;
+    double *x, *XtX;
+    crossprodmat *As, *Ad; 
+
+    x= dvector(0,12); XtX= dvector(0,9);
+    for (i=0; i<12; i++) x[i]= (double) i;
+
+    XtX[0]= 14; XtX[3]= 38; XtX[6]= 62;
+    XtX[1]= 38; XtX[4]= 126; XtX[7]= 214;
+    XtX[2]= 62; XtX[5]= 214; XtX[8]= 366;
+
+    Ad= new crossprodmat(XtX,3,3,true);
+
+    Rprintf("A (dense)\n %f %f %f\n",Ad->at(0,0),Ad->at(0,1),Ad->at(0,2));
+    Rprintf("%f %f %f\n",Ad->at(1,0),Ad->at(1,1),Ad->at(1,2));
+    Rprintf("%f %f %f\n",Ad->at(2,0),Ad->at(2,1),Ad->at(2,2));
+    
+    As= new crossprodmat(x,3,3,false);
+    Rprintf("A (sparse)\n %f %f %f\n",As->at(0,0),As->at(0,1),As->at(0,2));
+    //    Rprintf("%f %f %f\n",As(1,0),As(1,1),As(1,2));
+    //    Rprintf("%f %f %f\n",As(2,0),As(2,1),As(2,2));
+
+    //delete As;
+    delete Ad;
+    free_dvector(x,0,9); free_dvector(XtX,0,9);
+}
+
 
 //*************************************************************************************
 //SETTING PRIOR & MARGINALS

@@ -49,6 +49,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
     {"_mombf_rcpparma_innerproduct", (DL_FUNC) &_mombf_rcpparma_innerproduct, 1},
     {"_mombf_rcpparma_bothproducts", (DL_FUNC) &_mombf_rcpparma_bothproducts, 1},
+    {"testfunctionCI",        (DL_FUNC) &testfunctionCI,         1},
     {"bsplineCI",             (DL_FUNC) &bsplineCI,              3},
     {"eprod_I",               (DL_FUNC) &eprod_I,                5},
     {"greedyVarSelCI",        (DL_FUNC) &greedyVarSelCI,        31},

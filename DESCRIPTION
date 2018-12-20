@@ -13,7 +13,7 @@ Description: Bayesian model selection and averaging for regression and mixtures 
 License: GPL (>= 2)
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R gam.R msPriorSpec.R modelsearch.R modelSelection.R normaliwish.R normmix.R nlpMarginal.R dmom.R mombf.R pmomLM.R pmomPM.R emomLM.R postMode.R pplProbit.R greedyGLM.R ppmodel.R zellnerLM.R rmom.R RcppExports.R
+Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R dmom.R emomLM.R gam.R greedyGLM.R msPriorSpec.R modelsearch.R modelSelection.R mombf.R normaliwish.R normmix.R nlpMarginal.R pmomLM.R pmomPM.R postMode.R pplProbit.R ppmodel.R rmom.R RcppExports.R testfunction.R zellnerLM.R
 
 
 

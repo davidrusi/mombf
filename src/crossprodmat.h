@@ -28,15 +28,19 @@ using namespace std;
 // Let x be an (nrowx,ncolx) matrix, stored as a vector (column1,column2,...)
 // The cross-product matrix XtX has (i,j) element equal to the inner product between columns i and j in x
 //
-// Example 1. Create object from x
-// A= crossprodmat(x, nrow, ncol);  //no inner-products are computed
-// double a= A(0,1);  //inner product between columns (0,1) is computed, stored internally and saved into a
-// double b= A(0,1) + 1;  //inner product is not re-computed, as it was stored earlier
+// Example 1. Create 3x3 sparse XtX matrix from x
+//   crossprodmat *A;
+//   A= new crossprodmat(x,3,3,false); //no inner-products are computed
+//   double a= A(0,1);  //inner product between columns (0,1) is computed, stored internally and saved into a
+//   double b= A(0,1) + 1.0;  //inner product is not re-computed, as it was stored earlier
+//   delete A;
 //
 // Example 2. Create object from XtX
-// A= crossprodmat(XtX, nrow, ncol);  //store pointer to pre-computed inner-products in XtX
-// double a= A(0,1);  //access element (0,1) in XtX
-// double b= A(0,1) + 1;  //inner product is not re-computed, as it was stored earlier
+//   crossprodmat *A;
+//   A= new crossprodmat(XtX, nrow, ncol, true);  //store pointer to pre-computed inner-products in XtX
+//   double a= A(0,1);  //access element (0,1) in XtX
+//   double b= A(0,1) + 1.0;  //inner product is not re-computed, as it was stored earlier
+//   delete A;
 
 //NOTE: all indexes in this class start at 0, e.g. A(0,1) returns element in row 0, column 1; A(0) returns element in row 0 column 0
 
@@ -44,20 +48,21 @@ class crossprodmat {
 
 public:
 
-  crossprodmat(double *mymat, int *nrowx, int *ncolx, bool dense);
-  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense);
+  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense); //if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
 
   ~crossprodmat();
 
-  double operator() (const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
+  double at(const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
+  double at(const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
-  double operator() (const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
+    //  double operator()(const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
+    //  double operator()(const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
 private:
 
   double *x;
-  int *nrowx;
-  int *ncolx;
+  int nrowx;
+  int ncolx;
   bool dense; //if true then matrix is stored in XtXd, else in XtXs
   double *XtXd;
   arma::sp_mat XtXs;  //equivalent to SpMat<double> XtXs

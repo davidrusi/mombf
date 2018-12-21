@@ -1,5 +1,4 @@
 #include "modselIntegrals.h"
-#include "cstat.h"
 using namespace std;
 
 modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nvars) {

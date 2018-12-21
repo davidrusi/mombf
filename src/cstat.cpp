@@ -6,16 +6,7 @@
  Edits: P. Roebuck
 ***********************************************************/
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <R.h>
-#include <Rinternals.h>
 #include "cstat.h"
-
 
 //static const char interface_c_sccs_id[] = "%W%";
 //static const char mess_c_sccs_id[] = "%W%";
@@ -35,7 +26,7 @@
  * Globals
  */
 static long is1 = 123456789, is2 = 981963;
-static int set = 0;
+static int cstat_set = 0;
 
 FILE *ifile, *ofile;
 int nv = 0;
@@ -3080,7 +3071,7 @@ double quadratic_xtAx(const double *x,
  * Note: Faster than xtAy() for symmetric A (saves 25%-50% operations).
  */
 double quadratic_xseltAselxsel(const double *x,
-                               const double *A,
+                               crossprodmat *A,
                                const int *ncolA,
                                const int *nsel,
                                const int *sel)
@@ -3099,12 +3090,12 @@ double quadratic_xseltAselxsel(const double *x,
         int i_sel;
 
         i_sel = sel[i];
-        z += A[i_sel * (*ncolA) + i_sel] * x[i_sel] * x[i_sel];
+        z += (A->at(i_sel * (*ncolA) + i_sel)) * x[i_sel] * x[i_sel];
         for (j = i+1; j <= (*nsel)-1; j++) {
             int j_sel;
 
             j_sel = sel[j];
-            z += 2 * A[i_sel * (*ncolA) + j_sel] * x[i_sel] * x[j_sel];
+            z += 2 * (A->at(i_sel * (*ncolA) + j_sel)) * x[i_sel] * x[j_sel];
         }
     }
     return(z);
@@ -3122,7 +3113,7 @@ double quadratic_xseltAselxsel(const double *x,
  * Note: Faster than xtAy() for symmetric A (saves 25%-50% operations).
  */
 double quadratic_xtAselx(const double *x,
-                         const double *A,
+                         crossprodmat *A,
                          const int *ncolA,
                          const int *nsel,
                          const int *sel)
@@ -3141,9 +3132,9 @@ double quadratic_xtAselx(const double *x,
         int i_sel;
 
         i_sel = sel[i];
-        z += A[i_sel * (*ncolA) + i_sel] * x[i] * x[i];
+        z += (A->at(i_sel * (*ncolA) + i_sel)) * x[i] * x[i];
         for (j = i+1; j <= (*nsel)-1; j++) {
-            z += 2 * A[i_sel * (*ncolA) + sel[j]] * x[i] * x[j];
+	  z += 2 * (A->at(i_sel * (*ncolA) + sel[j])) * x[i] * x[j];
         }
     }
     return(z);
@@ -4401,7 +4392,7 @@ void sampled_wr(double *x,
 void setseed(long is1,
              long is2)
 {
-    set = 1;
+    cstat_set = 1;
     setall(is1, is2);
 }
 
@@ -4410,9 +4401,9 @@ double runif(void)
 {
     double x;
 
-    if (set == 0) {
+    if (cstat_set == 0) {
         setall(is1, is2);
-        set = 1;
+        cstat_set = 1;
     }
 
     /* assign to double x for conversion */
@@ -5024,7 +5015,7 @@ void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rt
 SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s) {
   double pdfans;
   SEXP ans;
-  PROTECT(ans= allocVector(REALSXP,INTEGER(n)[0]));
+  PROTECT(ans= Rf_allocVector(REALSXP,INTEGER(n)[0]));
   rnorm_truncMult(REAL(ans),&pdfans,INTEGER(n),REAL(ltrunc),REAL(rtrunc),LENGTH(ltrunc),REAL(m),REAL(s));
   UNPROTECT(1);
   return ans;
@@ -5086,7 +5077,7 @@ SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within
     for (j=1; j<i; j++) S[i][j]= S[j][i]= REAL(Sigma)[ip+j-1];
   }
 
-  PROTECT(ans= allocVector(REALSXP,INTEGER(n)[0]*p));
+  PROTECT(ans= Rf_allocVector(REALSXP,INTEGER(n)[0]*p));
   rtmvnorm(REAL(ans), INTEGER(n)[0], p, REAL(mu)-1, S, REAL(lower)-1, REAL(upper)-1, INTEGER(within)[0], INTEGER(method)[0]);
   free_dmatrix(S,1,p,1,p);
   UNPROTECT(1);
@@ -5372,7 +5363,7 @@ SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper,
   free_dmatrix(S,1,p,1,p);
 
   SEXP ans;
-  PROTECT(ans= allocVector(REALSXP, nn*p));
+  PROTECT(ans= Rf_allocVector(REALSXP, nn*p));
   rtmvnormProd(REAL(ans), nn, p, REAL(mu)-1, Sinv, INTEGER(k)[0], REAL(lower)[0], REAL(upper)[0], INTEGER(is_low_trunc)[0], INTEGER(is_up_trunc)[0], INTEGER(burnin)[0]);
 
   free_dmatrix(Sinv,1,p,1,p);
@@ -5573,7 +5564,7 @@ void rmvnormC(double *y,
 SEXP mnormCI(SEXP order, SEXP m, SEXP sd) {
   SEXP ans;
 
-  ans= PROTECT(allocVector(REALSXP, 1));
+  ans= PROTECT(Rf_allocVector(REALSXP, 1));
   REAL(ans)[0]= mnorm(REAL(order)[0], REAL(m)[0], REAL(sd)[0]);
   UNPROTECT(1);
   return ans;
@@ -6506,7 +6497,7 @@ SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP 
   int n= LENGTH(y), nsave;
   SEXP ans;
   nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
-  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
+  ans= PROTECT(Rf_allocVector(REALSXP, nsave * (INTEGER(p)[0]+1)));
   rnlpPost_lm(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(y), REAL(x), n, INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], REAL(a_phi)[0], REAL(b_phi)[0], INTEGER(prior)[0]);
   UNPROTECT(1);
   return ans;
@@ -6642,7 +6633,7 @@ SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP
   int nsave;
   SEXP ans;
   nsave= (int) (floor(INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
-  ans= PROTECT(allocVector(REALSXP, nsave * (INTEGER(p)[0])));
+  ans= PROTECT(Rf_allocVector(REALSXP, nsave * (INTEGER(p)[0])));
   rnlp(REAL(ans), INTEGER(niter)[0], INTEGER(burnin)[0], INTEGER(thinning)[0], REAL(m), REAL(V), INTEGER(p)[0], INTEGER(r)[0], REAL(tau)[0], INTEGER(prior)[0]);
   UNPROTECT(1);
   return ans;

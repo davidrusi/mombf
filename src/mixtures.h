@@ -1,8 +1,12 @@
 #ifndef MIXTURES_H
 #define MIXTURES_H 1
 
-#include <R.h>
-#include <Rinternals.h>
+#include "RcppArmadillo.h"
+
+#include <stdlib.h>
+#include <math.h>
+//#include <R.h>
+//#include <Rinternals.h>
 
 extern "C" {
 

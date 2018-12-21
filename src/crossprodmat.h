@@ -11,11 +11,6 @@
 //
 // [[Rcpp::depends(RcppArmadillo)]]
 
-#include <R.h>
-#include <Rinternals.h>
-#include <map>
-#include <string>
-#include "cstat.h"
 using namespace std;
 
 

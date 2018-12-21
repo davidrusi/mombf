@@ -1,6 +1,8 @@
 #ifndef MODSELINTEGRALS
 #define MODSELINTEGRALS 1
 
+#include <RcppArmadillo.h>
+//#include <Rcpp.h>
 #include <map>
 #include <string>
 #include "modelSel.h"

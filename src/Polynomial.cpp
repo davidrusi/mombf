@@ -33,15 +33,7 @@
 //
 //**********************************************************************
 
-#include <cstdlib>
-#include <R.h>
-#include <Rinternals.h>
 
-#include <memory>
-#include <float.h>
-#include <math.h>
-#include <assert.h>
-#include <exception>
 #include "Polynomial.h"
 #include "PolynomialRootFinder.h"
 

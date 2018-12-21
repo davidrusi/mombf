@@ -7,9 +7,18 @@
 #ifndef CSTAT_H
 #define CSTAT_H 1
 
+// we only include RcppArmadillo.h which pulls Rcpp.h in for us
+#include "RcppArmadillo.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "crossprodmat.h"
+//#include <R.h>
+//#include <Rinternals.h>
 
 
 #if !defined(M_PI)
@@ -200,8 +209,8 @@ void Atvecx(const double *A, const double *x, double *z, int rowini, int rowfi, 
 double xtAy(const double *x, double **A, const double *y, int ini, int fi); //t(vector)*matrix*vector
 
 double quadratic_xtAx(const double *x, double **A, int ini, int fi); //t(vector)*matrix*vector for quadratic forms (A symmetric)
-double quadratic_xseltAselxsel(const double *x, const double *A, const int *ncol, const int *nsel, const int *sel); // same but A is formatted as vector & only a subset of x, A is to be used
-double quadratic_xtAselx(const double *x, const double *A, const int *ncolA, const int *nsel, const int *sel); //same but subset is only for A
+double quadratic_xseltAselxsel(const double *x, crossprodmat *A, const int *ncol, const int *nsel, const int *sel); // same but A is formatted as vector & only a subset of x, A is to be used
+double quadratic_xtAselx(const double *x, crossprodmat *A, const int *ncolA, const int *nsel, const int *sel); //same but subset is only for A
 double quadratic_xseltAxsel(const double *x, double **A, int ini, const int *nsel, const int *sel); //same but subset is only for x
 
 void Atx(double **A, const double *x, double *z, int rowini, int rowfi, int colini, int colfi); //t(matrix)*vector

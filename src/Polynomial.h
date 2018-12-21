@@ -36,8 +36,18 @@
 #ifndef POLYNOMIAL_H
 #define POLYNOMIAL_H
 
+#include "RcppArmadillo.h"
+
+#include <cstdlib>
+#include <memory>
+#include <float.h>
+#include <math.h>
+#include <assert.h>
+#include <exception>
 #include <vector>
 #include "PolynomialRootFinder.h"
+//#include <R.h>
+//#include <Rinternals.h>
 
 //======================================================================
 //  Class definition.

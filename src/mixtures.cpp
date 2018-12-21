@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <math.h>
-#include <R.h>
-#include <Rinternals.h>
 #include "cstat.h"
 #include "mixtures.h"
 
@@ -38,20 +34,20 @@ SEXP normalmixGibbsCI(SEXP Sx, SEXP Sn, SEXP Sp, SEXP Sncomp, SEXP Sz, SEXP Smu0
   niter= INTEGER(SB)[0] - INTEGER(Sburnin)[0];
   nelemcov= (INTEGER(Sp)[0])*(INTEGER(Sp)[0]+1)/2;
 
-  PROTECT(ans= allocVector(VECSXP, 5));
-  SET_VECTOR_ELT(ans, 0, allocVector(REALSXP, 1));
+  PROTECT(ans= Rf_allocVector(VECSXP, 5));
+  SET_VECTOR_ELT(ans, 0, Rf_allocVector(REALSXP, 1));
   pponeempty= REAL(VECTOR_ELT(ans,0));
 
-  SET_VECTOR_ELT(ans, 1, allocVector(REALSXP, niter));
+  SET_VECTOR_ELT(ans, 1, Rf_allocVector(REALSXP, niter));
   logpen= REAL(VECTOR_ELT(ans,1));
 
-  SET_VECTOR_ELT(ans, 2, allocVector(REALSXP, INTEGER(Sncomp)[0] * niter)); //posterior draws for mixing probabilities
+  SET_VECTOR_ELT(ans, 2, Rf_allocVector(REALSXP, INTEGER(Sncomp)[0] * niter)); //posterior draws for mixing probabilities
   eta= REAL(VECTOR_ELT(ans,2));
 
-  SET_VECTOR_ELT(ans, 3, allocVector(REALSXP, INTEGER(Sncomp)[0] * INTEGER(Sp)[0] * niter)); //means
+  SET_VECTOR_ELT(ans, 3, Rf_allocVector(REALSXP, INTEGER(Sncomp)[0] * INTEGER(Sp)[0] * niter)); //means
   mu= REAL(VECTOR_ELT(ans,3));
 
-  SET_VECTOR_ELT(ans, 4, allocVector(REALSXP, INTEGER(Sncomp)[0] * nelemcov * niter)); //covariances
+  SET_VECTOR_ELT(ans, 4, Rf_allocVector(REALSXP, INTEGER(Sncomp)[0] * nelemcov * niter)); //covariances
   cholSigmainv= REAL(VECTOR_ELT(ans,4));
 
   normalmixGibbsC(pponeempty, logpen, eta, mu, cholSigmainv, REAL(Sx), INTEGER(Sn), INTEGER(Sp), INTEGER(Sncomp), INTEGER(Sz), REAL(Smu0), REAL(Sg), INTEGER(Snu0), REAL(SS0), REAL(Sq), INTEGER(SB), INTEGER(Sburnin), INTEGER(Sverbose));

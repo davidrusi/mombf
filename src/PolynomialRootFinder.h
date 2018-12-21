@@ -37,6 +37,8 @@
 #define POLYNOMIALROOTFINDER_H
 
 #include <vector>
+#include <math.h>
+#include <float.h>
 
 //======================================================================
 //  Class definition.

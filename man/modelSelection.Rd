@@ -16,7 +16,7 @@
   probability model using an iterative block search.
 }
 \usage{
-modelSelection(y, x, groups=1:ncol(x), constraints,
+modelSelection(y, x, data, groups=1:ncol(x), constraints,
 center=TRUE, scale=TRUE,
 enumerate= ifelse(ncol(x)<15,TRUE,FALSE),
 includevars=rep(FALSE,ncol(x)),
@@ -34,8 +34,13 @@ blocksize=10, maxiter=10, maxvars=100, maxlogmargdrop=20,
 maxenum=10, verbose=TRUE)
 }
 \arguments{
-\item{y}{Vector with observed responses}
-\item{x}{Design matrix with all potential predictors}
+\item{y}{Either a formula with the regression equation or a vector with
+  observed responses. If \code{y} is a formula arguments \code{x},
+  \code{groups} and \code{constraints} are automatically created}
+\item{x}{Design matrix with all potential predictors. Ignored if
+  \code{y} is a formula}
+\item{data}{If \code{y} is a formula then \code{data} should be a data
+  frame containing the variables in the model}
 \item{groups}{If variables in \code{x} such be added/dropped in groups,
   \code{groups} indicates the group that each variable corresponds to
   (by default each variable goes in a separate group)}

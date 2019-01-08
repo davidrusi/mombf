@@ -81,7 +81,7 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
 # Input
 # - y: vector with response variable
 # - x: design matrix with all potential predictors
@@ -116,6 +116,10 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
 # - postProb: unnormalized posterior prob of each visited model (log scale)
 
   #Check input
+  if (class(y)=="formula") {
+      des= createDesign(y, data=data)
+      y= des$y; x= des$x; groups= des$groups; constraints= des$constraints
+  }
   p= ncol(x); n= length(y)
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
@@ -136,7 +140,7 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
   if (sum(ct)>1) stop('There are >1 constant columns in x (e.g. two intercepts)')
   if (!center) { my=0; mx= rep(0,p) } else { my= mean(y) }
   if (!scale) { sy=1; sx= rep(1,p) } else { sy= sd(y) }
-  ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx)/sx)
+  ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
 
@@ -235,6 +239,53 @@ modelSelection <- function(y, x, groups=1:ncol(x), constraints, center=TRUE, sca
   new("msfit",ans)
 }
 
+
+
+
+#Create a design matrix for the given formula. Return also variable groups (e.g. from factors) and hierarchical constraints (e.g. from interaction terms), these are the parameters "groups" and "constraints" in modelSelection
+createDesign <- function(formula, data, subset, na.action) {
+    call <- match.call()
+    if (missing(data)) data <- environment(formula)
+    mf <- match.call(expand.dots = FALSE)
+    m <- match(c("formula", "data", "subset"), names(mf), 0L)
+    mf <- mf[c(1L, m)]
+    mf$na.action = quote(na.pass)
+    mf$drop.unused.levels <- TRUE
+    mf[[1L]] <- quote(stats::model.frame)
+    #gam.slist <- gam.smoothers()$slist
+    mt <- if (missing(data)) terms(formula) else terms(formula, data = data)
+    #mt <- if (missing(data)) terms(formula, gam.slist) else terms(formula, gam.slist, data = data)
+    mf$formula <- mt
+    mf <- eval(mf, parent.frame())
+    if (missing(na.action)) {
+        naa = getOption("na.action", "na.fail")
+        na.action = get(naa)
+    }
+    mf = na.action(mf)
+    mt = attributes(mf)[["terms"]]  #mt is an object of class "terms" storing info about the model, see help(terms.object) for a description
+    y <- model.response(mf, "any")
+    x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(Y), 0)
+    groups <- attr(x,"assign") #group that each variable belongs to, e.g. for factors
+    intercept <- ifelse(min(groups)==0,1,0)
+    groups2vars <- attr(mt,"factors")[-1,] #for each variable group, hierarchical dependence on other groups
+    nn= colnames(groups2vars)[!(colnames(groups2vars) %in% rownames(groups2vars))]
+    if (length(nn)>0) { #there's interaction terms
+        tmp= matrix(0,nrow=length(nn),ncol=ncol(groups2vars))
+        rownames(tmp)= nn
+        colnames(tmp)= colnames(groups2vars)
+        for (i in 1:nrow(tmp)) {
+            nni= paste(strsplit(nn[i],split=":")[[1]], collapse=":.*") #regular expression, e.g. if nn[i]="Xj:Xl" it checks for "Xj:.*Xl"
+            tmp[i,grep(nni,colnames(tmp))]= 1
+        }
+        groups2vars= rbind(groups2vars,tmp)
+        constraints= lapply(1:ncol(groups2vars), function(i) { ans= as.integer(which(groups2vars[,i]>0)); ans[ans!=i] + intercept })
+        if (intercept==1) constraints= c(list(integer(0)),constraints)
+    } else { #there are no interactions
+        constraints= lapply(1:(max(groups)+intercept), function(i) integer(0))
+    }
+    groups= groups+intercept
+    return(list(y=y,x=x,groups=groups,constraints=constraints))
+}
 
 
 #Count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...

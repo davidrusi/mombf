@@ -61,7 +61,7 @@ SEXP testfunctionCI(SEXP x) {
     SEXP ans;
 
     testfunction(); //run whatever code
-        
+
     PROTECT(ans = Rf_allocVector(REALSXP, 1)); //return 0
     *REAL(ans)= 0;
     UNPROTECT(1);
@@ -71,7 +71,7 @@ SEXP testfunctionCI(SEXP x) {
 void testfunction() {
     int i;
     double *x, *XtX;
-    crossprodmat *As, *Ad; 
+    crossprodmat *As, *Ad;
 
     x= dvector(0,12); XtX= dvector(0,9);
     for (i=0; i<12; i++) x[i]= (double) i;
@@ -83,7 +83,7 @@ void testfunction() {
     Ad= new crossprodmat(XtX,4,3,true);
     Rprintf("Ad\n %f %f %f \n %f %f %f \n %f %f %f\n\n",Ad->at(0,0),Ad->at(0,1),Ad->at(0,2),Ad->at(1,0),Ad->at(1,1),Ad->at(1,2),Ad->at(2,0),Ad->at(2,1),Ad->at(2,2));
     Rprintf("Ad\n %f %f %f \n %f %f %f \n %f %f %f\n\n",Ad->at(0),Ad->at(3),Ad->at(6),Ad->at(1),Ad->at(4),Ad->at(7),Ad->at(2),Ad->at(5),Ad->at(8));
-    
+
     As= new crossprodmat(x,4,3,false);
     Rprintf("As\n %f %f %f \n %f %f %f \n %f %f %f\n\n",As->at(0,0),As->at(0,1),As->at(0,2),As->at(1,0),As->at(1,1),As->at(1,2),As->at(2,0),As->at(2,1),As->at(2,2));
     Rprintf("As\n %f %f %f \n %f %f %f \n %f %f %f\n\n",As->at(0),As->at(3),As->at(6),As->at(1),As->at(4),As->at(7),As->at(2),As->at(5),As->at(8));
@@ -283,7 +283,7 @@ SEXP pmomLM_I(SEXP niter, SEXP thinning, SEXP burnin, SEXP niniModel, SEXP iniMo
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(n)[0],INTEGER(p1)[0],true);
-  
+
   PROTECT(ans= Rf_allocVector(VECSXP, 7));
   mcmc2save= floor((INTEGER(niter)[0] - INTEGER(burnin)[0] +.0)/(INTEGER(thinning)[0] +.0));
 
@@ -1039,7 +1039,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   //Copy marginal probabilities from 1st variable in each group to all other variables in the group
   for (jgroup=0; jgroup<ngroups; jgroup++) {
     for (j=1; j<nvaringroup[jgroup]; j++) {
-      margpp[firstingroup[jgroup+j]]= margpp[firstingroup[jgroup]];
+      margpp[firstingroup[jgroup]+j]= margpp[firstingroup[jgroup]];
     }
   }
 

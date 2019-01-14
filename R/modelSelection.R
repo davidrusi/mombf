@@ -81,10 +81,13 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
 # Input
-# - y: vector with response variable
+# - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
+# - data: data frame where the variables indicated in y (if it's a formula) and smoothterms can be found
+# - smoothterms: formula indicating variables for which non-linear effects (splines) should be considered
+# - nknots: number of knots
 # - groups: vector indicating groups for columns in x (defaults to each variable in a separate group)
 # - constraints: constraints on the model space. List with length equal to the number of groups; if group[[i]]=c(j,k) then group i can only be in the model if groups j and k are also in the model
 # - center: if center==TRUE y and x are centered to have zero mean, therefore eliminating the need to include an intercept term in x.
@@ -117,8 +120,10 @@ modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRU
 
   #Check input
   if (class(y)=="formula") {
-      des= createDesign(y, data=data)
-      y= des$y; x= des$x; groups= des$groups; constraints= des$constraints
+      des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=3, nknots=nknots)
+      y= des$y; x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
+  } else {
+      typeofvar= rep('numeric',ncol(x))
   }
   p= ncol(x); n= length(y)
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
@@ -126,11 +131,11 @@ modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRU
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
-    
+
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
-    
+
   #Standardize (y,x) to mean 0 and variance 1
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
@@ -140,6 +145,7 @@ modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRU
   if (sum(ct)>1) stop('There are >1 constant columns in x (e.g. two intercepts)')
   if (!center) { my=0; mx= rep(0,p) } else { my= mean(y) }
   if (!scale) { sy=1; sx= rep(1,p) } else { sy= sd(y) }
+  mx[typeofvar=='factor']=0; sx[typeofvar=='factor']= 1
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
@@ -155,14 +161,14 @@ modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRU
   method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=knownphi)
   hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
-    
+
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
   sumy2 <- as.double(sum(ystd^2)); XtX <- t(xstd) %*% xstd; ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
 
   tmp= formatmsPriors(priorCoef=priorCoef, priorVar=priorVar, priorSkew=priorSkew, priorDelta=priorDelta)
   r= tmp$r; prior= tmp$prior; tau=tmp$tau; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha;
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
-    
+
   if (family=='auto') { familyint <- 0 } else if (family=='normal') { familyint <- 1 } else if (family=='twopiecenormal') { familyint <- 2 } else if (family=='laplace') { familyint <- 3 } else if (family=='twopiecelaplace') { familyint <- 4 } else stop("family not available")
   familyint <- as.integer(familyint)
   if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
@@ -241,13 +247,16 @@ modelSelection <- function(y, x, data, groups=1:ncol(x), constraints, center=TRU
 
 
 
-
-#Create a design matrix for the given formula. Return also variable groups (e.g. from factors) and hierarchical constraints (e.g. from interaction terms), these are the parameters "groups" and "constraints" in modelSelection
-createDesign <- function(formula, data, subset, na.action) {
+#Create a design matrix for the given formula. Return also covariate groups (e.g. from factors), covariate type (factor/numeric) and hierarchical constraints (e.g. from interaction terms), these are the parameters "groups" and "constraints" in modelSelection
+createDesign <- function(formula, data, smoothterms, subset, na.action, splineDegree=3, nknots=14) {
     call <- match.call()
     if (missing(data)) data <- environment(formula)
     mf <- match.call(expand.dots = FALSE)
-    m <- match(c("formula", "data", "subset"), names(mf), 0L)
+    if (!missing(subset)) {
+        m <- match(c("formula", "data", "subset"), names(mf), 0L)
+    } else {
+        m <- match(c("formula", "data"), names(mf), 0L)
+    }
     mf <- mf[c(1L, m)]
     mf$na.action = quote(na.pass)
     mf$drop.unused.levels <- TRUE
@@ -264,10 +273,12 @@ createDesign <- function(formula, data, subset, na.action) {
     mf = na.action(mf)
     mt = attributes(mf)[["terms"]]  #mt is an object of class "terms" storing info about the model, see help(terms.object) for a description
     y <- model.response(mf, "any")
-    x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(Y), 0)
+    x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(y), 0)
     groups <- attr(x,"assign") #group that each variable belongs to, e.g. for factors
-    intercept <- ifelse(min(groups)==0,1,0)
-    groups2vars <- attr(mt,"factors")[-1,] #for each variable group, hierarchical dependence on other groups
+    tab= table(groups);
+    typeofvar= ifelse(groups %in% as.numeric(names(tab)[tab>1]),'factor','numeric')
+    intercept= ifelse(min(groups)==0,1,0)
+    groups2vars= attr(mt,"factors")[-1,] #for each variable group, hierarchical dependence on other groups
     nn= colnames(groups2vars)[!(colnames(groups2vars) %in% rownames(groups2vars))]
     if (length(nn)>0) { #there's interaction terms
         tmp= matrix(0,nrow=length(nn),ncol=ncol(groups2vars))
@@ -284,8 +295,51 @@ createDesign <- function(formula, data, subset, na.action) {
         constraints= lapply(1:(max(groups)+intercept), function(i) integer(0))
     }
     groups= groups+intercept
-    return(list(y=y,x=x,groups=groups,constraints=constraints))
+    #Add spline terms
+    if (!missing(smoothterms)) {
+        if (!(class(smoothterms) %in% c('formula','matrix','data.frame'))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
+        maxgroups= max(groups)
+        if (class(smoothterms)=='formula') {
+            smoothterms= formula(paste("~ ",-1,"+",as.character(smoothterms)[2])) #remove intercept
+            L= createDesign(smoothterms, data=data, subset=subset, na.action=na.action)$x
+        } else {
+            L= as.matrix(smoothterms)
+            if (is.null(colnames(L))) colnames(L)= paste("L",1:ncol(L),sep="")
+        }
+        W <- matrix(NA,nrow=nrow(L),ncol=(nknots-4)*ncol(L))
+        namesW <- character(ncol(W))
+        groupsW <- integer(ncol(W)); constraintsW= vector("list",ncol(L))
+        groupsL <- integer(ncol(L)); constraintsL= lapply(1:ncol(L), function(i) integer(0))
+        selL= rep(FALSE,ncol(L)); nselL= 0
+        for (j in 1:ncol(L)) {
+            m= range(L[,j])
+            tmp= bspline(L[,j], degree=splineDegree, knots=seq(m[1],m[2],length=nknots)) #equally-spaced knots
+            Lj= cbind(1,L[,j]); b= solve(t(Lj) %*% Lj) %*% (t(Lj) %*% tmp)
+            idx= (1+(j-1)*(nknots-4)):(j*(nknots-4))
+            W[,idx]= tmp - Lj %*% b #project splines onto space orthogonal to linear term
+            namesW[idx]= paste(colnames(L)[j],'.s',1:length(idx),sep='')
+            repeated= which(colnames(x)==colnames(L)[j])
+            if (length(repeated)==1) {  #linear term was already in x
+                constraintsW[[j]]= groups[repeated]
+            } else {                    #linear term wasn't in x
+                selL[j]= TRUE
+                nselL= nselL+1
+                groupsL[j]= maxgroups + nselL
+                constraintsW[[j]]= groupsL[j]
+            }
+            groupsW[idx]= j
+        }
+        colnames(W)= namesW
+        groupsW= maxgroups + nselL + groupsW
+        x= cbind(x,L[,selL],W)
+        groups= c(groups, groupsL[selL], groupsW)
+        typeofvar= c(typeofvar, rep('numeric',sum(selL)+length(groupsW)))
+        constraints= c(constraints, constraintsL[selL], constraintsW)
+    }
+    return(list(y=y,x=x,groups=groups,constraints=constraints,typeofvar=typeofvar))
 }
+
+
 
 
 #Count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 1,2,...
@@ -457,7 +511,7 @@ formatmsPriors= function(priorCoef, priorVar, priorSkew, priorDelta) {
   ans= list(r=r,prior=prior,tau=tau,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha,prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap)
   return(ans)
 }
-    
+
 
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {

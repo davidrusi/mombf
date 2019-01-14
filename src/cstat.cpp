@@ -93,12 +93,7 @@ double meani(const int *x,
     int i;
     double value = 0.0;
 
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-
-    for (i = 0; i <= lim; i++) {
-        value += x[i];
-    }
+    for (i = 0; i <= lim; i++) { value += x[i]; }
     value *= 1.0 / (lim+1.0);
     return value;
 }
@@ -111,10 +106,6 @@ double wmeani(const int *x,
     int i;
     double value = 0.0;
     double wtot = 0.0;
-
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * x[i];
@@ -132,12 +123,7 @@ double meanx(const double *x,
     int i;
     double value = 0.0;
 
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-
-    for (i = 0; i <= lim; i++) {
-        value += x[i];
-    }
+    for (i = 0; i <= lim; i++) { value += x[i]; }
     value *= 1.0 / (lim+1.0);
     return value;
 }
@@ -150,10 +136,6 @@ double wmeanx(const double *x,
     int i;
     double value = 0.0;
     double wtot = 0.0;
-
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * x[i];
@@ -172,13 +154,7 @@ double vari(const int *x,
     int i;
     double value = 0.0;
 
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(unbiased == false || unbiased == true);
-
-    for (i = 0; i <= lim; i++) {
-      value += pow((double) x[i], 2.0) / (1.0+lim);
-    }
+    for (i = 0; i <= lim; i++) { value += pow((double) x[i], 2.0) / (1.0+lim);  }
     value -= pow(meani(x, lim), 2);
     if (unbiased && lim>0) {
         value *= (1.0+lim) / (0.0+lim);
@@ -194,10 +170,6 @@ double wvari(const int *x,
     int i;
     double value = 0.0;
     double wtot = 0.0;
-
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
       value += w[i] * pow((double) x[i], 2.0);
@@ -216,13 +188,7 @@ double varx(const double *x,
     int i;
     double value = 0.0;
 
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(unbiased == false || unbiased == true);
-
-    for (i = 0; i <= lim; i++) {
-        value += pow(x[i], 2) / (1.0+lim);
-    }
+    for (i = 0; i <= lim; i++) { value += pow(x[i], 2) / (1.0+lim); }
     value -= pow(meanx(x, lim), 2);
     if (unbiased && lim>0) {
         value *= (1.0+lim) / (lim+0.0);
@@ -238,10 +204,6 @@ double wvarx(const double *x,
     int i;
     double value = 0.0;
     double wtot = 0.0;
-
-    //assert(x != NULL);
-    //assert(lim >= 0);    /* :TBD: Change datatype to 'unsigned'? */
-    //assert(w != NULL);
 
     for (i = 0; i <= lim; i++) {
         value += w[i] * pow(x[i], 2);
@@ -261,8 +223,6 @@ double cv(const double *x,
     double m = 0.0;
     double s = 0.0;
     double ans;
-
-    //assert(x != NULL);
 
     for (i = ini; i <= fi; i++) {
         double value;
@@ -288,8 +248,6 @@ double cvinv(const double *x,
     double s = 0.0;
     double ans;
 
-    //assert(x != NULL);
-
     for (i = ini; i <= fi; i++) {
         double value;
 
@@ -312,9 +270,6 @@ void colMeans(double *m,
               int ncol)
 {
     int i, j;
-
-    //assert(m != NULL);
-    //assert(x != NULL);
 
     for (j = 0; j < ncol; j++) {
         m[j] = 0.0;
@@ -339,9 +294,6 @@ void colVar(double *v,
     int i, j;
     double *m;
     double *m2;
-
-    //assert(v != NULL);
-    //assert(x != NULL);
 
     m  = dvector(0, ncol-1);
     m2 = dvector(0, ncol-1);
@@ -379,9 +331,6 @@ void colCV(double *cv,
     double *m;
     double *s;
 
-    //assert(cv != NULL);
-    //assert(x != NULL);
-
     m = dvector(0, ncol);
     s = dvector(0, ncol);
 
@@ -418,9 +367,6 @@ void colCVinv(double *cv,
     int j;
     double *m;
     double *s;
-
-    //assert(cv != NULL);
-    //assert(x != NULL);
 
     m = dvector(0, ncol);
     s = dvector(0, ncol);
@@ -661,14 +607,6 @@ void nn_bayes(double *mpo,
   bool posdef;
   double *z;
 
-    //assert(mpo != NULL);
-    //assert(mpr != NULL);
-    //assert(Spo != NULL);
-    //assert(y != NULL);
-    //assert(Spo_inv != NULL);
-    //assert(Spr_inv != NULL);
-    //assert(Slik_inv != NULL);
-
     z = dvector(1, p);
 
     rA_plus_sB(1.0/r1, Spr_inv, 1.0/r2, Slik_inv, Spo_inv, 1, p, 1, p);
@@ -700,12 +638,6 @@ void nn_bayes_rand(double *theta,
     double **S;
     double **S_inv;
     double **cholS;
-
-    //assert(theta != NULL);
-    //assert(Spr_inv != NULL);
-    //assert(mpr != NULL);
-    //assert(Slik_inv != NULL);
-    //assert(y != NULL);
 
     /* Allocate memory */
     z = dvector(0, p-1);
@@ -757,18 +689,6 @@ double nn_integral(const double *x,
     double **cholVsum;
     double *m;
     double ans;
-
-    //assert(x != NULL);
-    //assert(rx != NULL);
-    //assert(Vxinv != NULL);
-    //assert(detVx != NULL);
-    //assert(mpr != NULL);
-    //assert(rpr != NULL);
-    //assert(Vprinv != NULL);
-    //assert(detVpr != NULL);
-    //assert(p != NULL);
-    //assert(logscale != NULL);
-    //assert((*logscale == 0) || (*logscale == 1));
 
     m = dvector(1, *p);
     Vsum = dmatrix(1, *p, 1, *p);

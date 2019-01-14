@@ -1,4 +1,6 @@
 CHANGES IN VERSION 2.2.0
+- Added additive models to modelSelection
+- Added support for formulas to modelSelection
 - Added RcppArmadillo
 - Added option to group variables and impose hierarchical restrictions to
 modelSelection

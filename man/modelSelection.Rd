@@ -16,8 +16,8 @@
   probability model using an iterative block search.
 }
 \usage{
-modelSelection(y, x, data, groups=1:ncol(x), constraints,
-center=TRUE, scale=TRUE,
+modelSelection(y, x, data, smoothterms, nknots=14,
+groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
 enumerate= ifelse(ncol(x)<15,TRUE,FALSE),
 includevars=rep(FALSE,ncol(x)),
 maxvars, niter=10^4, thinning=1,
@@ -37,19 +37,29 @@ maxenum=10, verbose=TRUE)
 \item{y}{Either a formula with the regression equation or a vector with
   observed responses. If \code{y} is a formula arguments \code{x},
   \code{groups} and \code{constraints} are automatically created}
-\item{x}{Design matrix with all potential predictors. Ignored if
+\item{x}{Design matrix with linear covariates for which we want to
+  assess if they have a linear effect on the response. Ignored if
   \code{y} is a formula}
 \item{data}{If \code{y} is a formula then \code{data} should be a data
   frame containing the variables in the model}
+\item{smoothterms}{Formula for non-linear covariates (cubic splines),
+  modelSelection assesses if the variable has no effect, linear or
+  non-linear effect. \code{smoothterms} can also be a design matrix or
+  data.frame containing linear terms, for each column modelSelection
+  creates a spline basis and tests no/linear/non-linear effects}
+\item{nknots}{Number of spline knots. For cubic splines the non-linear
+  basis adds knots-4 coefficients for each linear term, we recommend
+  setting \code{nknots} to a small/moderate value}
 \item{groups}{If variables in \code{x} such be added/dropped in groups,
   \code{groups} indicates the group that each variable corresponds to
   (by default each variable goes in a separate group)}
 \item{constraints}{Constraints on the model space. List with length
   equal to the number of groups;
   if group[[i]]=c(j,k) then group i can only be in the model if groups j and k are also in the model}
-\item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have zero mean, therefore eliminating the need to include an intercept term in x}
+\item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have
+  zero mean. Dummy variables corresponding to factors are NOT centered}
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
-  scaled to have standard deviation1}
+  scaled to have variance=1. Dummy variables corresponding to factors are NOT scaled}
 \item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are
   enumerated, else Gibbs sampling is used to explore the model space}
 \item{includevars}{Logical vector of length ncol(x) indicating variables

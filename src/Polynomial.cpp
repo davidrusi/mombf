@@ -174,14 +174,13 @@ Polynomial::~Polynomial()
 //
 //  Return Value:
 //
-//    The function has no return value. 
+//    The function has no return value.
 //
 //======================================================================
 
 void Polynomial::SetCoefficients(double * coefficient_vector_ptr,
                                  int degree)
 {
-    assert(degree >= 0);
 
     m_degree = degree;
 
@@ -212,7 +211,7 @@ void Polynomial::SetCoefficients(double * coefficient_vector_ptr,
 //
 //  Return Value:
 //
-//    The function has no return value. 
+//    The function has no return value.
 //
 //======================================================================
 
@@ -297,22 +296,22 @@ void Polynomial::SetToQuadraticPolynomial(double x_squared_coefficient,
 //  Return Value:
 //
 //    This function returns a value of type 'double' that is equal
-//    to the polynomial evaluated at the passed value x. 
+//    to the polynomial evaluated at the passed value x.
 //
 //======================================================================
 
 double Polynomial::EvaluateReal(double xr) const
 {
-    assert(m_degree >= 0);
-    
+  //assert(m_degree >= 0);
+
     double pr = m_coefficient_vector_ptr[m_degree];
     int i = 0;
-    
+
     for (i = m_degree - 1; i >= 0; --i)
     {
         pr = pr * xr + m_coefficient_vector_ptr[i];
     }
-    
+
     return pr;
 }
 
@@ -335,13 +334,13 @@ double Polynomial::EvaluateReal(double xr) const
 //  Return Value:
 //
 //    This function returns a value of type 'double' that is equal
-//    to the polynomial evaluated at the passed value x. 
+//    to the polynomial evaluated at the passed value x.
 //
 //======================================================================
 
 double Polynomial::EvaluateReal(double xr, double & dr) const
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     double pr = m_coefficient_vector_ptr[m_degree];
     dr = pr;
@@ -384,7 +383,7 @@ double Polynomial::EvaluateReal(double xr, double & dr) const
 //
 //  Return Value:
 //
-//    This function has no return value. 
+//    This function has no return value.
 //
 //======================================================================
 
@@ -392,7 +391,7 @@ void Polynomial::EvaluateImaginary(double xi,
                                    double & pr,
                                    double & pi) const
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     pr = m_coefficient_vector_ptr[m_degree];
     pi = 0;
@@ -437,7 +436,7 @@ void Polynomial::EvaluateImaginary(double xi,
 //
 //  Return Value:
 //
-//    This function has no return value. 
+//    This function has no return value.
 //
 //======================================================================
 
@@ -446,7 +445,7 @@ void Polynomial::EvaluateComplex(double xr,
                                  double & pr,
                                  double & pi) const
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     pr = m_coefficient_vector_ptr[m_degree];
     pi = 0;
@@ -499,7 +498,7 @@ void Polynomial::EvaluateComplex(double xr,
 //
 //  Return Value:
 //
-//    This function has no return value. 
+//    This function has no return value.
 //
 //======================================================================
 
@@ -510,7 +509,7 @@ void Polynomial::EvaluateComplex(double xr,
                                  double & dr,
                                  double & di) const
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     pr = m_coefficient_vector_ptr[m_degree];
     pi = 0;
@@ -566,7 +565,7 @@ Polynomial Polynomial::Derivative() const
     //  zero then the derivative is zero.
     //------------------------------------------------------------------
 
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     if (m_degree > 0)
     {
@@ -628,7 +627,7 @@ Polynomial Polynomial::Integral() const
     //  Set the size of the buffer for the integral polynomial.
     //------------------------------------------------------------------
 
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     integral_polynomial.SetLength(m_degree + 2);
 
@@ -718,7 +717,7 @@ PolynomialRootFinder::RootStatus_T Polynomial::FindRoots(double * real_zero_vect
                                                          double * imaginary_zero_vector_ptr,
                                                          int * roots_found_ptr) const
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     PolynomialRootFinder * polynomial_root_finder_ptr = new PolynomialRootFinder;
 
@@ -960,7 +959,7 @@ double Polynomial::operator [](int power_index) const
     //  Ensure that the index is within range.
     //------------------------------------------------------------------
 
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     if ((power_index < 0) || (power_index > m_degree))
     {
@@ -996,7 +995,7 @@ double & Polynomial::operator [](int power_index)
     //  Ensure that the index is within range.
     //------------------------------------------------------------------
 
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     if ((power_index < 0) || (power_index > m_degree))
     {
@@ -1027,7 +1026,7 @@ double & Polynomial::operator [](int power_index)
 
 Polynomial Polynomial::operator +=(const Polynomial & polynomial)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     int i = 0;
 
@@ -1086,7 +1085,7 @@ Polynomial Polynomial::operator +=(const Polynomial & polynomial)
 
 Polynomial Polynomial::operator +=(double scalar)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     m_coefficient_vector_ptr[0] += scalar;
 
@@ -1114,7 +1113,7 @@ Polynomial Polynomial::operator +=(double scalar)
 
 Polynomial Polynomial::operator -=(const Polynomial & polynomial)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     int i = 0;
 
@@ -1173,7 +1172,7 @@ Polynomial Polynomial::operator -=(const Polynomial & polynomial)
 
 Polynomial Polynomial::operator -=(double scalar)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     m_coefficient_vector_ptr[0] -= scalar;
 
@@ -1206,7 +1205,7 @@ Polynomial Polynomial::operator *=(const Polynomial & polynomial)
     //  polynomials.
     //------------------------------------------------------------------
 
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     int convolution_length = m_degree + polynomial.m_degree + 1;
 
@@ -1285,7 +1284,7 @@ Polynomial Polynomial::operator *=(const Polynomial & polynomial)
 
 Polynomial Polynomial::operator *=(double scalar)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     int i = 0;
 
@@ -1325,7 +1324,7 @@ Polynomial Polynomial::operator *=(double scalar)
 
 Polynomial Polynomial::operator /=(double scalar)
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     int i = 0;
 
@@ -1358,7 +1357,7 @@ Polynomial Polynomial::operator /=(double scalar)
 
 Polynomial Polynomial::operator +()
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
     return *this;
 }
 
@@ -1386,7 +1385,7 @@ Polynomial Polynomial::operator +()
 
 Polynomial Polynomial::operator -()
 {
-    assert(m_degree >= 0);
+    //assert(m_degree >= 0);
 
     for (int i = 0; i <= m_degree; ++i)
     {

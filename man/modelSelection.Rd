@@ -18,8 +18,7 @@
 \usage{
 modelSelection(y, x, data, smoothterms, nknots=14,
 groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
-enumerate= ifelse(ncol(x)<15,TRUE,FALSE),
-includevars=rep(FALSE,ncol(x)),
+enumerate, includevars=rep(FALSE,ncol(x)),
 maxvars, niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(alpha.p=1,beta.p=1),
@@ -60,7 +59,8 @@ maxenum=10, verbose=TRUE)
   zero mean. Dummy variables corresponding to factors are NOT centered}
 \item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
   scaled to have variance=1. Dummy variables corresponding to factors are NOT scaled}
-\item{enumerate}{If \code{TRUE} all models with up to \code{maxvars} are
+\item{enumerate}{Default is \code{TRUE} if there's less than 15 variable
+  groups. If \code{TRUE} all models with up to \code{maxvars} are
   enumerated, else Gibbs sampling is used to explore the model space}
 \item{includevars}{Logical vector of length ncol(x) indicating variables
 that should always be included in the model, i.e. variable selection is
@@ -204,6 +204,9 @@ Object of class \code{msfit}, which extends a list with elements
 \seealso{
   \code{\link{msfit-class}} for details on the output.
   \code{\link{postProb}} to obtain posterior model probabilities.
+  \code{coef.msfit} for Bayesian model averaging estimates and
+  intervals. \code{predict.msfit} for BMA estimates and intervals
+  for user-supplied covariate values.
  \code{\link{rnlp}} to obtain posterior samples for the coefficients.
  \code{\link{nlpMarginal}} to compute marginal densities for a given model.
 

@@ -56,8 +56,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"mnormCI",               (DL_FUNC) &mnormCI,                3},
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  29},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 36},
-    {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     22},
-    {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  20},
+    {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     24},
+    {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  22},
     {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
     {"pemomMarginalUI",       (DL_FUNC) &pemomMarginalUI,       17},
     {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       15},
@@ -70,8 +70,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"rnorm_truncMultCI",     (DL_FUNC) &rnorm_truncMultCI,      5},
     {"rtmvnormCI",            (DL_FUNC) &rtmvnormCI,             7},
     {"rtmvnormProdCI",        (DL_FUNC) &rtmvnormProdCI,         9},
-    {"zellnerMarginalKI",     (DL_FUNC) &zellnerMarginalKI,     11},
-    {"zellnerMarginalUI",     (DL_FUNC) &zellnerMarginalUI,     13},
+    {"zellnerMarginalKI",     (DL_FUNC) &zellnerMarginalKI,     13},
+    {"zellnerMarginalUI",     (DL_FUNC) &zellnerMarginalUI,     15},
     {NULL, NULL, 0}
 };
 

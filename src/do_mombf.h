@@ -44,6 +44,7 @@ extern SEXP zellnerMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SE
 extern SEXP zellnerMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 */
 
+/*
 static const R_CallMethodDef CallEntries[] = {
     {"bsplineCI",             (DL_FUNC) &bsplineCI,              3},
     {"eprod_I",               (DL_FUNC) &eprod_I,                5},
@@ -51,8 +52,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"mnormCI",               (DL_FUNC) &mnormCI,                3},
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  27},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 33},
-    {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     22},
-    {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  20},
+    {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     24},
+    {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  22},
     {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
     {"pemomMarginalUI",       (DL_FUNC) &pemomMarginalUI,       15},
     {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       13},
@@ -65,8 +66,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"rnorm_truncMultCI",     (DL_FUNC) &rnorm_truncMultCI,      5},
     {"rtmvnormCI",            (DL_FUNC) &rtmvnormCI,             7},
     {"rtmvnormProdCI",        (DL_FUNC) &rtmvnormProdCI,         9},
-    {"zellnerMarginalKI",     (DL_FUNC) &zellnerMarginalKI,     11},
-    {"zellnerMarginalUI",     (DL_FUNC) &zellnerMarginalUI,     13},
+    {"zellnerMarginalKI",     (DL_FUNC) &zellnerMarginalKI,     13},
+    {"zellnerMarginalUI",     (DL_FUNC) &zellnerMarginalUI,     15},
     {NULL, NULL, 0}
 };
 
@@ -74,36 +75,6 @@ void R_init_mombf(DllInfo *dll)
 {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
-}
-
-/*
-
-static R_CallMethodDef callMethods[]  = {
-  {"bsplineCI", (DL_FUNC) &bsplineCI, 3},
-  {"mnormCI", (DL_FUNC) &mnormCI, 3},
-  {"eprod_I", (DL_FUNC) &eprod_I, 5},
-  {"pmomLM_I", (DL_FUNC) &pmomLM_I, 36},
-  {"modelSelectionEnumCI", (DL_FUNC) &modelSelectionEnumCI, 27},
-  {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 32},
-  {"greedyVarSelCI", (DL_FUNC) &greedyVarSelCI, 27},
-  {"pmomMarginalKI", (DL_FUNC) &pmomMarginalKI, 14},
-  {"pmomMarginalUI", (DL_FUNC) &pmomMarginalUI, 16},
-  {"pimomMarginalKI", (DL_FUNC) &pimomMarginalKI, 13},
-  {"pimomMarginalUI", (DL_FUNC) &pimomMarginalUI, 15},
-  {"pemomMarginalUI", (DL_FUNC) &pemomMarginalUI, 15},
-  {"zellnerMarginalKI", (DL_FUNC) &zellnerMarginalKI, 11},
-  {"zellnerMarginalUI", (DL_FUNC) &zellnerMarginalUI, 13},
-  {"nlpMarginalSkewNormI", (DL_FUNC) &nlpMarginalSkewNormI, 20},
-  {"nlpMarginalAlaplI", (DL_FUNC) &nlpMarginalAlaplI, 22},
-  {"normalmixGibbsCI", (DL_FUNC) &normalmixGibbsCI, 12},
-  {NULL, NULL, 0}
-};
-
-
-void R_init_mombf(DllInfo *info)
-{
-   R_registerRoutines(info, NULL, callMethods, NULL, NULL);
-   R_useDynamicSymbols(info, FALSE);
 }
 */
 

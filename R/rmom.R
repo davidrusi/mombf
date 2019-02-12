@@ -38,8 +38,8 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
     colnames(ans)= nn
   }
   #Return posterior samples in non-standardized parameterization
-  my= msfit$stdconstants[1,'mean']; mx= msfit$stdconstants[-1,'mean']
-  sy= msfit$stdconstants[1,'sd']; sx= msfit$stdconstants[-1,'sd']
+  my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
+  sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
   ct= (sx==0)
   b= ans[,1:ncol(x)]
   b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients

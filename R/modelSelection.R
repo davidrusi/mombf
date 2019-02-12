@@ -8,20 +8,16 @@ setMethod("show", signature(object='msfit'), function(object) {
   cat('msfit object with',object$p,'variables and',object$family,'residual distribution\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
   cat("Use postProb() to get posterior model probabilities\n")
-  cat("Use coef() to get BMA parameter estimates, 95% intervals and marginal inclusion probabilities\n")
+  cat("Use coef() or predict() to get BMA estimates and intervals for parameters or given covariate values\n")
   cat("Elements $margpp, $postMode, $postSample and $coef contain further information (see help('msfit') and help('modelSelection') for details)\n")
 }
 )
 
 
-#setMethod("bmaCoef", signature(y='ANY',x='matrix',msfit='msfit'), function(y, x, msfit, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
-#
-#}
-#)
 
 coef.msfit <- function(object,...) {
     th= rnlp(msfit=object,niter=10^4)
-    ct= (object$stdconstants[-1,'sd']==0)
+    ct= (object$stdconstants[-1,'scale']==0)
     if (any(ct)) {
         margpp= c(object$margpp,1)
         nn= c(names(object$margpp),'phi')
@@ -34,6 +30,31 @@ coef.msfit <- function(object,...) {
     rownames(ans)= nn
     return(ans)
 }
+
+
+predict.msfit <- function(object, newdata, data, level=0.95, ...) {
+    th= rnlp(msfit=object,niter=10^4)
+    f= object$call$formula
+    if (class(f)=='formula') {
+        alldata= rbind(data,newdata)
+        alldata[,as.character(f)[2]]= 0  #ensure there's no NAs in the response, so createDesign doesn't drop those rows from newdata
+        nn= rownames(alldata)[(nrow(data)+1):(nrow(data)+nrow(newdata))]
+        if (is.null(object$call$smoothterms)) {
+            des= createDesign(f, data=alldata)
+        } else {
+            des= createDesign(f, data=alldata, smoothterms=object$call$smoothterms, splineDegree=object$call$splineDegree, nknots=object$call$nknots)
+        }
+        newdata= des$x[nn,,drop=FALSE]
+    }
+    mx= object$stdconstants[-1,'shift']; sx= object$stdconstants[-1,'scale']
+    ct= (sx==0)
+    newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
+    sel= colnames(th) %in% colnames(newdata)
+    ypred= th[,sel] %*% t(newdata)
+    ans= cbind(mean=colMeans(ypred), t(apply(ypred,2,quantile,probs=c((1-level)/2,1-(1-level)/2))))
+    return(ans)
+}
+
 
 
 setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
@@ -81,7 +102,7 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate= ifelse(ncol(x)<15,TRUE,FALSE), includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -120,11 +141,17 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
 
   #Check input
   if (class(y)=="formula") {
-      des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=3, nknots=nknots)
+      formula= y; splineDegree= 3
+      des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       y= des$y; x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
+      nlevels= apply(x,2,function(z) length(unique(z)))
+      typeofvar[nlevels==2]= 'factor'
   } else {
+      formula= splineDegree= NA
       typeofvar= rep('numeric',ncol(x))
   }
+  call= list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
+  if (!missing(smoothterms)) call$smoothterms= smoothterms
   p= ncol(x); n= length(y)
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
@@ -135,7 +162,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
-
+  if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
+    
   #Standardize (y,x) to mean 0 and variance 1
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
@@ -148,7 +176,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   mx[typeofvar=='factor']=0; sx[typeofvar=='factor']= 1
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
-  stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('mean','sd')
+  stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('shift','scale')
 
   #Format arguments for .Call
   if (missing(deltaini)) {
@@ -240,7 +268,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   }
 
   priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants)
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }
@@ -535,7 +563,6 @@ greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFuncti
   mcur <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...) + priorFunction(sel,logscale=TRUE)
   nchanges <- 1; itcur <- 1
   nn <- names(x)
-  #browser()
   while (nchanges>0 & itcur<niter) {
     nchanges <- 0; itcur <- itcur+1
     for (i in 1:ncol(x)) {

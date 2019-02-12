@@ -4,6 +4,9 @@
 \alias{msfit-class}
 \alias{msfit}
 \alias{show,msfit-method}
+\alias{msfit.coef}
+\alias{msfit.predict}
+
 
 \title{Class "msfit"}
 \description{
@@ -55,10 +58,17 @@ regression coefficients, as indicated below.
     \item{stdconstants}{For internal use. If \code{center} or
       \code{scale} were set to \code{TRUE}, stores the sample mean
       and standard deviation of the outcome and covariates}
+    \item{call}{Stores info about the call, the formula used (if any),
+      splines used etc}
   }
 }
 \section{Methods}{
   \describe{
+    \item{coef}{Obtains posterior means and intervals via Bayesian model
+      averaging}
+    \item{predict}{Obtains posterior means and intervals for given
+      covariate values. These are posterior intervals for the mean, not
+      posterior predictive intervals for the outcome}
     \item{show}{\code{signature(object = "msfit")}: Displays general information about the object. }
     \item{postProb}{\code{signature(object = "msfit")}: Extracts
       posterior model probabilities. }

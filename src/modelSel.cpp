@@ -12,6 +12,7 @@
 #include "crossprodmat.h"
 #include "modelSel.h"
 #include "modselIntegrals.h"
+#include "modselFunction.h"
 #include "Polynomial.h"
 
 
@@ -68,29 +69,79 @@ SEXP testfunctionCI(SEXP x) {
     return ans;
 }
 
+  //Returns sum_j (sel[j]+1) th[j]^2 + sum_{l>j} th[j] th[l]
+  //Since sel[j]>=0, the minimum is trivially at 0
+  double foo(double *th, int *sel, int *nsel, struct marginalPars *pars) {
+    int j, l; double ans;
+    for (j=0, ans=0; j< *nsel; j++) {
+      ans += (double)(sel[j]+1) * th[j] * th[j];
+      for (l=j+1; l< *nsel; l++) { ans += th[j] * th[l]; }
+    }
+    return(ans);
+  }
+
+  //returns grad= 2 (sel[j]+1) th[j] + sum_{l \neq j} th[l]; hess= 2 (sel[j]+1);
+void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars) {
+  int l;
+  (*hess)= 2.0 * (double)(sel[j]+1);
+  (*grad)= (*hess) * th[j];
+  for (l=0; l< j; l++) { (*grad)+= th[l]; }
+  for (l=j+1; l< *nsel; l++) { (*grad)+= th[l]; }
+}
+
+void fooupdate(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars) { //returns univariate optimum -0.5/(sel[j]+1) * sum_{l \neq j} th[l]
+  int l;
+  *thnew= 0;
+  for (l=0; l< j; l++) (*thnew)-= th[l];
+  for (l=j+1; l< *nsel; l++) (*thnew)-= th[l];
+  (*thnew) *= 0.5/((double)(sel[j]+1));
+}
+
+
 void testfunction() {
-    int i;
-    double *x, *XtX;
-    crossprodmat *As, *Ad;
 
-    x= dvector(0,12); XtX= dvector(0,9);
-    for (i=0; i<12; i++) x[i]= (double) i;
+  int nsel=2, *sel;
+  double *thini, *thopt, fopt;
+  struct marginalPars *pars= NULL;
+  modselFunction *msfun;
 
-    XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
-    XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
-    XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
+  sel= ivector(0,nsel); thini= dvector(0,nsel); thopt= dvector(0,nsel);
+  sel[0]= 0; sel[1]= 2;
+  thini[0]= 1; thini[1]= 1;
+  msfun= new modselFunction(sel, &nsel, pars, NULL);
 
-    Ad= new crossprodmat(XtX,4,3,true);
-    Rprintf("Ad\n %f %f %f \n %f %f %f \n %f %f %f\n\n",Ad->at(0,0),Ad->at(0,1),Ad->at(0,2),Ad->at(1,0),Ad->at(1,1),Ad->at(1,2),Ad->at(2,0),Ad->at(2,1),Ad->at(2,2));
-    Rprintf("Ad\n %f %f %f \n %f %f %f \n %f %f %f\n\n",Ad->at(0),Ad->at(3),Ad->at(6),Ad->at(1),Ad->at(4),Ad->at(7),Ad->at(2),Ad->at(5),Ad->at(8));
+  //Option 1. CDA without providing foo
+  msfun->updateUniv= &fooupdate;
+  msfun->cda(thopt, thini);
+  Rprintf("cda. thopt= %f %f\n", thopt[0], thopt[1]);
 
-    As= new crossprodmat(x,4,3,false);
-    Rprintf("As\n %f %f %f \n %f %f %f \n %f %f %f\n\n",As->at(0,0),As->at(0,1),As->at(0,2),As->at(1,0),As->at(1,1),As->at(1,2),As->at(2,0),As->at(2,1),As->at(2,2));
-    Rprintf("As\n %f %f %f \n %f %f %f \n %f %f %f\n\n",As->at(0),As->at(3),As->at(6),As->at(1),As->at(4),As->at(7),As->at(2),As->at(5),As->at(8));
+  //Option 2. CDA providing foo (stops when foo doesn't improve further)
+  msfun->fun= &foo;
+  msfun->updateUniv= &fooupdate;
+  msfun->cda(thopt, &fopt, thini);
+  Rprintf("cda. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-    delete As;
-    delete Ad;
-    free_dvector(x,0,9); free_dvector(XtX,0,9);
+  //Option 3. block CDA
+  msfun->fun= &foo;
+  msfun->updateUniv= &fooupdate;
+  msfun->blockcda(thopt, &fopt, thini);
+  Rprintf("blockcda. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 4. cdaNewton
+  msfun->fun= &foo;
+  msfun->gradhessUniv= &foogradhess;
+  msfun->cdaNewton(thopt, &fopt, thini, 1);
+  Rprintf("cdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 5. blockcdaNewton
+  msfun->fun= &foo;
+  msfun->gradhessUniv= &foogradhess;
+  msfun->blockcdaNewton(thopt, &fopt, thini, 1);
+  Rprintf("blockcdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  free_ivector(sel, 0,nsel); free_dvector(thini, 0,nsel); free_dvector(thopt, 0,nsel);
+  delete msfun;
+
 }
 
 

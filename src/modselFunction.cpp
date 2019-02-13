@@ -1,7 +1,7 @@
 #include "modselFunction.h"
 using namespace std;
 
-modselFunction::modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2jointFun fun) {
+modselFunction::modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2jointFun fun=NULL) {
 
   this->nsel= nsel;
   this->sel= sel;
@@ -12,10 +12,13 @@ modselFunction::modselFunction(int *sel, int *nsel, struct marginalPars *pars, p
   this->fun= fun;
 
   this->updateUniv= NULL;
-  this->updateBlock= NULL;
+
   this->gradhessUniv= NULL;
   this->gradUniv= NULL;
   this->hess= NULL;
+
+  this->funupdate= NULL;
+  this->gradhessupdate= NULL;
 
 }
 
@@ -29,7 +32,7 @@ modselFunction::~modselFunction() {
 double modselFunction::evalfun(double *th) {
 
   return (fun(th, this->sel, this->nsel, this->pars));
-  
+
 }
 
 
@@ -44,14 +47,16 @@ double modselFunction::evalfun(double *th) {
 // - thopt: final parameter value
 // - fopt: value of objective function (fun) at thopt
 void modselFunction::cda(double *thopt, double *fopt, double *thini) {
-  
+
   int j, iter=0;
   double therr=1, ferr=1, thnew, fnew;
 
+  if ((this->fun)==NULL) Rf_error("To run CDA you need to specify evalfun");
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
   (*fopt)= this->evalfun(thini);
-  while ((iter< this->maxiter) & (ferr < this->ftol) & (therr < this->thtol)) {
+  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
     for (j=0, therr=0; j< *nsel; j++) {
       (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
@@ -60,43 +65,49 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
     fnew= this->evalfun(thopt);
     ferr= (*fopt) - fnew;
     (*fopt)= fnew;
+    iter++;
   }
 }
 
 
 //Same but does not evaluate objective function (faster but stopping depends only on change in thopt)
 void modselFunction::cda(double *thopt, double *thini) {
-  
+
   int j, iter=0;
   double therr=1, thnew;
 
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
-  
-  while ((iter< this->maxiter) & (therr < this->thtol)) {
+
+  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+  while ((iter< this->maxiter) & (therr > this->thtol)) {
     for (j=0, therr=0; j< *nsel; j++) {
       (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       thopt[j]= thnew;
     }
+    iter++;
   }
 }
 
 
-//Block CDA jointly updating all parameters (uses updateBlock)
+//BLOCK CDA JOINTLY UPDATING ALL PARAMETERS
+//In contrast to cda here th[j] is updated without updating first th[0], ..., th[j-1].
+//Hence even if CDA were guaranteed to converge blockcda may not, as it cannot be interpreted as a sequence of univariate optimizations
 void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
   int j, iter=0;
   double *thnew, fnew, therr=1, ferr=1;
 
-  if ((this->updateBlock)==NULL) Rf_error("To run CDA you need to specify updateBlock");
+  if ((this->fun)==NULL) Rf_error("To run blockcda you need to specify evalfun");
   thnew= dvector(0,*nsel);
 
   (*fopt)= this->evalfun(thini);
   for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
-  
-  while ((iter< this->maxiter) & (ferr < this->ftol) & (therr < this->thtol)) {
-    
-    (*(this->updateBlock))(thnew, thopt, this->sel, this->nsel, this->pars);
+
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
+
+    for (j=0; j< *nsel; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, this->nsel, this->pars); }
+
     fnew= this->evalfun(thnew);
     ferr= (*fopt) - fnew;
     if (ferr>0) {
@@ -106,6 +117,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 	thopt[j]= thnew[j];
       }
     }
+    iter++;
 
   }
 
@@ -125,19 +137,19 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
   int j, iter=0, nsteps;
   double thcur, therr=1, ferr=1, fnew, delta, g, H;
 
+  if ((this->fun)==NULL) Rf_error("To run cdaNewton you need to specify evalfun");
   if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
-
 
   (*fopt)= this->evalfun(thini);
   for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
 
-  while ((iter< this->maxiter) & (ferr < this->ftol) & (therr < this->thtol)) {
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
     for (j=0, therr=ferr=0; j< *nsel; j++) {
 
       gradhessUniv(&g, &H, j, thopt, sel, nsel, pars);
       delta= g/H;
-      
+
       nsteps= 1; found= false;
       thcur= thopt[j];
       while (!found & (nsteps<=maxsteps)) {
@@ -159,28 +171,32 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
       } //end while !found
 
     } //end for j
+    iter++;
 
   } //end while iter
 
-  
+
 }
 
 
 
-//Block CDA with Newton method updates (uses gradhess)
+//BLOCK CDA WITH NEWTON METHOD UPDATES (USES gradhess)
+//Each parameter is updated to th[j] - 0.5^k grad[j]/hess[j] as in cdaNewton, but here grad[j] and hess[j] are evaluated at the current th prior to updating any th
+//In contrast, in cdaNewton grad[j] and hess[j] are evaluated after updating th[0], ..., th[j-1]
 void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, int maxsteps=1) {
 
   bool found;
   int j, iter=0, nsteps;
   double *thcur, therr=1, ferr=1, fnew, *delta, *g, *H;
-  
-  if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
+
+  if ((this->fun)==NULL) Rf_error("To run blockcdaNewton you need to specify evalfun");
+  if ((this->gradhessUniv)==NULL) Rf_error("To run blockcdaNewton you need to specify either gradhessUniv");
   thcur= dvector(0,*nsel); delta= dvector(0,*nsel); g= dvector(0,*nsel); H= dvector(0,*nsel);
-  
+
   (*fopt)= this->evalfun(thini);
   for (j=0; j< *nsel; j++) { thopt[j]= thcur[j]= thini[j]; }
 
-  while ((iter< this->maxiter) & (ferr < this->ftol) & (therr < this->thtol)) {
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
     therr= ferr= 0;
     for (j=0; j< *nsel; j++) {
@@ -205,11 +221,12 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
       }
 
     } //end while !found
+    iter++;
 
   } //end while iter
 
   free_dvector(thcur, 0,*nsel); free_dvector(delta, 0,*nsel); free_dvector(g, 0,*nsel); free_dvector(H, 0,*nsel);
-  
+
 }
 
 

@@ -102,7 +102,7 @@ return(ans)
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorDelta=modelbbprior(alpha.p=1,beta.p=1), priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -191,7 +191,14 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
 
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
-  sumy2 <- as.double(sum(ystd^2)); XtX <- t(xstd) %*% xstd; ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
+  sumy2 <- as.double(sum(ystd^2)); ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
+  if (XtXprecomp) {
+      XtX= t(xstd) %*% xstd
+      hasXtX= as.logical(TRUE)
+  } else {
+      XtX= double(0)
+      hasXtX= as.logical(FALSE)
+  }
 
   tmp= formatmsPriors(priorCoef=priorCoef, priorVar=priorVar, priorSkew=priorSkew, priorDelta=priorDelta)
   r= tmp$r; prior= tmp$prior; tau=tmp$tau; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha;
@@ -209,7 +216,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -225,7 +232,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -241,7 +248,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,n,p,ystd,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)

@@ -100,7 +100,8 @@ void testfunction() {
 
 pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
   //Returns pointer to function to compute the marginal density of the data for a given model indicator
-  // - prCoef: 0 for product MOM, 1 for product iMOM, 2 for product eMOM, 3 for Zellner's prior
+  // - prCoef:  0 for pMOM (all coef);              1 for piMOM (all coef);               2 for peMOM (all coef);               3 for Zellner's (all coef)
+  //           10 for pMOM (indiv) + MOM (groups); 11 for piMOM (indiv) + iMOM (groups); 12 for peMOM (indiv) + eMOM (groups); 13 for pMOM (indiv) + Zellner (groups)
   // - knownphi: 1 if residual variance phi is known, 0 otherwise. knownphi==1 currently only allowed for Normal residuals
   // - family: distribution of residuals. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace
   // Note: if phi known, when actually calling the returned pt2margFun, phi must be set in the parameter of type struct marginalPars *
@@ -114,6 +115,8 @@ pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
       if (*knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
     } else if (*prCoef==3) {
       if (*knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
+    } else if (*prCoef==13) {
+      ans= pmomzellMarg;
     }
   } else if ((*family)==2) { //Two-piece Normal residuals
     if (*prCoef==0) {
@@ -721,8 +724,9 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sverbose) {
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sverbose) {
 
+  bool hasXtX= LOGICAL(ShasXtX)[0];
   int logscale=1, *postMode, mycols, mycols2;
   double offset=0, *postModeProb, *postProb;
   crossprodmat *XtX;
@@ -741,7 +745,11 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
   SET_VECTOR_ELT(ans, 2, Rf_allocVector(REALSXP, INTEGER(Snmodels)[0]));
   postProb= REAL(VECTOR_ELT(ans,2));
 
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  if (hasXtX) {
+    XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  } else {
+    XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
+  }
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sverbose), &pars);
@@ -829,8 +837,9 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
+  bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints;
   double offset=0, *margpp, *postModeProb, *postProb;
   intptrlist constraints;
@@ -866,7 +875,11 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
     constraints.push_back(INTEGER(VECTOR_ELT(Sconstraints, j)));
   }
 
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  if (hasXtX) {
+    XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  } else {
+    XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
+  }
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), nconstraints, constraints, INTEGER(Sverbose), &pars);
@@ -1054,7 +1067,8 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+  bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mycols, *postMode, *nconstraints;
   double offset=0, *postModeProb;
   intptrlist constraints;
@@ -1078,7 +1092,11 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltain
     constraints.push_back(INTEGER(VECTOR_ELT(Sconstraints, j)));
   }
 
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  if (hasXtX) {
+    XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  } else {
+    XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
+  }
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),nconstraints,constraints,INTEGER(Sverbose),&pars);
@@ -1294,6 +1312,17 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
   if ((*phi) < 1.0e-10) { (*phi)= 1.0e-10; }
 
   free_dmatrix(S, 1,*nsel,1,*nsel); free_dmatrix(Sinv, 1,*nsel,1,*nsel);
+}
+
+
+
+//*************************************************************************************
+// MARGINAL LIKELIHOOD UNDER NORMAL ERRORS
+//*************************************************************************************
+
+//MOM prior on individual coef, Zellner on groups
+double pmomzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  return 0.0;
 }
 
 

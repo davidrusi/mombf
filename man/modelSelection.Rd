@@ -25,7 +25,7 @@ priorDelta=modelbbprior(alpha.p=1,beta.p=1),
 priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
-B=10^5, verbose=TRUE)
+B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
@@ -113,7 +113,11 @@ not performed for these variables}
 \item{optimMethod}{Algorithm to maximize objective function when
   method=='Laplace' or method=='MC'. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
-\item{B}{Number of samples to use in Importance Sampling scheme. Ignored if \code{method=='Laplace'}}
+\item{B}{Number of samples to use in Importance Sampling scheme. Ignored
+  if \code{method=='Laplace'}}
+\item{XtXprecomp}{Set to \code{TRUE} to pre-compute the Gram matrix x'x
+  upfront (saves time), to \code{FALSE} to compute and store elements
+  only as needed (saves memory)}
 \item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
 
 \item{blocksize}{Maximum number of variables in a block. Careful, the

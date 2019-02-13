@@ -28,11 +28,11 @@ extern "C" {
   SEXP pmomLM_I(SEXP niter, SEXP thinning, SEXP burnin, SEXP niniModel, SEXP iniModel, SEXP iniCoef1, SEXP iniCoef2, SEXP iniPhi, SEXP iniOthers, SEXP verbose, SEXP n, SEXP p1, SEXP p2, SEXP isbinary, SEXP ybinary, SEXP y, SEXP sumy2, SEXP x1, SEXP x2, SEXP SXtX, SEXP ytX, SEXP cholS2, SEXP S2inv, SEXP cholS2inv, SEXP colsumx1sq, SEXP alpha, SEXP lambda, SEXP priorCoef, SEXP r, SEXP tau1, SEXP tau2, SEXP priorTau1, SEXP atau1, SEXP btau1, SEXP priorModel, SEXP prModelpar);
 
   //Model selection
-  SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP ngroups, SEXP Snvaringroup, SEXP Sverbose);
+  SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP ngroups, SEXP Snvaringroup, SEXP Sverbose);
 
-  SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose);
+  SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose);
 
-  SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose);
+  SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose);
 
   //Non-local prior marginal likelihoods
   SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup);
@@ -204,6 +204,32 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, crossprodmat *XtX, double *ytX, int *n, int *p, int *sel, int *nsel);
 
 
+//*************************************************************************************
+// MARGINAL LIKELIHOOD UNDER NORMAL ERRORS
+//*************************************************************************************
+
+// pMOM on all coef
+double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// piMOM on all coef
+double pimomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// peMOM on all coef
+double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// Zellner on all coef
+double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// pMOM on individual coef, Zellner on groups
+double pmomzellMarg(int *sel, int *nsel, struct marginalPars *pars);
+
+
+
+
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS
@@ -282,8 +308,6 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double MC_mom(double *m,double **Sinv,int *r,int *nsel, int *B);  //MC evaluation of E(prod(th^2r)) for th ~ N(m,Sinv)
 double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B); //MC evaluation of E(prod(th^2r)) for th ~ T_nu(m,Sinv)
 
-double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 
 //*************************************************************************************
@@ -304,28 +328,10 @@ void imomModeU(double *th, PolynomialRootFinder::RootStatus_T *status, double *s
 
 void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, int *n, int *p, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *tau, int *logscale);
 
-double pimomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double IS_imom(double *thopt, double **Voptinv, int *sel, int *nsel, int *n, int *p, crossprodmat *XtX, double *ytX, double *phi, double *tau, int *B);
 
 double f2int_imom(double phi);
-double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
-
-
-//*************************************************************************************
-// Product eMOM routines under Normal residuals
-//*************************************************************************************
-
-double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
-
-
-//*************************************************************************************
-// Zellner's prior routines
-//*************************************************************************************
-
-double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 
 #endif /* MODELSEL_H */

@@ -15,6 +15,8 @@
 #include "modselFunction.h"
 #include "Polynomial.h"
 
+#include <map>
+#include <string>
 
 //Global variables defined for minimization/integration routines
 struct marginalPars f2opt_pars, f2int_pars;
@@ -69,18 +71,54 @@ SEXP testfunctionCI(SEXP x) {
     return ans;
 }
 
-  //Returns sum_j (sel[j]+1) th[j]^2 + sum_{l>j} th[j] th[l]
-  //Since sel[j]>=0, the minimum is trivially at 0
-void foo(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<char, double *> *funargs) {
-  int j, l;
-  for (j=0, (*f)=0; j< *nsel; j++) {
-    (*f) += (double)(sel[j]+1) * th[j] * th[j];
-    for (l=j+1; l< *nsel; l++) { (*f) += th[j] * th[l]; }
+// FUNCTION: sum_k (sel[k]+1) th[k]^2 + sum_{l>k} th[k] th[l], for sel[k]>=0. The minimum is trivially at 0
+//
+// GRADIENT WRT th[j]: 2 (sel[j]+1) th[j] + sum_{l \neq j} th[l]
+// HESSIAN WRT th[j]:  2 (sel[j]+1)
+//
+// Optionally we can store into "funargs" the following info: sumth= sum_k th[k]; sumth2= sum_k (sel[k]+1) th[k]^2; sumcrossprod= sum_{l>k} th[k] th[l]
+//
+// Then fun(th)= sumth2 + sumcrossprod, hence changing th[j] to thjnew gives
+//
+// fun(thnew)= f(th) + (sel[j]+1) (thjnew - th[j])^2 + (thjnew-th[j]) (sumth - th[j])
+//
+// Also grad(th)= 2 (sel[j]+1) th[j] + sumth - th[j]
+
+
+//Evaluate function but not funargs
+void foo(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  int k, l;
+  for (k=0, (*f)=0; k< *nsel; k++) {
+    (*f) += (double)(sel[k]+1) * th[k] * th[k];
+    for (l=k+1; l< *nsel; l++) { (*f) += th[k] * th[l]; }
   }
 }
 
-  //returns grad= 2 (sel[j]+1) th[j] + sum_{l \neq j} th[l]; hess= 2 (sel[j]+1);
-void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars) {
+//Evaluate function and funargs
+void fooargs(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  int k, l;
+  double sumth=0, sumth2=0, sumcrossprod=0;
+  for (k=0, (*f)=0; k< *nsel; k++) {
+    sumth += th[k];
+    sumth2 += (double)(sel[k]+1) * th[k] * th[k];
+    for (l=k+1; l< *nsel; l++) { sumcrossprod += th[k] * th[l]; }
+  }
+  *(*funargs)["sumth"]= sumth;
+  *(*funargs)["sumth2"]= sumth2;
+  *(*funargs)["sumcrossprod"]= sumcrossprod;
+}
+
+void fooupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double thdif= *thjnew - th[j];
+  //(*fnew)= (*f) + (double)(sel[j]+1) * pow(thdif,2) + thdif * (*funargs["sumth"] - th[j]);
+  *(*funargs)["sumth"] += thdif;
+  *(*funargs)["sumth2"] += (double)(sel[j]+1) * (pow(*thjnew,2) - pow(th[j],2));
+  *(*funargs)["sumcrossprod"] += (*thjnew - th[j]) * (*(*funargs)["sumth"] - *thjnew);
+  (*fnew)= *(*funargs)["sumth2"] + *(*funargs)["sumcrossprod"];
+}
+
+
+void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
   int l;
   (*hess)= 2.0 * (double)(sel[j]+1);
   (*grad)= (*hess) * th[j];
@@ -126,13 +164,20 @@ void testfunction() {
   msfun->blockcda(thopt, &fopt, thini);
   Rprintf("blockcda. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-  //Option 4. cdaNewton
+  //Option 4. cdaNewton without using funargs (requires function foo)
   msfun->fun= &foo;
   msfun->gradhessUniv= &foogradhess;
   msfun->cdaNewton(thopt, &fopt, thini, 1);
   Rprintf("cdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-  //Option 5. blockcdaNewton
+  //Option 5. cdaNewton using funargs (requires functions fooargs and fooupdate)
+  msfun->fun= &fooargs;
+  msfun->funupdate= &fooupdate;
+  msfun->gradhessUniv= &foogradhess;
+  msfun->cdaNewton(thopt, &fopt, thini, 1);
+  Rprintf("cdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 6. blockcdaNewton
   msfun->fun= &foo;
   msfun->gradhessUniv= &foogradhess;
   msfun->blockcdaNewton(thopt, &fopt, thini, 1);

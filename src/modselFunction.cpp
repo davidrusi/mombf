@@ -18,7 +18,7 @@ modselFunction::modselFunction(int *sel, int *nsel, struct marginalPars *pars, p
   this->hess= NULL;
 
   this->funupdate= NULL;
-  this->gradhessupdate= NULL;
+  //this->gradhessupdate= NULL;
 
 }
 
@@ -28,16 +28,9 @@ modselFunction::~modselFunction() {
 }
 
 
-//Evaluate fun at at
-void modselFunction::evalfun(double *f, double *th) {
-
-  std::map<char, double *> *funargs= NULL;
-  fun(f, th, this->sel, this->nsel, this->pars, funargs);
-
-}
 
 //Evaluate fun at th and return the value of funargs
-void modselFunction::evalfun(double *f, double *th, std::map<char, double *> *funargs) {
+void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *funargs= NULL) {
 
   fun(f, th, this->sel, this->nsel, this->pars, funargs);
 
@@ -53,13 +46,9 @@ void modselFunction::evalfun(double *f, double *th, std::map<char, double *> *fu
 //  - fnew: value of fun at thnew= th[0],...,th[j-1],thjnew,th[j+1],...,th[*nsel -1]
 // Input/Output
 //  - funargs: on input these are arguments needed to evaluate fun at th, at output arguments needed to evaluate fun at thnew
-//
-// EXAMPLE
-// Suppose fun= sum_i (y[i] - ypred[i])^2 where ypred[i]= sum_l x[i][l] th[l]
-// We can set funargs[1]= ypred and have funupdate ypred[i] to ypred[i] - x[i][j] (thnew - th[j]), bypassing the need to perform the sum over l != j
-void modselFunction::evalfunupdate(double *fnew, double *thjnew, double *f, double *th, int *j, std::map<char, double *> *funargs) {
+void modselFunction::evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs) {
 
-  funupdate(fnew, thjnew, f, th, j, this->sel, this->nsel, this->pars, funargs);
+  funupdate(fnew, thjnew, j, f, th, this->sel, this->nsel, this->pars, funargs);
   
 }
 
@@ -67,10 +56,10 @@ void modselFunction::evalfunupdate(double *fnew, double *thjnew, double *f, doub
 
 
 //*******************************************************************************************************************
-//OPTIMIZATION ALGORITHMS
+// OPTIMIZATION ALGORITHMS
 //*******************************************************************************************************************
 
-//Classical Coordinate Descent Algorithm sequentially updating each parameter (uses updateUniv)
+//Coordinate Descent Algorithm (uses updateUniv)
 // Input
 // - thini: initial parameter value
 // Output
@@ -100,7 +89,6 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
     iter++;
   }
 }
-
 
 
 
@@ -163,7 +151,59 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
 
 
-//Classical CDA with approx updates given by Newton's method (uses gradhess)
+//CDA with approx updates given by Newton's method (uses gradhess and funupdate)
+// Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
+void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=1) {
+
+  bool found;
+  int j, iter=0, nsteps;
+  double thjnew, thjcur, therr=1, ferr=1, fnew, delta, g, H;
+
+  if ((this->fun)==NULL) Rf_error("To run cdaNewton you need to specify fun");
+  if ((this->funupdate)==NULL) Rf_error("To run cdaNewton you need to specify funupdate");
+  if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
+
+  this->evalfun(fopt,thini,funargs); //eval fun at thini, initialize funargs
+  for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
+
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
+
+    for (j=0, therr=ferr=0; j< *nsel; j++) {
+
+      gradhessUniv(&g, &H, j, thopt, this->sel, this->nsel, this->pars, funargs);
+      delta= g/H;
+
+      nsteps= 1; found= false;
+      while (!found & (nsteps<=maxsteps)) {
+
+	thjnew= thopt[j] - delta;
+	evalfunupdate(&fnew,&thjnew,j,fopt,thopt,funargs); //Eval fun at thjnew, update funargs
+
+	if (fnew < *fopt) {
+	  found= true;
+	  ferr+= *fopt - fnew;
+	  (*fopt)= fnew;
+	  therr= max_xy(therr, fabs(delta));
+	  thopt[j]= thjnew;
+	} else {
+	  delta /= 2.0;
+	  nsteps++;
+	  thjcur= thopt[j]; thopt[j]= thjnew;
+  	  evalfunupdate(fopt,&thjcur,j,&fnew,thopt,funargs); //revert funargs to earlier th
+	  thopt[j]= thjcur;
+	}
+
+      } //end while !found
+      
+    } //end for j
+    iter++;
+
+  } //end while iter
+
+}
+
+
+//CDA with approx updates given by Newton's method (uses gradhess but not funupdate)
 // Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
 void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps=1) {
 
@@ -181,7 +221,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
 
     for (j=0, therr=ferr=0; j< *nsel; j++) {
 
-      gradhessUniv(&g, &H, j, thopt, sel, nsel, pars);
+      gradhessUniv(&g, &H, j, thopt, this->sel, this->nsel, this->pars, NULL);
       delta= g/H;
 
       nsteps= 1; found= false;
@@ -234,7 +274,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
     therr= ferr= 0;
     for (j=0; j< *nsel; j++) {
-      gradhessUniv(g+j, H+j, j, thopt, sel, nsel, pars);
+      gradhessUniv(g+j, H+j, j, thopt, sel, nsel, pars, NULL);
       delta[j]= g[j]/H[j];
     }
 

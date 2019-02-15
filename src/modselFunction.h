@@ -19,16 +19,16 @@ using namespace std;
 
 typedef void (*pt2updateUniv)(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars); //function updating th[j] to thnew
 
-typedef double (*pt2jointFun)(double *th, int *sel, int *nsel, struct marginalPars *pars);  //log-function to be maximized/integrated (e.g. log-likelihood + log-prior)
+typedef void (*pt2fun)(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<char, double *> *funargs);  //log-function to be maximized/integrated (e.g. log-likelihood + log-prior)
 typedef void (*pt2gradUniv)(double *grad, int j, double *th, int *sel, int *nsel, struct marginalPars *);  //gradient wrt th[j]. Parameters (grad,j,th,sel,nsel,pars)
 typedef void (*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *);  //gradient wrt th[j] and hessian wrt th[j]^2
 typedef void (*pt2hess)(double **hess, double *th, int *sel, int *nsel, struct marginalPars *);  //full hessian matrix wrt th[1]^2, th[1]th[2] etc.
 
 
 //Optionally you can provide a way to compute the (function,grad,hessian) due from updating th[j] to thnew[j] by updating their previous values
-//Since all th's other than th[j] remain unchanged, these can be vastly faster than *pt2jointFun, pt2gradhessUniv
-typedef double (*pt2funupdate)(double *thjnew, double *thj, int *j, int *sel, int *nsel, struct marginalPars *pars);
-typedef void (*pt2gradhessupdate)(double *fnew, double *gradnew, double *hessnew, double *thjnew, double *thj, double *f, double *grad, double *hess);
+//Since all th's other than th[j] remain unchanged, these can be vastly faster than *pt2fun, pt2gradhessUniv
+typedef void (*pt2funupdate)(double *fnew, double *thjnew, double *f, double *th, int *j, int *sel, int *nsel, struct marginalPars *pars, std::map<char, double *> *funargs);
+typedef void (*pt2gradhessupdate)(double *gradnew, double *hessnew, double *thjnew, double *th, double *f, double *grad, double *hess, std::map<char, double *> *funargs);
 
 
 
@@ -88,17 +88,19 @@ class modselFunction {
 
 public:
 
-  modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2jointFun fun);
+  modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2fun fun);
   ~modselFunction();
 
   int maxiter; //Maximum number of iterations in optimization algorithms (1 iter corresponds to updating all parameters)
   double ftol;  //Tolerance for objective function. Optimization stops when improvement is < ftol
   double thtol; //Tolerance for parameter values. Optim stops when largest change in th < thtol
 
-  double evalfun(double *th); //Evaluate fun at th
+  void evalfun(double *f, double *th); //Evaluate fun at th
+  void evalfun(double *f, double *th, std::map<char, double *> *funargs); //Evaluate fun at th and return the value of funargs
+  void evalfunupdate(double *fnew, double *thjnew, double *f, double *th, int *j, std::map<char, double *> *funargs); //Eval fun at thjnew by updating its value f at th[j]
 
   //Optimization algorithms
-  void cda(double *thopt, double *fopt, double *thini);  //Classical Coordinate Descent Algorithm sequentially updating each parameter (uses updateUniv)
+  void cda(double *thopt, double *fopt, double *thini);  //Coordinate Descent Algorithm (uses updateUniv)
   void cda(double *thopt, double *thini);  //same but does not evaluate objective function (faster but stopping depends only on change in thopt)
   void blockcda(double *thopt, double *fopt, double *thini);  //Block CDA jointly updating all parameters (uses updateUniv)
   void cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //Classical CDA with approx updates given by Newton's method (uses gradhess)
@@ -107,7 +109,7 @@ public:
   //pointers to functions computing gradient, hessian and updates
   pt2updateUniv updateUniv;
 
-  pt2jointFun fun;  //evaluate objective function
+  pt2fun fun;  //evaluate objective function
   pt2funupdate funupdate; //evaluate objective function by updating its value at the previous th  (optional, typically much faster than fun)
   pt2gradUniv gradUniv; //evaluate gradient
   pt2gradhessUniv gradhessUniv; //evaluate gradient/hessian

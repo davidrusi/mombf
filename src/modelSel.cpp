@@ -71,14 +71,13 @@ SEXP testfunctionCI(SEXP x) {
 
   //Returns sum_j (sel[j]+1) th[j]^2 + sum_{l>j} th[j] th[l]
   //Since sel[j]>=0, the minimum is trivially at 0
-  double foo(double *th, int *sel, int *nsel, struct marginalPars *pars) {
-    int j, l; double ans;
-    for (j=0, ans=0; j< *nsel; j++) {
-      ans += (double)(sel[j]+1) * th[j] * th[j];
-      for (l=j+1; l< *nsel; l++) { ans += th[j] * th[l]; }
-    }
-    return(ans);
+void foo(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<char, double *> *funargs) {
+  int j, l;
+  for (j=0, (*f)=0; j< *nsel; j++) {
+    (*f) += (double)(sel[j]+1) * th[j] * th[j];
+    for (l=j+1; l< *nsel; l++) { (*f) += th[j] * th[l]; }
   }
+}
 
   //returns grad= 2 (sel[j]+1) th[j] + sum_{l \neq j} th[l]; hess= 2 (sel[j]+1);
 void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars) {

@@ -49,10 +49,10 @@ void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *
 void modselFunction::evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs) {
 
   funupdate(fnew, thjnew, j, f, th, this->sel, this->nsel, this->pars, funargs);
-  
+
 }
 
-    
+
 
 
 //*******************************************************************************************************************
@@ -76,10 +76,10 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
 
   this->evalfun(fopt, thini);
   for (j=0; j< *nsel; j++) thopt[j]= thini[j];
-  
+
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
     for (j=0, therr=0; j< *nsel; j++) {
-      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars);
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, NULL);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       thopt[j]= thnew;
     }
@@ -92,7 +92,7 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
 
 
 
-//Same but does not evaluate objective function (faster but stopping depends only on change in thopt)
+//Same but does not evaluate objective function (stopping depends only on change in thopt)
 void modselFunction::cda(double *thopt, double *thini) {
 
   int j, iter=0;
@@ -103,10 +103,34 @@ void modselFunction::cda(double *thopt, double *thini) {
   for (j=0; j< *nsel; j++) thopt[j]= thini[j];
   while ((iter< this->maxiter) & (therr > this->thtol)) {
     for (j=0, therr=0; j< *nsel; j++) {
-      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars);
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, NULL);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       thopt[j]= thnew;
     }
+    iter++;
+  }
+}
+
+
+void modselFunction::cda(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs) {
+  int j, iter=0;
+  double therr=1, ferr=1, thnew, fnew;
+
+  if ((this->fun)==NULL) Rf_error("To run CDA you need to specify evalfun");
+  if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
+
+  this->evalfun(fopt, thini, funargs);
+  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
+    for (j=0, therr=0; j< *nsel; j++) {
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, funargs);
+      therr= max_xy(therr, fabs(thnew - thopt[j]));
+      evalfunupdate(&fnew,&thnew,j,fopt,thopt,funargs); //Eval fun at thjnew, update funargs
+      thopt[j]= thnew;
+    }
+    ferr= (*fopt) - fnew;
+    (*fopt)= fnew;
     iter++;
   }
 }
@@ -128,7 +152,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
-    for (j=0; j< *nsel; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, this->nsel, this->pars); }
+    for (j=0; j< *nsel; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, this->nsel, this->pars, NULL); }
 
     this->evalfun(&fnew,thnew);
     ferr= (*fopt) - fnew;
@@ -194,7 +218,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
 	}
 
       } //end while !found
-      
+
     } //end for j
     iter++;
 

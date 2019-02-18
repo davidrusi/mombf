@@ -94,6 +94,25 @@ void foo(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, 
   }
 }
 
+//Compute gradient and hessian wrt th[j], not using funargs
+void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  int l;
+  (*hess)= 2.0 * (double)(sel[j]+1);
+  (*grad)= (*hess) * th[j];
+  for (l=0; l< j; l++) { (*grad)+= th[l]; }
+  for (l=j+1; l< *nsel; l++) { (*grad)+= th[l]; }
+}
+
+//Return univariate optimum for th[j], that is thnew= -0.5/(sel[j]+1) * sum_{l \neq j} th[l]. Not using funargs
+void fooupdateUniv(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  int l;
+  *thnew= 0;
+  for (l=0; l< j; l++) (*thnew)-= th[l];
+  for (l=j+1; l< *nsel; l++) (*thnew)-= th[l];
+  (*thnew) *= 0.5/((double)(sel[j]+1));
+}
+
+
 //Evaluate function and funargs
 void fooargs(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
   int k, l;
@@ -103,36 +122,27 @@ void fooargs(double *f, double *th, int *sel, int *nsel, struct marginalPars *pa
     sumth2 += (double)(sel[k]+1) * th[k] * th[k];
     for (l=k+1; l< *nsel; l++) { sumcrossprod += th[k] * th[l]; }
   }
+  (*f)= sumth2 + sumth;
   *(*funargs)["sumth"]= sumth;
   *(*funargs)["sumth2"]= sumth2;
   *(*funargs)["sumcrossprod"]= sumcrossprod;
 }
 
+//Update function and funargs from changing th[j] to thjnew
 void fooupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thdif= *thjnew - th[j];
-  //(*fnew)= (*f) + (double)(sel[j]+1) * pow(thdif,2) + thdif * (*funargs["sumth"] - th[j]);
   *(*funargs)["sumth"] += thdif;
   *(*funargs)["sumth2"] += (double)(sel[j]+1) * (pow(*thjnew,2) - pow(th[j],2));
   *(*funargs)["sumcrossprod"] += (*thjnew - th[j]) * (*(*funargs)["sumth"] - *thjnew);
   (*fnew)= *(*funargs)["sumth2"] + *(*funargs)["sumcrossprod"];
 }
 
-
-void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
-  int l;
+//Compute gradient and hessian wrt th[j], using funargs
+void foogradhessargs(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
   (*hess)= 2.0 * (double)(sel[j]+1);
-  (*grad)= (*hess) * th[j];
-  for (l=0; l< j; l++) { (*grad)+= th[l]; }
-  for (l=j+1; l< *nsel; l++) { (*grad)+= th[l]; }
+  (*grad)= (*hess) * th[j] + (*(*funargs)["sumth"]) - th[j];
 }
 
-void fooupdate(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars) { //returns univariate optimum -0.5/(sel[j]+1) * sum_{l \neq j} th[l]
-  int l;
-  *thnew= 0;
-  for (l=0; l< j; l++) (*thnew)-= th[l];
-  for (l=j+1; l< *nsel; l++) (*thnew)-= th[l];
-  (*thnew) *= 0.5/((double)(sel[j]+1));
-}
 
 
 void testfunction() {
@@ -141,47 +151,59 @@ void testfunction() {
   double *thini, *thopt, fopt;
   struct marginalPars *pars= NULL;
   modselFunction *msfun;
+  std::map<string, double *> funargs;
+
+  //Alloc memory for elements in funargs. For vector arguments use dvector
+  double sumth= 0, sumth2= 0, sumcrossprod= 0;
+  funargs["sumth"]= &sumth; funargs["sumth2"]= &sumth2; funargs["sumcrossprod"]= &sumcrossprod;
 
   sel= ivector(0,nsel); thini= dvector(0,nsel); thopt= dvector(0,nsel);
   sel[0]= 0; sel[1]= 2;
   thini[0]= 1; thini[1]= 1;
   msfun= new modselFunction(sel, &nsel, pars, NULL);
 
-  //Option 1. CDA without providing foo
-  msfun->updateUniv= &fooupdate;
+  //Option 1. CDA
+  msfun->updateUniv= &fooupdateUniv;
   msfun->cda(thopt, thini);
-  Rprintf("cda. thopt= %f %f\n", thopt[0], thopt[1]);
+  Rprintf("cda.               thopt= %f %f\n", thopt[0], thopt[1]);
 
-  //Option 2. CDA providing foo (stops when foo doesn't improve further)
+  //Option 2. CDA providing foo
   msfun->fun= &foo;
-  msfun->updateUniv= &fooupdate;
+  msfun->updateUniv= &fooupdateUniv;
   msfun->cda(thopt, &fopt, thini);
-  Rprintf("cda. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+  Rprintf("cda.               thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-  //Option 3. block CDA
-  msfun->fun= &foo;
-  msfun->updateUniv= &fooupdate;
-  msfun->blockcda(thopt, &fopt, thini);
-  Rprintf("blockcda. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
-
-  //Option 4. cdaNewton without using funargs (requires function foo)
-  msfun->fun= &foo;
-  msfun->gradhessUniv= &foogradhess;
-  msfun->cdaNewton(thopt, &fopt, thini, 1);
-  Rprintf("cdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
-
-  //Option 5. cdaNewton using funargs (requires functions fooargs and fooupdate)
+  //Option 3. CDA providing foo and funargs
   msfun->fun= &fooargs;
   msfun->funupdate= &fooupdate;
+  msfun->updateUniv= &fooupdateUniv;
+  msfun->cda(thopt, &fopt, thini, &funargs);
+  Rprintf("cda.               thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 4. block CDA
+  msfun->fun= &foo;
+  msfun->updateUniv= &fooupdateUniv;
+  msfun->blockcda(thopt, &fopt, thini);
+  Rprintf("blockcda.          thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 5. cdaNewton not using funargs (requires function foo)
+  msfun->fun= &foo;
   msfun->gradhessUniv= &foogradhess;
   msfun->cdaNewton(thopt, &fopt, thini, 1);
-  Rprintf("cdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+  Rprintf("cdaNewton.         thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-  //Option 6. blockcdaNewton
+  //Option 7. cdaNewton using funargs (requires functions fooargs and fooupdate, and allocating memory for all elements in funargs)
+  msfun->fun= &fooargs;
+  msfun->funupdate= &fooupdate;
+  msfun->gradhessUniv= &foogradhessargs;
+  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 1);
+  Rprintf("cdaNewton.         thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+
+  //Option 8. blockcdaNewton
   msfun->fun= &foo;
   msfun->gradhessUniv= &foogradhess;
   msfun->blockcdaNewton(thopt, &fopt, thini, 1);
-  Rprintf("blockcdaNewton. thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
+  Rprintf("blockcdaNewton.    thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
   free_ivector(sel, 0,nsel); free_dvector(thini, 0,nsel); free_dvector(thopt, 0,nsel);
   delete msfun;

@@ -215,65 +215,129 @@ void testfunction() {
 //SETTING PRIOR & MARGINALS
 //*************************************************************************************
 
-pt2margFun set_marginalFunction(int *prCoef, int *knownphi, int *family) {
+
+int mspriorCode(int *prCoef, int *prGroup) {
+  //Returns a two-digit code indicating the prior on regression coefficients. The 1st digit is the prior on individual coef; The 2nd digit the prior on groups of coefficients
+  // Input
+  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner
+  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for block Zellner
+  // Output
+  //   0: pMOM on all coef
+  //   1: peMOM on all coef
+  //   2: piMOM on all coef
+  //   3: Zellner on all coef
+  //  10: pMOM + group MOM
+  //  13: pMOM + group Zellner
+  //  32: peMOM + group eMOM
+  //  33: peMOM + group Zellner
+  //  43: Zellner + group Zellner
+  int ans;
+  if ((*prCoef==0) & (*prGroup==0)) {        //pMOM on all coef
+    ans= 0;
+  } else if ((*prCoef==1) & (*prGroup==1)) { //piMOM on all coef
+    ans= 1;
+  } else if ((*prCoef==2) & (*prGroup==2)) { //peMOM on all coef
+    ans= 2;
+  } else if ((*prCoef==3) & (*prGroup==3)) { //Zellner on all coef
+    ans= 3;
+  } else if ((*prCoef==0) & (*prGroup==10)) { //pMOM + group MOM
+    ans= 10;
+  } else if ((*prCoef==0) & (*prGroup==13)) { //pMOM + group Zellner
+    ans= 13;
+  } else if ((*prCoef==2) & (*prGroup==12)) { //peMOM + group eMOM
+    ans= 32;
+  } else if ((*prCoef==2) & (*prGroup==13)) { //peMOM + group Zellner
+    ans= 33;
+  } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
+    ans= 43;
+  } else {
+    Rf_error("Prior specified by priorCoef and priorGroup not currently implemented\n");
+  }
+  return ans;
+}
+
+pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
   //Returns pointer to function to compute the marginal density of the data for a given model indicator
-  // - prCoef:  0 for pMOM (all coef);              1 for piMOM (all coef);               2 for peMOM (all coef);               3 for Zellner's (all coef)
-  //           10 for pMOM (indiv) + MOM (groups); 11 for piMOM (indiv) + iMOM (groups); 12 for peMOM (indiv) + eMOM (groups); 13 for pMOM (indiv) + Zellner (groups)
-  // - knownphi: 1 if residual variance phi is known, 0 otherwise. knownphi==1 currently only allowed for Normal residuals
-  // - family: distribution of residuals. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace
+  // - priorcode: prior code returned by mspriorCode
+  // - knownphi: 1 if residual variance phi is known, 0 otherwise. knownphi==1 currently only allowed for Normal errors
+  // - family: distribution of errors. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace
   // Note: if phi known, when actually calling the returned pt2margFun, phi must be set in the parameter of type struct marginalPars *
   pt2margFun ans=NULL;
-  if ((*family)==1) {  //Normal residuals
-    if (*prCoef==0) {
+  if ((*family)==1) {  //Normal errors
+    if (*priorcode==0) {
       if (*knownphi==1) { ans= pmomMarginalKC; } else { ans= pmomMarginalUC; }
-    } else if (*prCoef==1) {
+    } else if (*priorcode==1) {
       if (*knownphi==1) { ans= pimomMarginalKC; } else { ans= pimomMarginalUC; }
-    } else if (*prCoef==2) {
+    } else if (*priorcode==2) {
       if (*knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
-    } else if (*prCoef==3) {
+    } else if (*priorcode==3) {
       if (*knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
-    } else if (*prCoef==13) {
+    } else if (*priorcode==10) {
+      ans= pmomgmomMarg;
+    } else if (*priorcode==13) {
       ans= pmomzellMarg;
+    } else if (*priorcode==32) {
+      ans= pemomgemomMarg;
+    } else if (*priorcode==33) {
+      ans= pemomgzellMarg;
+    } else if (*priorcode==43) {
+      ans= zellgzellMarg;
     }
-  } else if ((*family)==2) { //Two-piece Normal residuals
-    if (*prCoef==0) {
+  if ((*family)==11) {  //AFT survival with Normal errors
+    if (*priorcode==10) {
+      ans= pmomgmomSurvMarg;
+    } else if (*priorcode==13) {
+      ans= pmomzellSurvMarg;
+    } else if (*priorcode==32) {
+      ans= pemomgemomSurvMarg;
+    } else if (*priorcode==33) {
+      ans= pemomgzellSurvMarg;
+    } else if (*priorcode==43) {
+      ans= zellgzellSurvMarg;
+    }
+  } else if ((*family)==2) { //Two-piece Normal errors
+    if (*priorcode >= 10) Rf_error("Group priors not implemented for Two-piece Normal errors");
+    if (*priorcode==0) {
       ans= pmomMargSkewNormU;
-    } else if (*prCoef==1) {
+    } else if (*priorcode==1) {
       ans= pimomMargSkewNormU;
-    } else if (*prCoef==2) {
+    } else if (*priorcode==2) {
       ans= pemomMargSkewNormU;
-    } else if (*prCoef==3) {
-      Rprintf("Zellner prior with two-piece Normal residuals not currently implemented");
+    } else if (*priorcode==3) {
+      Rprintf("Zellner prior with two-piece Normal errors not currently implemented");
     }
-  } else if ((*family)==3) { //Laplace residuals
-    if (*prCoef==0) {
+  } else if ((*family)==3) { //Laplace errors
+    if (*priorcode >= 10) Rf_error("Group priors not implemented for Laplace errors");
+    if (*priorcode==0) {
       ans= pmomMargLaplU;
-    } else if (*prCoef==1) {
+    } else if (*priorcode==1) {
       ans= pimomMargLaplU;
-    } else if (*prCoef==2) {
+    } else if (*priorcode==2) {
       ans= pemomMargLaplU;
-    } else if (*prCoef==3) {
-      Rprintf("Zellner prior with Laplace residuals not currently implemented");
+    } else if (*priorcode==3) {
+      Rprintf("Zellner prior with Laplace errors not currently implemented");
     }
-  } else if ((*family)==4) { //Asymmetric Laplace residuals
-    if (*prCoef==0) {
+  } else if ((*family)==4) { //Asymmetric Laplace errors
+    if (*priorcode >= 10) Rf_error("Group priors not implemented for asymmetric Laplace errors");
+    if (*priorcode==0) {
       ans= pmomMargAlaplU;
-    } else if (*prCoef==1) {
+    } else if (*priorcode==1) {
       ans= pimomMargAlaplU;
-    } else if (*prCoef==2) {
+    } else if (*priorcode==2) {
       ans= pemomMargAlaplU;
-    } else if (*prCoef==3) {
-      Rprintf("Zellner prior with asymmetric Laplace residuals not currently implemented");
+    } else if (*priorcode==3) {
+      Rprintf("Zellner prior with asymmetric Laplace errors not currently implemented");
     }
-  } else if ((*family)==0) { //Normal + Two-piece Normal + Laplace + Two-piece Laplace residuals
-    if (*prCoef==0) {
+  } else if ((*family)==0) { //Normal + Two-piece Normal + Laplace + Two-piece Laplace errors
+    if (*priorcode >= 10) Rf_error("Group priors with family='auto' not currently implemented");
+    if (*priorcode==0) {
       ans= pmomMargTP;
-    } else if (*prCoef==1) {
+    } else if (*priorcode==1) {
       ans= pimomMargTP;
-    } else if (*prCoef==2) {
+    } else if (*priorcode==2) {
       ans= pemomMargTP;
-    } else if (*prCoef==3) {
-      Rprintf("Zellner prior with two-piece Normal/Laplace residuals not currently implemented");
+    } else if (*priorcode==3) {
+      Rprintf("Zellner prior with family='auto' not currently implemented");
     }
   } else {
     Rf_error("This error distribution is not available");
@@ -752,7 +816,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 // GENERAL MARGINAL DENSITY CALCULATION ROUTINES
 //********************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup) {
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup) {
   (*pars).n= n;
   (*pars).p= p;
   (*pars).y= y;
@@ -768,6 +832,7 @@ void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double 
   (*pars).lambda= lambda;
   (*pars).phi= phi;
   (*pars).tau= tau;
+  (*pars).taugroup= taugroup;
   (*pars).taualpha= taualpha;
   (*pars).fixatanhalpha= fixatanhalpha;
   (*pars).r= r;
@@ -841,7 +906,7 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sverbose) {
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP ngroups, SEXP Snvaringroup, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int logscale=1, *postMode, mycols, mycols2;
@@ -868,8 +933,8 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
-  modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sverbose), &pars);
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(Sverbose), &pars);
 
   delete XtX;
   UNPROTECT(1);
@@ -878,14 +943,15 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
 
 
-void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *family, int *prCoef, int *prDelta, int *verbose, struct marginalPars *pars) {
+void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *verbose, struct marginalPars *pars) {
 
-  int i, j, *sel, nsel, nselplus1, niter10, nbvars, nbfamilies=4, postModeidx;
+  int i, j, *sel, nsel, nselplus1, niter10, nbvars, nbfamilies=4, postModeidx, priorcode;
   double *mfamily, *pfamily;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
 
-  marginalFunction= set_marginalFunction(prCoef, knownphi, family);
+  priorcode= mspriorCode(prCoef, prGroup);
+  marginalFunction= set_marginalFunction(&priorcode, knownphi, family);
   priorFunction= set_priorFunction(prDelta, family);
 
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
@@ -954,7 +1020,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints;
@@ -998,8 +1064,8 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
-  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), nconstraints, constraints, INTEGER(Sverbose), &pars);
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), nconstraints, constraints, INTEGER(Sverbose), &pars);
 
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
@@ -1010,16 +1076,17 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
 
 
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, int *nconstraints, intptrlist constraints, int *verbose, struct marginalPars *pars) {
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, int *nconstraints, intptrlist constraints, int *verbose, struct marginalPars *pars) {
 
   bool copylast, validmodel;
-  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup;
+  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, priorcode;
   double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily;
   intptrlist::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
 
-  marginalFunction= set_marginalFunction(prCoef, knownphi, family);
+  priorcode= mspriorCode(prCoef, prGroup);
+  marginalFunction= set_marginalFunction(&priorcode, knownphi, family);
   priorFunction= set_priorFunction(prDelta, family);
 
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
@@ -1184,7 +1251,8 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+  
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mycols, *postMode, *nconstraints;
   double offset=0, *postModeProb;
@@ -1215,9 +1283,8 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltain
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
-  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),nconstraints,constraints,INTEGER(Sverbose),&pars);
-
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),nconstraints,constraints,INTEGER(Sverbose),&pars);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
   UNPROTECT(1);
@@ -1225,14 +1292,15 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP Sniter, SEXP Sndeltain
 
 }
 
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *includevars, int *nconstraints, intptrlist constraints, int *verbose, struct marginalPars *pars) {
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prGroup, int *prDelta, int *niter, int *ndeltaini, int *deltaini, int *includevars, int *nconstraints, intptrlist constraints, int *verbose, struct marginalPars *pars) {
   bool validmodel;
-  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, family=1, ngroups, *nvaringroup, *firstingroup;
+  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, family=1, ngroups, *nvaringroup, *firstingroup, priorcode;
   double newJ;
   intptrlist::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
-  marginalFunction= set_marginalFunction(prCoef, knownphi, &family);
+  priorcode= mspriorCode(prCoef, prGroup);
+  marginalFunction= set_marginalFunction(&priorcode, knownphi, &family);
   priorFunction= set_priorFunction(prDelta, &family);
   sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
 
@@ -1438,7 +1506,7 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 //*************************************************************************************
 
 //MOM prior on individual coef, Zellner on groups
-double pmomzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
+double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
   return 0.0;
 }
 

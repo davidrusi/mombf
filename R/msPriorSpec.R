@@ -200,6 +200,23 @@ zellnerprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="zellner", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
+groupmomprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="groupMOM", priorPars=c(tau=tau,tau.adj=tau.adj))
+}
+
+groupimomprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="groupiMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+groupemomprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="groupeMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+groupzellnerprior <- function(tau=n, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="groupzellner", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+
 modelunifprior <- function() {
     new("msPriorSpec",priorType='modelIndicator',priorDistr='uniform',priorPars=double(0))
 }

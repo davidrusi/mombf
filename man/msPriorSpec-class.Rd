@@ -3,10 +3,14 @@
 \docType{class}
 \alias{msPriorSpec}
 \alias{msPriorSpec-class}
-\alias{momprior}
-\alias{imomprior}
 \alias{emomprior}
+\alias{imomprior}
+\alias{momprior}
 \alias{zellnerprior}
+\alias{groupemomprior}
+\alias{groupimomprior}
+\alias{groupprior}
+\alias{groupzellnerprior}
 \alias{modelunifprior}
 \alias{modelbinomprior}
 \alias{modelbbprior}
@@ -25,6 +29,11 @@ momprior(tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)
 zellnerprior(tau, tau.adj=10^6)
+
+groupmomprior(tau, tau.adj=10^6)
+groupimomprior(tau, tau.adj=10^6)
+groupemomprior(tau, tau.adj=10^6)
+groupzellnerprior(tau, tau.adj=10^6)
 
 modelunifprior()
 modelbinomprior(p=0.5)
@@ -104,8 +113,35 @@ is an inverse gamma with parameteres \code{.5*alpha} and \code{.5*lambda}.
 No methods defined with class "msPriorSpec" in the signature.
 }
 \details{
+  DISCUSSION OF PRIOR ON PARAMETERS
+  
+  Let beta=(beta_1,...,beta_p) be the regression coefficients for
+  individual variables and delta=(delta_1,...,delta_q) those for grouped
+  variables (e.g. factors or smooth terms in modelSelection).
+
+  momprior, emomprior, imomprior and zellnerprior are priors on
+  beta. For further information see the vignette.
+
+  groupzellnerprior is the prior density on delta
+  
+  p_z(delta)= prod_j N(delta_j; 0, (tau/ncol(X_j)) (X_j'X_j)^{-1})
+
+  where X_j are the design matrix columns associated to delta_j. A default
+  tau=nrow(X_j) mimics the unit information prior and implies that the
+  ratio of variance explained by X_j / residual variance is expected to be
+  1 a priori.
+
+  groupmomprior adds a quadratic MOM penalty
+  
+  p_m(delta)= p_z(delta) prod_j delta_j'X_j'X_jdelta_j ncol(X_j)/tau
+
+  and analogously for eMOM and iMOM.  
+
+
+  DISCUSSION OF PRIOR ON MODELS
+  
 Under the uniform prior, the prior probability of any model is
-proportional to 1 / number of models.
+1 / number of models.
 
 Under the Binomial, Beta-Binomial and Complexity priors a model with k
 out of K active variables has prior probability

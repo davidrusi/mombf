@@ -144,12 +144,17 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   if (class(y)=="formula") {
       formula= y; splineDegree= 3
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
-      y= des$y; x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
+      x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
+      if (class(des$y)=="Surv") {
+          y= des$y[,1]; uncens= as.integer(des$y[,2])
+          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
+      } else {
+          y= des$y; uncens= integer(0)
+      }
       nlevels= apply(x,2,function(z) length(unique(z)))
       typeofvar[nlevels==2]= 'factor'
   } else {
-      formula= splineDegree= NA
-      typeofvar= rep('numeric',ncol(x))
+      uncens= integer(0); formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
   }
   call= list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
   if (!missing(smoothterms)) call$smoothterms= smoothterms
@@ -206,7 +211,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
 
-  if (family=='auto') { familyint <- 0 } else if (family=='normal') { familyint <- 1 } else if (family=='twopiecenormal') { familyint <- 2 } else if (family=='laplace') { familyint <- 3 } else if (family=='twopiecelaplace') { familyint <- 4 } else stop("family not available")
+  if (family=='auto') { familyint <- 0 } else if (family=='normal') { familyint <- ifelse(length(uncens)==0,1,11) } else if (family=='twopiecenormal') { familyint <- 2 } else if (family=='laplace') { familyint <- 3 } else if (family=='twopiecelaplace') { familyint <- 4 } else stop("family not available")
   familyint <- as.integer(familyint)
   if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
 
@@ -218,7 +223,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -234,7 +239,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,constraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -250,7 +255,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,ngroups,nvaringroup,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)

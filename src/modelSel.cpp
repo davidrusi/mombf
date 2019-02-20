@@ -275,25 +275,29 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
     } else if (*priorcode==10) {
       ans= pmomgmomMarg;
     } else if (*priorcode==13) {
-      ans= pmomzellMarg;
+      ans= pmomgzellMarg;
     } else if (*priorcode==32) {
       ans= pemomgemomMarg;
     } else if (*priorcode==33) {
       ans= pemomgzellMarg;
     } else if (*priorcode==43) {
       ans= zellgzellMarg;
+    } else {
+      Rf_error("The prior in (priorCoef,priorGroup) not currently implemented for linear regression");
     }
-  if ((*family)==11) {  //AFT survival with Normal errors
+  } else if ((*family)==11) {  //AFT survival with Normal errors
     if (*priorcode==10) {
       ans= pmomgmomSurvMarg;
     } else if (*priorcode==13) {
-      ans= pmomzellSurvMarg;
+      ans= pmomgzellSurvMarg;
     } else if (*priorcode==32) {
       ans= pemomgemomSurvMarg;
     } else if (*priorcode==33) {
       ans= pemomgzellSurvMarg;
     } else if (*priorcode==43) {
       ans= zellgzellSurvMarg;
+    } else {
+      Rf_error("The prior in (priorCoef,priorGroup) not implemented for survival data\n");
     }
   } else if ((*family)==2) { //Two-piece Normal errors
     if (*priorcode >= 10) Rf_error("Group priors not implemented for Two-piece Normal errors");
@@ -304,7 +308,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
     } else if (*priorcode==2) {
       ans= pemomMargSkewNormU;
     } else if (*priorcode==3) {
-      Rprintf("Zellner prior with two-piece Normal errors not currently implemented");
+      Rf_error("Zellner prior with two-piece Normal errors not currently implemented");
     }
   } else if ((*family)==3) { //Laplace errors
     if (*priorcode >= 10) Rf_error("Group priors not implemented for Laplace errors");
@@ -315,7 +319,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
     } else if (*priorcode==2) {
       ans= pemomMargLaplU;
     } else if (*priorcode==3) {
-      Rprintf("Zellner prior with Laplace errors not currently implemented");
+      Rf_error("Zellner prior with Laplace errors not currently implemented");
     }
   } else if ((*family)==4) { //Asymmetric Laplace errors
     if (*priorcode >= 10) Rf_error("Group priors not implemented for asymmetric Laplace errors");
@@ -326,7 +330,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
     } else if (*priorcode==2) {
       ans= pemomMargAlaplU;
     } else if (*priorcode==3) {
-      Rprintf("Zellner prior with asymmetric Laplace errors not currently implemented");
+      Rf_error("Zellner prior with asymmetric Laplace errors not currently implemented");
     }
   } else if ((*family)==0) { //Normal + Two-piece Normal + Laplace + Two-piece Laplace errors
     if (*priorcode >= 10) Rf_error("Group priors with family='auto' not currently implemented");
@@ -337,7 +341,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family) {
     } else if (*priorcode==2) {
       ans= pemomMargTP;
     } else if (*priorcode==3) {
-      Rprintf("Zellner prior with family='auto' not currently implemented");
+      Rf_error("Zellner prior with family='auto' not currently implemented");
     }
   } else {
     Rf_error("This error distribution is not available");
@@ -816,10 +820,11 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 // GENERAL MARGINAL DENSITY CALCULATION ROUTINES
 //********************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup) {
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup) {
   (*pars).n= n;
   (*pars).p= p;
   (*pars).y= y;
+  (*pars).uncens= uncens;
   (*pars).sumy2= sumy2;
   (*pars).x= x;
   (*pars).XtX= XtX;
@@ -906,7 +911,7 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP ngroups, SEXP Snvaringroup, SEXP Sverbose) {
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int logscale=1, *postMode, mycols, mycols2;
@@ -933,7 +938,7 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(Sverbose), &pars);
 
   delete XtX;
@@ -1020,7 +1025,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints;
@@ -1064,7 +1069,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), nconstraints, constraints, INTEGER(Sverbose), &pars);
 
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1251,7 +1256,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
   
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mycols, *postMode, *nconstraints;
@@ -1283,7 +1288,7 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Snit
     XtX= new crossprodmat(REAL(Sx),INTEGER(Sn)[0],INTEGER(Sp)[0],false);
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), &logscale, &offset, INTEGER(Sngroups), INTEGER(Snvaringroup));
   greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),nconstraints,constraints,INTEGER(Sverbose),&pars);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
@@ -1505,12 +1510,64 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 // MARGINAL LIKELIHOOD UNDER NORMAL ERRORS
 //*************************************************************************************
 
-//MOM prior on individual coef, Zellner on groups
+// pMOM on individual coef, group MOM on groups
+double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("pMOM + group MOM not currently implemented for linear regression");
+}
+
+// pMOM on individual coef, block Zellner on groups
 double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  return 0.0;
+  Rf_error("pMOM + block Zellner not currently implemented for linear regression");
+}
+
+// peMOM on individual coef, group eMOM on groups
+double pemomgemomMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("peMOM + group eMOM not currently implemented for linear regression");
+}
+ 
+
+// peMOM on individual coef, block Zellner on groups
+double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("peMOM + block Zellner not currently implemented for linear regression");
+}
+
+// Zellner on individual coef, block Zellner on groups
+double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + block Zellner not currently implemented for linear regression");
 }
 
 
+//*************************************************************************************
+// MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS
+//*************************************************************************************
+
+// pMOM on individual coef, group MOM on groups
+double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("pMOM + group MOM not currently implemented for the AFT Normal model");
+}
+
+// pMOM on individual coef, block Zellner on groups
+double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("pMOM + block Zellner not currently implemented for the AFT Normal model");
+}
+
+// peMOM on individual coef, group eMOM on groups
+double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("peMOM + group eMOM not currently implemented for the AFT Normal model");
+}
+ 
+
+// peMOM on individual coef, block Zellner on groups
+double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("peMOM + block Zellner not currently implemented for the AFT Normal model");
+}
+
+// Zellner on individual coef, block Zellner on groups
+double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + block Zellner not currently implemented for the AFT Normal model");
+}
+
+ 
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS
@@ -1623,7 +1680,7 @@ double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
 
 SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Ssymmetric, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef, SEXP Sngroups, SEXP Snvaringroup) {
   //Note: Ssel[Snsel]==p+1
-  int prCoef= INTEGER(SprCoef)[0], symmetric= INTEGER(Ssymmetric)[0];
+  int prCoef= INTEGER(SprCoef)[0], symmetric= INTEGER(Ssymmetric)[0], emptyint=0;
   double *rans, emptydouble=0, offset=0;
   crossprodmat *XtX;
   struct marginalPars pars;
@@ -1631,7 +1688,7 @@ SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),INTEGER(Shesstype),INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),INTEGER(Shesstype),INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
 
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
@@ -2508,7 +2565,7 @@ SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),&emptyint,INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),&emptyint,INTEGER(SoptimMethod),INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
 
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
@@ -3737,7 +3794,7 @@ SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
@@ -3816,7 +3873,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
@@ -4123,7 +4180,7 @@ SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,n,p,y,sumy2,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,B,&emptydouble,&emptydouble,phi,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,n,p,y,&emptyint,sumy2,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,B,&emptydouble,&emptydouble,phi,tau,&emptydouble,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalKC(sel, nsel, &pars);
@@ -4401,7 +4458,7 @@ SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,n,p,y,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,n,p,y,&emptyint,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalUC(sel, nsel, &pars);
@@ -4493,7 +4550,7 @@ SEXP pemomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,n,p,y,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,n,p,y,&emptyint,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,B,alpha,lambda,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,&emptydouble,&emptydouble,logscale,&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pemomMarginalUC(sel, nsel, &pars);
@@ -4541,7 +4598,7 @@ SEXP zellnerMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= zellnerMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
@@ -4596,7 +4653,7 @@ SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ss
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,&emptydouble,&emptydouble,INTEGER(Slogscale),&offset,INTEGER(Sngroups),INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= zellnerMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);

@@ -147,6 +147,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
       if (class(des$y)=="Surv") {
           y= des$y[,1]; uncens= as.integer(des$y[,2])
+          ordery= c(which(uncens==1),which(uncens!=1))
+          y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
       } else {
           y= des$y; uncens= integer(0)
@@ -170,7 +172,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
-    
+
   #Standardize (y,x) to mean 0 and variance 1
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
@@ -282,7 +284,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   }
 
   priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants,call=call)
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd[ordery],xstd=xstd[ordery,,drop=FALSE],stdconstants=stdconstants,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }
@@ -525,9 +527,9 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta)
   } else if (priorGroup@priorDistr=='zellner') {
       priorgr= as.integer(3)
   } else if (priorGroup@priorDistr=='groupMOM') {
-    priorgr= as.integer(10)      
+    priorgr= as.integer(10)
   } else if (priorGroup@priorDistr=='groupiMOM') {
-    priorgr= as.integer(11)      
+    priorgr= as.integer(11)
   } else if (priorGroup@priorDistr=='groupeMOM') {
     priorgr= as.integer(12)
   } else if (priorGroup@priorDistr=='groupzellner') {

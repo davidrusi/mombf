@@ -71,6 +71,31 @@ SEXP testfunctionCI(SEXP x) {
     return ans;
 }
 
+
+void testfunction() {
+
+  bool posdef;
+  int i; double *x, *cholXtX, detXtX;
+  x= dvector(0,12);
+  for (i=0; i<12; i++) x[i]= (double) i;
+
+  // OPTION 1. PRE-COMPUTE XtX
+  double *XtX;
+  XtX= dvector(0,9);
+  XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
+  XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
+  XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
+
+  crossprodmat *Ad;
+  Ad= new crossprodmat(XtX,4,3,true);  //true indicates that 1st argument is the pre-computed XtX
+  //double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
+  cholXtX= dvector(0,2);    //store Cholesky decomp of XtX[1:2,1:2] requires 3 elements
+  Ad->choldc(1,2,cholXtX,&detXtX,&posdef);
+  delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9); free_dvector(cholXtX, 0,2);
+
+}
+
+/*
 // FUNCTION: sum_k (sel[k]+1) th[k]^2 + sum_{l>k} th[k] th[l], for sel[k]>=0. The minimum is trivially at 0
 //
 // GRADIENT WRT th[j]: 2 (sel[j]+1) th[j] + sum_{l \neq j} th[l]
@@ -209,6 +234,7 @@ void testfunction() {
   delete msfun;
 
 }
+*/
 
 
 //*************************************************************************************
@@ -1142,7 +1168,6 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
       if (includevars[j]==0 && validmodel) {
 	sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
-        //sel2selnew(j,sel,&nsel,selnew,&nselnew,copylast); //old version (does not allow variable groups)
         if (nselnew <= (*(*pars).n)) {
           if ((*family)==0) {  //inference is being done on the family (residual error distribution)
 	    nselplus1= nselnew+1;
@@ -1257,7 +1282,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
 SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
-  
+
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int j, logscale=1, mycols, *postMode, *nconstraints;
   double offset=0, *postModeProb;
@@ -1328,7 +1353,6 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCo
       if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
       if (includevars[j]==0 && validmodel) {
 	sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,false,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
-        //sel2selnew(j,sel,&nsel,selnew,&nselnew,false); //old version (does not allow variable groups)
         newJ= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
         if (newJ > *postModeProb) {
           *postModeProb= newJ;  //update post mode prob
@@ -1373,7 +1397,7 @@ bool checkConstraints(int *constraints, int *nconstraints, int *firstingroup, in
 
 
 void sel2selnew(int newgroup, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast, int *ngroups, int *nvaringroup, int *firstingroup) {
-//Copy sel into selnew.
+//Copy sel into selnew. Elements are always kept ordered so that sel[0] < sel[1] < sel[2] ...
 // - If newgroup in sel, don't copy it in selnew and set nselnew=nsel-1.
 // - If newgroup not in sel, add it to selnew and set nselnew=nsel+1.
 // - If copylast==true, copy last element sel[nsel] into selnew[nselnew]
@@ -1407,6 +1431,38 @@ void sel2selnew(int newelem,int *sel,int *nsel,int *selnew,int *nselnew, bool co
   }
   if (copylast) selnew[*nselnew]= sel[*nsel];
   }*/
+
+
+void findselgroups(double *nvarinselgroups, double *nselgroups, int *sel, int *nsel, int *nvaringroup, int *ngroups) {
+  //Return sub-vector of nvaringroup corresponding to selected groups (as indicated by sel), and the total number of selected groups
+  // Input
+  // - sel: vector indicating selected variables. IMPORTANT: these must be given in increasing order, i.e. sel[0] < sel[1] < sel[2] ...
+  // - nsel: number of selected variables (length of sel)
+  // - nvaringroup: number of variables in each group
+  // - ngroup: number of groups (length of nvaringroup)
+  // Output
+  // - nvarinselgroups: subset of elements in nvaringroup containing only groups with variables in sel
+  // - nselgroups: number of selected groups (length of nvarinselgroups)
+  //
+  // Example:  Suppose that nvaringroup= (1,1,2), indicating that there's 3 groups with (1,1,2) variables in each.
+  //           Hence variable 0 is in group 1, variable 1 in group 2, variables 2-3 in group 3
+  //
+  //           Further suppose that sel[0]=0, sel[1]=2, sel[2]=3, indicating that variables (0,2,3) are selected
+  //
+  //           Then we selected 2 groups with (1,2) variables respectively, hence nselgroups=2 and nvarinselgroups= (1,2)
+  int j, groupid, firstingroup;
+  (*nselgroups) = 0;
+  groupid= firstingroup= j= 0;
+  while (j< *nsel) {
+    while ((groupid < *ngroups) && (firstingroup < sel[j])) {
+      firstingroup += nvaringroup[groupid];
+      groupid++;
+    }
+    nvarinselgroups[(int) (*nselgroups +.1)]= (double) nvaringroup[groupid];
+    j += nvaringroup[groupid];
+    (*nselgroups)++;
+  }
+}
 
 
 //********************************************************************************************
@@ -1454,6 +1510,48 @@ double complexityPriorTP(int *sel, int *nsel, struct marginalPars *pars) {
 
 double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
   return complexPrior(*nsel,*(*pars).p1,(*pars).prModelpar[0],1);
+}
+
+
+
+//*************************************************************************************
+// PRIOR DENSITIES ON PARAMETERS
+//*************************************************************************************
+
+
+void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale) {
+  /*Evaluate pMOM(tau) + block Zellner(taugroup) prior density at th
+
+     prod_j pMOM(beta_j; tau)  prod_j N(delta_j; 0, S_j^{-1})
+
+     where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
+     corresponding to coefficients for individual variables and grouped variables (respectively)
+
+    Input
+     - th: point at which to evaluate the density is th[0],...,th[*nsel]
+     - tau: prior pMOM dispersion parameter (drives prior on individual coefficients, i.e. groups of size 1)
+     - nvaringroup: number of variables in each group
+     - ngroups: number of selected groups (length of nvaringroup)
+     - detSinv: determinant of S_j^{-1} for each group j=1,...,ngroups
+     - cholSinv: Cholesky decomp of S_j^{-1} for all groups stored as a single vector
+     - cholSini: Chol decomp of S_j^{-1} for group j starts at cholSinv[cholSini[j]]
+     - logscale: if true return log-density, else return the density
+
+    Output
+     - ans: log-density (if logscale==true) or density (if logscale==false)
+  */
+  int i, ningroup, ngroupsi= (int) (*ngroups +.1);
+
+  (*ans)= 0;
+  for (i=0; i< ngroupsi; i++) {
+    ningroup= (int) (nvaringroup[i] +.1);
+    if (ningroup== 1) {
+      (*ans) += dmom(th[i], 0, *tau, 1, 1, true);
+    } else {
+      (*ans) += dmvnorm0(th+i, ningroup, cholSinv + (int) (cholSini[i]+.1), detSinv[i], false, true);
+    }
+  }
+  if (!logscale) (*ans)= exp(*ans);
 }
 
 
@@ -1524,7 +1622,7 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 double pemomgemomMarg(int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("peMOM + group eMOM not currently implemented for linear regression");
 }
- 
+
 
 // peMOM on individual coef, block Zellner on groups
 double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
@@ -1541,21 +1639,144 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS
 //*************************************************************************************
 
-// pMOM on individual coef, group MOM on groups
-double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("pMOM + group MOM not currently implemented for the AFT Normal model");
+//Negative log-likelhood for AFT model with Normal errors
+void loglnormalAFT(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars,  std::map<string, double *> *funargs) {
+  int i, nuncens, n= *((*pars).n);
+  double rho= th[*nsel +1], exprho= exp(rho), *ypred, *y= (*pars).y, sumres2, sumlogPhires, *res;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  ypred= dvector(0,n);
+  (*f)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * rho);
+  Aselvecx((*pars).x, th, ypred, 0, n, sel, nsel); //Returns ypred= x[,sel] %*% th
+
+  //Contribution from uncensored observations
+  for (i=0, sumres2=0; i< nuncens; i++) {
+    res[i]= exprho * y[i] - ypred[i];
+    sumres2 += pow(res[i], 2.0);
+  }
+
+  //Contribution from censored observations
+  for (i=nuncens, sumlogPhires=0; i< n; i++) {
+    res[i]= exprho * y[i] - ypred[i];
+    sumlogPhires += log(pnormC(- res[i]));
+  }
+
+  (*f)= (*f) + 0.5 * sumres2 - sumlogPhires;
+
+  free_dvector(ypred, 0,n);
 }
 
-// pMOM on individual coef, block Zellner on groups
-double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+
+// pMOM on individual coef, group MOM on groups
+double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("pMOM + block Zellner not currently implemented for the AFT Normal model");
+}
+
+
+
+double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  /*Marginal likelihood under pMOM(tau) + block Zellner(taugroup) prior
+
+    prod_j pMOM(beta_j; tau)  prod_j N(delta_j; 0, (taugroup/ncol(S_j)) (S_j)^{-1})
+
+    where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
+    corresponding to coefficients for individual variables and grouped variables (respectively)
+
+    S_j is the submatrix of S indicated by sel[0], sel[1] etc.
+  */
+
+  std::map<string, double *> funargs;
+  bool posdef;
+  int i, j, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize;
+  double ans, nuncens, *residuals, nselgroups, *nvarinselgroups, *detS, sqrtct, *cholSini, *cholSinv, *thini, *thopt, fopt;
+  modselFunction *msfun;
+
+  //Initialize static elements in funargs (not changed by msfun)
+  for (i=0; i< ((*pars).uncens)[i] ==1; i++) { }
+  nuncens= (double) i;
+  funargs["nuncens"]= &nuncens; //number of uncensored observations
+
+  nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups)));
+  findselgroups(nvarinselgroups, &nselgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+  funargs["nvarinselgroups"]= nvarinselgroups;
+  funargs["nselgroups"]= &nselgroups;
+  nselgroupsint= (int) (nselgroups +.1);
+
+  //Obtain Cholesky decomp and determinant of prior scale covariances for each group
+  detS= dvector(0, nselgroupsint); cholSini= dvector(0, nselgroupsint);
+  cholSini[0]= 0;
+  for (i=0, cholSsize=0; i< nselgroupsint; i++) {
+    groupsize= (int) (nvarinselgroups[i] + .1);
+    cholSsize+= groupsize * (groupsize+1) / 2;
+    if (i< nselgroupsint-1) cholSini[i+1]= cholSini[i] + cholSsize;
+  }
+
+  cholSinv= dvector(0, cholSsize);
+  for (i=0, firstingroup=0; i< nselgroupsint; i++) {
+    groupsize= (int) (nvarinselgroups[i] + .1);
+    idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
+    (*pars).XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, detS+i, &posdef);
+    sqrtct= sqrt(nvarinselgroups[i] / *((*pars).taugroup));
+    for (j=0; j< groupsize*(groupsize+1)/2; j++) { (*(cholSinv + Sidxini + j)) *= sqrtct; }
+    detS[i] *= sqrtct * sqrtct;
+    firstingroup += groupsize;
+  }
+  funargs["detS"]= detS;
+  funargs["cholSini"]= cholSini;
+  funargs["cholSinv"]= cholSinv;
+
+  //Initialize dynamic elements in funargs (changed by msfun)
+  residuals= dvector(0, *((*pars).n));
+  funargs["residuals"]= residuals;
+
+  //Assign functions to evaluate log-posterior, update log-posterior, gradient and hessians
+  thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
+  msfun= new modselFunction(sel, nsel, pars, NULL);
+  msfun->fun= &fpmomgzellSurv;
+  msfun->funupdate= &fpmomgzellSurvupdate;
+  msfun->gradhessUniv= &fpmomgzellgradhess;
+  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 1);
+  ans= 0; //TO DO: program Laplace approximation
+
+  //Free memory
+  free_dvector(thopt, 0, *nsel); free_dvector(thini, 0, *nsel);
+  free_dvector(residuals, 0, *((*pars).n));
+  free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
+  free_dvector(detS, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize);
+  delete msfun;
+
+  return ans;
+}
+
+
+//Evaluate negative log-likelihood + log-prior (pMOM + group MOM) and initialize funargs
+void fpmomgzellSurv(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+
+  double priordens;
+
+  loglnormalAFT(f, th, sel, nsel, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroup"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  (*f) -= priordens;
+
+}
+
+
+void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  //TO DO: program this function
+  (*fnew)= 0;
+}
+
+void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  //TO DO: program this function
+  (*grad)= (*hess)= 0;
 }
 
 // peMOM on individual coef, group eMOM on groups
 double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("peMOM + group eMOM not currently implemented for the AFT Normal model");
 }
- 
+
 
 // peMOM on individual coef, block Zellner on groups
 double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
@@ -1567,7 +1788,7 @@ double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("Zellner + block Zellner not currently implemented for the AFT Normal model");
 }
 
- 
+
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS

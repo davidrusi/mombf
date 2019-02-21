@@ -299,9 +299,12 @@ double ddirichlet(const double *w, double *alpha, const int *p); //Dirichlet den
 double dnormC(double y, double m, double s, int logscale); //density of Normal(m,s^2)
 double dnormC_jvec(const double *y, int n, double m, double s, int logscale); //joint density of y[0]...y[n-1] under Normal(m,s^2), i.e. returns scalar
 double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale); //density of multivariate Normal
+double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool transpose, int logscale); //same for particular case mean=0
+double dmvnorm0(const double *y, int p, double *cholsinv, double det, bool transpose, int logscale); //same for particular case mean=0
 void dmvnormmatC(double *ans, const double *y, int n, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale); //same but y is n x p matrix
 void dmvnormmat_transC(double *ans, const double *ty, int n, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale); //same but t(y) is provided
 double	qnormC(double cdf, double m, double s);  //quantile from Normal(m,s^2)
+double pnormC(double y); //cdf of Normal(0,1)
 double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
 void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal

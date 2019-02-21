@@ -23,30 +23,33 @@ using namespace std;
 //
 // NOTE: all indexes in this class start at 0, e.g. A(0,1) returns element in row 0, column 1; A(0) returns element in row 0 column 0
 //
-//EXAMPLE: matrix x has 4 rows, 3 columns
-//    int i; double *x;
-//    x= dvector(0,12); 
-//    for (i=0; i<12; i++) x[i]= (double) i;
-//
-// OPTION 1. PRE-COMPUTE XtX
-//    double *XtX;
-//    XtX= dvector(0,9);
-//    XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
-//    XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
-//    XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
-//
-//    crossprodmat *Ad; 
-//    Ad= new crossprodmat(XtX,4,3,true);  //true indicates that 1st argument is the pre-computed XtX
-//    double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
-//    delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9);
-//
-// OPTION 2. COMPUTE XtX ON-THE-FLY
-//    crossprodmat *As;
-//    As= new crossprodmat(x,4,3,false); //false indicates that 1st argument is the matrix x
-//    double tmp= As->at(0,0); //computes and stores internally the inner-product, then returns it
-//    tmp= As->at(0,0); //returns the stored value
-//    delete As; free_dvector(x,0,9); free_dvector(XtX,0,9);
+/* EXAMPLE: matrix x has 4 rows, 3 columns
+      bool posdef;
+      int i; double *x, *cholXtX, detXtX;
+      x= dvector(0,12);
+      for (i=0; i<12; i++) x[i]= (double) i;
 
+      // OPTION 1. PRE-COMPUTE XtX
+      double *XtX;
+      XtX= dvector(0,9);
+      XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
+      XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
+      XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
+
+      crossprodmat *Ad;
+      Ad= new crossprodmat(XtX,4,3,true);  //true indicates that 1st argument is the pre-computed XtX
+      double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
+      cholXtX= dvector(0,2);    //store Cholesky decomp of XtX[1:2,1:2] requires 3 elements
+      XtX->choldc(1,2,*cholXtX,&detXtX,&posdef);
+      delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9); free_dvector(cholXtX, 0,2);
+
+      // OPTION 2. COMPUTE XtX ON-THE-FLY
+      crossprodmat *As;
+      As= new crossprodmat(x,4,3,false); //false indicates that 1st argument is the matrix x
+      double tmp= As->at(0,0); //computes and stores internally the inner-product, then returns it
+      tmp= As->at(0,0); //returns the stored value
+      delete As; free_dvector(x,0,9); free_dvector(XtX,0,9);
+*/
 
 
 class crossprodmat {
@@ -60,8 +63,7 @@ public:
   double at(int i, int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
   double at(int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
-    //  double operator()(const int i, const int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
-    //  double operator()(const int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
+  void choldc(int idxini, int idxfi, double *cholx, double *detx, bool *posdef); //Cholesky decomp and determinant
 
 private:
 

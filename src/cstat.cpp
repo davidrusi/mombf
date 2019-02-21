@@ -3445,6 +3445,9 @@ decomposition, A = L * L' . On input, only the upper triangle of a need be given
   for (i=1;i<=n;i++) { for (j=i+1;j<=n;j++) { aout[i][j]= 0; } }  //set upper-diagonal elem to 0
 }
 
+
+
+
 void choldc_inv(double **a, int n, double **aout, bool *posdef) {
   /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
    of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
@@ -4488,6 +4491,23 @@ double gamdev(double alpha)
    normal cdf and inv cdf
  ************************************************* */
 
+/* Returns cdf of normal N(0,1) at x */
+double pnormC(double y) {
+  double cdf, surv;
+
+    if (y < -20.0) {
+      cdf= 2.753624e-89;
+    }
+    else if (y > 20.0) {
+      cdf= 1 - 2.753624e-89;
+    }
+    else {
+      cumnor(&y,&cdf,&surv);
+    }
+
+    return cdf;
+}
+
 /* Returns cdf of normal N(m,s^2) at x */
 double pnormC(double y, double m, double s) {
   double cdf, p, mean, sd, bound, x, z;
@@ -4578,20 +4598,55 @@ double dnormC_jvec(const double *y,
  */
 double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
     int i;
-    double *z, *z2, res = 0.0, ans;
+    double *z, ans;
 
     z  = dvector(1, p);
-    z2 = dvector(1, p);
     for (i = 1; i <= p; i++) { z[i] = y[i] - mu[i]; }
-    if (transpose) {
-      Ax(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv' * cholsinv * (y-mu) */
-    } else {
-      Atx(cholsinv, z, z2, 1, p, 1, p);     /* Find (y-mu)' * cholsinv * cholsinv' * (y-mu) */
-    }
-    for (i = 1; i <= p; i++) {
-        res += z2[i] * z2[i];
-    }
+    ans= dmvnorm0(z, p, cholsinv, det, transpose, true);
     free_dvector(z, 1, p);
+
+    return (logscale == 1) ? ans : exp(ans);
+}
+
+//same as dmvnorm for particular case mean=0
+double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool transpose, int logscale) {
+  int i;
+  double *z2, res=0, ans;
+    z2 = dvector(1, p);
+    if (transpose) {
+      Ax(cholsinv, y, z2, 1, p, 1, p);     /* Find y' cholsinv' cholsinv y */
+    } else {
+      Atx(cholsinv, y, z2, 1, p, 1, p);    /* Find y' cholsinv cholsinv' y */
+    }
+    for (i = 1; i <= p; i++) res += z2[i] * z2[i];
+    free_dvector(z2, 1, p);
+
+    ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    return (logscale == 1) ? ans : exp(ans);
+}
+
+//same as dmvnorm for particular case mean=0
+double dmvnorm0(const double *y, int p, double *cholsinv, double det, bool transpose, int logscale) {
+  // cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
+  // This means that element (i,j) of chol(Sinv) is stored into cholsinv[i + (j-1) (p-j/2)]
+
+  int i, j;
+  double *z2, res=0, ans;
+    z2 = dvector(1, p);
+    if (transpose) { /* Find y' cholsinv' cholsinv y */
+
+      for (i=1; i<= p; i++) {
+        for (j=1, z2[i]=0; j<= p; j++) z2[i] += cholsinv[i + (j-1)*(p-j/2)] * y[j]; //z2[i] += cholsinv[i][j] * y[j];
+      }
+
+    } else { /* Find y' cholsinv cholsinv' y */
+
+      for (i=1; i<= p; i++) {
+        for (j=1, z2[i]=0; j<= p; j++) z2[i] += cholsinv[j + (i-1)*(p-i/2)] * y[j]; //z2[i] += cholsinv[j][i] * y[j];
+      }
+
+    }
+    for (i = 1; i <= p; i++) res += z2[i] * z2[i];
     free_dvector(z2, 1, p);
 
     ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;

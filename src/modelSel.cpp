@@ -91,6 +91,7 @@ void testfunction() {
   //double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
   cholXtX= dvector(0,2);    //store Cholesky decomp of XtX[1:2,1:2] requires 3 elements
   Ad->choldc(1,2,cholXtX,&detXtX,&posdef);
+  Rprintf("Determinant= %f\n", detXtX);
   delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9); free_dvector(cholXtX, 0,2);
 
 }

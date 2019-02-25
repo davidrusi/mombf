@@ -308,6 +308,8 @@ double pnormC(double y); //cdf of Normal(0,1)
 double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
 void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal
+double millsnorm(double z); //Mill's ratio (1-pnorm(z))/dnorm(z)
+double invmillsnorm(double z); //Inverse Mill's ratio dnorm(z)/pnorm(z)
 
 // Truncated Normal
 double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given two truncation points

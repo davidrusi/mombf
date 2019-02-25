@@ -4539,6 +4539,22 @@ double pnormC(double y, double m, double s) {
 
 
 /*
+ * Density of univariate Normal(0,1) evaluated at y.
+ * log==1 returns in log-scale.
+ */
+double dnormC(double y, int logscale) {
+    //assert((logscale == 0) || (logscale == 1));
+
+    if (logscale == 1) {
+      return(-log(SQ_M_PI_2) - 0.5 * y * y);
+    }
+    else {
+      return(exp(-0.5 * y * y) / SQ_M_PI_2);
+    }
+}
+
+
+/*
  * Density of univariate Normal(m,s^2) evaluated at y.
  * log==1 returns in log-scale.
  */
@@ -5531,6 +5547,16 @@ void rmvnormC(double *y,
     free_dvector(z, 1, n);
 }
 
+
+//Mill's ratio (1-pnorm(z))/dnorm(z)
+double millsnorm(double z) { 
+  return (1.0 - pnormC(z)) / dnormC(z,0);
+}
+
+//Inverse Mill's ratio dnorm(z)/pnorm(z)
+double invmillsnorm(double z) { 
+  return dnormC(z,0) / pnormC(z);
+}
 
 
  //Raw moment of N(m,sd) of order "order"

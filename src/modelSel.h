@@ -64,9 +64,10 @@ struct marginalPars {
   int *uncens;
   double *sumy2;
   double *x;
-  crossprodmat *XtX;  //version with sparse matrix support
-  //double *XtX; //old version with no sparse matrix support
-  double *ytX;
+  crossprodmat *XtX;  //t(x) %*% x using all observations
+  crossprodmat *XtXuncens; //t(x) %*% x using uncensored observations
+  double *ytX;             //t(x) %*% y using all observations
+  double *ytXuncens;       //t(x) %*% y using uncensored observations
   double *m;  //Sinv * Xty   (needed by mom and emom)
   double **S;  //XtX + I/tau  (needed by mom and emom)
   int *method; //method==0 for Laplace; method==1 for Monte Carlo; method==2 for plug-in (method== -1 for exact, when available)
@@ -167,7 +168,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens, double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup);
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, int *logscale, double *offset, int *ngroups, int *nvaringroup, crossprodmat *XtXuncens=NULL, double *ytXuncens=NULL);
 void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
 void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
@@ -207,6 +208,7 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 //*************************************************************************************
 
 void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
+void dmomgzellgradhess(double *grad, double *hess, int j, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini);
 
 
 //*************************************************************************************
@@ -257,9 +259,11 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS
 //*************************************************************************************
 
-
+//log-likelihood of Normal AFT model and its derivatives
 void loglnormalAFT(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars,  std::map<string, double *> *funargs);
-
+void loglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
+void loglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
+double infopropAFT(double z);
 
 // pMOM on individual coef, group MOM on groups
 double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars);

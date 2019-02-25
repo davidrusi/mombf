@@ -208,7 +208,6 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 //*************************************************************************************
 
 void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
-void dmomgzellgradhess(double *grad, double *hess, int j, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini);
 
 
 //*************************************************************************************

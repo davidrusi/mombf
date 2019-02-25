@@ -1591,10 +1591,7 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
   if (!logscale) (*ans)= exp(*ans);
 } 
 
-//Evaluate gradient and hessian of log-dmomgzell wrt to th[j]
-void dmomgzellgradhess(double *grad, double *hess, int j, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini) {
 
-}
 
 
 
@@ -1816,8 +1813,8 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
   std::map<string, double *> funargs;
   bool posdef;
-  int i, j, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize, *uncens;
-  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *detS, sqrtct, *cholSini, *cholSinv, *thini, *thopt, fopt, *y;
+  int i, j, l, k, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize, *uncens;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *isgroup, *detS, sqrtct, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y;
   modselFunction *msfun;
 
   y= ((*pars).y);
@@ -1834,6 +1831,14 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   funargs["nselgroups"]= &nselgroups;
   nselgroupsint= (int) (nselgroups +.1);
 
+  isgroup= dvector(0,*nsel -1); //isgroup[j] indicates if variable sel[j] belongs to a group
+  for (i=0, l=0; i< nselgroupsint; i++) {
+    ningroup= (int) (nvarinselgroups[i]+.1);
+    if (ningroup==1) { tmp=0; } else { tmp=1; }
+    for (j=0; j< ningroup; j++) { isgroup[l]= tmp; l++; }
+  }
+  funargs["isgroup"]= isgroup;
+  
   //Obtain Cholesky decomp and determinant of prior scale covariances for each group
   detS= dvector(0, nselgroupsint); cholSini= dvector(0, nselgroupsint);
   cholSini[0]= 0;
@@ -1843,19 +1848,24 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
     if (i< nselgroupsint-1) cholSini[i+1]= cholSini[i] + cholSsize;
   }
 
-  cholSinv= dvector(0, cholSsize);
+  cholSinv= dvector(0, cholSsize); Sinv= dvector(0, cholSsize);
   for (i=0, firstingroup=0; i< nselgroupsint; i++) {
     groupsize= (int) (nvarinselgroups[i] + .1);
     idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
     (*pars).XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, detS+i, &posdef);
     sqrtct= sqrt(nvarinselgroups[i] / *((*pars).taugroup));
-    for (j=0; j< groupsize*(groupsize+1)/2; j++) { (*(cholSinv + Sidxini + j)) *= sqrtct; }
+    for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
+      (*(cholSinv + Sidxini + j)) *= sqrtct;
+      Sinv[j]= ((*pars).XtX)->(sel[firstingroup+l],sel[firstingroup+k]);
+      if (l< groupsize-1) { l++; } else { k++; l=k; }
+    }
     detS[i] *= sqrtct * sqrtct;
     firstingroup += groupsize;
   }
   funargs["detS"]= detS;
   funargs["cholSini"]= cholSini;
   funargs["cholSinv"]= cholSinv;
+  funargs["Sinv"]= Sinv;
 
   //Initialize dynamic elements in funargs (changed by msfun)
   residuals= dvector(0, *((*pars).n));
@@ -1871,10 +1881,11 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   ans= 0; //TO DO: program Laplace approximation
 
   //Free memory
+  free_dvector(isgroup, 0,*nsel -1);
   free_dvector(thopt, 0, *nsel -1); free_dvector(thini, 0, *nsel -1);
   free_dvector(residuals, 0, *((*pars).n));
   free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
-  free_dvector(detS, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize);
+  free_dvector(detS, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize); free_dvector(Sinv, 0, cholSsize);
   delete msfun;
 
   return ans;
@@ -1902,10 +1913,34 @@ void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double
 
 //Gradient and hessian 
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
-  double priorgrad, priorhess;
-  
-  loglnormalAFTgradhess(grad, hess, j, th, sel, nsel, pars, funargs);
-  dmomgzellgradhess(&priorgrad, &priorhess, j, th, (*pars).tau, (*funargs)["nvarinselgroup"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"]);
+  bool isgroup;
+  double priorgrad, priorhess, tau, *Sinv;
+
+  loglnormalAFTgradhess(grad, hess, j, th, sel, nsel, pars, funargs); //contribution from the log-likelihood
+
+  //Contribution from the log-prior
+  if (j <= *nsel) { //if th[j] is a regression coefficient
+
+    isgroup= ((int) ((*funargs)["isgroup"])[j] +.1) > 0;
+    if (isgroup) {
+      tau= *((*pars).tau);
+      priorgrad= 2.0/th[j] - th[j]/tau;
+      priorhess= -2.0/(th[j]*th[j]) - 1.0/tau;
+    } else {
+      int jj, l;
+      Sinv= (*funargs)["Sinv"];
+      tau= *((*pars).taugroup) / ((double) nvaringroup);
+      jj= (j-1)*(*nsel) - (j-1)*(j-2)/2;
+      priorhess= - Sinv[jj] / tau;
+      for (l=0, priorgrad=0; l<= j; l++) { ll= (l-1)*(*nsel) - (l-1)*(l-2)/2; priorgrad +=  Sinv[ll+l-j] * th[l]; } //Sinv[j,l] * th[j]
+      for (l=j+1, l<= *nsel; l++) { priorgrad +=  Sinv[jj+j-l] * th[l]; } //Sinv[l,j] * th[j]
+      priorgrad *= -1.0 / tau;
+    }
+
+  } else { //if exp(th[j]) is the residual precision
+    priorhess= -0.5 * (*((*pars).lambda) * exp(th[j]));
+    priorgrad= priorhess + 0.5 * (*((*pars).alpha));
+  }
 
   (*grad) -= priorgrad; (*hess) -= priorhess;
 }

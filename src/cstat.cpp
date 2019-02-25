@@ -4626,31 +4626,29 @@ double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool tran
 }
 
 //same as dmvnorm for particular case mean=0
-double dmvnorm0(const double *y, int p, double *cholsinv, double det, bool transpose, int logscale) {
-  // cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
-  // This means that element (i,j) of chol(Sinv) is stored into cholsinv[i + (j-1) (p-j/2)]
+double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logscale) {
+  /* cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
+    - Element (i,i) of chol(XtX) is stored into cholXtX[ii], where ii= (i-1)*n - (i-1)*(i-2)/2;
+    - For i>=j, element (i,j) of chol(XtX) is stored into cholXtX[jj + i - j], where jj= (j-1)*n - (j-1)*(j-2)/2;
+    - For i<j, element (i,j) of chol(XtX) is stored into  cholXtX[ii + j - i]
+  */
 
-  int i, j;
+  int i, j, ii, jj;
   double *z2, res=0, ans;
-    z2 = dvector(1, p);
-    if (transpose) { /* Find y' cholsinv' cholsinv y */
+  z2 = dvector(1, p);
 
-      for (i=1; i<= p; i++) {
-        for (j=1, z2[i]=0; j<= p; j++) z2[i] += cholsinv[i + (j-1)*(p-j/2)] * y[j]; //z2[i] += cholsinv[i][j] * y[j];
-      }
+  /* Find y' cholsinv' cholsinv y */
+  for (i=1; i<= p; i++) {
+    ii= (i-1)*p - (i-1)*(i-2)/2;
+    for (j=1, z2[i]=0; j<i; j++) { jj= (j-1)*p - (j-1)*(j-2)/2; z2[i] += cholsinv[jj+i-j] * y[j]; } //z2[i] += cholsinv[i][j] * y[j];
+    for (j=i; j<= p; j++) z2[i] += cholsinv[ii+j-i] * y[j]; //z2[i] += cholsinv[i][j] * y[j];
+  }
 
-    } else { /* Find y' cholsinv cholsinv' y */
+  for (i = 1; i <= p; i++) res += z2[i] * z2[i];
+  free_dvector(z2, 1, p);
 
-      for (i=1; i<= p; i++) {
-        for (j=1, z2[i]=0; j<= p; j++) z2[i] += cholsinv[j + (i-1)*(p-i/2)] * y[j]; //z2[i] += cholsinv[j][i] * y[j];
-      }
-
-    }
-    for (i = 1; i <= p; i++) res += z2[i] * z2[i];
-    free_dvector(z2, 1, p);
-
-    ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
-    return (logscale == 1) ? ans : exp(ans);
+  ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+  return (logscale == 1) ? ans : exp(ans);
 }
 
 

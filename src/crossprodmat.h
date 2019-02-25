@@ -63,7 +63,7 @@ public:
   double at(int i, int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
   double at(int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
-  void choldc(int idxini, int idxfi, double *cholx, double *detx, bool *posdef); //Cholesky decomp and determinant
+  void choldc(int idxini, int idxfi, double *cholXtX, double *detXtX, bool *posdef); //Cholesky decomp and determinant
 
 private:
 

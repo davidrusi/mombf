@@ -75,24 +75,34 @@ SEXP testfunctionCI(SEXP x) {
 void testfunction() {
 
   bool posdef;
-  int i; double *x, *cholXtX, detXtX;
-  x= dvector(0,12);
-  for (i=0; i<12; i++) x[i]= (double) i;
+  int i, j; double *cholXtX, detXtX, *XtX, **a, **chola;
+  XtX= dvector(0,16);
+  XtX[0]=  1.0; XtX[4]=  0.5; XtX[8]= 0.25; XtX[12]= -0.2;
+  XtX[1]=  0.5; XtX[5]=  1.0; XtX[9]= 0.75; XtX[13]=  0.6;
+  XtX[2]= 0.25; XtX[6]= 0.75; XtX[10]= 1.0; XtX[14]=  0.2;
+  XtX[3]= -0.2; XtX[7]= 0.60; XtX[11]= 0.2; XtX[15]=  1.0;
 
-  // OPTION 1. PRE-COMPUTE XtX
-  double *XtX;
-  XtX= dvector(0,9);
-  XtX[0]=  14; XtX[3]=  38; XtX[6]=  62;
-  XtX[1]=  38; XtX[4]= 126; XtX[7]= 214;
-  XtX[2]=  62; XtX[5]= 214; XtX[8]= 366;
+  int p=4; a= dmatrix(1,p,1,p); chola= dmatrix(1,p,1,p);
+  a[1][1]=  1.0; a[1][2]=  0.5; a[1][3]= 0.25; a[1][4]= -0.2;
+  a[2][1]=  0.5; a[2][2]=  1.0; a[2][3]= 0.75; a[2][4]=  0.6;
+  a[3][1]= 0.25; a[3][2]= 0.75; a[3][3]= 1.0;  a[3][4]=  0.2;
+  a[4][1]= -0.2; a[4][2]= 0.60; a[4][3]= 0.2;  a[4][4]=  1.0;
+  //a[1][1]=  1.0; a[1][2]= 0.75; a[1][3]=  0.6;
+  //a[2][1]= 0.75; a[2][2]= 1.0;  a[2][3]=  0.2;
+  //a[3][1]= 0.60; a[3][2]= 0.2;  a[3][3]=  1.0;
+  choldc(a, p, chola, &posdef);
+  Rprintf("Cholesky decomp for matrix\n");
+  for (i=1; i<=p; i++) { for (j=1; j<=p; j++) { Rprintf("%f ",chola[i][j]); }; Rprintf("\n"); }
+  free_dmatrix(a, 1,p,1,p); free_dmatrix(chola, 1,p,1,p);
 
   crossprodmat *Ad;
-  Ad= new crossprodmat(XtX,4,3,true);  //true indicates that 1st argument is the pre-computed XtX
-  //double tmp= Ad->at(0,0);  //returns the pre-computed XtX(0,0)
-  cholXtX= dvector(0,2);    //store Cholesky decomp of XtX[1:2,1:2] requires 3 elements
-  Ad->choldc(1,2,cholXtX,&detXtX,&posdef);
-  Rprintf("Determinant= %f\n", detXtX);
-  delete Ad; free_dvector(x,0,9); free_dvector(XtX,0,9); free_dvector(cholXtX, 0,2);
+  Ad= new crossprodmat(XtX,4,4,true);  //true indicates that 1st argument is the pre-computed XtX
+  cholXtX= dvector(0,p*(p+1)/2);
+  Ad->choldc(0,3,cholXtX,&detXtX,&posdef);
+  Rprintf("New Cholesky decomp=");
+  for (i=0; i<p*(p+1)/2; i++) Rprintf("%f ", cholXtX[i]);
+  Rprintf("\nDeterminant= %f\n", detXtX);
+  delete Ad; free_dvector(XtX,0,16); free_dvector(cholXtX, 0,p*(p+1)/2);
 
 }
 
@@ -1549,7 +1559,7 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
     if (ningroup== 1) {
       (*ans) += dmom(th[i], 0, *tau, 1, 1, true);
     } else {
-      (*ans) += dmvnorm0(th+i, ningroup, cholSinv + (int) (cholSini[i]+.1), detSinv[i], false, true);
+      (*ans) += dmvnorm0(th+i, ningroup, cholSinv + (int) (cholSini[i]+.1), detSinv[i], true);
     }
   }
   if (!logscale) (*ans)= exp(*ans);

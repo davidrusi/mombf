@@ -21,7 +21,8 @@ groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
 enumerate, includevars=rep(FALSE,ncol(x)),
 maxvars, niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348),
-priorDelta=modelbbprior(alpha.p=1,beta.p=1),
+priorDelta=modelbbprior(1,1),
+priorConstraints=priorDelta,
 priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
@@ -88,6 +89,8 @@ not performed for these variables}
   prior with prior inclusion probability \code{p},
   \code{modelcomplexprior} for Complexity prior,
   or \code{modelunifprior()} for Uniform prior}
+\item{priorConstraints}{Prior distribution on the number of terms
+  subject to hierarchical constrains that are included in the model}
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
   \code{igprior(). For Normal variance=scale, for Laplace
     variance=2*scale.}}

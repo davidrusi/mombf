@@ -858,7 +858,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 // GENERAL MARGINAL DENSITY CALCULATION ROUTINES
 //********************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, crossprodmat *XtXuncens=NULL, double *ytXuncens=NULL) {
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints=NULL, crossprodmat *XtXuncens=NULL, double *ytXuncens=NULL) {
   (*pars).n= n;
   (*pars).p= p;
   (*pars).y= y;
@@ -958,7 +958,7 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int j, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, ngroupsconstr=0;
+  int i, j, idxj, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, ngroupsconstr=0;
   double offset=0, *postModeProb, *postProb, *ytXuncens=NULL;
   intptrlist constraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -992,10 +992,11 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
   if (LENGTH(Suncens)>0) { //if there's censoring, also store t(x) %*% x and t(x) %*% y computed over uncensored observations
     int n=INTEGER(Sn)[0], *uncens= INTEGER(Suncens);
-    for (nuncens=0; (nuncens<n) && (uncens[i]==1); i++) nuncens++;
+    double *pty= REAL(Sy), *ptx= REAL(Sx);
+    for (nuncens=0; (nuncens<n) && (uncens[nuncens]==1); nuncens++) { }
     XtXuncens= new crossprodmat(REAL(Sx),nuncens,INTEGER(Sp)[0],false);
     ytXuncens= dvector(0,INTEGER(Sp)[0]);
-    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytX[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += y[i] * x[i + idxj]; } }
+    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   }
   
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens, ytXuncens);
@@ -1090,7 +1091,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int j, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints, nuncens, ngroupsconstr=0;
+  int i, j, idxj, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints, nuncens, ngroupsconstr=0;
   double offset=0, *margpp, *postModeProb, *postProb, *ytXuncens=NULL;
   intptrlist constraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -1134,10 +1135,11 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
   if (LENGTH(Suncens)>0) { //if there's censoring, also store t(x) %*% x and t(x) %*% y computed over uncensored observations
     int n=INTEGER(Sn)[0], *uncens= INTEGER(Suncens);
-    for (nuncens=0; (nuncens<n) && (uncens[i]==1); i++) nuncens++;
+    double *pty= REAL(Sy), *ptx= REAL(Sx);
+    for (nuncens=0; (nuncens<n) && (uncens[nuncens]==1); nuncens++) { }
     XtXuncens= new crossprodmat(REAL(Sx),nuncens,INTEGER(Sp)[0],false);
     ytXuncens= dvector(0,INTEGER(Sp)[0]);
-    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytX[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += y[i] * x[i + idxj]; } }
+    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   }
 
   set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens,ytXuncens);
@@ -1155,8 +1157,8 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrlist constraints, int *verbose, struct marginalPars *pars) {
 
   bool copylast, validmodel;
-  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, priorcode;
-  double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily, *nconstraints= (*pars).nconstraints;
+  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints;
+  double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily;
   intptrlist::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
@@ -1329,7 +1331,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int j, logscale=1, mycols, *postMode, *nconstraints, nuncens, ngroupsconstr=0;
+  int i, j, idxj, logscale=1, mycols, *postMode, *nconstraints, nuncens, ngroupsconstr=0;
   double offset=0, *postModeProb, *ytXuncens=NULL;
   intptrlist constraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -1361,13 +1363,14 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Snit
 
   if (LENGTH(Suncens)>0) { //if there's censoring, also store t(x) %*% x and t(x) %*% y computed over uncensored observations
     int n=INTEGER(Sn)[0], *uncens= INTEGER(Suncens);
-    for (nuncens=0; (nuncens<n) && (uncens[i]==1); i++) nuncens++;
+    double *pty= REAL(Sy), *ptx= REAL(Sx);
+    for (nuncens=0; (nuncens<n) && (uncens[nuncens]==1); nuncens++) { }
     XtXuncens= new crossprodmat(REAL(Sx),nuncens,INTEGER(Sp)[0],false);
     ytXuncens= dvector(0,INTEGER(Sp)[0]);
-    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytX[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += y[i] * x[i + idxj]; } }
+    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   }
 
-  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXundens, ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sn), INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens, ytXuncens);
   greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),constraints,INTEGER(Sverbose),&pars);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
@@ -1378,8 +1381,8 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Snit
 
 void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrlist constraints, int *verbose, struct marginalPars *pars) {
   bool validmodel;
-  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, family=1, ngroups, *nvaringroup, *firstingroup, priorcode;
-  double newJ, *nconstraints= (*pars).nconstraints;
+  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, family=1, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints;
+  double newJ;
   intptrlist::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
@@ -1827,7 +1830,7 @@ void loglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double 
 void loglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
   
   int i, idxj, nuncens, n= *((*pars).n);
-  double rho= th[*nsel +1], exprho, *y= (*pars).y, *res, ytres, *sumy2obs, sumD;
+  double rho= th[*nsel +1], exprho, *y= (*pars).y, *x= (*pars).x, *res, ytres, *sumy2obs, sumD;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
@@ -1838,9 +1841,9 @@ void loglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *s
   if (j <= *nsel) { //updating a regression coefficient
 
     for (i=0; i< nuncens; i++) (*grad) -= res[i] * x[idxj +i]; //Uncensored observations
-    (*hess)= XtXuncens->at(sel[j],sel[j]);
+    (*hess)= (*((*pars).XtXuncens))->at(sel[j],sel[j]);
     for (i=nuncens; i< n; i++) { //Censored observations
-      (*grad) -= invmillsnormal(-res[i]) * x[idxj +i];
+      (*grad) -= invmillsnorm(-res[i]) * x[idxj +i];
       (*hess) += x[i + idxj] * x[i + idxj] * infopropAFT(res[i]);
     }
     
@@ -1849,7 +1852,7 @@ void loglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *s
     exprho= exp(rho); ytres= 0; sumD=0;
     for (i=0; i< nuncens; i++) ytres -= res[i] * y[i]; //Uncensored observations
     for (i=nuncens; i< n; i++) { //Censored observations
-      ytres += invmillsnormal(-res[i]) * y[i];
+      ytres += invmillsnorm(-res[i]) * y[i];
       sumD += infopropAFT(res[i]);
     }
     (*grad)= -(*(*funargs)["nuncens"]) - exprho * ytres;
@@ -1888,7 +1891,7 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
   std::map<string, double *> funargs;
   bool posdef;
-  int i, j, l, k, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize, *uncens;
+  int i, j, l, k, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize, *uncens, ningroup;
   double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *isgroup, *detS, sqrtct, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y;
   modselFunction *msfun;
 

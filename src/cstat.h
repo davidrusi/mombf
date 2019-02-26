@@ -296,6 +296,7 @@ void rdirichlet(double *w, const double *alpha, const int *p);
 double ddirichlet(const double *w, double *alpha, const int *p); //Dirichlet density
 
 // Normal
+double dnormC(double y, int logscale);
 double dnormC(double y, double m, double s, int logscale); //density of Normal(m,s^2)
 double dnormC_jvec(const double *y, int n, double m, double s, int logscale); //joint density of y[0]...y[n-1] under Normal(m,s^2), i.e. returns scalar
 double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale); //density of multivariate Normal

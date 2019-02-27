@@ -54,6 +54,11 @@ extern "C" {
   }
 
 
+//typedefs
+typedef double(*pt2margFun)(int *, int *, struct marginalPars *);  //pointer to function to compute marginal densities & prior prob (used for model selection)
+typedef double(*pt2modavgPrior)(int *, int *, struct modavgPars *);  //pointer to function to compute prior model prob (used in model averaging routines)
+typedef std::list<int*> intptrlist; //list where each element is a pointer to an integer
+
 //Define structures
 struct marginalPars {
   int *sel;
@@ -89,6 +94,7 @@ struct marginalPars {
   int *logscale;
   double *offset;
   int *groups;  //group that each variable belongs to
+  int *isgroup; //isgroup[j]==1 indicates that variable j is in a group
   int *ngroups; //total number of groups
   int *ngroupsconstr; //number of groups that have a hierarchical constraint
   int *nvaringroup; //number of coefficients in group[0],...,group[ngroups-1]
@@ -123,10 +129,6 @@ struct modavgPars {
   int *priorModel; //0 for uniform, 1 for binomial, 2 for Beta-binomial prior
   double *prModelpar; //For priorModel==1, 1st elem is prob of success. For priorModel==2, 1st and 2nd elem are Beta hyper-parameters
 };
-
-typedef double(*pt2margFun)(int *, int *, struct marginalPars *);  //pointer to function to compute marginal densities & prior prob (used for model selection)
-typedef double(*pt2modavgPrior)(int *, int *, struct modavgPars *);  //pointer to function to compute prior model prob (used in model averaging routines)
-typedef std::list<int*> intptrlist; //list where each element is a pointer to an integer
 
 
 
@@ -173,7 +175,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap,double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, crossprodmat *XtXuncens, double *ytXuncens);
+void set_marginalPars(struct marginalPars *pars, int *n,int *p,double *y,int *uncens,double *sumy2,double *x,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap,double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, crossprodmat *XtXuncens, double *ytXuncens);
 void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
 void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
@@ -188,8 +190,10 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrlist constraints, int *verbose, struct marginalPars *pars);
 bool checkConstraints(int *constraints, int *nconstraints, int *firstingroup, int *sel, int *nsel);
 void sel2selnew(int newgroup, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast, int *ngroups, int *nvaringroup, int *firstingroup);
-void findselgroups(double *nvarinselgroups, double *nselgroups, int *sel, int *nsel, int *nvaringroup, int *ngroups);
+void findselgroups(double *nvarinselgroups, double *nselgroups, double *selgroups, int *sel, int *nsel, int *nvaringroup, int *ngroups);
 void nselConstraints(int *ngroups0, int *ngroups1, int *sel, int *nsel, int *group, int *nconstraints, int *nvaringroup);
+void countConstraints(int *nconstraints, intptrlist *constraints, int *ngroupsconstr, int *isgroup, int *ngroups, int *nvaringroup, SEXP Sconstraints);
+
 
 
 // Priors on Model Space (always return on log scale)

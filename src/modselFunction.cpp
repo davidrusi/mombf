@@ -1,9 +1,9 @@
 #include "modselFunction.h"
 using namespace std;
 
-modselFunction::modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2fun fun=NULL) {
+modselFunction::modselFunction(int *sel, int thlength, struct marginalPars *pars, pt2fun fun=NULL) {
 
-  this->nsel= nsel;
+  this->thlength= thlength;
   this->sel= sel;
   this->pars= pars;
   this->maxiter= 50;
@@ -32,7 +32,7 @@ modselFunction::~modselFunction() {
 //Evaluate fun at th and return the value of funargs
 void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *funargs= NULL) {
 
-  fun(f, th, this->sel, this->nsel, this->pars, funargs);
+  fun(f, th, this->sel, &(this->thlength), this->pars, funargs);
 
 }
 
@@ -40,15 +40,15 @@ void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *
 // Input
 //  - thjnew: new value for th[j]
 //  - f: value of fun at th
-//  - th: current values for th[0], ..., th[*nsel -1]
+//  - th: current values for th[0], ..., th[thlength -1]
 //  - j: index of parameter th[j] being updated
 // Output
-//  - fnew: value of fun at thnew= th[0],...,th[j-1],thjnew,th[j+1],...,th[*nsel -1]
+//  - fnew: value of fun at thnew= th[0],...,th[j-1],thjnew,th[j+1],...,th[thlength -1]
 // Input/Output
 //  - funargs: on input these are arguments needed to evaluate fun at th, at output arguments needed to evaluate fun at thnew
 void modselFunction::evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs) {
 
-  funupdate(fnew, thjnew, j, f, th, this->sel, this->nsel, this->pars, funargs);
+  funupdate(fnew, thjnew, j, f, th, this->sel, &(this->thlength), this->pars, funargs);
 
 }
 
@@ -75,11 +75,11 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
   this->evalfun(fopt, thini);
-  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+  for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
-    for (j=0, therr=0; j< *nsel; j++) {
-      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, NULL);
+    for (j=0, therr=0; j< (this->thlength); j++) {
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       thopt[j]= thnew;
     }
@@ -100,10 +100,10 @@ void modselFunction::cda(double *thopt, double *thini) {
 
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
-  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+  for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
   while ((iter< this->maxiter) & (therr > this->thtol)) {
-    for (j=0, therr=0; j< *nsel; j++) {
-      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, NULL);
+    for (j=0, therr=0; j< (this->thlength); j++) {
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       thopt[j]= thnew;
     }
@@ -120,11 +120,11 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini, std::map<st
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
   this->evalfun(fopt, thini, funargs);
-  for (j=0; j< *nsel; j++) thopt[j]= thini[j];
+  for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
-    for (j=0, therr=0; j< *nsel; j++) {
-      (*(this->updateUniv))(&thnew, j, thopt, this->sel, this->nsel, this->pars, funargs);
+    for (j=0, therr=0; j< (this->thlength); j++) {
+      (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
       therr= max_xy(therr, fabs(thnew - thopt[j]));
       evalfunupdate(&fnew,&thnew,j,fopt,thopt,funargs); //Eval fun at thjnew, update funargs
       thopt[j]= thnew;
@@ -145,20 +145,20 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
   double *thnew, fnew, therr=1, ferr=1;
 
   if ((this->fun)==NULL) Rf_error("To run blockcda you need to specify evalfun");
-  thnew= dvector(0,*nsel);
+  thnew= dvector(0,this->thlength);
 
   this->evalfun(fopt,thini);
-  for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
+  for (j=0; j< (this->thlength); j++) { thopt[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
-    for (j=0; j< *nsel; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, this->nsel, this->pars, NULL); }
+    for (j=0; j< this->thlength; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, &(this->thlength), this->pars, NULL); }
 
     this->evalfun(&fnew,thnew);
     ferr= (*fopt) - fnew;
     if (ferr>0) {
       (*fopt)= fnew;
-      for (j=0,therr=0; j< *nsel; j++) {
+      for (j=0,therr=0; j< this->thlength; j++) {
 	therr= max_xy(therr, fabs(thnew[j] - thopt[j]));
 	thopt[j]= thnew[j];
       }
@@ -167,7 +167,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
   }
 
-  free_dvector(thnew,0,*nsel);
+  free_dvector(thnew,0,this->thlength);
 
 }
 
@@ -188,13 +188,13 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
   if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
 
   this->evalfun(fopt,thini,funargs); //eval fun at thini, initialize funargs
-  for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
+  for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
-    for (j=0, therr=ferr=0; j< *nsel; j++) {
+    for (j=0, therr=ferr=0; j< this->thlength; j++) {
 
-      gradhessUniv(&g, &H, j, thopt, this->sel, this->nsel, this->pars, funargs);
+      gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
       delta= g/H;
 
       nsteps= 1; found= false;
@@ -239,13 +239,13 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
   if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
 
   this->evalfun(fopt,thini);
-  for (j=0; j< *nsel; j++) { thopt[j]= thini[j]; }
+  for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
-    for (j=0, therr=ferr=0; j< *nsel; j++) {
+    for (j=0, therr=ferr=0; j< this->thlength; j++) {
 
-      gradhessUniv(&g, &H, j, thopt, this->sel, this->nsel, this->pars, NULL);
+      gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
       delta= g/H;
 
       nsteps= 1; found= false;
@@ -289,23 +289,23 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
   if ((this->fun)==NULL) Rf_error("To run blockcdaNewton you need to specify evalfun");
   if ((this->gradhessUniv)==NULL) Rf_error("To run blockcdaNewton you need to specify either gradhessUniv");
-  thcur= dvector(0,*nsel); delta= dvector(0,*nsel); g= dvector(0,*nsel); H= dvector(0,*nsel);
+  thcur= dvector(0,this->thlength); delta= dvector(0,this->thlength); g= dvector(0,this->thlength); H= dvector(0,this->thlength);
 
   this->evalfun(fopt,thini);
-  for (j=0; j< *nsel; j++) { thopt[j]= thcur[j]= thini[j]; }
+  for (j=0; j< this->thlength; j++) { thopt[j]= thcur[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
     therr= ferr= 0;
-    for (j=0; j< *nsel; j++) {
-      gradhessUniv(g+j, H+j, j, thopt, sel, nsel, pars, NULL);
+    for (j=0; j< this->thlength; j++) {
+      gradhessUniv(g+j, H+j, j, thopt, sel, &(this->thlength), pars, NULL);
       delta[j]= g[j]/H[j];
     }
 
     nsteps= 1; found= false;
     while (!found & (nsteps<=maxsteps)) {
 
-      for (j=0; j< *nsel; j++) { thopt[j] -= delta[j]; therr= max_xy(therr, fabs(delta[j])); }
+      for (j=0; j< this->thlength; j++) { thopt[j] -= delta[j]; therr= max_xy(therr, fabs(delta[j])); }
       this->evalfun(&fnew,thopt);
 
       if (fnew < *fopt) {
@@ -313,7 +313,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 	ferr+= *fopt - fnew;
 	(*fopt)= fnew;
       } else {
-	for (j=0; j< *nsel; j++) { thopt[j]= thcur[j]; delta[j] /= 2.0; }
+	for (j=0; j< this->thlength; j++) { thopt[j]= thcur[j]; delta[j] /= 2.0; }
 	therr= 0;
 	nsteps++;
       }
@@ -323,7 +323,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
   } //end while iter
 
-  free_dvector(thcur, 0,*nsel); free_dvector(delta, 0,*nsel); free_dvector(g, 0,*nsel); free_dvector(H, 0,*nsel);
+  free_dvector(thcur, 0,this->thlength); free_dvector(delta, 0,this->thlength); free_dvector(g, 0,this->thlength); free_dvector(H, 0,this->thlength);
 
 }
 
@@ -345,25 +345,25 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H) {
   bool posdef;
   double ans, detH, **cholH;
 
-  cholH= dmatrix(1,*nsel,1,*nsel);
+  cholH= dmatrix(1,this->thlength,1,this->thlength);
 
-  choldc(H,*nsel,cholH,&posdef);
+  choldc(H,this->thlength,cholH,&posdef);
   if (!posdef) {
     int i;
     double lmin=0, *vals;
-    vals= dvector(1,*nsel);
-    eigenvals(H,*nsel,vals);
-    for (i=1; i<=*nsel; i++) if (vals[i]<lmin) lmin= vals[i];
+    vals= dvector(1,this->thlength);
+    eigenvals(H,this->thlength,vals);
+    for (i=1; i<= this->thlength; i++) if (vals[i]<lmin) lmin= vals[i];
     lmin = -lmin + .01;
-    for (i=1; i<=*nsel; i++) H[i][i] += lmin;
-    choldc(H,*nsel,cholH,&posdef);
-    free_dvector(vals,1,*nsel);
+    for (i=1; i<= this->thlength; i++) H[i][i] += lmin;
+    choldc(H,this->thlength,cholH,&posdef);
+    free_dvector(vals,1,this->thlength);
   }
-  detH= choldc_det(cholH, *nsel);
+  detH= choldc_det(cholH, this->thlength);
 
-  ans= - (*fopt) + 0.5 * *nsel * LOG_M_2PI - 0.5*log(detH);
+  ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*log(detH);
 
-  free_dmatrix(cholH, 1,*nsel,1,*nsel);
+  free_dmatrix(cholH, 1,this->thlength,1,this->thlength);
   return ans;
 }
 
@@ -372,13 +372,13 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, std::map<strin
   double ans, **H;
 
   if ((this->hess)==NULL) Rf_error("To run laplaceapprox you need to specify hess");
-  H= dmatrix(1,*nsel,1,*nsel);
+  H= dmatrix(1,this->thlength,1,this->thlength);
 
-  this->hess(H, thopt, this->sel, this->nsel, this->pars, funargs);
+  this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
 
   ans= this->laplaceapprox(thopt, fopt, H);
   
-  free_dmatrix(H, 1,*nsel,1,*nsel);
+  free_dmatrix(H, 1,this->thlength,1,this->thlength);
   return ans;
 }
 

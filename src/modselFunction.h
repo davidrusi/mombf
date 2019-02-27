@@ -12,14 +12,14 @@ using namespace std;
 // TYPEDEF: Pointers to functions returning minus log-integrand (e.g. -log(likelihood) - log(prior)), its gradients and hessians
 //*************************************************************************************************************
 
-typedef void (*pt2updateUniv)(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
+typedef void (*pt2updateUniv)(double *thnew, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
-typedef void (*pt2fun)(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);  //objective function
-typedef void (*pt2funupdate)(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
+typedef void (*pt2fun)(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);  //objective function
+typedef void (*pt2funupdate)(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
-typedef void (*pt2gradUniv)(double *grad, int j, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
-typedef void (*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
-typedef void (*pt2hess)(double **H, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
+typedef void (*pt2gradUniv)(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
+typedef void (*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
+typedef void (*pt2hess)(double **H, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
 
 
 //*************************************************************************************************************
@@ -37,7 +37,7 @@ typedef void (*pt2hess)(double **H, double *th, int *sel, int *nsel, struct marg
 // NOTES
 //
 // - No need to specify all these inputs, just those required by the algorithms one intends to use (e.g. cda only requires updateUniv)
-// - In all functions there's nsel parameters th[0], ..., th[nsel-1]. The corresponding variable indexes are sel[0],...,sel[nsel-1]
+// - In all functions there's thlength parameters th[0], ..., th[thlength-1]. The corresponding variable indexes are sel[0],...,sel[thlength-1]
 // - "funargs" is an optional argument to share computations between fun, funupdate and gradhessUniv. The idea is that fun and funupdate compute not only the function at the provided th but also "funargs", and then funargs can be re-used when evaluating the function, gradient and/or hessian. For example suppose that
 //
 // fun= sum_i (y[i] - ypred[i])^2 where ypred[i]= sum_l x[i][l] th[l]. Its gradient wrt th[j] is
@@ -67,7 +67,7 @@ class modselFunction {
 public:
 
   //Constructor and destructor
-  modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2fun fun);
+  modselFunction(int *sel, int thlength, struct marginalPars *pars, pt2fun fun);
   ~modselFunction();
 
   //PARAMETERS THAT CAN BE ACCESSED/MODIFIED BY THE USER
@@ -82,7 +82,7 @@ public:
   pt2funupdate funupdate; //evaluate objective function by updating its value at the previous th  (optional, typically much faster than fun)
   pt2gradUniv gradUniv; //evaluate gradient
   pt2gradhessUniv gradhessUniv; //evaluate gradient/hessian wrt th[j]
-  pt2hess hess; //evaluate full hessian matrix of -fun (rather than fun). Important: returned H should have indexes [1..nsel][1..nsel] (rather than 0-indexed th used in other functions)
+  pt2hess hess; //evaluate full hessian matrix of -fun (rather than fun). Important: returned H should have indexes [1..thlength][1..thlength] (rather than 0-indexed th used in other functions)
 
   //PUBLIC METHODS PROVIDED BY THE CLASS
   void evalfun(double *f, double *th, std::map<string, double *> *funargs); //Evaluate fun at th (and optionally return the value of funargs)
@@ -103,8 +103,8 @@ public:
 
 private:
 
-  int *nsel;  //total number of parameters
-  int *sel;   //sel[0], ..., sel[*nsel -1] contain the indexes of active variables
+  int thlength;  //total number of parameters
+  int *sel;   //sel[0], ..., sel[thlength -1] contain the indexes of active variables
   struct marginalPars *pars;
 
 };
@@ -133,41 +133,41 @@ private:
 
 
 //Evaluate function but not funargs
-void foo(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void foo(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   int k, l;
-  for (k=0, (*f)=0; k< *nsel; k++) {
+  for (k=0, (*f)=0; k< *thlength; k++) {
     (*f) += (double)(sel[k]+1) * th[k] * th[k];
-    for (l=k+1; l< *nsel; l++) { (*f) += th[k] * th[l]; }
+    for (l=k+1; l< *thlength; l++) { (*f) += th[k] * th[l]; }
   }
 }
 
 //Compute gradient and hessian wrt th[j], not using funargs
-void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+void foogradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   int l;
   (*hess)= 2.0 * (double)(sel[j]+1);
   (*grad)= (*hess) * th[j];
   for (l=0; l< j; l++) { (*grad)+= th[l]; }
-  for (l=j+1; l< *nsel; l++) { (*grad)+= th[l]; }
+  for (l=j+1; l< *thlength; l++) { (*grad)+= th[l]; }
 }
 
 //Return univariate optimum for th[j], that is thnew= -0.5/(sel[j]+1) * sum_{l \neq j} th[l]. Not using funargs
-void fooupdateUniv(double *thnew, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+void fooupdateUniv(double *thnew, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   int l;
   *thnew= 0;
   for (l=0; l< j; l++) (*thnew)-= th[l];
-  for (l=j+1; l< *nsel; l++) (*thnew)-= th[l];
+  for (l=j+1; l< *thlength; l++) (*thnew)-= th[l];
   (*thnew) *= 0.5/((double)(sel[j]+1));
 }
 
 
 //Evaluate function and funargs
-void fooargs(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void fooargs(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   int k, l;
   double sumth=0, sumth2=0, sumcrossprod=0;
-  for (k=0, (*f)=0; k< *nsel; k++) {
+  for (k=0, (*f)=0; k< *thlength; k++) {
     sumth += th[k];
     sumth2 += (double)(sel[k]+1) * th[k] * th[k];
-    for (l=k+1; l< *nsel; l++) { sumcrossprod += th[k] * th[l]; }
+    for (l=k+1; l< *thlength; l++) { sumcrossprod += th[k] * th[l]; }
   }
   (*f)= sumth2 + sumth;
   *(*funargs)["sumth"]= sumth;
@@ -176,7 +176,7 @@ void fooargs(double *f, double *th, int *sel, int *nsel, struct marginalPars *pa
 }
 
 //Update function and funargs from changing th[j] to thjnew
-void fooupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void fooupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thdif= *thjnew - th[j];
   *(*funargs)["sumth"] += thdif;
   *(*funargs)["sumth2"] += (double)(sel[j]+1) * (pow(*thjnew,2) - pow(th[j],2));
@@ -185,7 +185,7 @@ void fooupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *
 }
 
 //Compute gradient and hessian wrt th[j], using funargs
-void foogradhessargs(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs) {
+void foogradhessargs(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   (*hess)= 2.0 * (double)(sel[j]+1);
   (*grad)= (*hess) * th[j] + (*(*funargs)["sumth"]) - th[j];
 }
@@ -194,7 +194,7 @@ void foogradhessargs(double *grad, double *hess, int j, double *th, int *sel, in
 
 void testfunction() {
 
-  int nsel=2, *sel;
+  int thlength=2, *sel;
   double *thini, *thopt, fopt;
   struct marginalPars *pars= NULL;
   modselFunction *msfun;
@@ -204,10 +204,10 @@ void testfunction() {
   double sumth= 0, sumth2= 0, sumcrossprod= 0;
   funargs["sumth"]= &sumth; funargs["sumth2"]= &sumth2; funargs["sumcrossprod"]= &sumcrossprod;
 
-  sel= ivector(0,nsel); thini= dvector(0,nsel); thopt= dvector(0,nsel);
+  sel= ivector(0,thlength); thini= dvector(0,thlength); thopt= dvector(0,thlength);
   sel[0]= 0; sel[1]= 2;
   thini[0]= 1; thini[1]= 1;
-  msfun= new modselFunction(sel, &nsel, pars, NULL);
+  msfun= new modselFunction(sel, thlength, pars, NULL);
 
   //Option 1. CDA
   msfun->updateUniv= &fooupdateUniv;
@@ -252,7 +252,7 @@ void testfunction() {
   msfun->blockcdaNewton(thopt, &fopt, thini, 1);
   Rprintf("blockcdaNewton.    thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
-  free_ivector(sel, 0,nsel); free_dvector(thini, 0,nsel); free_dvector(thopt, 0,nsel);
+  free_ivector(sel, 0,thlength); free_dvector(thini, 0,thlength); free_dvector(thopt, 0,thlength);
   delete msfun;
 
 }

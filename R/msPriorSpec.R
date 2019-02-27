@@ -47,10 +47,7 @@ valid_msPriorSpec <- function(object) {
     ## Validate rest based on type
     switch(object@priorType,
            coefficients = {
-               valid_coef_prior_distrs <- c("pMOM",
-                                            "piMOM",
-                                            "peMOM",
-                                            "zellner")
+               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner")
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
                    msg <- c(msg,
@@ -70,9 +67,7 @@ valid_msPriorSpec <- function(object) {
                                         sQuote("pMOM")))
                    }
                }
-               reqd_prior_pars <- c("tau",
-                                    "a.tau",
-                                    "b.tau")
+               reqd_prior_pars <- c("tau","a.tau","b.tau")
                found <- has_either_or(reqd_prior_pars[1],
                                       reqd_prior_pars[-1],
                                       names(object@priorPars))

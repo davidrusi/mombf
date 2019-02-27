@@ -19,7 +19,7 @@ typedef void (*pt2funupdate)(double *fnew, double *thjnew, int j, double *f, dou
 
 typedef void (*pt2gradUniv)(double *grad, int j, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
 typedef void (*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
-typedef void (*pt2hess)(double **hess, double *th, int *sel, int *nsel, struct marginalPars *);
+typedef void (*pt2hess)(double **H, double *th, int *sel, int *nsel, struct marginalPars *, std::map<string, double*> *funargs);
 
 
 //*************************************************************************************************************
@@ -66,17 +66,28 @@ class modselFunction {
 
 public:
 
+  //Constructor and destructor
   modselFunction(int *sel, int *nsel, struct marginalPars *pars, pt2fun fun);
   ~modselFunction();
 
+  //PARAMETERS THAT CAN BE ACCESSED/MODIFIED BY THE USER
   int maxiter; //Maximum number of iterations in optimization algorithms (1 iter corresponds to updating all parameters)
   double ftol;  //Tolerance for objective function. Optimization stops when improvement is < ftol
   double thtol; //Tolerance for parameter values. Optim stops when largest change in th < thtol
 
+  //FUNCTIONS THAT SHOULD BE SET BY THE USER (TYPICALLY ONLY A SUBSET OF THESE IS NEEDED, SEE EXAMPLES)
+  pt2updateUniv updateUniv;  //rule to update th[j] into thjnew
+
+  pt2fun fun;  //evaluate objective function
+  pt2funupdate funupdate; //evaluate objective function by updating its value at the previous th  (optional, typically much faster than fun)
+  pt2gradUniv gradUniv; //evaluate gradient
+  pt2gradhessUniv gradhessUniv; //evaluate gradient/hessian wrt th[j]
+  pt2hess hess; //evaluate full hessian matrix of -fun (rather than fun). Important: returned H should have indexes [1..nsel][1..nsel] (rather than 0-indexed th used in other functions)
+
+  //PUBLIC METHODS PROVIDED BY THE CLASS
   void evalfun(double *f, double *th, std::map<string, double *> *funargs); //Evaluate fun at th (and optionally return the value of funargs)
   void evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs); //Eval fun at thjnew by updating its value f at th[j]
 
-  //Optimization algorithms
   void cda(double *thopt, double *fopt, double *thini);  //Coordinate Descent Algorithm (uses updateUniv)
   void cda(double *thopt, double *thini);  //same but does not evaluate objective function (stopping depends only on change in thopt)
   void cda(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs);
@@ -85,14 +96,10 @@ public:
   void cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);
   void blockcdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
 
-  //pointers to functions computing gradient, hessian and updates
-  pt2updateUniv updateUniv;
+  double laplaceapprox(double *thopt, double *fopt, double **H); //Laplace approximation to int exp(-fun(th)) dth
+  double laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs);
+  double laplaceapprox(double *thopt, std::map<string, double *> *funargs);
 
-  pt2fun fun;  //evaluate objective function
-  pt2funupdate funupdate; //evaluate objective function by updating its value at the previous th  (optional, typically much faster than fun)
-  pt2gradUniv gradUniv; //evaluate gradient
-  pt2gradhessUniv gradhessUniv; //evaluate gradient/hessian
-  pt2hess hess;
 
 private:
 

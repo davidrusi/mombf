@@ -329,3 +329,72 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
 
 
+/*Laplace approximation to int exp(-fun(th)) dth
+
+Input
+
+- thopt: argmin_th fun(th)
+- H: hessian of -fun at th=thopt. If not positive definite then +.01 - lmin is added to the diagonal of H, where lmin is the smallest eigenvalue of H
+
+Ouput: logarithm of Laplace approximation
+
+  -fun(thopt) + 0.5 * dim(th) * log(2 pi) - 0.5*log(det(H));
+
+ */
+double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H) {
+  bool posdef;
+  double ans, detH, **cholH;
+
+  cholH= dmatrix(1,*nsel,1,*nsel);
+
+  choldc(H,*nsel,cholH,&posdef);
+  if (!posdef) {
+    int i;
+    double lmin=0, *vals;
+    vals= dvector(1,*nsel);
+    eigenvals(H,*nsel,vals);
+    for (i=1; i<=*nsel; i++) if (vals[i]<lmin) lmin= vals[i];
+    lmin = -lmin + .01;
+    for (i=1; i<=*nsel; i++) H[i][i] += lmin;
+    choldc(H,*nsel,cholH,&posdef);
+    free_dvector(vals,1,*nsel);
+  }
+  detH= choldc_det(cholH, *nsel);
+
+  ans= - (*fopt) + 0.5 * *nsel * LOG_M_2PI - 0.5*log(detH);
+
+  free_dmatrix(cholH, 1,*nsel,1,*nsel);
+  return ans;
+}
+
+
+double modselFunction::laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs=NULL) {
+  double ans, **H;
+
+  if ((this->hess)==NULL) Rf_error("To run laplaceapprox you need to specify hess");
+  H= dmatrix(1,*nsel,1,*nsel);
+
+  this->hess(H, thopt, this->sel, this->nsel, this->pars, funargs);
+
+  ans= this->laplaceapprox(thopt, fopt, H);
+  
+  free_dmatrix(H, 1,*nsel,1,*nsel);
+  return ans;
+}
+
+
+double modselFunction::laplaceapprox(double *thopt, std::map<string, double *> *funargs=NULL) {
+  double ans, fopt;
+
+  if ((this->hess)==NULL) Rf_error("To run laplaceapprox you need to specify hess");
+
+  if (funargs==NULL) {
+    this->evalfun(&fopt, thopt);
+    ans= this->laplaceapprox(thopt, &fopt);
+  } else {
+    this->evalfun(&fopt, thopt, funargs);
+    ans= this->laplaceapprox(thopt, &fopt, funargs);
+  }
+  
+  return ans;
+}

@@ -269,9 +269,10 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 //*************************************************************************************
 
 //log-likelihood of Normal AFT model and its derivatives
-void loglnormalAFT(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars,  std::map<string, double *> *funargs);
-void loglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
-void loglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
+void negloglnormalAFT(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
+void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
+void loglnormalAFThess(double **hess, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
 double infopropAFT(double z);
 
 // pMOM on individual coef, group MOM on groups
@@ -282,6 +283,8 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
 void fpmomgzellSurv(double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fpmomgzellhess(double **hess, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
+void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *nsel, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 // peMOM on individual coef, group eMOM on groups
 double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars);

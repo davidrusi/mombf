@@ -2037,19 +2037,21 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
 //Evaluate negative log-likelihood + log-prior (pMOM + group MOM) and initialize funargs
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
-  double priordens;
+  double priordens=0;
 
   negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroup"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  priordens += dinvgammaC(exp(th[*thlength]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) - th[*thlength];
   (*f) -= priordens;
 }
 
 //Update log-likelihood and funargs due to changing th[j] into thjnew
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
-  double priordens;
+  double priordens=0;
 
   negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroup"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  priordens += dinvgammaC(exp(th[*thlength]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) - th[*thlength];
   (*fnew) -= priordens;
 }
 

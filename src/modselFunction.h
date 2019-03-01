@@ -82,7 +82,7 @@ public:
   pt2funupdate funupdate; //evaluate objective function by updating its value at the previous th  (optional, typically much faster than fun)
   pt2gradUniv gradUniv; //evaluate gradient
   pt2gradhessUniv gradhessUniv; //evaluate gradient/hessian wrt th[j]
-  pt2hess hess; //evaluate full hessian matrix of -fun (rather than fun). Important: returned H should have indexes [1..thlength][1..thlength] (rather than 0-indexed th used in other functions)
+  pt2hess hess; //evaluate full hessian matrix. Important: returned H should have indexes [1..thlength][1..thlength] (rather than 0-indexed th used in other functions)
 
   //PUBLIC METHODS PROVIDED BY THE CLASS
   void evalfun(double *f, double *th, std::map<string, double *> *funargs); //Evaluate fun at th (and optionally return the value of funargs)

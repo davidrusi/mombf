@@ -3494,21 +3494,22 @@ void choldc_inv_internal(double **cholS, int n) {
  *   choldc_inv(S, n, cholSinv, posdef);
  *   det = 1.0 / choldc_det(cholSinv, n);
  */
-double choldc_det(double **chols,
-                  int n)
-{
+double choldc_det(double **chols, int n) {
     int i;
-    double det = 1.0;
+    double value, det = 1.0;
 
     //assert(chols != NULL);
-
-    for (i = 1; i <= n; i++) {
-        double value;
-
-        value = chols[i][i];
-        det *= value * value;
-    }
+    for (i = 1; i <= n; i++) { value = chols[i][i]; det *= value * value; }
     return(det);
+}
+
+double logcholdc_det(double **chols, int n) {
+    int i;
+    double logdet = 0;
+
+    //assert(chols != NULL);
+    for (i = 1; i <= n; i++) { logdet += log(chols[i][i]); }
+    return(2.0*logdet);
 }
 
 
@@ -5549,12 +5550,12 @@ void rmvnormC(double *y,
 
 
 //Mill's ratio (1-pnorm(z))/dnorm(z)
-double millsnorm(double z) { 
+double millsnorm(double z) {
   return (1.0 - pnormC(z)) / dnormC(z,0);
 }
 
 //Inverse Mill's ratio dnorm(z)/pnorm(z)
-double invmillsnorm(double z) { 
+double invmillsnorm(double z) {
   return dnormC(z,0) / pnormC(z);
 }
 

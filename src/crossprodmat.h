@@ -56,7 +56,9 @@ class crossprodmat {
 
 public:
 
-  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense); //if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
+  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int nuserows, int *userows); //if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
+  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int nuserows, int userowsini);
+  crossprodmat(double *mymat, int nrowx, int ncolx, bool dense);
 
   ~crossprodmat();
 
@@ -70,6 +72,9 @@ private:
   double *x;
   int nrowx;
   int ncolx;
+  int *userows; //optional slot indicating the indexes of the rows in x to be used when computing XtX. That is XtX= t(x[userows,]) %*% x[userows,]
+  int nuserows; //number of rows in x to be used when computing XtX
+  int userowsini; //if userows not provided, use x[userowsini : userowsini+nuserows-1,] to compute XtX (default userowsini=0)
   bool dense; //if true then matrix is stored in XtXd, else in XtXs
   double *XtXd;
   arma::sp_mat XtXs;  //equivalent to SpMat<double> XtXs

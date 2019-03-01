@@ -343,7 +343,7 @@ Ouput: logarithm of Laplace approximation
  */
 double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H) {
   bool posdef;
-  double ans, detH, **cholH;
+  double ans, logdetH, **cholH;
 
   cholH= dmatrix(1,this->thlength,1,this->thlength);
 
@@ -359,9 +359,11 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H) {
     choldc(H,this->thlength,cholH,&posdef);
     free_dvector(vals,1,this->thlength);
   }
-  detH= choldc_det(cholH, this->thlength);
 
-  ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*log(detH);
+  logdetH= logcholdc_det(cholH, this->thlength);
+  ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*logdetH;
+  //detH= choldc_det(cholH, this->thlength);
+  //ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*log(detH);
 
   free_dmatrix(cholH, 1,this->thlength,1,this->thlength);
   return ans;
@@ -377,7 +379,7 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, std::map<strin
   this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
 
   ans= this->laplaceapprox(thopt, fopt, H);
-  
+
   free_dmatrix(H, 1,this->thlength,1,this->thlength);
   return ans;
 }
@@ -395,6 +397,6 @@ double modselFunction::laplaceapprox(double *thopt, std::map<string, double *> *
     this->evalfun(&fopt, thopt, funargs);
     ans= this->laplaceapprox(thopt, &fopt, funargs);
   }
-  
+
   return ans;
 }

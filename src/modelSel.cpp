@@ -1565,6 +1565,8 @@ void countConstraints(int *nconstraints, intptrlist *constraints, int *ngroupsco
 }
 
 
+
+
 //********************************************************************************************
 // PRIORS ON MODEL SPACE (always return on log scale)
 //********************************************************************************************
@@ -1654,7 +1656,7 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) {
 //*************************************************************************************
 
 
-void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale) {
+void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale) {
   /*Evaluate pMOM(tau) + block Zellner(taugroup) prior density at th
 
      prod_j pMOM(beta_j; tau)  prod_j N(delta_j; 0, S_j^{-1})
@@ -1667,7 +1669,7 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
      - tau: prior pMOM dispersion parameter (drives prior on individual coefficients, i.e. groups of size 1)
      - nvaringroup: number of variables in each group
      - ngroups: number of selected groups (length of nvaringroup)
-     - detSinv: determinant of S_j^{-1} for each group j=1,...,ngroups
+     - ldetSinv: log-determinant of S_j^{-1} for each group j=1,...,ngroups
      - cholSinv: Cholesky decomp of S_j^{-1} for all groups stored as a single vector
      - cholSini: Chol decomp of S_j^{-1} for group j starts at cholSinv[cholSini[j]]
      - logscale: if true return log-density, else return the density
@@ -1675,18 +1677,79 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
     Output
      - ans: log-density (if logscale==true) or density (if logscale==false)
   */
-  int i, ningroup, ngroupsi= (int) (*ngroups +.1);
+  int i, firstingroup=0, ningroup, ngroupsi= (int) (*ngroups +.1);
 
   (*ans)= 0;
   for (i=0; i< ngroupsi; i++) {
     ningroup= (int) (nvaringroup[i] +.1);
     if (ningroup== 1) {
-      (*ans) += dmom(th[i], 0, *tau, 1, 1, true);
+      (*ans) += dmom(th[firstingroup], 0, *tau, 1, 1, true);
     } else {
-      (*ans) += dmvnorm0(th+i, ningroup, cholSinv + (int) (cholSini[i]+.1), detSinv[i], true);
+      (*ans) += dmvnorm0(th+firstingroup-1, ningroup, cholSinv + (int) (cholSini[i]+.1), ldetSinv[i], true, true);
     }
+    firstingroup += ningroup;
   }
   if (!logscale) (*ans)= exp(*ans);
+}
+
+
+
+/*Compute inverse covariance matrix in group Zellner's prior, its Cholesky decomposition and determinant
+  INPUT
+  - ngroups: total number of groups
+  - nvaringroups: nvaringroups[g] is the number of variables in group g=0,...,ngroups-1
+  - sel: sel[j] is the index of the jth selected variable
+  - cholSini: cholSini[g] is the index at which the Sinv and cholSinv for group g should start
+  - XtX: XtX[sel[j],sel[l]] is the entry in the Gram matrix corresponding to variables (sel[j],sel[l])
+  - taugroup: prior dispersion parameter
+
+  OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants. If A is the submatrix of XtX corresponding to group j, then the precision matrix for group g is
+
+  (nvaringroups / taugroup) A
+
+  and it is stored in Sinv[cholSini[g]...cholSini[g+1]-1], its Cholesky decomp in cholSinv[cholSini[g]...cholSini[g+1]-1], its log-determinant is stored in ldetSinv[g]
+*/
+void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *taugroup) {
+  bool posdef;
+  int i, j, l, k, firstingroup, groupsize, idxini, Sidxini;
+  double ct, sqrtct;
+  for (i=0, firstingroup=0; i< *ngroups; i++) {
+    groupsize= (int) (nvaringroups[i] + .1);
+    idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
+    XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, ldetSinv+i, &posdef);
+    ct= nvaringroups[i] / (*taugroup); sqrtct= sqrt(ct);
+    for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
+      (*(cholSinv + Sidxini + j)) *= sqrtct;
+      Sinv[j]= ct * XtX->at(sel[firstingroup+l],sel[firstingroup+k]);
+      if (l< groupsize-1) { l++; } else { k++; l=k; }
+    }
+    ldetSinv[i] = log(ldetSinv[i]) + 2.0 * nvaringroups[i] * log(sqrtct);
+    firstingroup += groupsize;
+  }
+}
+
+
+
+/*Return indexes at which the Cholesky decomposition starts for each group when storing the lower-triangular Cholesky decomp as vectors
+  Input
+   - ngroups: number of groups
+   - nvaringroups: number of variables in each group
+  Output
+   - cholSini: indexes at which the Cholesky decomp starts
+   - cholSsize: total size
+
+  Example: suppose there's three groups with nvaringroups=(2,1,1).
+           That is, the 1st group has 2 variables (requiring 3 entries in the Cholesky decomp), the 2nd and 3rd groups have 1 variable.
+           Then cholSini[0]=0, cholSini[1]=3, cholSini[2]=4, and cholSsize=5
+*/
+void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups) {
+  int i, groupsize;
+  cholSini[0]= 0;
+  for (i=0, cholSsize=0; i< ngroups; i++) {
+    groupsize= (int) (nvaringroups[i] + .1);
+    (*cholSsize) += groupsize * (groupsize+1) / 2;
+    if (i< ngroups-1) cholSini[i+1]= cholSini[i] + *cholSsize;
+  }
 }
 
 
@@ -1935,6 +1998,7 @@ double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
 
 
+
 double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   /*Marginal likelihood under pMOM(tau) + block Zellner(taugroup) prior
 
@@ -1947,9 +2011,8 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   */
 
   std::map<string, double *> funargs;
-  bool posdef;
-  int i, j, l, k, nselgroupsint, firstingroup, idxini, Sidxini, groupsize, cholSsize, *uncens;
-  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *selgroups, *detS, sqrtct, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y, *ypred;
+  int i, nselgroupsint, cholSsize, *uncens;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y, *ypred;
   modselFunction *msfun;
 
   y= (*pars).y;
@@ -1968,32 +2031,13 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   nselgroupsint= (int) (nselgroups +.1);
 
   //Obtain Cholesky decomp and determinant of prior scale covariances for each group
-  detS= dvector(0, nselgroupsint); cholSini= dvector(0, nselgroupsint);
-  cholSini[0]= 0;
-  for (i=0, cholSsize=0; i< nselgroupsint; i++) {
-    groupsize= (int) (nvarinselgroups[i] + .1);
-    cholSsize+= groupsize * (groupsize+1) / 2;
-    if (i< nselgroupsint-1) cholSini[i+1]= cholSini[i] + cholSsize;
-  }
+  ldetSinv= dvector(0, nselgroupsint); cholSini= dvector(0, nselgroupsint);
+  cholSini_indexes(cholSini, &cholSsize, nselgroupsint, nvarinselgroups);
+  funargs["cholSini"]= cholSini; //cholSini[j] is the index in cholSinv at which Sinv_j starts
 
   cholSinv= dvector(0, cholSsize); Sinv= dvector(0, cholSsize);
-  for (i=0, firstingroup=0; i< nselgroupsint; i++) {
-    groupsize= (int) (nvarinselgroups[i] + .1);
-    idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
-    (*pars).XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, detS+i, &posdef);
-    sqrtct= sqrt(nvarinselgroups[i] / *((*pars).taugroup));
-    for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
-      (*(cholSinv + Sidxini + j)) *= sqrtct;
-      Sinv[j]= ((*pars).XtX)->at(sel[firstingroup+l],sel[firstingroup+k]);
-      if (l< groupsize-1) { l++; } else { k++; l=k; }
-    }
-    detS[i] *= sqrtct * sqrtct;
-    firstingroup += groupsize;
-  }
-  funargs["detS"]= detS;
-  funargs["cholSini"]= cholSini; //cholSini[j] is the index in cholSinv at which Sinv_j starts
-  funargs["cholSinv"]= cholSinv;
-  funargs["Sinv"]= Sinv;
+  gzell_Sinv(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).taugroup);
+  funargs["ldetSinv"]= ldetSinv; funargs["cholSinv"]= cholSinv; funargs["Sinv"]= Sinv;
 
   //Initialize dynamic elements in funargs (changed by msfun)
   residuals= dvector(0, *((*pars).n));
@@ -2018,11 +2062,12 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   free_dvector(thopt, 0, *nsel); free_dvector(thini, 0, *nsel);
   free_dvector(residuals, 0, *((*pars).n)); free_dvector(ypred, 0, *((*pars).n));
   free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups))); free_dvector(selgroups, 0, *nsel -1);
-  free_dvector(detS, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize); free_dvector(Sinv, 0, cholSsize);
+  free_dvector(ldetSinv, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize); free_dvector(Sinv, 0, cholSsize);
   delete msfun;
 
   return ans;
 }
+
 
 
 //Evaluate negative log-likelihood + log-prior (pMOM + group MOM) and initialize funargs
@@ -2030,7 +2075,7 @@ void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct margi
   double priordens=0;
 
   negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
-  dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;
 }
@@ -2041,7 +2086,7 @@ void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double
 
   negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
-  dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["detS"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   th[j]= thtmp;
   (*fnew) -= priordens;
@@ -2074,24 +2119,22 @@ void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct m
 
 //Gradient and hessian wrt th[j] of log pMOM + group Zellner prior
 void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
-  double tau, *Sinv;
+  double *Sinv;
 
   if (j < *thlength -1) { //if th[j] is a regression coefficient
 
     if (((*pars).isgroup)[j] == 1) {
-      tau= *((*pars).tau);
+      double tau= *((*pars).tau);
       (*priorgrad)= 2.0/th[j] - th[j]/tau;
       (*priorhess)= -2.0/(th[j]*th[j]) - 1.0/tau;
     } else {
-      int jj, l, ll, group= ((*funargs)["selgroups"])[j];
-      double nvaringroup= ((*funargs)["nvarinselgroups"])[group];
+      int jj, l, ll; //group= ((*funargs)["selgroups"])[j];
       Sinv= (*funargs)["Sinv"];
-      tau= *((*pars).taugroup) / nvaringroup;
       jj= (j-1)*(*thlength) - (j-1)*(j-2)/2;
-      (*priorhess)= - Sinv[jj] / tau;
+      (*priorhess)= - Sinv[jj];
       for (l=0, (*priorgrad)=0; l<= j; l++) { ll= (l-1)*(*thlength) - (l-1)*(l-2)/2; (*priorgrad) +=  Sinv[ll+l-j] * th[l]; } //Sinv[j,l] * th[j]
       for (l=j+1; l<= *thlength -1; l++) { (*priorgrad) +=  Sinv[jj+j-l] * th[l]; } //Sinv[l,j] * th[j]
-      (*priorgrad) *= -1.0 / tau;
+      (*priorgrad) = -(*priorgrad);
     }
 
   } else { //if exp(th[j]) is the residual precision

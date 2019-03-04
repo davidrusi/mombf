@@ -195,7 +195,6 @@ void nselConstraints(int *ngroups0, int *ngroups1, int *sel, int *nsel, int *gro
 void countConstraints(int *nconstraints, intptrlist *constraints, int *ngroupsconstr, int *isgroup, int *ngroups, int *nvaringroup, SEXP Sconstraints);
 
 
-
 // Priors on Model Space (always return on log scale)
 double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
 double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars);
@@ -218,6 +217,9 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 //*************************************************************************************
 
 void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
+
+void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *taugroup);
+void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups);
 
 
 //*************************************************************************************

@@ -285,7 +285,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   }
 
   priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd[ordery],xstd=xstd[ordery,,drop=FALSE],stdconstants=stdconstants,call=call)
+  if (length(uncens)>0) { ystd=ystd[ordery]; xstd=xstd[ordery,,drop=FALSE] }
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }
@@ -411,7 +412,8 @@ codeGroupsAndConstraints= function(p,groups,constraints) {
         groups= as.integer(0:(p-1))
     } else {
         nvaringroup= as.integer(table(groupsnum)) #number of variables in each group
-        groups= c(0,as.numeric(cumsum(nvaringroup[-length(nvaringroup)]))) #1st variable in each group (0-indexed)
+        groups= as.integer(groupsnum-1) #group id that each variable belongs to
+        #groups= as.integer(c(0,as.numeric(cumsum(nvaringroup[-length(nvaringroup)])))) #1st variable in each group (0-indexed)
     }
     ans= list(ngroups=ngroups,constraints=constraints,nvaringroup=nvaringroup,groups=groups)
     return(ans)
@@ -803,22 +805,71 @@ modelselBIC <- function(y, x, xadj, family, niter=1000, burnin= round(.1*niter),
 
 ## Common prior distributions on model space
 
-binomPrior <- function(sel, prob=.5, logscale=TRUE) {  dbinom(x=sum(sel),size=length(sel),prob=prob,log=logscale) }
-unifPrior <- function(sel, logscale=TRUE) { ifelse(logscale,-length(sel)*log(2),2^(-length(sel)))  }
-bbPrior <- function(sel, alpha=1, beta=1, logscale=TRUE) {
-  ans <- lbeta(sum(sel) + alpha, sum(!sel) + beta) - lbeta(alpha,beta)
+nselConstraints= function(sel, groups, constraints) {
+    #Output
+    # - ngroups0: number of unconstrained groups that are selected
+    # - ngroups1: number of constrained groups that are selected
+    # - ngroups: total number of groups (selected or unselected)
+    # - ngroupsconstr: total number of groups that have a constraint
+    # - violateConstraint: TRUE if sel violates a group constraint, FALSE otherwise
+    ngroups= length(unique(groups))
+    if (length(constraints) != ngroups) stop("length(constraints) must be equal to length(unique(groups))")
+    if (!is.numeric(groups)) stop("Argument groups must be numeric")
+    nconstraints= sapply(constraints,length)
+    hasconstraint= (nconstraints>0)
+    ngroupsconstr= sum(hasconstraint)
+    tab= table(factor(sel,levels=c('FALSE','TRUE')),groups)
+    selgroup= tab['TRUE',] >0
+    violateConstraint= FALSE
+    if (ngroupsconstr>0) { for (i in which(hasconstraint)) { if (selgroup[i] & any(!selgroup[constraints[[i]]])) violateConstraint= TRUE } }
+    ngroups0= sum(selgroup[!hasconstraint]); ngroups1= sum(selgroup[hasconstraint])
+    return(list(ngroups0=ngroups0, ngroups1=ngroups1, ngroups=ngroups, ngroupsconstr=ngroupsconstr, violateConstraint=violateConstraint))
+}
+
+#binomPrior <- function(sel, prob=.5, logscale=TRUE) {  dbinom(x=sum(sel),size=length(sel),prob=prob,log=logscale) }
+
+binomPrior <- function(sel, prob=.5, logscale=TRUE, probconstr=prob, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0))) {
+    nsel= nselConstraints(sel=sel, groups=groups, constraints=constraints)
+    if (!nsel$violateConstraint) {
+        ans= dbinom(x=nsel$ngroups0,size=nsel$ngroups-nsel$ngroupsconstr,prob=prob,log=TRUE)
+        if (nsel$ngroupsconstr>0) ans= ans+ dbinom(x=nsel$ngroups1,size=nsel$ngroupsconstr,prob=probconstr,log=TRUE)
+    } else { ans= -Inf }
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+
+
+#unifPrior <- function(sel, logscale=TRUE) { ifelse(logscale,-length(sel)*log(2),2^(-length(sel)))  }
+unifPrior <- function(sel, logscale=TRUE, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0))) {
+    binomPrior(sel, prob=.5, logscale=logscale, probconstr=.5, groups=groups, constraints=constraints)
+}
+
+
+#bbPrior <- function(sel, alpha=1, beta=1, logscale=TRUE) {
+#  ans <- lbeta(sum(sel) + alpha, sum(!sel) + beta) - lbeta(alpha,beta)
+#  ifelse(logscale,ans,exp(ans))
+#}
+
+bbPrior <- function(sel, alpha=1, beta=1, logscale=TRUE, alphaconstr=alpha, betaconstr=beta, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0))) {
+  nsel= nselConstraints(sel=sel, groups=groups, constraints=constraints)
+  if (!nsel$violateConstraint) {
+      ans= lbeta(nsel$ngroups0 + alpha, nsel$ngroups-nsel$ngroupsconstr-nsel$ngroups0 + beta) - lbeta(alpha,beta)
+      if (nsel$ngroupsconstr>0) ans= ans + lbeta(nsel$ngroups1 + alphaconstr, nsel$ngroupsconstr - nsel$ngroups1 + betaconstr) - lbeta(alphaconstr,betaconstr)
+  } else { ans= -Inf }
   ifelse(logscale,ans,exp(ans))
 }
 
 
-bbPriorTrunc <- function (sel, logscale=TRUE, maxvars=10) {
+
+
+bbPriorTrunc <- function (sel, logscale=TRUE, maxvars=10, ...) {
   #Same as bbPrior with prob=0 when variables > maxvars
-  if (sum(sel)<=maxvars) { ans <- bbPrior(sel, logscale=logscale) } else { ans <- ifelse(logscale, -Inf, 0) }
+  if (sum(sel)<=maxvars) { ans <- bbPrior(sel, logscale=logscale, ...) } else { ans <- ifelse(logscale, -Inf, 0) }
   return(ans)
 }
 
-unifPriorTrunc <- function (sel, logscale=TRUE, maxvars=10) {
+unifPriorTrunc <- function (sel, logscale=TRUE, maxvars=10, ...) {
   #Same as unifPrior with prob=0 when variables > maxvars
-  if (sum(sel)<=maxvars) { ans <- unifPrior(sel, logscale=logscale) } else { ans <- ifelse(logscale, -Inf, 0) }
+  if (sum(sel)<=maxvars) { ans <- unifPrior(sel, logscale=logscale, ...) } else { ans <- ifelse(logscale, -Inf, 0) }
   return(ans)
 }

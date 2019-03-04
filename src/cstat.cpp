@@ -4598,11 +4598,14 @@ double dnormC_jvec(const double *y,
 
 /*
  * Density of multivariate Normal evaluated at y[1]...y[p].
- * mu is the mean. cholsinv and det are the Cholesky decomposition and the
- * determinant of the inverse covariance matrix.
+ * Input
+ * - mu: mean
+ * - cholsinv: Cholesky decomposition of the inverse covariance matrix.
+ * - det: if logdet==false, det is the determinant of the inverse covariance matrix. if logdet==true, det is the log of the determinant
+ * - If transpose==false then Sigma^{-1}= cholsinv * cholsinv', where cholsinv is lower-triangular
+ *   If transpose== true then Sigma^{-1}= cholsinv' * cholsinv, where cholsinv is lower-triangular
+ * - logscale: if logscale==1 the log of the density is returned
  *
- * //If transpose==false then Sigma^{-1}= cholsinv * cholsinv', where cholsinv is lower-triangular
- * //If transpose== true then Sigma^{-1}= cholsinv' * cholsinv, where cholsinv is lower-triangular
  * Example:
  *   choldc_inv(s,p,cholsinv,posdef);
  *   det= choldc_det(cholsinv,p);
@@ -4613,20 +4616,20 @@ double dnormC_jvec(const double *y,
  *   det= choldc_det(cholsinv,p);
  *   dmvnormC(y,p,mu,cholsinv,det,0,false);
  */
-double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale) {
+double dmvnormC(const double *y, int p, const double *mu, double **cholsinv, double det, bool transpose, int logscale, bool logdet=false) {
     int i;
     double *z, ans;
 
     z  = dvector(1, p);
     for (i = 1; i <= p; i++) { z[i] = y[i] - mu[i]; }
-    ans= dmvnorm0(z, p, cholsinv, det, transpose, true);
+    ans= dmvnorm0(z, p, cholsinv, det, transpose, true, logdet);
     free_dvector(z, 1, p);
 
     return (logscale == 1) ? ans : exp(ans);
 }
 
 //same as dmvnorm for particular case mean=0
-double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool transpose, int logscale) {
+double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool transpose, int logscale, bool logdet=false) {
   int i;
   double *z2, res=0, ans;
     z2 = dvector(1, p);
@@ -4638,12 +4641,16 @@ double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool tran
     for (i = 1; i <= p; i++) res += z2[i] * z2[i];
     free_dvector(z2, 1, p);
 
-    ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    if (logdet) {
+      ans = -p * log(SQ_M_PI_2) + 0.5 * det - 0.5 * res;
+    } else {
+      ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+    }
     return (logscale == 1) ? ans : exp(ans);
 }
 
 //same as dmvnorm for particular case mean=0
-double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logscale) {
+double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logscale, bool logdet=false) {
   /* cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
     - Element (i,i) of chol(XtX) is stored into cholXtX[ii], where ii= (i-1)*n - (i-1)*(i-2)/2;
     - For i>=j, element (i,j) of chol(XtX) is stored into cholXtX[jj + i - j], where jj= (j-1)*n - (j-1)*(j-2)/2;
@@ -4664,7 +4671,11 @@ double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logsca
   for (i = 1; i <= p; i++) res += z2[i] * z2[i];
   free_dvector(z2, 1, p);
 
-  ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+  if (logdet) {
+    ans = -p * log(SQ_M_PI_2) + 0.5 * det - 0.5 * res;
+  } else {
+    ans = -p * log(SQ_M_PI_2) + 0.5 * log(det) - 0.5 * res;
+  }
   return (logscale == 1) ? ans : exp(ans);
 }
 

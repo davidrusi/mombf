@@ -138,7 +138,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
 	addcholStcholS(cholSigmainvcur, *p, (*g) * ((double) (*ncomp)), A);
 	detprior= det / pow(*g, *p);
 	for (j=1; j<=(*p); j++) { for (jj=1; jj<=j; jj++) { cholSigmainvprior[j][jj]= cholSigmainvcur[j][jj] / gsqrt; } }
-        logprior -= dmvnormC(mu-1 + idxmu + (l-1)*(*p), *p, mu0-1, cholSigmainvprior, detprior, false, true); //log dmvnorm(mu_l, mu0, g*Sigma_l)
+        logprior -= dmvnormC(mu-1 + idxmu + (l-1)*(*p), *p, mu0-1, cholSigmainvprior, detprior, false, true, false); //log dmvnorm(mu_l, mu0, g*Sigma_l)
       }
     } //end for each cluster
 
@@ -154,7 +154,7 @@ void normalmixGibbsC(double *pponeempty, double *logpen, double *eta, double *mu
       for (j=1; j<= (*ncomp)*(*ncomp -1)/2; j++) logpen[bidx] += log(dd[j]);
       //Contribution from the prior (sum_l log dmvnorm(mu_l, mu0, A^{-1}) - log dmvnorm(mu_l, mu0, g*Sigma_l)
       for (l=1; l<=(*ncomp); l++) {
-	logprior += dmvnormC(mu-1 + idxmu + (l-1)*(*p), *p, mu0-1, cholA, detA, false, true); //log dmvnorm(mu_l, mu0, A^{-1})
+	logprior += dmvnormC(mu-1 + idxmu + (l-1)*(*p), *p, mu0-1, cholA, detA, false, true, false); //log dmvnorm(mu_l, mu0, A^{-1})
       }
       logpen[bidx] += logprior;
     }

@@ -4652,20 +4652,20 @@ double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool tran
 //same as dmvnorm for particular case mean=0
 double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logscale, bool logdet=false) {
   /* cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
-    - Element (i,i) of chol(XtX) is stored into cholXtX[ii], where ii= (i-1)*n - (i-1)*(i-2)/2;
-    - For i>=j, element (i,j) of chol(XtX) is stored into cholXtX[jj + i - j], where jj= (j-1)*n - (j-1)*(j-2)/2;
-    - For i<j, element (i,j) of chol(XtX) is stored into  cholXtX[ii + j - i]
+
+      Element (l,l) of chol(XtX) is stored into cholXtX[ll], where ll= (l-1)*n - (l-1)*(l-2)/2;
+
+      For l>m, element (l,m) of chol(XtX) is stored into  cholXtX[mm + l - m]. Remaining elements are all zero
   */
 
-  int i, j, ii, jj;
+  int i, j, ii;
   double *z2, res=0, ans;
   z2 = dvector(1, p);
 
-  /* Find y' cholsinv' cholsinv y */
+  /* Find y' cholsinv cholsinv' y */
   for (i=1; i<= p; i++) {
     ii= (i-1)*p - (i-1)*(i-2)/2;
-    for (j=1, z2[i]=0; j<i; j++) { jj= (j-1)*p - (j-1)*(j-2)/2; z2[i] += cholsinv[jj+i-j] * y[j]; } //z2[i] += cholsinv[i][j] * y[j];
-    for (j=i; j<= p; j++) z2[i] += cholsinv[ii+j-i] * y[j]; //z2[i] += cholsinv[i][j] * y[j];
+    for (j=i, z2[i]=0; j<=p; j++) { z2[i] += cholsinv[ii+j-i] * y[j]; } //z2[i] += cholsinv[j][i] * y[j]; (only for j<=i)
   }
 
   for (i = 1; i <= p; i++) res += z2[i] * z2[i];

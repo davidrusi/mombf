@@ -5,7 +5,7 @@
 ### Methods for msfit objects
 
 setMethod("show", signature(object='msfit'), function(object) {
-  cat('msfit object with',object$p,'variables and',object$family,'residual distribution\n')
+  cat('msfit object with outcome of type',object$outcometype,',',object$p,'covariates and',object$family,'error distribution\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')
   cat("Use postProb() to get posterior model probabilities\n")
   cat("Use coef() or predict() to get BMA estimates and intervals for parameters or given covariate values\n")
@@ -14,8 +14,42 @@ setMethod("show", signature(object='msfit'), function(object) {
 )
 
 
+hasPostSampling <- function(object) {
+#Sends an error message if posterior sampling is not implemented for the priors and outcome type of the msFit object
+#
+  #List combinations for which posterior sampling is implemented
+  hassamples= data.frame(matrix(NA,nrow=4,ncol=4))
+  names(hassamples)= c('outcometype','family','priorCoef','priorGroup')
+  hassamples[1,]=    c('Continuous','Normal',   'pMOM',   'pMOM')
+  hassamples[2,]=    c('Continuous','Normal',  'peMOM',  'peMOM')
+  hassamples[3,]=    c('Continuous','Normal',  'piMOM',  'piMOM')
+  hassamples[4,]=    c('Continuous','Normal','zellner','zellner')
+  #Check if there's variable groups
+  hasgroups= (length(object$groups) > length(unique(object$groups)))
+  found= FALSE
+  outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr
+  if (hasgroups) {
+    for (i in 1:nrow(hassamples)) {
+      if (outcometype==hassamples[i,1] && family==hassamples[i,2] && priorCoef==hassamples[i,3] && priorGroup==hassamples[i,4]) found= TRUE
+    }
+  } else {
+    for (i in 1:nrow(hassamples)) {
+      if (outcometype==hassamples[i,1] && family==hassamples[i,2] && priorCoef==hassamples[i,3]) found= TRUE
+    }
+  }
+  if (!found) {
+    cat("Inference on parameters currently only available for the following settings: \n\n")
+    print(hassamples)
+    cat("\n")
+    stop("Inference on parameters not implemented for outcometype= ",outcometype,", family=",family,", priorCoef=",priorCoef,", priorGroup=",priorGroup)
+  }
+}
+
+
+
 
 coef.msfit <- function(object,...) {
+    hasPostSampling(object)
     th= rnlp(msfit=object,niter=10^4)
     ct= (object$stdconstants[-1,'scale']==0)
     if (any(ct)) {
@@ -33,6 +67,7 @@ coef.msfit <- function(object,...) {
 
 
 predict.msfit <- function(object, newdata, data, level=0.95, ...) {
+    hasPostSampling(object)
     th= rnlp(msfit=object,niter=10^4)
     f= object$call$formula
     if (class(f)=='formula') {
@@ -146,17 +181,24 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
       if (class(des$y)=="Surv") {
-          y= des$y[,1]; uncens= as.integer(des$y[,2])
-          ordery= c(which(uncens==1),which(uncens!=1))
-          y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
+          cat("The response type is survival. Remember that you should log-transform the times before running modelSelection\n")
+          outcometype= 'Survival'; uncens= as.integer(des$y[,2]); y= des$y[,1]
+          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
       } else {
-          y= des$y; uncens= integer(0)
+          outcometype= 'Continuous'; y= des$y; uncens= integer(0)
       }
       nlevels= apply(x,2,function(z) length(unique(z)))
       typeofvar[nlevels==2]= 'factor'
   } else {
-      uncens= integer(0); formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
+      if (class(y)=="Surv") {
+          outcometype= 'Survival'; uncens= as.integer(y[,2]); y= des$y[,1]
+          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
+          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
+      } else {
+          outcometype= 'Continuous'; uncens= integer(0)
+      }
+      formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
   }
   call= list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
   if (!missing(smoothterms)) call$smoothterms= smoothterms
@@ -168,7 +210,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
 
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
-  if (missing(priorGroup)) priorGroup= groupzellnerprior(tau=n)
+  if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
@@ -284,9 +326,10 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     names(margpp) <- c(nn,'family.normal','family.tpnormal','family.laplace','family.tplaplace')
   }
 
-  priors= list(priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar, priorSkew=priorSkew)
+  priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorConstraints, priorVar=priorVar, priorSkew=priorSkew)
   if (length(uncens)>0) { ystd=ystd[ordery]; xstd=xstd[ordery,,drop=FALSE] }
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,stdconstants=stdconstants,call=call)
+  names(constraints)= paste('group',0:(length(constraints)-1))
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }

@@ -218,6 +218,7 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 //*************************************************************************************
 
 void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
+void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
 
 void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *taugroup);
 void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups);
@@ -278,25 +279,33 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
 void loglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 double infopropAFT(double z);
 
-// pMOM on individual coef, group MOM on groups
-double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
 
-// pMOM on individual coef, block Zellner on groups
+// Computation of marginal likelihoods
+double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode);
+double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pMOM on individual coef, group MOM on groups
+double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, group eMOM on groups
+double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, block Zellner on groups
+double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Zellner on individual coef, block Zellner on groups
+
+
+// pMOM/peMOM on individual coef, block Zellner on groups
 double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
+
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
 void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
 void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void priorpemomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
-// peMOM on individual coef, group eMOM on groups
-double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
-
-// peMOM on individual coef, block Zellner on groups
-double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
-
-// Zellner on individual coef, block Zellner on groups
-double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars);
 
 
 

@@ -1725,6 +1725,43 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
 }
 
 
+void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale) {
+  /*Evaluate peMOM(tau) + block Zellner(taugroup) prior density at th
+
+     prod_j peMOM(beta_j; tau)  prod_j N(delta_j; 0, S_j^{-1})
+
+     where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
+     corresponding to coefficients for individual variables and grouped variables (respectively)
+
+    Input
+     - th: point at which to evaluate the density is th[0],...,th[*nsel]
+     - tau: prior pMOM dispersion parameter (drives prior on individual coefficients, i.e. groups of size 1)
+     - nvaringroup: number of variables in each group
+     - ngroups: number of selected groups (length of nvaringroup)
+     - ldetSinv: log-determinant of S_j^{-1} for each group j=1,...,ngroups
+     - cholSinv: Cholesky decomp of S_j^{-1} for all groups stored as a single vector
+     - cholSini: Chol decomp of S_j^{-1} for group j starts at cholSinv[cholSini[j]]
+     - logscale: if true return log-density, else return the density
+
+    Output
+     - ans: log-density (if logscale==true) or density (if logscale==false)
+  */
+  int i, firstingroup=0, ningroup, ngroupsi= (int) (*ngroups +.1);
+
+  (*ans)= 0;
+  for (i=0; i< ngroupsi; i++) {
+    ningroup= (int) (nvaringroup[i] +.1);
+    if (ningroup== 1) {
+      (*ans) += demom(th[firstingroup], *tau, 1, true);
+    } else {
+      (*ans) += dmvnorm0(th+firstingroup-1, ningroup, cholSinv + (int) (cholSini[i]+.1), ldetSinv[i], true, true);
+    }
+    firstingroup += ningroup;
+  }
+  if (!logscale) (*ans)= exp(*ans);
+}
+
+
 
 /*Compute inverse covariance matrix in group Zellner's prior, its Cholesky decomposition and determinant
   INPUT
@@ -2031,7 +2068,6 @@ double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
 
 
-
 double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   /*Marginal likelihood under pMOM(tau) + block Zellner(taugroup) prior
 
@@ -2042,6 +2078,48 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
     S_j is the submatrix of S indicated by sel[0], sel[1] etc.
   */
+
+  return SurvMarg(sel, nsel, pars, 13); //priorcode=13 is pMOM + block Zellner
+}
+
+
+// peMOM on individual coef, group eMOM on groups
+double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("peMOM + group eMOM not currently implemented for the AFT Normal model");
+}
+
+
+// peMOM on individual coef, block Zellner on groups
+double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  /*Marginal likelihood under peMOM(tau) + block Zellner(taugroup) prior
+
+    prod_j pMOM(beta_j; tau)  prod_j N(delta_j; 0, (taugroup/ncol(S_j)) (S_j)^{-1})
+
+    where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
+    corresponding to coefficients for individual variables and grouped variables (respectively)
+
+    S_j is the submatrix of S indicated by sel[0], sel[1] etc.
+  */
+
+  return SurvMarg(sel, nsel, pars, 33); //priorcode=33 is pMOM + block Zellner
+}
+
+// Zellner on individual coef, block Zellner on groups
+double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + block Zellner not currently implemented for the AFT Normal model");
+}
+
+
+double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
+  /*Marginal likelihood under pMOM/peMOM + block Zellner(taugroup) prior
+
+    priorcode indicates what prior is used
+
+    10: pMOM + group MOM
+    13: pMOM + group Zellner
+    32: peMOM + group eMOM
+    33: peMOM + group Zellner
+   */
 
   std::map<string, double *> funargs;
   int i, nselgroupsint, cholSsize, *uncens;
@@ -2080,10 +2158,20 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
   //Assign functions to evaluate log-posterior, update log-posterior, gradient and hessians
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
   msfun= new modselFunction(sel, *nsel +1, pars, NULL);
-  msfun->fun= &fpmomgzellSurv;
-  msfun->funupdate= &fpmomgzellSurvupdate;
-  msfun->gradhessUniv= &fpmomgzellgradhess;
-  msfun->hess= &fpmomgzellhess;
+
+  if (priorcode==13) {
+    msfun->fun= &fpmomgzellSurv;
+    msfun->funupdate= &fpmomgzellSurvupdate;
+    msfun->gradhessUniv= &fpmomgzellgradhess;
+    msfun->hess= &fpmomgzellhess;
+  } else if (priorcode==33) {
+    msfun->fun= &fpemomgzellSurv;
+    msfun->funupdate= &fpemomgzellSurvupdate;
+    msfun->gradhessUniv= &fpemomgzellgradhess;
+    msfun->hess= &fpemomgzellhess;
+  } else {
+    Rf_error("priorcode in SurvMarg not recognized\n");
+  }
 
   //Optimize and obtain Laplace approximation
   ypred= dvector(0, *((*pars).n));
@@ -2114,6 +2202,17 @@ void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct margi
   (*f) -= priordens;
 }
 
+//Evaluate negative log-likelihood + log-prior (peMOM + group MOM) and initialize funargs
+void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double priordens=0;
+
+  negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  demomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
+  (*f) -= priordens;
+}
+
+
 //Update log-likelihood and funargs due to changing th[j] into thjnew
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thtmp, priordens=0;
@@ -2121,6 +2220,17 @@ void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double
   negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
   dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
+  th[j]= thtmp;
+  (*fnew) -= priordens;
+}
+
+void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double thtmp, priordens=0;
+
+  negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  thtmp= th[j]; th[j]= *thjnew;
+  demomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   th[j]= thtmp;
   (*fnew) -= priordens;
@@ -2138,6 +2248,16 @@ void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel,
   (*grad) -= priorgrad; (*hess) -= priorhess;
 }
 
+void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  double priorgrad, priorhess;
+
+  negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+
+  priorpemomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
+
+  (*grad) -= priorgrad; (*hess) -= priorhess;
+}
+
 
 void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
@@ -2146,6 +2266,34 @@ void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct m
   negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
   for (j=0; j< *thlength; j++) {
     priorpmomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs);
+    hess[j+1][j+1] -= priorhess;
+  }
+  //Add group Zellner's prior contribution to off-diagonal hessian elements
+  ngroups= (int) (*((*funargs)["nselgroups"]) +.1);
+  firstingroup=0;
+  for (j=0; j< ngroups; j++) {
+    ningroup= (int) (nvaringroup[j] +.1);
+    if (ningroup>1) {
+      idxini= (int) (cholSini[j]+.1);
+      for (k=0; k< ningroup; k++) {
+	kk= idxini + k*ningroup - k*(k-1)/2;
+	for (l=k+1; l< ningroup; l++) {
+	  hess[firstingroup+k+1][firstingroup+l+1] +=  *(Sinv + kk + l-k);  //elem (k,l) in Sinv of group j
+	}
+      }
+    }
+    firstingroup += ningroup;
+  }
+    
+}
+
+void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
+  double priorgrad, priorhess, *Sinv= (*funargs)["Sinv"], *nvaringroup= (*funargs)["nvarinselgroups"], *cholSini= (*funargs)["cholSini"];
+
+  negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  for (j=0; j< *thlength; j++) {
+    priorpemomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs);
     hess[j+1][j+1] -= priorhess;
   }
   //Add group Zellner's prior contribution to off-diagonal hessian elements
@@ -2197,21 +2345,35 @@ void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double 
   }
 }
 
-// peMOM on individual coef, group eMOM on groups
-double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("peMOM + group eMOM not currently implemented for the AFT Normal model");
+
+void priorpemomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  if (j < *thlength -1) { //if th[j] is a regression coefficient
+
+    if (((*pars).isgroup)[sel[j]] == 0) { 
+      double tau= *((*pars).tau), th2= th[j]*th[j];
+      (*priorgrad)= 2.0 * tau/(th2 * th[j]) - th[j]/tau;
+      (*priorhess)= -6.0*tau/(th2*th2) - 1.0/tau;
+    } else {
+      int jingroup, jj, l, ll, idxini, ningroup, firstingroup, groupid= ((*funargs)["selgroups"])[j];
+      double *Sinv= (*funargs)["Sinv"], *cholSini= (*funargs)["cholSini"];
+      ningroup= (int) (((*funargs)["nvarinselgroups"])[groupid] +.1);
+      firstingroup= (int) (((*funargs)["firstingroup"])[groupid] +.1);
+      idxini= (int) (cholSini[groupid] +.1);
+      jingroup= j - firstingroup;
+      jj= idxini + jingroup*ningroup - jingroup*(jingroup-1)/2;
+      (*priorhess)= - Sinv[jj];
+      for (l=0, (*priorgrad)=0; l< jingroup; l++) { ll= idxini + l*ningroup - l*(l-1)/2; (*priorgrad) +=  Sinv[ll+jingroup-l] * th[firstingroup+l]; } //Sinv[jingroup,] %*% th
+      for (l=jingroup; l< ningroup; l++) { (*priorgrad) +=  Sinv[jj+l-jingroup] * th[firstingroup+l]; }
+      (*priorgrad) = -(*priorgrad);
+    }
+
+  } else { //if exp(th[j]) is the residual precision
+    (*priorhess)= -2.0 * (*((*pars).lambda) * exp(2.0 * th[j]));
+    (*priorgrad)= 0.5 * (*priorhess) + (*((*pars).alpha));
+  }
 }
 
-
-// peMOM on individual coef, block Zellner on groups
-double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("peMOM + block Zellner not currently implemented for the AFT Normal model");
-}
-
-// Zellner on individual coef, block Zellner on groups
-double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("Zellner + block Zellner not currently implemented for the AFT Normal model");
-}
 
 
 

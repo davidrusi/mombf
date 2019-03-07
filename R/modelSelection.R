@@ -135,9 +135,23 @@ return(ans)
 )
 
 
+defaultmom= function(outcometype=outcometype,family=family) {
+    if (outcometype=='Continuous') {
+        cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348)\n")
+        ans= momprior(tau=0.348)
+    } else if (outcometype=='Survival') {
+        cat("Using default prior for survival outcomes priorCoef=momprior(tau=0.192)\n")
+        ans= momprior(tau=0.192)
+    } else {
+      stop("There is not default priorCoef for this outcome type")
+    }
+    return(ans)
+}
+
+
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef=momprior(tau=0.348), priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -210,6 +224,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
 
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
+  if (missing(priorCoef)) priorCoef= defaultmom(outcometype=outcometype,family=family)
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
@@ -420,6 +435,8 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
         }
         colnames(W)= namesW
         groupsW= maxgroups + nselL + groupsW
+        varW= (colMeans(W^2) - colMeans(W)^2) * nrow(W)/(nrow(W)-1)
+        if (any(varW==0)) { W= W[,varW>0]; groupsW= groupsW[varW>0]; constraintsW= constraintsW[unique(groupsW-min(groupsW)+1)] }
         x= cbind(x,L[,selL],W)
         groups= c(groups, groupsL[selL], groupsW)
         typeofvar= c(typeofvar, rep('numeric',sum(selL)+length(groupsW)))

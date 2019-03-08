@@ -1167,7 +1167,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
     for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens,ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens,ytXuncens);
   modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), constraints, INTEGER(Sverbose), &pars);
 
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
@@ -1392,7 +1392,7 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Snit
     for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), LOGICAL(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens, ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, XtXuncens, ytXuncens);
   greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),constraints,INTEGER(Sverbose),&pars);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   delete XtX;
@@ -2284,7 +2284,7 @@ void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct m
     }
     firstingroup += ningroup;
   }
-    
+
 }
 
 void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
@@ -2312,7 +2312,7 @@ void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct 
     }
     firstingroup += ningroup;
   }
-    
+
 }
 
 
@@ -2321,7 +2321,7 @@ void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double 
 
   if (j < *thlength -1) { //if th[j] is a regression coefficient
 
-    if (((*pars).isgroup)[sel[j]] == 0) { 
+    if (((*pars).isgroup)[sel[j]] == 0) {
       double tau= *((*pars).tau);
       (*priorgrad)= 2.0/th[j] - th[j]/tau;
       (*priorhess)= -2.0/(th[j]*th[j]) - 1.0/tau;
@@ -2350,7 +2350,7 @@ void priorpemomgzellgradhess(double *priorgrad, double *priorhess, int j, double
 
   if (j < *thlength -1) { //if th[j] is a regression coefficient
 
-    if (((*pars).isgroup)[sel[j]] == 0) { 
+    if (((*pars).isgroup)[sel[j]] == 0) {
       double tau= *((*pars).tau), th2= th[j]*th[j];
       (*priorgrad)= 2.0 * tau/(th2 * th[j]) - th[j]/tau;
       (*priorhess)= -6.0*tau/(th2*th2) - 1.0/tau;

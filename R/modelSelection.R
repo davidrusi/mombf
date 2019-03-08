@@ -20,10 +20,10 @@ hasPostSampling <- function(object) {
   #List combinations for which posterior sampling is implemented
   hassamples= data.frame(matrix(NA,nrow=4,ncol=4))
   names(hassamples)= c('outcometype','family','priorCoef','priorGroup')
-  hassamples[1,]=    c('Continuous','Normal',   'pMOM',   'pMOM')
-  hassamples[2,]=    c('Continuous','Normal',  'peMOM',  'peMOM')
-  hassamples[3,]=    c('Continuous','Normal',  'piMOM',  'piMOM')
-  hassamples[4,]=    c('Continuous','Normal','zellner','zellner')
+  hassamples[1,]=    c('Continuous','normal',   'pMOM',   'pMOM')
+  hassamples[2,]=    c('Continuous','normal',  'peMOM',  'peMOM')
+  hassamples[3,]=    c('Continuous','normal',  'piMOM',  'piMOM')
+  hassamples[4,]=    c('Continuous','normal','zellner','zellner')
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
   found= FALSE

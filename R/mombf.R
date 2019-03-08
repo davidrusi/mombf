@@ -24,11 +24,11 @@ mombf <- function(lm1,coef,g,prior.mode,baseDensity='normal',nu=3,theta0,logbf=F
 ###
 
 mombf.lm <- function(lm1,coef,g,prior.mode,baseDensity='normal',nu=3,theta0,logbf=FALSE,B=10^5) {
- 
+
 if ((!missing(g)) & (!missing(prior.mode))) warning('Both g and prior.mode were specified. g will be ignored')
 if ((missing(g)) & (missing(prior.mode))) stop('Either g or prior.mode must be specified')
 if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=length(coef)) stop('theta0 must have the same length as coef')
-  
+
   thetahat <- coef(lm1)
   V <- summary(lm1)$cov.unscaled
   n <- length(lm1$residuals); p <- length(thetahat); p1 <- length(coef)
@@ -69,7 +69,7 @@ return(bf)
 momunknown <- function(theta1hat,V1,n,nuisance.theta,g=1,theta0,ssr,logbf=FALSE) {
 if (missing(theta0)) theta0 <- rep(0,length(theta1hat))
 p1 <- length(theta1hat); p <- p1 + nuisance.theta
-l <- theta1hat-theta0; l <- matrix(l,nrow=1) %*% solve(V1) %*% matrix(l,ncol=1)  
+l <- theta1hat-theta0; l <- matrix(l,nrow=1) %*% solve(V1) %*% matrix(l,ncol=1)
 sigma2hat <- (ssr + l/(1+n*g))/(n-nuisance.theta)
 muk <- p1+ l* n*g/((1+n*g)*sigma2hat)
 bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + log(muk) - log(1+n*g) + ((n-p)/2)*log(1+n*g) - log(p1)
@@ -105,7 +105,7 @@ imombf.lm <- function(lm1,coef,g,prior.mode,nu=1,theta0,method='adapt',nquant=10
 if ((!missing(g)) & (!missing(prior.mode))) warning('Both g and prior.mode were specified. g will be ignored')
 if ((missing(g)) & (missing(prior.mode))) stop('Either g or prior.mode must be specified')
 if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=length(coef)) stop('theta0 must have the same length as coef')
-  
+
   thetahat <- coef(lm1)
   V <- summary(lm1)$cov.unscaled
   n <- length(lm1$residuals); p <- length(thetahat); p1 <- length(coef)
@@ -149,7 +149,7 @@ return(bf)
 imomunknown <- function(theta1hat,V1,n,nuisance.theta,g=1,nu=1,theta0,ssr,method='adapt',nquant=100,B=10^5) {
 
 fncp <- function(sigma2) {
-  l <- theta1hat-theta0; l <- matrix(l,nrow=1) %*% solve(V1) %*% matrix(l,ncol=1) / sigma2
+  l <- theta1hat-theta0; l <- as.vector(matrix(l,nrow=1) %*% solve(V1) %*% matrix(l,ncol=1)) / sigma2
   l[l==Inf] <- exp(80)
   return(l)
 }

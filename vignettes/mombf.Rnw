@@ -331,7 +331,7 @@ The intuition is that NLPs place most of the prior mass on $|\theta|>m$,
 which implicitly means we have little interest in detecting $|\theta|<m$.
 
 \footnotesize
-<<two>>=
+<<priortau>>=
 prior.mode <- .4^2
 taumom <- mode2g(prior.mode,prior='normalMom')
 tauimom <- mode2g(prior.mode,prior='iMom')
@@ -611,7 +611,7 @@ fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
 priorCoef=priorCoef, priorDelta=priorDelta)
 b <- coef(fit1)
 head(b)
-th <- rnlp(y=as.numeric(y),x=x,msfit=fit1,priorCoef=priorCoef,niter=10000)
+th <- rnlp(msfit=fit1,priorCoef=priorCoef,niter=10000)
 colMeans(th)
 head(th)
 @

@@ -7,9 +7,9 @@
 \alias{imomprior}
 \alias{momprior}
 \alias{zellnerprior}
+\alias{groupmomprior}
 \alias{groupemomprior}
 \alias{groupimomprior}
-\alias{groupprior}
 \alias{groupzellnerprior}
 \alias{modelunifprior}
 \alias{modelbinomprior}

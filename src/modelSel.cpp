@@ -2177,6 +2177,17 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   ypred= dvector(0, *((*pars).n));
   leastsquares(thini-1, thini+ *nsel, ypred, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, (*pars).n, (*pars).p, sel, nsel);
   thini[*nsel]= -0.5* log(thini[*nsel]); //log(1/sqrt(residual variance))
+
+  //Avoid exact zeroes (0 prior density under non-local priors)
+  for (i=0; i< *nsel; i++) {
+    if (fabs(thini[i]) < 1.0e-5) {
+      double fminus, fplus;
+      thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
+      thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
+      if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+    }
+  }
+  
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 1);
   ans= msfun->laplaceapprox(thopt, &fopt, &funargs);
 

@@ -342,7 +342,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   }
 
   priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorConstraints, priorVar=priorVar, priorSkew=priorSkew)
-  if (length(uncens)>0) { ystd=ystd[ordery]; xstd=xstd[ordery,,drop=FALSE] }
+  if (length(uncens)>0) { ystd= Surv(time=ystd[ordery], event= uncens); xstd=xstd[ordery,,drop=FALSE] }
   names(constraints)= paste('group',0:(length(constraints)-1))
   ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }

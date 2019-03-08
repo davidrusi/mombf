@@ -21,7 +21,7 @@ groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
 enumerate, includevars=rep(FALSE,ncol(x)),
 maxvars, niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef,
-priorDelta=modelbbprior(1,1),
+priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints=priorDelta,
 priorVar=igprior(alpha=.01,lambda=.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
@@ -84,6 +84,10 @@ not performed for these variables}
   Prior dispersion is on coefficients/sqrt(scale) for Normal and
   two-piece Normal, and on coefficients/sqrt(2*scale) for Laplace
   and two-piece Laplace.}
+\item{priorGroup}{Prior on grouped coefficients (e.g. categorical
+  predictors with >2 categories, splines). Created by
+  \code{groupmomprior}, \code{groupemomprior},
+  \code{groupimomprior} or \code{groupzellnerprior}}
 \item{priorDelta}{Prior on model space. Use \code{modelbbprior()}
   for Beta-Binomial prior, \code{modelbinomprior(p)} for Binomial
   prior with prior inclusion probability \code{p},

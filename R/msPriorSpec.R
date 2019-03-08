@@ -207,7 +207,7 @@ groupemomprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="groupeMOM", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
-groupzellnerprior <- function(tau=n, tau.adj=10^6) {
+groupzellnerprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="groupzellner", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 

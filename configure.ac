@@ -49,7 +49,8 @@ else
 	  openmp_flag="-DARMA_DONT_USE_OPENMP"
    else
 	  AC_MSG_RESULT([found])
-	  openmp_flag='$(SHLIB_OPENMP_CXXFLAGS)'
+	  openmp_flag='$(CXXFLAGS) $(SHLIB_OPENMP_CXXFLAGS)'
+	  ##openmp_flag='$(SHLIB_OPENMP_CXXFLAGS)'
 	  openmp_cflag='$(SHLIB_OPENMP_CFLAGS)'
    fi
 fi

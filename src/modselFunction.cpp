@@ -177,7 +177,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
 //CDA with approx updates given by Newton's method (uses gradhess and funupdate)
 // Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
-void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=1) {
+void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
 
   bool found;
   int j, iter=0, nsteps;
@@ -195,7 +195,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
     for (j=0, therr=ferr=0; j< this->thlength; j++) {
 
       gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
-      delta= g/H;
+      if (H>0) { delta= g/H; } else { delta= g/max_xy(-H,.001); }  //if H<0 then target is -def, fix to ensure step is in the direction of -gradient
 
       nsteps= 1; found= false;
       while (!found & (nsteps<=maxsteps)) {

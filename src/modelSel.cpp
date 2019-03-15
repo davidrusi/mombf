@@ -1995,13 +1995,13 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
   } else { //updating rho= log(residual precision)
 
     exprho= exp(rho); ytres= sumy2D= 0;
-    for (i=0; i< nuncens; i++) ytres -= res[i] * y[i]; //Uncensored observations
+    for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
     for (i=nuncens; i< n; i++) {                       //Censored observations
       ytres += invmillsnorm(-res[i]) * y[i];
       sumy2D += y[i]*y[i]*infopropAFT(res[i]);
     }
-    (*grad)= -(*(*funargs)["nuncens"]) - exprho * ytres;
-    (*hess)= -exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
+    (*grad)= -(*(*funargs)["nuncens"]) + exprho * ytres;
+    (*hess)= exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
 
   }
 
@@ -2022,14 +2022,14 @@ void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, st
 
   //hessian wrt log-residual precision
   exprho= exp(rho); ytres= 0;
-  for (i=0; i< nuncens; i++) ytres -= res[i] * y[i]; //Uncensored observations
+  for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
   for (i=nuncens; i< n; i++) { //Censored observations
     ytres += invmillsnorm(-res[i]) * y[i];
     D[i-nuncens]= infopropAFT(res[i]);
     sumD += D[i-nuncens];
     sumy2D += y[i]*y[i]*D[i-nuncens];
   }
-  hess[*thlength][*thlength]= -exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
+  hess[*thlength][*thlength]= exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
 
   //hessian wrt regression coefficients
   for (j=0; j< nvars; j++) {
@@ -2159,6 +2159,18 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
   msfun= new modselFunction(sel, *nsel +1, pars, NULL);
 
+  //Initialize at MLE
+  ypred= dvector(0, *((*pars).n));
+  leastsquares(thini-1, thini+ *nsel, ypred, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, (*pars).n, (*pars).p, sel, nsel);
+  thini[*nsel]= -0.5* log(thini[*nsel]); //log(1/sqrt(residual variance))
+
+  msfun->fun= &negloglnormalAFT;
+  msfun->funupdate= &negloglnormalAFTupdate;
+  msfun->gradhessUniv= &negloglnormalAFTgradhess;
+  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+  for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
+
+  //Find posterior mode
   if (priorcode==13) {
     msfun->fun= &fpmomgzellSurv;
     msfun->funupdate= &fpmomgzellSurvupdate;
@@ -2173,11 +2185,6 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     Rf_error("priorcode in SurvMarg not recognized\n");
   }
 
-  //Optimize and obtain Laplace approximation
-  ypred= dvector(0, *((*pars).n));
-  leastsquares(thini-1, thini+ *nsel, ypred, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, (*pars).n, (*pars).p, sel, nsel);
-  thini[*nsel]= -0.5* log(thini[*nsel]); //log(1/sqrt(residual variance))
-
   //Avoid exact zeroes (0 prior density under non-local priors)
   for (i=0; i< *nsel; i++) {
     if (fabs(thini[i]) < 1.0e-5) {
@@ -2187,8 +2194,9 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
       if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
     }
   }
-  
-  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 1);
+
+  //Optimize and obtain Laplace approximation
+  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   ans= msfun->laplaceapprox(thopt, &fopt, &funargs);
 
   //Free memory

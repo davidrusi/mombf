@@ -436,7 +436,7 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
         colnames(W)= namesW
         groupsW= maxgroups + nselL + groupsW
         varW= (colMeans(W^2) - colMeans(W)^2) * nrow(W)/(nrow(W)-1)
-        if (any(varW==0)) { W= W[,varW>0]; groupsW= groupsW[varW>0]; constraintsW= constraintsW[unique(groupsW-min(groupsW)+1)] }
+        if (any(varW<1.0e-4)) { W= W[,varW>1.0e-4]; groupsW= groupsW[varW>1.0e-4]; constraintsW= constraintsW[unique(groupsW-min(groupsW)+1)] }
         x= cbind(x,L[,selL],W)
         groups= c(groups, groupsL[selL], groupsW)
         typeofvar= c(typeofvar, rep('numeric',sum(selL)+length(groupsW)))

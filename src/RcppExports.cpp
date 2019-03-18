@@ -52,7 +52,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"testfunctionCI",        (DL_FUNC) &testfunctionCI,         1},
     {"bsplineCI",             (DL_FUNC) &bsplineCI,              3},
     {"eprod_I",               (DL_FUNC) &eprod_I,                5},
-    {"greedyVarSelCI",        (DL_FUNC) &greedyVarSelCI,        39},
+    {"greedyVarSelCI",        (DL_FUNC) &greedyVarSelCI,        40},
     {"mnormCI",               (DL_FUNC) &mnormCI,                3},
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  38},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 44},

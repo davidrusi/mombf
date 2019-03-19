@@ -11,11 +11,15 @@
   \code{bbPrior} implements a Beta-Binomial prior. 
 }
 \usage{
-unifPrior(sel, logscale=TRUE, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
+unifPrior(sel, logscale=TRUE, groups=1:length(sel),
+constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
 
-binomPrior(sel, prob=.5, logscale=TRUE, probconstr=prob, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
+binomPrior(sel, prob=.5, logscale=TRUE, probconstr=prob, groups=1:length(sel),
+constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
 
-bbPrior(sel, alpha=1, beta=1, logscale=TRUE, alphaconstr=alpha, betaconstr=beta, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
+bbPrior(sel, alpha=1, beta=1, logscale=TRUE, alphaconstr=alpha,
+betaconstr=beta, groups=1:length(sel),
+constraints=lapply(1:length(unique(groups)), function(z) integer(0)))
 }
 \arguments{
   \item{sel}{ Logical vector indicating which variables are included in

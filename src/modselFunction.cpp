@@ -281,40 +281,40 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
 //BLOCK CDA WITH NEWTON METHOD UPDATES (USES gradhess)
 //Each parameter is updated to th[j] - 0.5^k grad[j]/hess[j] as in cdaNewton, but here grad[j] and hess[j] are evaluated at the current th prior to updating any th
 //In contrast, in cdaNewton grad[j] and hess[j] are evaluated after updating th[0], ..., th[j-1]
-void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, int maxsteps=1) {
+void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=1) {
 
   bool found;
   int j, iter=0, nsteps;
-  double *thcur, therr=1, ferr=1, fnew, *delta, *g, *H;
+  double therr=1, ferr=1, fnew, *delta, *g, *H;
 
   if ((this->fun)==NULL) Rf_error("To run blockcdaNewton you need to specify evalfun");
   if ((this->gradhessUniv)==NULL) Rf_error("To run blockcdaNewton you need to specify either gradhessUniv");
-  thcur= dvector(0,this->thlength); delta= dvector(0,this->thlength); g= dvector(0,this->thlength); H= dvector(0,this->thlength);
+  delta= dvector(0,this->thlength); g= dvector(0,this->thlength); H= dvector(0,this->thlength);
 
-  this->evalfun(fopt,thini);
-  for (j=0; j< this->thlength; j++) { thopt[j]= thcur[j]= thini[j]; }
+  this->evalfun(fopt,thini,funargs);
+  for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
     therr= ferr= 0;
     for (j=0; j< this->thlength; j++) {
-      gradhessUniv(g+j, H+j, j, thopt, sel, &(this->thlength), pars, NULL);
+      gradhessUniv(g+j, H+j, j, thopt, sel, &(this->thlength), this->pars, funargs);
       delta[j]= g[j]/H[j];
     }
 
     nsteps= 1; found= false;
+    for (j=0; j< this->thlength; j++) { thopt[j] -= delta[j]; therr= max_xy(therr, fabs(delta[j])); }
     while (!found & (nsteps<=maxsteps)) {
 
-      for (j=0; j< this->thlength; j++) { thopt[j] -= delta[j]; therr= max_xy(therr, fabs(delta[j])); }
-      this->evalfun(&fnew,thopt);
+      this->evalfun(&fnew,thopt,funargs);
 
       if (fnew < *fopt) {
 	found= true;
-	ferr+= *fopt - fnew;
+	ferr= *fopt - fnew;
 	(*fopt)= fnew;
       } else {
-	for (j=0; j< this->thlength; j++) { thopt[j]= thcur[j]; delta[j] /= 2.0; }
-	therr= 0;
+	for (j=0; j< this->thlength; j++) { delta[j] /= 2.0; thopt[j] += delta[j]; }
+	ferr= 0;
 	nsteps++;
       }
 
@@ -323,7 +323,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
   } //end while iter
 
-  free_dvector(thcur, 0,this->thlength); free_dvector(delta, 0,this->thlength); free_dvector(g, 0,this->thlength); free_dvector(H, 0,this->thlength);
+  free_dvector(delta, 0,this->thlength); free_dvector(g, 0,this->thlength); free_dvector(H, 0,this->thlength);
 
 }
 

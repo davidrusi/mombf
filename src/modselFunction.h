@@ -94,7 +94,7 @@ public:
   void blockcda(double *thopt, double *fopt, double *thini);  //Block CDA jointly updating all parameters (uses updateUniv)
   void cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //CDA with approx updates given by Newton's method (uses gradhess)
   void cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);
-  void blockcdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
+  void blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
 
   double laplaceapprox(double *thopt, double *fopt, double **H); //Laplace approximation to int exp(-fun(th)) dth
   double laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs);
@@ -249,7 +249,7 @@ void testfunction() {
   //Option 8. blockcdaNewton
   msfun->fun= &foo;
   msfun->gradhessUniv= &foogradhess;
-  msfun->blockcdaNewton(thopt, &fopt, thini, 1);
+  msfun->blockcdaNewton(thopt, &fopt, thini, &funargs, 1);
   Rprintf("blockcdaNewton.    thopt= %f %f; fopt=%f\n", thopt[0], thopt[1], fopt);
 
   free_ivector(sel, 0,thlength); free_dvector(thini, 0,thlength); free_dvector(thopt, 0,thlength);

@@ -2188,7 +2188,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
   //Store optimal value for use in subsequent calls
-  if (((*pars).thinit) > 0) {
+  if (*((*pars).usethinit) > 0) {
     for (i=0; i< *nsel; i++) { ((*pars).thinit)[sel[i]]= thini[i]; }
     ((*pars).thinit)[*((*pars).p)]= thini[*nsel];
     (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit

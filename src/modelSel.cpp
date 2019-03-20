@@ -2166,7 +2166,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   msfun= new modselFunction(sel, *nsel +1, pars, NULL);
 
   //Initialize at MLE
-  //Rprintf("Model "); for (i=0; i< *nsel; i++) { Rprintf("%d ",sel[i]); }; Rprintf("Done MLE. "); //debug
+  //Rprintf("Model "); for (i=0; i< *nsel; i++) { Rprintf("%d ",sel[i]); }; Rprintf("Done MLE."); //debug
   if (*((*pars).usethinit) != 2) {
     double *ypred;
     ypred= dvector(0, *((*pars).n));
@@ -2224,7 +2224,9 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 
   //Optimize and obtain Laplace approximation
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+  //Rprintf("Done post mode. ");
   ans= msfun->laplaceapprox(thopt, &fopt, &funargs);
+  //Rprintf("Done Lapl approx\n");
   
   //Free memory
   free_dvector(thopt, 0, *nsel); free_dvector(thini, 0, *nsel);

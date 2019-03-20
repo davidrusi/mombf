@@ -4,9 +4,18 @@ using namespace std;
 using namespace arma;
 
 
-//Constructor
-// If dense=true, mymat is assumed to point to a pre-computed dense matrix containing XtXd
-// If dense=false, mymat is assumed to be the x matrix. No XtX entries are pre-computed at the time of creation
+/*Constructor
+
+ INPUT
+
+ - mymat: If dense==true, mymat is assumed to point to a pre-computed dense matrix containing XtXd (an ncolx * ncolx matrix)
+          If dense==false, mymat is assumed to be the x matrix (an nrowx * ncolx matrix). No XtX entries are pre-computed at the time of creation
+
+ - nrowx: number of rows in x
+ - ncolx: number of columns in x (equivalently, number of rows & columns in XtX)
+ - dense: indicator if a pre-computed XtX was provided
+
+*/
 crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int nuserows, int *userows) {
 
   this->nrowx= nrowx;
@@ -21,8 +30,8 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int 
   } else {
     this->x= mymat;
     this->dense= false;
-    (this->XtXs)= arma::sp_mat(nrowx, ncolx);
-    (this->XtXcomputed)= arma::SpMat<short>(nrowx, ncolx);
+    (this->XtXs)= arma::sp_mat(ncolx, ncolx);
+    (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
   }
 
 }
@@ -41,8 +50,8 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int 
   } else {
     this->x= mymat;
     this->dense= false;
-    (this->XtXs)= arma::sp_mat(nrowx, ncolx);
-    (this->XtXcomputed)= arma::SpMat<short>(nrowx, ncolx);
+    (this->XtXs)= arma::sp_mat(ncolx, ncolx);
+    (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
   }
 
 }
@@ -61,8 +70,8 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense) {
   } else {
     this->x= mymat;
     this->dense= false;
-    (this->XtXs)= arma::sp_mat(nrowx, ncolx);
-    (this->XtXcomputed)= arma::SpMat<short>(nrowx, ncolx);
+    (this->XtXs)= arma::sp_mat(ncolx, ncolx);
+    (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
   }
 
 

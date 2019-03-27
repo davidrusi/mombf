@@ -283,30 +283,35 @@ double infopropAFT(double z);
 
 
 // Computation of marginal likelihoods
-double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode);
+double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode);  //wrapper function calling the function corresponding to the specified prior
+
 double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pMOM on individual coef, group MOM on groups
 double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, group eMOM on groups
+
+double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pMOM/peMOM on individual coef, block Zellner on groups
 double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, block Zellner on groups
-double zellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Zellner on individual coef, block Zellner on groups
+double gzellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Zellner on individual coef, block Zellner on groups
 
-
-// pMOM/peMOM on individual coef, block Zellner on groups
-double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
 
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fgzellgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fgzellgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fgzellgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 void priorpmomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void priorpemomgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void priorgzellgzellgradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 
 

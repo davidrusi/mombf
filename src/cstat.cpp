@@ -4537,6 +4537,49 @@ double pnormC(double y, double m, double s) {
     return cdf;
 }
 
+/* Normal cdf. Abramowitz and Stegun Approximation, p932, Expression 26.2.16, http://people.math.sfu.ca/~cbm/aands/frameindex.htm
+
+   For any y, max absolute error |pnorm(y) - apnorm(y)| <=1.15e-05
+
+   Unbounded relative error pnorm(z)/apnorm(z) as y --> -Inf; For any y>0 relative error in (0.99998,1.0000165)
+*/
+double apnorm(double y, bool logscale) {
+  double ans, a1= 0.4361836, a2= -0.1201676, a3= 0.9372980, p= 0.33267, t, t2;
+
+  if (y>=0) { //val= 1-dnorm(y)*(a1*t + a2*t^2 + a3*t^3)
+    t = 1/(1+p*y); t2= t*t;
+    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t2*t);
+    if (logscale) { ans= log(1 - exp(ans)); } else { ans= 1 - exp(ans); }
+  } else {    //val= dnorm(y)*(a1*t + a2*t^2 + a3*t^3)
+    t = 1/(1+p*(-y)); t2= t*t;
+    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t2*t);
+    if (!logscale) ans= exp(ans);
+  }
+  return ans;
+}
+
+/* Normal cdf. Combine Abrawomitz-Stegun's approx 26.2.16 for abs(x) < 5.874097 and asymptotic expansion 26.2.12 for abs(x)>= 5.874097
+
+   For any y, max absolute error |pnorm(y) - apnorm(y)| <=1.15e-05
+
+   For y<0 relative error pnorm(z)/apnorm(z) in (0.973232,1.0000165); For any y>0 relative error in (0.99998,1.0000165)
+*/
+double apnorm2(double y, bool logscale) {
+  double ans;
+  if (abs(y) < 5.874097) {
+    ans= apnorm(y,logscale);
+  } else {
+    if (y>=0) {
+      ans= dnormC(y,1) - log(y);
+      if (logscale) { ans= log(1-exp(ans)); } else { ans= 1-exp(ans); }
+    } else {
+      ans= dnormC(y,1) - log(-y);
+      if (!logscale) ans= exp(ans);
+    }
+  }
+  return ans;
+}
+
 
 
 /*

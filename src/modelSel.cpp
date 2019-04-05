@@ -1616,11 +1616,14 @@ double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) { return 0
 
 //nsel ~ Binom(p,prDeltap)
 double binomPrior(int *sel, int *nsel, struct marginalPars *pars) {
-  int ngroups0, ngroups1;
+  int ngroups0, ngroups1, n_notconstr;
   double ans;
   nselConstraints(&ngroups0, &ngroups1, sel, nsel, (*pars).groups, (*pars).nconstraints, (*pars).nvaringroup);
-  ans = dbinomial(ngroups0,*(*pars).ngroups - *(*pars).ngroupsconstr,*(*pars).prDeltap,1);
-  if ((*(*pars).ngroupsconstr) >0) ans += dbinomial(ngroups1,*(*pars).ngroupsconstr,*(*pars).prConstrp,1);
+  n_notconstr= *(*pars).ngroups - *(*pars).ngroupsconstr;
+  ans = dbinomial(ngroups0, n_notconstr, *(*pars).prDeltap, 1) - lnchoose((double) n_notconstr, (double) ngroups0);
+  if ((*(*pars).ngroupsconstr) >0) {
+    ans += dbinomial(ngroups1,*(*pars).ngroupsconstr,*(*pars).prConstrp,1) - lnchoose((double) (*(*pars).ngroupsconstr), (double) ngroups1);
+  }
   return ans;
   //return dbinomial(*nsel,*(*pars).p,*(*pars).prDeltap,1);
 }

@@ -1,4 +1,5 @@
 CHANGES IN VERSION 2.2.0
+- Fixed bug in modelSelection when computing Binomial model prior probabilities
 - Added Normal Accelerated Failure Time models
 - Added coef method to extract BMA estimates and intervals from msfit objects
 - Added predict method to extract BMA predictions and intervals from msfit objects

@@ -35,7 +35,8 @@ maxenum=10, verbose=TRUE)
 }
 \arguments{
 \item{y}{Either a formula with the regression equation or a vector with
-  observed responses. If \code{y} is a formula arguments \code{x},
+  observed responses. The response can be either continuous or of class
+  \code{Surv} (survival outcome). If \code{y} is a formula then \code{x},
   \code{groups} and \code{constraints} are automatically created}
 \item{x}{Design matrix with linear covariates for which we want to
   assess if they have a linear effect on the response. Ignored if
@@ -242,9 +243,11 @@ priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 #Model selection
 fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
 priorCoef=priorCoef, priorDelta=priorDelta)
-fit1$margpp
-postProb(fit1)
+postProb(fit1) #posterior model probabilities
 
+fit1$margpp #posterior marginal inclusion prob
+
+coef(fit1) #BMA estimates, 95% intervals, marginal post prob
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

@@ -38,23 +38,21 @@
 \maketitle
 
 The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
-for regression (linear, asymmetric linear, median and quantile regression)
-and mixture models.
+for regression (linear, asymmetric linear, median and quantile regression) and mixture models.
 This is the main package implementing {\it non-local prior} (NLP) distributions
-(briefly reviewed here, see \cite{johnson:2010,johnson:2012} for a more detailed treatment),
-although other priors are also implemented (e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures).
+but some other priors are also implemented (e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures).
+NLPs are briefly reviewed here, see \cite{johnson:2010,johnson:2012} for their model selection properties
+and \cite{rossell:2017} for parameter estimation and posterior sampling.
+
 The main features are:
 
 \begin{itemize}
 \item Density, cumulative density, quantiles and random numbers for NLPs
 
-\item BMS in linear regression
-(Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012}).
+\item BMS (Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012}).
+and BMA (Section \ref{sec:bma}, \cite{rossell:2017}) in linear regression.
 
-\item BMA in linear regression
-(Section \ref{sec:bma}, \cite{rossell:2017}).
-
-\item Exact BMS and BMA under orthogonal and block-diagonal regression
+\item Exact BMS and BMA under orthogonal and block-diagonal linear regression
 (Section \ref{sec:block_diag}, \cite{papaspiliopoulos:2016}).
 
 \item BMS and BMA for certain generalized linear models (Section \ref{sec:bfglm}, \cite{johnson:2012,rossell:2013b})
@@ -62,13 +60,58 @@ The main features are:
 \item BMS in linear regression with non-normal residuals \citep{rossell:2017b}. Particular cases are Bayesian versions
   of asymmetric least squares, median and quantile regression.
 
-\item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures), see \cite{fuquene:2018}.
+\item BMS for Accelerated Failure Time models.
+
+\item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures) \citep{fuquene:2018}.
 \end{itemize}
 
 This manual introduces some basic notions underlying NLPs
 and illustrates the use of R functions implementing the main operations required for model selection and averaging.
 Most of these are internally implemented in C++ so, while they are not optimal in any sense
 they are designed to be minimally scalable to large sample sizes $n$ and high dimensions (large $p$).
+
+
+
+\section{Quick start}
+\label{sec:quickstart}
+
+
+The main function of interest for many users is \texttt{modelSelection} performing BMS and BMA (the latter for some selected models, mainly linear regression and Normal mixture models).
+Details are in subsequent sections, here we illustrate quickly how to get posterior model probabilities,
+marginal posterior inclusion probabilities,
+BMA point estimates and posterior intervals for the regression coefficients and predicted outcomes.
+
+
+\footnotesize
+<<quickstart>>=
+library(mombf)
+set.seed(1234)
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x %*% theta + rnorm(100)
+
+#Default MOM prior on parameters
+priorCoef <- momprior(tau=0.348)
+
+#Beta-Binomial prior for model space
+priorDelta <- modelbbprior(1,1)
+
+#Model selection
+fit1 <- modelSelection(y ~ x[,1]+x[,2]+x[,3], priorCoef=priorCoef, priorDelta=priorDelta)
+
+#Posterior model probabilities
+postProb(fit1)
+
+#BMA estimates, 95% intervals, marginal post prob
+coef(fit1)
+
+#BMA predictions for y, 95% intervals
+ypred= predict(fit1)
+head(ypred)
+cor(y, ypred[,1])
+@
+\normalsize
+
 
 
 \section{Basics on non-local priors}
@@ -289,7 +332,6 @@ Prior densities can be evaluated and plotted as shown below.
 \footnotesize
 \setkeys{Gin}{width=0.5\textwidth}
 <<label=priorplota,include=FALSE>>=
- library(mombf)
  thseq <- seq(-3,3,length=1000)
  plot(thseq,dnorm(thseq),type='l',ylab='Prior density')
  lines(thseq,dt(thseq,df=1),lty=2,col=2)

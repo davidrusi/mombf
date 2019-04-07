@@ -5,8 +5,6 @@
 setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfit='msfit'), function(y, x, m, V,msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if (msfit$family != 'normal') stop("Posterior sampling only implemented for Normal residuals")
   y= msfit$ystd; x= msfit$xstd
-  #if (is.matrix(y)) y= as.vector(y)
-  #if (!(class(y) %in% c('numeric','Surv'))) stop("y must be of class 'numeric' or 'Surv'")
   #Draw model
   pp <- postProb(msfit,method=pp)
   modelid <- strsplit(as.character(pp$modelid), split=',')
@@ -21,7 +19,7 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
     for (i in 1:length(modelid)) {
       b <- min(50, ceiling((burnin/niter) * ndraws[i]))
       colsel <- as.numeric(modelid[[i]])
-      ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+      ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=b+idx[i+1]-idx[i], burnin=b)
     }
     if (is.null(colnames(x))) nn <- c(paste('beta',1:ncol(x),sep=''),'phi') else nn <- c(colnames(x),'phi')
     colnames(ans)= nn
@@ -31,7 +29,7 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
       b <- min(50, ceiling((burnin/niter) * ndraws[i]))
       colsel <- as.numeric(modelid[[i]])
       if (length(colsel)>0) {
-        ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=ndraws[i]+b, burnin=b)
+        ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], priorCoef=priorCoef, priorVar=priorVar, niter=b+idx[i+1]-idx[i], burnin=b)
       }
     }
     if (is.null(colnames(x))) nn <- paste('beta',1:ncol(x),sep='') else nn <- colnames(x)
@@ -43,14 +41,17 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
   ct= (sx==0)
   b= ans[,1:ncol(x)]
   b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
-  ans[,1:ncol(x)]= b
-  if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
+  #ans[,1:ncol(x)]= b
   if (any(ct)) {
-      ans[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+      b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+      ans[,1:ncol(x)]= b
+      #ans[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
   } else {
       intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
-      ans= cbind(intercept,ans); colnames(ans)= c('intercept',nn)
+      ans= cbind(intercept,b,ans[,-1:-ncol(x)]); colnames(ans)= c('intercept',nn)
+      #ans[,1:ncol(x)]= b; ans= cbind(intercept,ans); colnames(ans)= c('intercept',nn)
   }
+  if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
   return(ans)
 }
 )

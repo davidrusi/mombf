@@ -69,21 +69,25 @@ coef.msfit <- function(object,...) {
 predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     hasPostSampling(object)
     th= rnlp(msfit=object,niter=10^4)
-    f= object$call$formula
-    if (class(f)=='formula') {
-        alldata= rbind(data,newdata)
-        alldata[,as.character(f)[2]]= 0  #ensure there's no NAs in the response, so createDesign doesn't drop those rows from newdata
-        nn= rownames(alldata)[(nrow(data)+1):(nrow(data)+nrow(newdata))]
-        if (is.null(object$call$smoothterms)) {
-            des= createDesign(f, data=alldata)
-        } else {
-            des= createDesign(f, data=alldata, smoothterms=object$call$smoothterms, splineDegree=object$call$splineDegree, nknots=object$call$nknots)
-        }
-        newdata= des$x[nn,,drop=FALSE]
-    }
     mx= object$stdconstants[-1,'shift']; sx= object$stdconstants[-1,'scale']
-    ct= (sx==0)
-    newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
+    if (!missing(newdata)) {
+        f= object$call$formula
+        if (class(f)=='formula') {
+            alldata= rbind(data,newdata)
+            alldata[,as.character(f)[2]]= 0  #ensure there's no NAs in the response, so createDesign doesn't drop those rows from newdata
+            nn= rownames(alldata)[(nrow(data)+1):(nrow(data)+nrow(newdata))]
+            if (is.null(object$call$smoothterms)) {
+                des= createDesign(f, data=alldata)
+            } else {
+                des= createDesign(f, data=alldata, smoothterms=object$call$smoothterms, splineDegree=object$call$splineDegree, nknots=object$call$nknots)
+            }
+            newdata= des$x[nn,,drop=FALSE]
+        }
+        ct= (sx==0)
+        newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
+    } else {
+        newdata= t(t(object$xstd) * sx + mx)
+    }
     sel= colnames(th) %in% colnames(newdata)
     ypred= th[,sel] %*% t(newdata)
     ans= cbind(mean=colMeans(ypred), t(apply(ypred,2,quantile,probs=c((1-level)/2,1-(1-level)/2))))

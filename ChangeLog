@@ -1,3 +1,7 @@
+CHANGES IN VERSION 2.2.1
+- Fixed bug in coef and predict methods for msfit objects
+- Fixed compiler warnings in Windows
+
 CHANGES IN VERSION 2.2.0
 - Fixed bug in modelSelection when computing Binomial model prior probabilities
 - Added Normal Accelerated Failure Time models

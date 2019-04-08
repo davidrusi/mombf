@@ -141,21 +141,24 @@ return(ans)
 
 defaultmom= function(outcometype=outcometype,family=family) {
     if (outcometype=='Continuous') {
-        cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348)\n")
-        ans= momprior(tau=0.348)
+        cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348), priorVar=igprior(.01,.01)\n")
+        priorCoef= momprior(tau=0.348)
+        priorVar= igprior(alpha=.01,lambda=.01)
     } else if (outcometype=='Survival') {
-        cat("Using default prior for survival outcomes priorCoef=momprior(tau=0.192)\n")
-        ans= momprior(tau=0.192)
+        cat("Using default prior for Normal AFT survival outcomes priorCoef=momprior(tau=0.192), priorVar=igprior(3,3)\n")
+        priorCoef= momprior(tau=0.192)
+        priorVar= igprior(alpha=3,lambda=3)
     } else {
       stop("There is not default priorCoef for this outcome type")
     }
+    ans= list(priorCoef=priorCoef, priorVar=priorVar)
     return(ans)
 }
 
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(alpha=.01,lambda=.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -228,7 +231,10 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
 
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
-  if (missing(priorCoef)) priorCoef= defaultmom(outcometype=outcometype,family=family)
+  if (missing(priorCoef)) {
+      defaultprior= defaultmom(outcometype=outcometype,family=family)
+      priorCoef= defaultprior$priorCoef; priorVar= defaultprior$priorVar
+  }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups

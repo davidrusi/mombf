@@ -38,18 +38,17 @@
 \maketitle
 
 The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
-for regression (linear, asymmetric linear, median and quantile regression) and mixture models.
-This is the main package implementing {\it non-local prior} (NLP) distributions
-but some other priors are also implemented (e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures).
+for regression (linear, asymmetric linear, median and quantile regression, accelerated failure times) and mixture models.
+This is the main package implementing {\it non-local priors} (NLP)
+but some other priors are also implemented, e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures.
 NLPs are briefly reviewed here, see \cite{johnson:2010,johnson:2012} for their model selection properties
 and \cite{rossell:2017} for parameter estimation and posterior sampling.
-
-The main features are:
+The main \texttt{mombf} features are:
 
 \begin{itemize}
 \item Density, cumulative density, quantiles and random numbers for NLPs
 
-\item BMS (Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012}).
+\item BMS (Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012})
 and BMA (Section \ref{sec:bma}, \cite{rossell:2017}) in linear regression.
 
 \item Exact BMS and BMA under orthogonal and block-diagonal linear regression
@@ -57,7 +56,7 @@ and BMA (Section \ref{sec:bma}, \cite{rossell:2017}) in linear regression.
 
 \item BMS and BMA for certain generalized linear models (Section \ref{sec:bfglm}, \cite{johnson:2012,rossell:2013b})
 
-\item BMS in linear regression with non-normal residuals \citep{rossell:2017b}. Particular cases are Bayesian versions
+\item BMS in linear regression with non-normal residuals \citep{rossell:2018b}. Particular cases are Bayesian versions
   of asymmetric least squares, median and quantile regression.
 
 \item BMS for Accelerated Failure Time models.
@@ -65,8 +64,8 @@ and BMA (Section \ref{sec:bma}, \cite{rossell:2017}) in linear regression.
 \item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures) \citep{fuquene:2018}.
 \end{itemize}
 
-This manual introduces some basic notions underlying NLPs
-and illustrates the use of R functions implementing the main operations required for model selection and averaging.
+This manual introduces basic notions underlying NLPs
+and the main R functions implementing model selection and averaging.
 Most of these are internally implemented in C++ so, while they are not optimal in any sense
 they are designed to be minimally scalable to large sample sizes $n$ and high dimensions (large $p$).
 
@@ -76,7 +75,7 @@ they are designed to be minimally scalable to large sample sizes $n$ and high di
 \label{sec:quickstart}
 
 
-The main function of interest for many users is \texttt{modelSelection} performing BMS and BMA (the latter for some selected models, mainly linear regression and Normal mixture models).
+The main BMS function is \texttt{modelSelection}. BMA is also available for some models, mainly linear regression and Normal mixtures.
 Details are in subsequent sections, here we illustrate quickly how to get posterior model probabilities,
 marginal posterior inclusion probabilities,
 BMA point estimates and posterior intervals for the regression coefficients and predicted outcomes.
@@ -317,16 +316,35 @@ although in our experience this is often not an issue unless $n$ is extremely sm
 The priors above can be extended to include nuisance regression parameters that are common to all models,
 and also to consider higher powers $q(\theta)^r$ for some $r>1$, but for simplicity we restrict attention to \eqref{eq:additive_nlps}.
 
-We now briefly discuss how to set the prior dispersion $\tau$ and propose default values,
-though we encourage everyone to think which values are more appropriate for the current problem at hand.
-By default we set $\tau$ so that $P(|\theta/\sqrt{\phi}|>0.2)=0.99$,
+\texttt{modelSelection} automatically sets default prior distributions that from our experience are sensible in most applications.
+If you are happy with these defaults are not interested in how they were obtained you can skip to the next section.
+Of course, we encourage you to think what prior settings are appropriate for your problem at hand.
+In linear regression by default we set $\tau$ so that $P(|\theta/\sqrt{\phi}|>0.2)=0.99$,
 that is the signal-to-noise ratio $|\theta_j|/\sqrt{\phi}$ is a priori expected to be $>0.2$.
 The reason for choosing the 0.2 threshold is that in many applications smaller signals are not practically relevant
 (e.g. the implied contribution to the $R^2$ coefficient is small).
-The function \texttt{priorp2g} facilitates finding $\tau$ for any given threshold.
+Function \texttt{priorp2g} finds $\tau$ for any given threshold.
 Other useful functions are \texttt{pmom}, \texttt{pemom} and \texttt{pimom} for distribution functions,
 and \texttt{qmom}, \texttt{qemom} and \texttt{qimom} for quantiles.
-Prior densities can be evaluated and plotted as shown below.
+For instance, under a MOM prior $\tau=0.348$ gives $P(|\theta/\sqrt{\phi}|>0.2)=0.99$,
+
+<<priorp2g>>=
+priorp2g(.01, q=.2, prior='normalMom')
+2*pmom(-.2, tau=0.3483356)
+@
+
+For Accelerated Failure Time models $e^{\theta_j}$ is the increase in median survival time for a unit standard deviation increase in $x_j$ (for continuous variables) or between two categories (for discrete variables). A small change, say $<15\%$ (i.e. $\exp(|\theta_j|)<1.15$), is often viewed as practically irrelevant. By default we set $\tau$ such that
+\begin{eqnarray}
+  P( \vert \beta_j \vert > \log(1.15) ) = 0.99.
+  \label{eq:prior_g}
+\end{eqnarray}
+The probability in \eqref{eq:prior_g} is under the marginal priors $\pi_M(\theta_j)$, $\pi_E(\theta_j)$ and $\pi_I(\theta_j)$
+which depend on $\tau$ and on $(a_\phi,b_\phi)$.
+By default we set $a_\phi=b_\phi=3$, as then the tails of $\pi_M(\theta_j)$ and $\pi_E(\theta_j)$ are proportional to a t distribution with 3degrees of freedom and the marginal prior variance is finite.
+This gives $\tau=0.192$ for $\pi_M$ and $g_E=0.091$ for $\pi_E$.
+
+
+Prior densities can be evaluated as shown below.
 
 
 \footnotesize
@@ -367,20 +385,21 @@ Left: local priors. Right: non-local priors}
 Another way to elicit $\tau$ is to mimic the Unit Information Prior and set the prior variance to 1,
 for the MOM prior this leads to the same $\tau$ as the earlier rule $P(|\theta/\sqrt{\phi}|>0.2)=0.99$.
 
-Another helpful function for prior elicitation of $\tau$ is \texttt{mode2g},
-which returns the $\tau$ value associated to a given prior mode $m=\arg\max_{|\theta|} p(|\theta|)$, for instance $m=0.4$ in our example below.
-The intuition is that NLPs place most of the prior mass on $|\theta|>m$,
-which implicitly means we have little interest in detecting $|\theta|<m$.
 
-\footnotesize
-<<priortau>>=
-prior.mode <- .4^2
-taumom <- mode2g(prior.mode,prior='normalMom')
-tauimom <- mode2g(prior.mode,prior='iMom')
-taumom
-tauimom
-@
-\normalsize
+%Another helpful function for prior elicitation of $\tau$ is \texttt{mode2g},
+%which returns the $\tau$ value associated to a given prior mode $m=\arg\max_{|\theta|} p(|\theta|)$, for instance $m=0.4$ in our example below.
+%The intuition is that NLPs place most of the prior mass on $|\theta|>m$,
+%which implicitly means we have little interest in detecting $|\theta|<m$.
+%
+%\footnotesize
+%<<priortau>>=
+%prior.mode <- .4^2
+%taumom <- mode2g(prior.mode,prior='normalMom')
+%tauimom <- mode2g(prior.mode,prior='iMom')
+%taumom
+%tauimom
+%@
+%\normalsize
 
 
 \subsection{Mixture models}
@@ -492,7 +511,7 @@ y <- x %*% theta + rnorm(100)
 
 To start with we assume Normal residuals (the default).
 We need to specify the prior distribution for the regression coefficients, the model space and the residual variance.
-We specify a product iMOM prior on the coefficients with prior dispersion \texttt{tau=.131},
+We specify a product iMOM prior on the coefficients with prior dispersion \texttt{tau=.133},
 which targets the detection of standardized effect sizes above 0.2.
 Regarding the model space we use a Beta-binomial(1,1) prior \citep{scott:2010}.
 Finally, for the residual variance we set a minimally informative inverse gamma prior.
@@ -504,7 +523,7 @@ and \texttt{modelunifprior}, \texttt{modelcomplexprior} set uniform and complexi
 
 \footnotesize
 <<varsel2>>=
-priorCoef <- imomprior(tau=.131)
+priorCoef <- imomprior(tau=.133)
 priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
 priorVar <- igprior(.01,.01)
 @
@@ -584,10 +603,10 @@ which intuitively means we are interested in finding significant departures from
 
 \footnotesize
 <<varsel5>>=
-priorCoef <- imomprior(tau=.131)
+priorCoef <- imomprior(tau=.133)
 fit4 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
 priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
-priorSkew=imomprior(tau=.131),family='auto')
+priorSkew=imomprior(tau=.133),family='auto')
 head(postProb(fit4))
 @
 \normalsize
@@ -619,9 +638,9 @@ here we compare adaptive quadrature with a Monte Carlo estimate.
 
 \footnotesize
 <<three>>=
-mombf(lm1,coef=2,g=taumom)
-imombf(lm1,coef=2,g=tauimom,method='adapt')
-imombf(lm1,coef=2,g=tauimom,method='MC',B=10^5)
+mombf(lm1,coef=2,g=0.348)
+imombf(lm1,coef=2,g=.133,method='adapt')
+imombf(lm1,coef=2,g=.133,method='MC',B=10^5)
 @
 \normalsize
 

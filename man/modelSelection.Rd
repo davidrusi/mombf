@@ -23,7 +23,7 @@ maxvars, niter=10^4, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef,
 priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints=priorDelta,
-priorVar=igprior(alpha=.01,lambda=.01),
+priorVar=igprior(.01,.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
 B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
@@ -96,9 +96,9 @@ not performed for these variables}
   or \code{modelunifprior()} for Uniform prior}
 \item{priorConstraints}{Prior distribution on the number of terms
   subject to hierarchical constrains that are included in the model}
-\item{priorVar}{Inverse gamma prior on scale parameter, created by
-  \code{igprior(). For Normal variance=scale, for Laplace
-    variance=2*scale.}}
+\item{priorVar}{Inverse gamma prior on scale parameter.
+  For Normal outcomes variance=scale, for Laplace outcomes
+  variance=2*scale}
 \item{priorSkew}{Either a fixed value for tanh(alpha) where alpha is
   the asymmetry parameter or a prior on tanh(alpha).
   For \code{family=='twopiecelaplace'} setting alpha=a is equivalent

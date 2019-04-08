@@ -30,7 +30,7 @@
   eMOM(x;tau*phi)*Invgamma(phi;a/2,b/2)
 }
 \usage{
-dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3, 
+dmom(x, tau, a.tau, b.tau, phi=1, r=1, V1, baseDensity='normal', nu=3,
 logscale=FALSE, penalty='product')
 dimom(x, tau=1, phi=1, V1, logscale=FALSE, penalty='product')
 demom(x, tau, a.tau, b.tau, phi=1, logscale=FALSE)
@@ -91,7 +91,7 @@ pemomigmarg(x,tau,a,b)
    q(theta)*dmvt(theta,theta0,tau*phi*V1,df=nu).
    The inverse moment prior density is proportional to
    \code{q(theta)^(-(nu+d)/2) * exp(-1/q(theta))}.
-   
+
    pmom, pimom and qimom use closed-form expressions, while qmom uses
    nlminb to find quantiles numerically.
    Only the univariate version is implemented. In this case the product
@@ -99,10 +99,10 @@ pemomigmarg(x,tau,a,b)
    iMOM.
 
    \code{dmomigmarg} returns the marginal density
-   
+
    p(x)= int MOM(x;0,tau*phi) IG(phi;a/2,b/2) dphi
 
-   
+
 }
 \value{
   Prior density, cumulative distribution function or quantile.
@@ -111,17 +111,14 @@ pemomigmarg(x,tau,a,b)
     Johnson V.E., Rossell D. Non-Local Prior Densities for Default
   Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B,
   2010, 72, 143-170.
-  
+
   Johnson V.E., Rossell D. Bayesian model selection in high-dimensional
   settings. Journal of the American Statistical Assocation, 2012, 107,
   649-660
-  
+
 See http://rosselldavid.googlepages.com for technical
   reports. }
 \author{ David Rossell }
-\seealso{ \code{\link{g2mode}} to find the
-  prior mode corresponding to a given \code{g}. \code{\link{mode2g}}
-  to find the g value corresponding to a given prior mode.}
 \examples{
 #evaluate and plot the moment and inverse moment priors
 library(mombf)

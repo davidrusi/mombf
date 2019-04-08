@@ -24,12 +24,12 @@ nquant=100, B = 10^5)
 \arguments{
   \item{lm1}{ Linear model fit, as returned by \code{lm1}. }
   \item{coef}{ Vector with indexes of coefficients to be
-    tested. e.g. \code{coef==c(2,3)} 
+    tested. e.g. \code{coef==c(2,3)}
     and \code{theta0==c(0,0)} tests \code{coef(lm1)[2]=coef(lm1)[3]=0}. }
   \item{g}{ Vector with prior parameter values. See \code{dmom} and
     \code{dimom} for details. }
-  \item{prior.mode}{ If specified, \code{g} is determined by calling
-    \code{g2mode}. }
+  \item{prior.mode}{ If specified, \code{g} is set such that the prior
+    mode is \code{prior.mode} }
   \item{baseDensity}{Density upon which the Mom prior is
     based. \code{baseDensity=='normal'} results in the normal Mom prior,
   \code{baseDensity=='t'} in the t Mom prior with \code{nu} degrees of freedom.}

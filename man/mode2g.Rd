@@ -1,4 +1,5 @@
 \name{priorp2g}
+\alias{priorp2g}
 \title{ Moment and inverse moment prior elicitation }
 \description{
   \code{priorp2g} finds the \code{g} value giving \code{priorp} prior

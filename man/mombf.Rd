@@ -81,24 +81,17 @@ Using Mixtures of Conditional Densities. Journal of the American Statistical Ass
   \code{\link{imomunknown}} and \code{\link{zbfunknown}} for another interface to compute Bayes
 factors. \code{\link{momknown}}, \code{\link{imomknown}} and \code{\link{zbfknown}}
 to compute Bayes factors assuming that the dispersion parameter
-is known, and for approximate Bayes factors for
-GLMs. \code{\link{mode2g}} for prior elicitation.  }
+is known, and for approximate Bayes factors for GLMs  }
 \examples{
 ##compute Bayes factor for Hald's data
 data(hald)
 lm1 <- lm(hald[,1] ~ hald[,2] + hald[,3] + hald[,4] + hald[,5])
 
-# Set g so that prior mode for standardized effect size is at 0.2
-prior.mode <- .2^2
-V <- summary(lm1)$cov.unscaled
-gmom <- mode2g(prior.mode,prior='normalMom')
-gimom <- mode2g(prior.mode,prior='iMom')
-
 # Set g so that interval (-0.2,0.2) has 5\% prior probability
 # (in standardized effect size scale)
 priorp <- .05; q <- .2
-gmom <- c(gmom,priorp2g(priorp=priorp,q=q,prior='normalMom'))
-gimom <- c(gmom,priorp2g(priorp=priorp,q=q,prior='iMom'))
+gmom <- priorp2g(priorp=priorp,q=q,prior='normalMom')
+gimom <- priorp2g(priorp=priorp,q=q,prior='iMom')
 
 mombf(lm1,coef=2,g=gmom) #moment BF
 imombf(lm1,coef=2,g=gimom,B=10^5) #inverse moment BF

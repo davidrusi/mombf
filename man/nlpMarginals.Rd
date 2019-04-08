@@ -103,8 +103,7 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 \seealso{ \code{\link{modelSelection}} to perform model selection based
   on product non-local priors.
   \code{\link{momunknown}}, \code{\link{imomunknown}}, \code{\link{momknown}}, \code{\link{imomknown}}
-  to compute Bayes factors for additive MOM and iMOM priors.
-  \code{\link{mode2g}} for prior elicitation.  }
+  to compute Bayes factors for additive MOM and iMOM priors }
 \examples{
 x <- matrix(rnorm(100*2),ncol=2)
 y <- x \%*\% matrix(c(.5,1),ncol=1) + rnorm(nrow(x))

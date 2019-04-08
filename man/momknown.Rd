@@ -60,7 +60,7 @@ FALSE)
   \item{nquant}{ Number of quantiles at which to evaluate the integral
     for known \code{sigma}. }
   \item{B}{Number of Monte Carlo samples to estimate the inverse moment
-    Bayes factor. Ignored if \code{method!='MC'}.}  
+    Bayes factor. Ignored if \code{method!='MC'}.}
 }
 \details{
   See \code{dmom} and \code{dimom} for details on the moment and inverse
@@ -78,13 +78,13 @@ inverse moment Bayes factors.
 }
 \references{ See http://rosselldavid.googlepages.com for technical
   reports.
-  
+
 For details on the quantile integration, see Johnson, V.E. A Technique for Estimating Marginal Posterior Densities in Hierarchical Models
 Using Mixtures of Conditional Densities. Journal of the American Statistical Association, Vol. 87, No. 419. (Sep., 1992), pp. 852-860.}
 \author{ David Rossell }
 \seealso{ \code{\link{mombf}} and
   \code{\link{imombf}} for a simpler interface to compute Bayes
-factors in linear regression. \code{\link{mode2g}} for prior elicitation. }
+factors in linear regression }
 \examples{
 #simulate data from probit regression
 set.seed(4*2*2008)

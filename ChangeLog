@@ -1,3 +1,7 @@
+CHANGES IN VERSION 2.2.2
+- Improved speed of modelSelection for AFT models (improved Mill's ratio
+evaluation)
+
 CHANGES IN VERSION 2.2.1
 - Fixed bug in coef and predict methods for msfit objects
 - Fixed compiler warnings in Windows

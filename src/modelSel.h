@@ -279,7 +279,7 @@ void negloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct mar
 void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void loglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-double infopropAFT(double z);
+//double infopropAFT(double z);
 
 
 // Computation of marginal likelihoods

@@ -2018,7 +2018,7 @@ void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, doub
 void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, idxj, nuncens, n= *((*pars).n);
-  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, ytres, *sumy2obs, sumy2D;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, ytres, *sumy2obs, sumy2D, r;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
@@ -2031,8 +2031,10 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
     for (i=0; i< nuncens; i++) (*grad) -= res[i] * x[idxj +i]; //Uncensored observations
     (*hess)= ((*pars).XtXuncens)->at(sel[j],sel[j]);
     for (i=nuncens; i< n; i++) { //Censored observations
-      (*grad) -= invmillsnorm(-res[i]) * x[idxj +i];
-      (*hess) += x[i + idxj] * x[i + idxj] * infopropAFT(res[i]);
+      r= invmillsnorm(-res[i]);
+      (*grad) -= r * x[idxj +i];
+      (*hess) += x[i + idxj] * x[i + idxj] * r*(r-res[i]);
+      //(*grad) -= invmillsnorm(-res[i]) * x[idxj +i]; (*hess) += x[i + idxj] * x[i + idxj] * infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
     }
 
   } else { //updating rho= log(residual precision)
@@ -2040,8 +2042,10 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
     exprho= exp(rho); ytres= sumy2D= 0;
     for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
     for (i=nuncens; i< n; i++) {                       //Censored observations
-      ytres += invmillsnorm(-res[i]) * y[i];
-      sumy2D += y[i]*y[i]*infopropAFT(res[i]);
+      r= invmillsnorm(-res[i]);
+      ytres += r * y[i];
+      sumy2D += y[i]*y[i] * r*(r-res[i]);
+      //ytres += invmillsnorm(-res[i]) * y[i]; sumy2D += y[i]*y[i]*infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
     }
     (*grad)= -(*(*funargs)["nuncens"]) + exprho * ytres;
     (*hess)= exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
@@ -2056,7 +2060,7 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
 void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, l, idxj, idxl, nuncens, n= *((*pars).n), nvars= *thlength -1;
-  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *ytXuncens= (*pars).ytXuncens, *res, ytres, *sumy2obs, *D, sumD=0, sumy2D=0, xyD;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *ytXuncens= (*pars).ytXuncens, *res, ytres, *sumy2obs, *D, sumD=0, sumy2D=0, xyD, r;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
@@ -2067,8 +2071,10 @@ void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, st
   exprho= exp(rho); ytres= 0;
   for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
   for (i=nuncens; i< n; i++) { //Censored observations
-    ytres += invmillsnorm(-res[i]) * y[i];
-    D[i-nuncens]= infopropAFT(res[i]);
+    r= invmillsnorm(-res[i]);
+    ytres += r * y[i];
+    D[i-nuncens]= r * (r-res[i]);
+    //ytres += invmillsnorm(-res[i]) * y[i]; D[i-nuncens]= infopropAFT(res[i]); //Old version, slower as it required evaluating invmillsnorm twice
     sumD += D[i-nuncens];
     sumy2D += y[i]*y[i]*D[i-nuncens];
   }
@@ -2097,12 +2103,14 @@ void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, st
 
 
 //Proportion of information in the AFT model contained in an observation censored z standard deviations after the mean
+/*
 double infopropAFT(double z) {
   double ans;
   ans= dnormC(z,0) / (1.0 - pnormC(z));
   ans= ans * (ans - z);
   return ans;
 }
+*/
 
 // pMOM on individual coef, group MOM on groups
 double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {

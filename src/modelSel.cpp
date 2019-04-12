@@ -1954,23 +1954,26 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 //Negative log-likelihood for AFT model with Normal errors
 void negloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) {
   int i, nuncens, n= *((*pars).n), nvars= *thlength -1;
-  double rho= th[*thlength -1], exprho= exp(rho), *ypred, *y= (*pars).y, sumres2, sumlogPhires, *res;
+  double rho= th[*thlength -1], exprho= exp(rho), *ypred, *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
   (*f)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * rho);
 
   if (*thlength >1) {
     ypred= dvector(0,n);
     Aselvecx((*pars).x, th, ypred, 0, n-1, sel, &nvars); //Returns ypred= x[,sel] %*% th
     for (i=0, sumres2=0; i< nuncens; i++) { res[i]= exprho * y[i] - ypred[i]; sumres2 += res[i]*res[i]; } //Uncensored observations
-    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i] - ypred[i]; sumlogPhires += log(pnormC(- res[i])); } //Censored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i] - ypred[i]; pnormres[i-nuncens]= pnormC(-res[i]); sumlogPhires += log(pnormres[i-nuncens]); } //Censored observations
+    //for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i] - ypred[i]; sumlogPhires += log(pnormC(- res[i])); } //Censored observations
     free_dvector(ypred, 0,n);
 
   } else {
 
     for (i=0, sumres2=0; i< nuncens; i++) { res[i]= exprho * y[i]; sumres2 += res[i]*res[i]; }     //Uncensored observations
-    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i]; sumlogPhires += log(pnormC(- res[i])); } //Censored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i]; pnormres[i-nuncens]= pnormC(-res[i]); sumlogPhires += log(pnormres[i-nuncens]); } //Censored observations
+    //for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i]; sumlogPhires += log(pnormC(- res[i])); } //Censored observations
 
   }
 
@@ -1982,10 +1985,11 @@ void negloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct mar
 void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
 
   int i, idxj, nuncens, n= *((*pars).n);
-  double rho= th[*thlength -1], *y= (*pars).y, sumres2, sumlogPhires, *res, *x= (*pars).x, thdif, exprhodif;
+  double rho= th[*thlength -1], *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres, *x= (*pars).x, thdif, exprhodif;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
   idxj= *((*pars).n) * sel[j];
 
   if (j < *thlength -1) { //updating a regression coefficient
@@ -1998,7 +2002,9 @@ void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, doub
     }
     for (i=nuncens, sumlogPhires=0; i< n; i++) { //Contribution from censored observations
       res[i] += x[i + idxj] * thdif;
-      sumlogPhires += log(pnormC(- res[i]));
+      pnormres[i-nuncens]= pnormC(-res[i]);
+      sumlogPhires += log(pnormres[i-nuncens]);
+      //sumlogPhires += log(pnormC(- res[i]));
     }
 
   } else { //updating rho= log(residual precision)
@@ -2006,7 +2012,8 @@ void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, doub
     (*fnew)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * (*thjnew));
     exprhodif= exp(*thjnew) - exp(th[*thlength -1]);
     for (i=0, sumres2=0; i< nuncens; i++) { res[i] += y[i] * exprhodif; sumres2 += res[i]*res[i]; } //Uncensored observations
-    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i] += y[i] * exprhodif; sumlogPhires += log(pnormC(- res[i])); }  //Censored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i] += y[i] * exprhodif; pnormres[i-nuncens]= pnormC(-res[i]); sumlogPhires += log(pnormres[i-nuncens]); }  //Censored observations
+    //for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i] += y[i] * exprhodif; sumlogPhires += log(pnormC(- res[i])); }  //Censored observations
 
   }
 
@@ -2018,10 +2025,11 @@ void negloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, doub
 void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, idxj, nuncens, n= *((*pars).n);
-  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, ytres, *sumy2obs, sumy2D, r;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, *pnormres, ytres, *sumy2obs, sumy2D, r;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
   sumy2obs= (*funargs)["sumy2obs"];
   idxj= *((*pars).n) * sel[j];
   (*grad)= (*hess)= 0;
@@ -2031,7 +2039,7 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
     for (i=0; i< nuncens; i++) (*grad) -= res[i] * x[idxj +i]; //Uncensored observations
     (*hess)= ((*pars).XtXuncens)->at(sel[j],sel[j]);
     for (i=nuncens; i< n; i++) { //Censored observations
-      r= invmillsnorm(-res[i]);
+      r= dnormC(-res[i],0) / pnormres[i-nuncens]; //r= invmillsnorm(-res[i]);
       (*grad) -= r * x[idxj +i];
       (*hess) += x[i + idxj] * x[i + idxj] * r*(r-res[i]);
       //(*grad) -= invmillsnorm(-res[i]) * x[idxj +i]; (*hess) += x[i + idxj] * x[i + idxj] * infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
@@ -2042,7 +2050,7 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
     exprho= exp(rho); ytres= sumy2D= 0;
     for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
     for (i=nuncens; i< n; i++) {                       //Censored observations
-      r= invmillsnorm(-res[i]);
+      r= dnormC(-res[i],0) / pnormres[i-nuncens];       //r= invmillsnorm(-res[i]);
       ytres += r * y[i];
       sumy2D += y[i]*y[i] * r*(r-res[i]);
       //ytres += invmillsnorm(-res[i]) * y[i]; sumy2D += y[i]*y[i]*infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
@@ -2060,10 +2068,11 @@ void negloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int
 void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, l, idxj, idxl, nuncens, n= *((*pars).n), nvars= *thlength -1;
-  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *ytXuncens= (*pars).ytXuncens, *res, ytres, *sumy2obs, *D, sumD=0, sumy2D=0, xyD, r;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *ytXuncens= (*pars).ytXuncens, *res, *pnormres, ytres, *sumy2obs, *D, sumD=0, sumy2D=0, xyD, r;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
   sumy2obs= (*funargs)["sumy2obs"];
   D= dvector(0, n-nuncens);
 
@@ -2071,7 +2080,7 @@ void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, st
   exprho= exp(rho); ytres= 0;
   for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
   for (i=nuncens; i< n; i++) { //Censored observations
-    r= invmillsnorm(-res[i]);
+    r= dnormC(-res[i],0) / pnormres[i-nuncens]; //r= invmillsnorm(-res[i]);
     ytres += r * y[i];
     D[i-nuncens]= r * (r-res[i]);
     //ytres += invmillsnorm(-res[i]) * y[i]; D[i-nuncens]= infopropAFT(res[i]); //Old version, slower as it required evaluating invmillsnorm twice
@@ -2177,7 +2186,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 
   std::map<string, double *> funargs;
   int i, nselgroupsint, cholSsize, *uncens;
-  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y, *pnormres;
   modselFunction *msfun;
 
   y= (*pars).y;
@@ -2207,8 +2216,10 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 
   //Initialize dynamic elements in funargs (changed by msfun)
   residuals= dvector(0, *((*pars).n));
+  pnormres= dvector(0, *((*pars).n) - nuncens);
   funargs["residuals"]= residuals;
-
+  funargs["pnormres"]= pnormres;
+  
   //Assign functions to evaluate log-posterior, update log-posterior, gradient and hessians
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
   msfun= new modselFunction(sel, *nsel +1, pars, NULL);
@@ -2282,9 +2293,13 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   //Rprintf("Done Lapl approx\n");
 
   //Free memory
-  free_dvector(thopt, 0, *nsel); free_dvector(thini, 0, *nsel);
+  free_dvector(thopt, 0, *nsel);
+  free_dvector(thini, 0, *nsel);
   free_dvector(residuals, 0, *((*pars).n));
-  free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups))); free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups))); free_dvector(selgroups, 0, *nsel -1);
+  free_dvector(pnormres, 0, *((*pars).n) - nuncens);
+  free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
+  free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups)));
+  free_dvector(selgroups, 0, *nsel -1);
   free_dvector(ldetSinv, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize); free_dvector(Sinv, 0, cholSsize);
   delete msfun;
 

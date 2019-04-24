@@ -2087,6 +2087,179 @@ void negloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, st
 }
 
 
+
+
+//Fast approximation to Negative log-likelihood for AFT model with Normal errors (uses apnorm, ainvmillsnorm in cstat.cpp)
+void anegloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) {
+  int i, nuncens, n= *((*pars).n), nvars= *thlength -1;
+  double rho= th[*thlength -1], exprho= exp(rho), *ypred, *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  (*f)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * rho);
+
+  if (*thlength >1) {
+    ypred= dvector(0,n);
+    Aselvecx((*pars).x, th, ypred, 0, n-1, sel, &nvars); //Returns ypred= x[,sel] %*% th
+    for (i=0, sumres2=0; i< nuncens; i++) { res[i]= exprho * y[i] - ypred[i]; sumres2 += res[i]*res[i]; } //Uncensored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i] - ypred[i]; pnormres[i-nuncens]= apnorm(-res[i],false); sumlogPhires += log(pnormres[i-nuncens]); } //Censored observations
+    free_dvector(ypred, 0,n);
+
+  } else {
+
+    for (i=0, sumres2=0; i< nuncens; i++) { res[i]= exprho * y[i]; sumres2 += res[i]*res[i]; }     //Uncensored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i]= exprho * y[i]; pnormres[i-nuncens]= apnorm(-res[i],false); sumlogPhires += log(pnormres[i-nuncens]); } //Censored observations
+
+  }
+
+  (*f)= (*f) + 0.5 * sumres2 - sumlogPhires;
+
+}
+
+//Fast approximation to Negative log-likelhood for AFT model with Normal errors (uses apnorm, ainvmillsnorm in cstat.cpp)
+void anegloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+
+  int i, idxj, nuncens, n= *((*pars).n);
+  double rho= th[*thlength -1], *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres, *x= (*pars).x, thdif, exprhodif;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  idxj= *((*pars).n) * sel[j];
+
+  if (j < *thlength -1) { //updating a regression coefficient
+
+    (*fnew)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * rho);
+    thdif= th[j] - *thjnew;
+    for (i=0, sumres2=0; i< nuncens; i++) { //Contribution from uncensored observations
+      res[i] += x[i + idxj] * thdif; //Update res[i]= exprho * y[i] - ypred[i];
+      sumres2 += res[i]*res[i];
+    }
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { //Contribution from censored observations
+      res[i] += x[i + idxj] * thdif;
+      pnormres[i-nuncens]= apnorm(-res[i],false);
+      sumlogPhires += log(pnormres[i-nuncens]);
+    }
+
+  } else { //updating rho= log(residual precision)
+
+    (*fnew)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * (*thjnew));
+    exprhodif= exp(*thjnew) - exp(th[*thlength -1]);
+    for (i=0, sumres2=0; i< nuncens; i++) { res[i] += y[i] * exprhodif; sumres2 += res[i]*res[i]; } //Uncensored observations
+    for (i=nuncens, sumlogPhires=0; i< n; i++) { res[i] += y[i] * exprhodif; pnormres[i-nuncens]= apnorm(-res[i],false); sumlogPhires += log(pnormres[i-nuncens]); }  //Censored observations
+
+  }
+
+  (*fnew)= (*fnew) + 0.5 * sumres2 - sumlogPhires;
+
+}
+
+//Fast approximation to Gradient and hessian wrt th[j] of negative log-likelihood for AFT model with Normal errors (uses apnorm, ainvmillsnorm from cstat.cpp)
+void anegloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, idxj, nuncens, n= *((*pars).n);
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, *pnormres, ytres, *sumy2obs, sumy2D, r, m;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  sumy2obs= (*funargs)["sumy2obs"];
+  idxj= *((*pars).n) * sel[j];
+  (*grad)= (*hess)= 0;
+
+  if (j < *thlength -1) { //updating a regression coefficient
+
+    for (i=0; i< nuncens; i++) (*grad) -= res[i] * x[idxj +i]; //Uncensored observations
+    (*hess)= ((*pars).XtXuncens)->at(sel[j],sel[j]);
+    for (i=nuncens; i< n; i++) { //Censored observations
+      //Obtain r= ainvmillsnorm(-res[i]);
+      if (res[i]> 1.756506) {
+	r= (res[i] + 1.0/(res[i]+2.0/(res[i]+3.0/(res[i]+4.0/(res[i]+5.0/(res[i]+11.5/(res[i] + 4.890096)))))));
+      } else {
+	r= dnormC(-res[i],0) / pnormres[i-nuncens];
+      }
+      (*grad) -= r * x[idxj +i];
+      (*hess) += x[i + idxj] * x[i + idxj] * r*(r-res[i]);
+      //(*grad) -= invmillsnorm(-res[i]) * x[idxj +i]; (*hess) += x[i + idxj] * x[i + idxj] * infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
+    }
+
+  } else { //updating rho= log(residual precision)
+
+    exprho= exp(rho); ytres= sumy2D= 0;
+    for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
+    for (i=nuncens; i< n; i++) {                       //Censored observations
+      //Obtain r= ainvmillsnorm(-res[i]);
+      if (res[i]> 1.756506) {
+	r= (res[i] + 1.0/(res[i]+2.0/(res[i]+3.0/(res[i]+4.0/(res[i]+5.0/(res[i]+11.5/(res[i] + 4.890096)))))));
+      } else {
+	r= dnormC(-res[i],0) / pnormres[i-nuncens];
+      }
+      ytres += r * y[i];
+      sumy2D += y[i]*y[i] * r*(r-res[i]);
+      //ytres += invmillsnorm(-res[i]) * y[i]; sumy2D += y[i]*y[i]*infopropAFT(res[i]); //Old version, slower as it requires evaluating invmillsnorm twice
+    }
+    (*grad)= -(*(*funargs)["nuncens"]) + exprho * ytres;
+    (*hess)= exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
+
+  }
+
+}
+
+
+//Fast approx to Full hessian matrix H[1..nsel][1..nsel] of log-likelihood for AFT model with Normal errors (only upper-triangular elements are returned)
+
+void anegloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, j, l, idxj, idxl, nuncens, n= *((*pars).n), nvars= *thlength -1;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *ytXuncens= (*pars).ytXuncens, *res, *pnormres, ytres, *sumy2obs, *D, sumD=0, sumy2D=0, xyD, r;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  sumy2obs= (*funargs)["sumy2obs"];
+  D= dvector(0, n-nuncens);
+
+  //hessian wrt log-residual precision
+  exprho= exp(rho); ytres= 0;
+  for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
+  for (i=nuncens; i< n; i++) { //Censored observations
+    //Obtain r= ainvmillsnorm(-res[i]);
+    if (res[i]> 1.756506) {
+      r= (res[i] + 1.0/(res[i]+2.0/(res[i]+3.0/(res[i]+4.0/(res[i]+5.0/(res[i]+11.5/(res[i] + 4.890096)))))));
+    } else {
+      r= dnormC(-res[i],0) / pnormres[i-nuncens];
+    }
+    ytres += r * y[i];
+    D[i-nuncens]= r * (r-res[i]);
+    //ytres += invmillsnorm(-res[i]) * y[i]; D[i-nuncens]= infopropAFT(res[i]); //Old version, slower as it required evaluating invmillsnorm twice
+    sumD += D[i-nuncens];
+    sumy2D += y[i]*y[i]*D[i-nuncens];
+  }
+  hess[*thlength][*thlength]= exprho * ytres + exprho * exprho * (*sumy2obs + sumy2D);
+
+  //hessian wrt regression coefficients
+  for (j=0; j< nvars; j++) {
+    idxj= n * sel[j];
+    for (l=j; l < nvars; l++) {
+      idxl= n * sel[l];
+      hess[j+1][l+1]= ((*pars).XtXuncens)->at(sel[j],sel[l]);
+      for (i=nuncens; i< n; i++)  hess[j+1][l+1] += x[i + idxj] * x[i + idxl] * D[i - nuncens];
+    }
+  }
+
+  //hessian wrt (log-residual precision, regression coefficients)
+  l= *thlength;
+  for (j=0; j< l-1; j++) {
+    hess[j+1][l]= -exprho * ytXuncens[sel[j]];
+    for (i=nuncens, idxj= n*sel[j], xyD=0; i< n; i++) xyD += x[i + idxj] * y[i] * D[i-nuncens];
+    hess[j+1][l] -= exprho * xyD;
+  }
+
+  free_dvector(D, 0, n-nuncens);
+}
+
+
 //Proportion of information in the AFT model contained in an observation censored z standard deviations after the mean
 /*
 double infopropAFT(double z) {

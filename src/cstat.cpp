@@ -4537,46 +4537,84 @@ double pnormC(double y, double m, double s) {
     return cdf;
 }
 
-/* Normal cdf. Abramowitz and Stegun Approximation, p932, Expression 26.2.16, http://people.math.sfu.ca/~cbm/aands/frameindex.htm
 
-   For any y, max absolute error |pnorm(y) - apnorm(y)| <=1.15e-05
+/* Approximate Normal cdf. 
 
-   Unbounded relative error pnorm(z)/apnorm(z) as y --> -Inf; For any y>0 relative error in (0.99998,1.0000165)
+  Combine Abrawomitz-Stegun's approx 26.2.16 for abs(y) < 3.447088 with 3rd order asymptotic expansion 26.2.12 for abs(y)>= 3.447088
+
+  Max absolute error < 1.153e-05; Max relative error < 0.00623
+
 */
 double apnorm(double y, bool logscale) {
-  double ans, a1= 0.4361836, a2= -0.1201676, a3= 0.9372980, p= 0.33267, t, t2;
+  double ans;
 
-  if (y>=0) { //val= 1-dnorm(y)*(a1*t + a2*t^2 + a3*t^3)
-    t = 1/(1+p*y); t2= t*t;
-    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t2*t);
-    if (logscale) { ans= log(1 - exp(ans)); } else { ans= 1 - exp(ans); }
-  } else {    //val= dnorm(y)*(a1*t + a2*t^2 + a3*t^3)
-    t = 1/(1+p*(-y)); t2= t*t;
+  if (y <= -3.4470887) {
+    
+    double y2= y*y;
+    ans= dnormC(y,1) - log(-y) + log(1.0 - 1.0/y2 + 3.0/(y2*y2));
+    if (!logscale) ans= exp(ans);
+      
+  } else if ((y > -3.4470887) & (y <= 0)) {
+
+    double  a1= 0.4361836, a2= -0.1201676, a3= 0.9372980, p= 0.33267, t= 1.0 / (1.0 + p*(-y)), t2= t*t;
     ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t2*t);
     if (!logscale) ans= exp(ans);
+  
+ } else if ((y > 0) & (y <= 3.4470887)) {
+
+    double  a1= 0.4361836, a2= -0.1201676, a3= 0.9372980, p= 0.33267, t= 1.0 / (1.0 + p*y), t2=t*t;
+    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t2*t);
+    if (logscale) { ans= log(1.0 - exp(ans)); } else { ans= 1.0 - exp(ans); }
+
+  } else {
+    
+    double y2= y*y;
+    ans= dnormC(y,1) - log(y) + log(1.0 - 1.0/y2 + 3.0/(y2*y2));
+    if (logscale) { ans= log(1.0-exp(ans)); } else { ans= 1.0-exp(ans); }
+      
   }
+  
   return ans;
 }
 
-/* Normal cdf. Combine Abrawomitz-Stegun's approx 26.2.16 for abs(x) < 5.874097 and asymptotic expansion 26.2.12 for abs(x)>= 5.874097
 
-   For any y, max absolute error |pnorm(y) - apnorm(y)| <=1.15e-05
+/* Approximate Normal cdf. Higher accuracy & computational cost than apnorm
 
-   For y<0 relative error pnorm(z)/apnorm(z) in (0.973232,1.0000165); For any y>0 relative error in (0.99998,1.0000165)
+  Combine Abrawomitz-Stegun's approx 26.2.17 for abs(z) < 4.056531 with 5th order asymptotic expansion 26.2.12 for For abs(z) > 4.056531
+
+  Reference: Abramowitz & Stegun, p932, http://people.math.sfu.ca/~cbm/aands/frameindex.htm
+
+  Max absolute error <=7.452e-08; Max relative error < 0.00051
 */
 double apnorm2(double y, bool logscale) {
   double ans;
-  if (abs(y) < 5.874097) {
-    ans= apnorm(y,logscale);
+
+  if (y <= -4.056531) {
+    
+    double y2= y*y, y4= y2*y2, y6= y4*y2;
+    ans= dnormC(y,1) - log(-y) + log(1.0 - 1.0/y2 + 3.0/y4 - 15.0/y6 + 105.0/(y6*y2));
+    if (!logscale) ans= exp(ans);
+      
+  } else if ((y > -4.056531) & (y <= 0)) {
+
+    double a1= 0.319381530, a2= -0.356563782, a3= 1.781477937, a4= -1.821255978, a5= 1.330274429, p= 0.2316419, t= 1.0 / (1.0 + p*(-y)), t2= t*t, t3= t2*t, t4=t2*t2;
+    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t3 + a4*t4 + a5*t4*t);
+    if (!logscale) ans= exp(ans);
+  
+ } else if ((y > 0) & (y <= 4.056531)) {
+
+    double a1= 0.319381530, a2= -0.356563782, a3= 1.781477937, a4= -1.821255978, a5= 1.330274429, p= 0.2316419, t= 1.0 / (1.0 + p*y), t2= t*t, t3= t2*t, t4=t2*t2;
+    ans= dnormC(y,1) + log(a1*t + a2*t2 + a3*t3 + a4*t4 + a5*t4*t);
+    if (logscale) { ans= log(1.0 - exp(ans)); } else { ans= 1.0 - exp(ans); }
+
   } else {
-    if (y>=0) {
-      ans= dnormC(y,1) - log(y);
-      if (logscale) { ans= log(1-exp(ans)); } else { ans= 1-exp(ans); }
-    } else {
-      ans= dnormC(y,1) - log(-y);
-      if (!logscale) ans= exp(ans);
-    }
+
+    double y2= y*y, y4= y2*y2, y6= y4*y2;
+    ans= dnormC(y,1) - log(y) + log(1.0 - 1.0/y2 + 3.0/y4 - 15.0/y6 + 105.0/(y6*y2));
+    if (logscale) { ans= log(1.0-exp(ans)); } else { ans= 1.0-exp(ans); }
+      
   }
+  
   return ans;
 }
 
@@ -5612,6 +5650,52 @@ double millsnorm(double z) {
 double invmillsnorm(double z) {
   return dnormC(z,0) / pnormC(z);
 }
+
+
+/* Approximate Inverse Mill's ratio dnorm(z)/pnorm(z)
+
+   For z< -1.756506 use optimized Laplace continuous fraction in Expression (5.3), Chu-In Charles Lee, Annals Inst Statis Math 1992, 44, 107-120
+
+   For z>= -1.756506 use apnorm. This means
+   - For z in (-1.756506, 3.447088) use approx 26.2.16
+   - For z > 3.447088 use 3rd order asymptotic expansion 26.2.12
+
+   Absolute error < 0.000185; Relative error < 0.000102
+*/
+
+double ainvmillsnorm(double z) {
+  
+  double ans;
+  if (z< -1.756506) {
+    ans= (-z + 1.0/(-z+2.0/(-z+3.0/(-z+4.0/(-z+5.0/(-z+11.5/(-z + 4.890096)))))));
+  } else {
+    ans= exp(dnormC(z,1) - apnorm(z,true));
+  }
+  return ans;
+  
+}
+
+
+/* Approximate Inverse Mill's ratio dnorm(z)/pnorm(z). Higher accuracy and cost than ainvmillsnorm
+
+   For z< -2.649083 use optimized Laplace continuous fraction in Expression (5.3), Chu-In Charles Lee, Annals Inst Statis Math 1992, 44, 107-120
+
+   For z>= -2.649083 use apnorm2
+
+   Absolute error < 0.000185, Relative error < 0.0000308
+*/
+
+double ainvmillsnorm2(double z) {
+  double ans;
+  if (z< -2.649083) {
+    ans= (-z + 1.0/(-z+2.0/(-z+3.0/(-z+4.0/(-z+5.0/(-z+11.5/(-z + 4.890096)))))));
+  } else {
+    ans= exp(dnormC(z,1) - apnorm2(z,true));
+  }
+  return(ans);
+}
+
+
 
 
  //Raw moment of N(m,sd) of order "order"

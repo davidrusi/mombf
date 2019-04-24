@@ -308,12 +308,16 @@ void dmvnormmat_transC(double *ans, const double *ty, int n, int p, const double
 double	qnormC(double cdf, double m, double s);  //quantile from Normal(m,s^2)
 double pnormC(double y); //cdf of Normal(0,1)
 double	pnormC(double y, double m, double s);  //cdf of Normal(m,s^2)
-double apnorm(double y, bool logscale); //approx N(0,1) cdf (Abrawomitz-Stegun, 26.2.16)
-double apnorm2(double y, bool logscale); //improved approx combining Abrawomitz-Stegun 26.2.16 & 26.2.12
+double apnorm(double y, bool logscale); //approx Normal(0,1) cdf
+double apnorm2(double y, bool logscale); //higher-accuracy approx Normal(0,1) cdf
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
 void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal
 double millsnorm(double z); //Mill's ratio (1-pnorm(z))/dnorm(z)
 double invmillsnorm(double z); //Inverse Mill's ratio dnorm(z)/pnorm(z)
+
+double ainvmillsnorm(double z);  //approx Inverse Mill's ratio
+double ainvmillsnorm2(double z); //higher-accuracy approx Inverse Mill's ratio
+
 
 // Truncated Normal
 double rnorm_trunc(double ltrunc, double rtrunc, double m, double s); //draw trunc Normal given two truncation points

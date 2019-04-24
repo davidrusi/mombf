@@ -63,7 +63,7 @@ Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
 SEXP testfunctionCI(SEXP x) {
     SEXP ans;
 
-    testfunction(); //run whatever code
+    testfunction(REAL(x)); //run whatever code
 
     PROTECT(ans = Rf_allocVector(REALSXP, 1)); //return 0
     *REAL(ans)= 0;
@@ -72,37 +72,13 @@ SEXP testfunctionCI(SEXP x) {
 }
 
 
-void testfunction() {
+void testfunction(double *x) {
 
-  bool posdef;
-  int i, j; double *cholXtX, detXtX, *XtX, **a, **chola;
-  XtX= dvector(0,16);
-  XtX[0]=  1.0; XtX[4]=  0.5; XtX[8]= 0.25; XtX[12]= -0.2;
-  XtX[1]=  0.5; XtX[5]=  1.0; XtX[9]= 0.75; XtX[13]=  0.6;
-  XtX[2]= 0.25; XtX[6]= 0.75; XtX[10]= 1.0; XtX[14]=  0.2;
-  XtX[3]= -0.2; XtX[7]= 0.60; XtX[11]= 0.2; XtX[15]=  1.0;
-
-  int p=4; a= dmatrix(1,p,1,p); chola= dmatrix(1,p,1,p);
-  a[1][1]=  1.0; a[1][2]=  0.5; a[1][3]= 0.25; a[1][4]= -0.2;
-  a[2][1]=  0.5; a[2][2]=  1.0; a[2][3]= 0.75; a[2][4]=  0.6;
-  a[3][1]= 0.25; a[3][2]= 0.75; a[3][3]= 1.0;  a[3][4]=  0.2;
-  a[4][1]= -0.2; a[4][2]= 0.60; a[4][3]= 0.2;  a[4][4]=  1.0;
-  //a[1][1]=  1.0; a[1][2]= 0.75; a[1][3]=  0.6;
-  //a[2][1]= 0.75; a[2][2]= 1.0;  a[2][3]=  0.2;
-  //a[3][1]= 0.60; a[3][2]= 0.2;  a[3][3]=  1.0;
-  choldc(a, p, chola, &posdef);
-  Rprintf("Cholesky decomp for matrix\n");
-  for (i=1; i<=p; i++) { for (j=1; j<=p; j++) { Rprintf("%f ",chola[i][j]); }; Rprintf("\n"); }
-  free_dmatrix(a, 1,p,1,p); free_dmatrix(chola, 1,p,1,p);
-
-  crossprodmat *Ad;
-  Ad= new crossprodmat(XtX,4,4,true);  //true indicates that 1st argument is the pre-computed XtX
-  cholXtX= dvector(0,p*(p+1)/2);
-  Ad->choldc(0,3,cholXtX,&detXtX,&posdef);
-  Rprintf("New Cholesky decomp=");
-  for (i=0; i<p*(p+1)/2; i++) Rprintf("%f ", cholXtX[i]);
-  Rprintf("\nDeterminant= %f\n", detXtX);
-  delete Ad; free_dvector(XtX,0,16); free_dvector(cholXtX, 0,p*(p+1)/2);
+  Rprintf("apnorm  %f\n", apnorm(*x,false));
+  Rprintf("apnorm2 %f\n", apnorm2(*x,false));
+    
+  Rprintf("ainvmillsnorm  %f\n", ainvmillsnorm(*x));
+  Rprintf("ainvmillsnorm2 %f\n", ainvmillsnorm2(*x));
 
 }
 

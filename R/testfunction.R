@@ -1,7 +1,6 @@
 
-testfunction= function() {
-    x= double(0);
-    ans= .Call("testfunctionCI",x);
+testfunction= function(x) {
+    ans= .Call("testfunctionCI",as.double(x));
     return(ans);
 }
 

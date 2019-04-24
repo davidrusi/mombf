@@ -135,7 +135,7 @@ struct modavgPars {
 
 
 
-void testfunction();
+void testfunction(double *x);
 
 //*************************************************************************************
 //Setting prior & marginals

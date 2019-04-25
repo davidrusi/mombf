@@ -2386,12 +2386,8 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)];
   }
 
-  msfun->fun= &negloglnormalAFT;
-  msfun->funupdate= &negloglnormalAFTupdate;
-  msfun->gradhessUniv= &negloglnormalAFTgradhess;
-  //msfun->maxiter= 5; msfun->ftol= 0.01; msfun->thtol= 0.01;
-  //msfun->blockcdaNewton(thopt, &fopt, thini, &funargs, 2);
-  //for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
+  msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //approx-but-faster
+  //msfun->fun= &negloglnormalAFT; msfun->funupdate= &negloglnormalAFTupdate; msfun->gradhessUniv= &negloglnormalAFTgradhess; //exact-but-slower
   msfun->ftol= 0.01; msfun->thtol= 0.01;  //increase tolerance for parameter init
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
@@ -2461,7 +2457,8 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double priordens=0;
 
-  negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  anegloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  //negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;
@@ -2471,7 +2468,8 @@ void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct margi
 void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double priordens=0;
 
-  negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  anegloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  //negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   demomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;
@@ -2481,7 +2479,8 @@ void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marg
 void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double priordens=0;
 
-  negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  anegloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  //negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   dgzellgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;
@@ -2492,7 +2491,8 @@ void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marg
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thtmp, priordens=0;
 
-  negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  anegloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  //negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
   dmomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
@@ -2502,8 +2502,9 @@ void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double
 
 void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thtmp, priordens=0;
-
-  negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  
+  anegloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  //negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
   demomgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
@@ -2514,7 +2515,8 @@ void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, doubl
 void fgzellgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double thtmp, priordens=0;
 
-  negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  anegloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
+  //negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
   dgzellgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
@@ -2527,7 +2529,8 @@ void fgzellgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, doubl
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   double priorgrad, priorhess;
 
-  negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
 
   priorpmomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
 
@@ -2537,7 +2540,8 @@ void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel,
 void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   double priorgrad, priorhess;
 
-  negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
 
   priorpemomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
 
@@ -2547,7 +2551,8 @@ void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel
 void fgzellgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   double priorgrad, priorhess;
 
-  negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFTgradhess(grad, hess, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
 
   priorgzellgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
 
@@ -2559,7 +2564,8 @@ void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct m
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
   double priorgrad, priorhess, *Sinv= (*funargs)["Sinv"], *nvaringroup= (*funargs)["nvarinselgroups"], *cholSini= (*funargs)["cholSini"];
 
-  negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
   for (j=0; j< *thlength; j++) {
     priorpmomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs);
     hess[j+1][j+1] -= priorhess;
@@ -2587,7 +2593,8 @@ void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct 
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
   double priorgrad, priorhess, *Sinv= (*funargs)["Sinv"], *nvaringroup= (*funargs)["nvarinselgroups"], *cholSini= (*funargs)["cholSini"];
 
-  negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
   for (j=0; j< *thlength; j++) {
     priorpemomgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs);
     hess[j+1][j+1] -= priorhess;
@@ -2616,7 +2623,8 @@ void fgzellgzellhess(double **hess, double *th, int *sel, int *thlength, struct 
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
   double priorgrad, priorhess, *Sinv= (*funargs)["Sinv"], *nvaringroup= (*funargs)["nvarinselgroups"], *cholSini= (*funargs)["cholSini"];
 
-  negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  anegloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+  //negloglnormalAFThess(hess, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
   for (j=0; j< *thlength; j++) {
     priorgzellgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs);
     hess[j+1][j+1] -= priorhess;

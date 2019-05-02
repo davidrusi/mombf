@@ -237,7 +237,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
-  ngroups= tmp$ngroups; constraints= tmp$constraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
+  ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
 
   #Standardize (y,x) to mean 0 and variance 1
@@ -293,7 +293,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -309,7 +309,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
 
@@ -325,7 +325,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
@@ -485,7 +485,11 @@ codeGroupsAndConstraints= function(p,groups,constraints) {
         groups= as.integer(groupsnum-1) #group id that each variable belongs to
         #groups= as.integer(c(0,as.numeric(cumsum(nvaringroup[-length(nvaringroup)])))) #1st variable in each group (0-indexed)
     }
-    ans= list(ngroups=ngroups,constraints=constraints,nvaringroup=nvaringroup,groups=groups)
+    #Determine inverse constraints
+    invconstraints= vector("list",ngroups)
+    tabconstr= cbind(group=rep(0:(ngroups-1), sapply(constraints,length)), requires= unlist(constraints))
+    for (i in 1:ngroups) { invconstraints[[i]]= as.integer(tabconstr[tabconstr[,'requires']==(i-1), 'group']) }
+    ans= list(ngroups=ngroups,constraints=constraints,invconstraints=invconstraints,nvaringroup=nvaringroup,groups=groups)
     return(ans)
 }
 

@@ -299,6 +299,7 @@ double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pe
 double gzellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Zellner on individual coef, block Zellner on groups
 
 
+//Evaluate log-posterior
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
@@ -307,6 +308,8 @@ void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double
 void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fgzellgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
+
+//Evaluate log-posterior gradient & hessian
 void fpmomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void fpemomgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void fgzellgzellgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);

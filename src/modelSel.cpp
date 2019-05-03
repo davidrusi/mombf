@@ -969,9 +969,9 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int i, j, idxj, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, ngroupsconstr=0, *isgroup, usethinit=0;
+  int i, j, idxj, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, *ninvconstraints, ngroupsconstr=0, *isgroup, usethinit=0;
   double offset=0, *postModeProb, *postProb, *ytXuncens=NULL, *thinit=NULL;
-  intptrlist constraints, invconstraints;
+  intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
   struct marginalPars pars;
   SEXP ans;
@@ -1103,7 +1103,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int i, j, idxj, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=1;
   double offset=0, *margpp, *postModeProb, *postProb, *ytXuncens=NULL, *thinit;
-  intptrlist constraints, invconstraints;
+  intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
   struct marginalPars pars;
   SEXP ans;
@@ -1153,7 +1153,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
   set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens,ytXuncens);
 
-  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), constraints, invconstraints, INTEGER(Sverbose), &pars);
+  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), &constraints, &invconstraints, INTEGER(Sverbose), &pars);
 
   free_dvector(thinit, 0,mycols2+1);   free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1165,12 +1165,13 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
 
 
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrlist constraints, intptrlist invconstraints, int *verbose, struct marginalPars *pars) {
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
 
   bool copylast, validmodel;
-  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints;
+  int i, j, jgroup, k, *sel, *selnew, *selaux, nsel, nselnew, nselplus1, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints, *ninvconstraints= (*pars).ninvconstraints;
+  int addgroups=0, dropgroups=0, naddgroups, ndropgroups;
   double currentJ, newJ=0.0, ppnew, u, *mfamily, *pfamily, sumpfamily;
-  intptrlist::iterator itlist;
+  //intptrvec::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
 
@@ -1221,11 +1222,13 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   //Iterate
   for (i=ilow; i< iupper; i++) {
     j= jgroup= 0;
-    itlist= constraints.begin();
+    //itlist= constraints.begin();
     while (j< *(*pars).p) {
-      if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
+      sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
+      if (nsel > nselnew) { naddgroups= 0; ndropgroups=1; dropgroups= jgroup; } else { naddgroups=1 ; ndropgroups=0; addgroups= jgroup; }
+      validmodel= checkConstraints(&addgroups,&naddgroups,&dropgroups,&ndropgroups,constraints,nconstraints,invconstraints,ninvconstraints,(*pars).groups,nvaringroup,sel,&nsel);
+      //if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
       if (includevars[j]==0 && validmodel) {
-	sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
         if (nselnew <= (*(*pars).n)) {
           if ((*family)==0) {  //inference is being done on the family (residual error distribution)
 	    nselplus1= nselnew+1;
@@ -1265,7 +1268,6 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       }
       j += nvaringroup[jgroup];
       jgroup++;
-      itlist++;
     }  //end j for
 
     if ((*family)==0) {  //update family
@@ -1344,7 +1346,7 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
   bool hasXtX= LOGICAL(ShasXtX)[0];
   int i, j, idxj, logscale=1, mycols, *postMode, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=1;
   double offset=0, *postModeProb, *ytXuncens=NULL, *thinit;
-  intptrlist constraints, invconstraints;
+  intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
   struct marginalPars pars;
   SEXP ans;
@@ -1382,7 +1384,7 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
 
   set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
 
-  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(Sfamily),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),constraints,invconstraints,INTEGER(Sverbose),&pars);
+  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(Sfamily),INTEGER(SpriorCoef),INTEGER(SpriorGroup),INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),&constraints,&invconstraints,INTEGER(Sverbose),&pars);
 
   free_dvector(thinit, 0,mycols+1); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1392,11 +1394,11 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
 
 }
 
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrlist constraints, intptrlist invconstraints, int *verbose, struct marginalPars *pars) {
+void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
   bool validmodel;
-  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints;
+  int i, j, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, ngroups, *nvaringroup, *firstingroup, priorcode, *nconstraints= (*pars).nconstraints, *ninvconstraints= (*pars).ninvconstraints;
+  int addgroups=0, dropgroups=0, naddgroups, ndropgroups;
   double newJ;
-  intptrlist::iterator itlist;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
   priorcode= mspriorCode(prCoef, prGroup, pars);
@@ -1417,12 +1419,13 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
   //Iterate
   for (i=0, nchanges=1; (i< *niter) && (nchanges>0); i++) {
     j= jgroup= 0; nchanges= 0;
-    itlist= constraints.begin();
 
     while(j< *(*pars).p) {
-      if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
+      sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,false,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
+      if (nsel > nselnew) { naddgroups= 0; ndropgroups=1; dropgroups= jgroup; } else { naddgroups=1 ; ndropgroups=0; addgroups= jgroup; }
+      validmodel= checkConstraints(&addgroups,&naddgroups,&dropgroups,&ndropgroups,constraints,nconstraints,invconstraints,ninvconstraints,(*pars).groups,nvaringroup,sel,&nsel);
+
       if (includevars[j]==0 && validmodel) {
-	sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,false,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
         newJ= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
         if (newJ > *postModeProb) {
           *postModeProb= newJ;  //update post mode prob
@@ -1432,7 +1435,6 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
       }
       j += nvaringroup[jgroup];
       jgroup++;
-      itlist++;
     } //end j for
   }
   for (j=0; j<nsel; j++) { postMode[sel[j]]= 1; }
@@ -1442,6 +1444,64 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
 }
 
 
+bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndropgroups, intptrvec *constraints, int *nconstraints, intptrvec *invconstraints, int *ninvconstraints, int *groups, int *nvaringroup, int *sel, int *nsel) {
+  /* Check if adding variables in addgroups and dropping variables from dropgroups to current model (sel) gives a valid model satisfying all constraints
+   Input
+
+   - addgroups: id of groups to be added to sel (vector of length naddgroups)
+   - naddgroups:  number of groups to be added
+   - dropgroups: id of groups to be dropped from sel (vector of length ndropgroups)
+   - ndropgroups: number of groups to be dropped
+   - constraints: constraints[j] is a vector indicating all groups required by group j. Assumed to be ordered increasingly
+   - nconstraints: nconstraints[j] is the length of constraints[j] (number of constraints required by group j)
+   - invconstraints: invconstraints[j] is a vector indicating all inverse constraints of group j (ids of other groups requiring group j)
+   - ninvconstraints: ninvconstraints[j] is the length of invconstraints[j] (number of inverse constraints of group j)
+   - firstingroup: index of the first variable in all groups
+   - sel: index of variables currently in the model. Assumed to be ordered increasingly
+   - nsel: number of variables currently in the model
+  */
+
+  bool valid= true;
+  int j, k, l, *curconstraints, curgroup, nvalid;
+
+  //For any group we want to add to sel, check that its constraints are also in sel
+  for (k=0; (k< *naddgroups) && valid; k++) {
+    nvalid= j= l= 0;
+    curgroup= addgroups[k];
+    curconstraints= (*constraints)[curgroup];
+    while ((l < nconstraints[curgroup]) && (j < *nsel) && valid) {
+      if (groups[sel[j]] > curconstraints[l]) {
+	valid= false;
+      } else if (groups[sel[j]] == curconstraints[l]) {  //add groups and nvaringroup as parameters
+	l++; nvalid++;
+      } else {
+	j += nvaringroup[sel[j]];
+      }
+    }
+    if (nvalid < nconstraints[curgroup]) { valid= false; }
+  }
+
+  //For any group we want to drop from sel, check that its inverse constraints are not in sel
+  for (k=0; (k< *ndropgroups) && valid; k++) {
+    j= l= 0;
+    curgroup= dropgroups[k];
+    curconstraints= (*invconstraints)[curgroup];
+    while ((l < ninvconstraints[curgroup]) && (j < *nsel) && valid) {
+      if (groups[sel[j]] > curconstraints[l]) {
+	l++;
+      } else if (groups[sel[j]] == curconstraints[l]) {
+	valid= false;
+      } else {
+	j+= nvaringroup[sel[j]];
+      }
+    }
+  }
+
+  return valid;
+}
+
+
+/* OLD VERSION, IT DID NOT WORK CORRECTLY
 bool checkConstraints(int *constraints, int *nconstraints, int *firstingroup, int *sel, int *nsel) {
   // Check if current model (sel) contains all the variable groups indicated in constraints
   // Input
@@ -1464,6 +1524,7 @@ bool checkConstraints(int *constraints, int *nconstraints, int *firstingroup, in
   }
   return valid;
 }
+*/
 
 
 void sel2selnew(int newgroup, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast, int *ngroups, int *nvaringroup, int *firstingroup) {
@@ -1562,7 +1623,8 @@ void nselConstraints(int *ngroups0, int *ngroups1, int *sel, int *nsel, int *gro
   }
 }
 
-void countConstraints(int *nconstraints, intptrlist *constraints, int *ninvconstraints, intptrlist *invconstraints, int *ngroupsconstr, int *isgroup, int *ngroups, int *nvaringroup, SEXP Sconstraints, SEXP Sinvconstraints) {
+
+void countConstraints(int *nconstraints, intptrvec *constraints, int *ninvconstraints, intptrvec *invconstraints, int *ngroupsconstr, int *isgroup, int *ngroups, int *nvaringroup, SEXP Sconstraints, SEXP Sinvconstraints) {
   /*Count number of constraints, number of groups with constraints, determine which variables are in a group
 
   Input:

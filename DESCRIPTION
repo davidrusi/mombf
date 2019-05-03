@@ -1,6 +1,6 @@
 Package: mombf
 Type: Package
-Version: 2.2.3
+Version: 2.2.4
 Date: 2019-05-03
 Title: Bayesian Model Selection and Averaging for Non-Local and Local Priors
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck

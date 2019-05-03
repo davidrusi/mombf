@@ -1227,8 +1227,8 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
       if (nsel > nselnew) { naddgroups= 0; ndropgroups=1; dropgroups= jgroup; } else { naddgroups=1 ; ndropgroups=0; addgroups= jgroup; }
       validmodel= checkConstraints(&addgroups,&naddgroups,&dropgroups,&ndropgroups,constraints,nconstraints,invconstraints,ninvconstraints,(*pars).groups,nvaringroup,sel,&nsel);
-      //if (nconstraints[jgroup]>0) { validmodel= checkConstraints(*itlist,nconstraints+jgroup,firstingroup,sel,&nsel); } else { validmodel= true; }
-      if (includevars[j]==0 && validmodel) {
+
+      if (includevars[j]==0 && validmodel) { //if proposed model is valid
         if (nselnew <= (*(*pars).n)) {
           if ((*family)==0) {  //inference is being done on the family (residual error distribution)
 	    nselplus1= nselnew+1;
@@ -1265,6 +1265,10 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
         if (u<ppnew) {  //update model indicator
           selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ;
         }
+      } else {  //if proposed model is not valid
+
+	if ((i>=0) && (ndropgroups>0) && (!validmodel)) { margpp[j] += 1.0 ; } //conditional marginal inclusion prob=1
+	
       }
       j += nvaringroup[jgroup];
       jgroup++;

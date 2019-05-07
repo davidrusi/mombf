@@ -1221,8 +1221,10 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 
   //Iterate
   for (i=ilow; i< iupper; i++) {
+    //Rprintf("Iteration %d, sel=",i); //debug
+    //for (j=0; j< nsel; j++) { Rprintf("%d ",sel[j]); } //debug
+    //Rprintf("\n"); //debug
     j= jgroup= 0;
-    //itlist= constraints.begin();
     while (j< *(*pars).p) {
       sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
       if (nsel > nselnew) { naddgroups= 0; ndropgroups=1; dropgroups= jgroup; } else { naddgroups=1 ; ndropgroups=0; addgroups= jgroup; }
@@ -1268,7 +1270,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       } else {  //if proposed model is not valid
 
 	if ((i>=0) && (ndropgroups>0) && (!validmodel)) { margpp[j] += 1.0 ; } //conditional marginal inclusion prob=1
-	
+
       }
       j += nvaringroup[jgroup];
       jgroup++;
@@ -1496,7 +1498,7 @@ bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndr
       } else if (groups[sel[j]] == curconstraints[l]) {
 	valid= false;
       } else {
-	j+= nvaringroup[sel[j]];
+	j+= nvaringroup[groups[sel[j]]];
       }
     }
   }

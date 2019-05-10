@@ -1830,16 +1830,15 @@ void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, doubl
 
 
 void dgzellgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale) {
-  /*Evaluate Zellner (tau) + block Zellner(taugroup) prior density at th
+  /*Evaluate Zellner + block Zellner prior density at th
 
-     prod_j N(beta_j; 0; tau S_j^{-1})  prod_j N(delta_j; 0, S_j^{-1})
+     prod_j N(beta_j; 0; S_j^{-1})  prod_j N(delta_j; 0, S_j^{-1})
 
      where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
      corresponding to coefficients for individual variables and grouped variables (respectively)
 
     Input
      - th: point at which to evaluate the density is th[0],...,th[*nsel]
-     - tau: prior pMOM dispersion parameter (drives prior on individual coefficients, i.e. groups of size 1)
      - nvaringroup: number of variables in each group
      - ngroups: number of selected groups (length of nvaringroup)
      - ldetSinv: log-determinant of S_j^{-1} for each group j=1,...,ngroups
@@ -2467,56 +2466,68 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)];
   }
 
-  msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //approx-but-faster
-  //msfun->fun= &negloglnormalAFT; msfun->funupdate= &negloglnormalAFTupdate; msfun->gradhessUniv= &negloglnormalAFTgradhess; //exact-but-slower
-  msfun->ftol= 0.01; msfun->thtol= 0.01;  //increase tolerance for parameter init
+  //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
+  msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate; msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; //Zell
+  if (priorcode==43) {
+    msfun->ftol= 0.001; msfun->thtol= 0.001; //lower tolerance since we're only gonna optimize once
+  } else {
+    msfun->ftol= 0.01; msfun->thtol= 0.01;  //increase tolerance since first optim will only be to initialize parameters
+  }
+
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
-  for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
+
   //Store optimal value for use in subsequent calls
   if (*((*pars).usethinit) > 0) {
-    for (i=0; i< *nsel; i++) { ((*pars).thinit)[sel[i]]= thini[i]; }
-    ((*pars).thinit)[*((*pars).p)]= thini[*nsel];
+    int iall;
+    for (iall=0; iall< sel[0]; iall++) ((*pars).thinit)[iall]= 0;
+    for (i=0; i< *nsel; i++) {
+      ((*pars).thinit)[sel[i]]= thopt[i];
+      if (i< *nsel -1) { for (iall=sel[i]+1; iall< sel[i+1]; iall++) ((*pars).thinit)[iall]= 0; }
+    }
+    ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
     (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
   }
+
+  //if (*((*pars).usethinit) > 0) {
+  //  for (i=0; i< *nsel; i++) { ((*pars).thinit)[sel[i]]= thopt[i]; }
+  //  ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
+  //  (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
+  //}
 
 
   msfun->ftol= 0.001; msfun->thtol= 0.001; //decrease tolerance for posterior mode
 
   //Find posterior mode
-  if (priorcode==13) {
-    msfun->fun= &fpmomgzellSurv;
-    msfun->funupdate= &fpmomgzellSurvupdate;
-    msfun->gradhessUniv= &fpmomgzellgradhess;
-    msfun->hess= &fpmomgzellhess;
-  } else if (priorcode==33) {
-    msfun->fun= &fpemomgzellSurv;
-    msfun->funupdate= &fpemomgzellSurvupdate;
-    msfun->gradhessUniv= &fpemomgzellgradhess;
-    msfun->hess= &fpemomgzellhess;
-  } else if (priorcode==43) {
-    msfun->fun= &fgzellgzellSurv;
-    msfun->funupdate= &fgzellgzellSurvupdate;
-    msfun->gradhessUniv= &fgzellgzellgradhess;
-    msfun->hess= &fgzellgzellhess;
-  } else {
-    Rf_error("priorcode in SurvMarg not recognized\n");
-  }
-
-  //Avoid exact zeroes (0 prior density under non-local priors)
-  for (i=0; i< *nsel; i++) {
-    if (fabs(thini[i]) < 1.0e-5) {
-      double fminus, fplus;
-      thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
-      thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
-      if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+  if (priorcode != 43) {
+    if (priorcode==13) {
+      msfun->fun= &fpmomgzellSurv;
+      msfun->funupdate= &fpmomgzellSurvupdate;
+      msfun->gradhessUniv= &fpmomgzellgradhess;
+      msfun->hess= &fpmomgzellhess;
+    } else if (priorcode==33) {
+      msfun->fun= &fpemomgzellSurv;
+      msfun->funupdate= &fpemomgzellSurvupdate;
+      msfun->gradhessUniv= &fpemomgzellgradhess;
+      msfun->hess= &fpemomgzellhess;
+    } else {
+      Rf_error("priorcode in SurvMarg not recognized\n");
     }
+
+    for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
+    //Avoid exact zeroes (0 prior density under non-local priors)
+    for (i=0; i< *nsel; i++) {
+      if (fabs(thini[i]) < 1.0e-5) {
+        double fminus, fplus;
+        thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
+        thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
+        if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+      }
+    }
+
+    msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   }
 
-  //Optimize and obtain Laplace approximation
-  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
-  //Rprintf("Done post mode. ");
-  ans= msfun->laplaceapprox(thopt, &fopt, &funargs);
-  //Rprintf("Done Lapl approx\n");
+  ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
 
   //Free memory
   free_dvector(thopt, 0, *nsel);

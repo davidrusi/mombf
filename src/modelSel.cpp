@@ -232,18 +232,20 @@ void testfunction() {
 int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //Returns a two-digit code indicating the prior on regression coefficients. The 1st digit is the prior on individual coef; The 2nd digit the prior on groups of coefficients
   // Input
-  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner
-  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for block Zellner
+  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 13 for group Zellner
+  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
   // Output
   //   0: pMOM on all coef
   //   1: peMOM on all coef
   //   2: piMOM on all coef
   //   3: Zellner on all coef
+  //   4: group Zellner on all coef
   //  10: pMOM + group MOM
   //  13: pMOM + group Zellner
   //  32: peMOM + group eMOM
   //  33: peMOM + group Zellner
   //  43: Zellner + group Zellner
+  //  53: group Zellner + group Zellner
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
   int ans;
   if (!hasgroups) {
@@ -255,6 +257,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if (*prCoef==3) { //Zellner on all coef
       ans= 3;
+    } else if (*prCoef==13) { //block Zellner on all coef
+      ans= 4;
     } else {
       Rf_error("Prior specified by priorCoef not currently implemented\n");
     }
@@ -277,6 +281,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 33;
     } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
       ans= 43;
+    } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
+      ans= 53;
     } else {
       Rf_error("Prior specified by priorCoef and priorGroup not currently implemented\n");
     }
@@ -323,8 +329,10 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       } else if (*priorcode==3) {
 	Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
 	ans= gzellgzellSurvMarg;
+      } else if (*priorcode==4) {
+	ans= gzellgzellSurvMarg;
       } else {
-	Rf_error("The prior in (priorCoef,priorGroup) not currently implemented for the specified AFT model");
+	Rf_error("The prior in priorCoef not implemented for the specified AFT model");
       }
     } else {
       if (*priorcode==10) {
@@ -336,6 +344,9 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       } else if (*priorcode==33) {
 	ans= pemomgzellSurvMarg;
       } else if (*priorcode==43) {
+	Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
+	ans= gzellgzellSurvMarg;
+      } else if (*priorcode==53) {
 	ans= gzellgzellSurvMarg;
       } else {
 	Rf_error("The prior in (priorCoef,priorGroup) not implemented for survival data\n");
@@ -1829,7 +1840,7 @@ void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, doubl
 }
 
 
-void dgzellgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale) {
+void dgzellgzell(double *ans, double *th, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale) {
   /*Evaluate Zellner + block Zellner prior density at th
 
      prod_j N(beta_j; 0; S_j^{-1})  prod_j N(delta_j; 0, S_j^{-1})
@@ -1871,7 +1882,9 @@ void dgzellgzell(double *ans, double *th, double *tau, double *nvaringroup, doub
   - XtX: XtX[sel[j],sel[l]] is the entry in the Gram matrix corresponding to variables (sel[j],sel[l])
   - taugroup: prior dispersion parameter
 
-  OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants. If A is the submatrix of XtX corresponding to group j, then the precision matrix for group g is
+  OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants. 
+
+  If A is the submatrix of XtX corresponding to group j, then the precision matrix for group g is
 
   (nvaringroups / taugroup) A
 
@@ -2573,7 +2586,7 @@ void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marg
 
   anegloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   //negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
-  dgzellgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  dgzellgzell(&priordens, th, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;
 }
@@ -2610,7 +2623,7 @@ void fgzellgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, doubl
   anegloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   //negloglnormalAFTupdate(fnew,thjnew,j,f,th,sel,thlength,pars,funargs); //update -log(likelihood) and funargs["residuals"]
   thtmp= th[j]; th[j]= *thjnew;
-  dgzellgzell(&priordens, th, (*pars).tau, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  dgzellgzell(&priordens, th, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   th[j]= thtmp;
   (*fnew) -= priordens;

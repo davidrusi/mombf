@@ -202,7 +202,9 @@ modelSelection <- function(y, x, data, smoothterms, nknots=14, groups=1:ncol(x),
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
       if (class(des$y)=="Surv") {
-          cat("The response type is survival. Remember that you should log-transform the times before running modelSelection\n")
+          if (all(des$y[,1] >0)) {
+              cat("Response type is survival and all its values are >0. Remember that you should log-transform the response prior to running modelSelection\n")
+          }
           outcometype= 'Survival'; uncens= as.integer(des$y[,2]); y= des$y[,1]
           ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
@@ -584,14 +586,17 @@ formatmsMethod= function(method, priorCoef, knownphi) {
 #Input: priorCoef, priorVar, priorSkew, priorDelta
 #Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha), model space prior (prDelta, prDeltap, parprDeltap)
 formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta, priorConstraints) {
+  r= as.integer(1)
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
   } else if (priorCoef@priorDistr=='piMOM') {
-    r <- as.integer(1); prior <- as.integer(1)
+    prior <- as.integer(1)
   } else if (priorCoef@priorDistr=='peMOM') {
-    r <- as.integer(1); prior <- as.integer(2)
+    prior <- as.integer(2)
   } else if (priorCoef@priorDistr=='zellner') {
-    r <- as.integer(1); prior <- as.integer(3)
+    prior <- as.integer(3)
+  } else if (priorCoef@priorDistr=='groupzellner') {
+    prior <- as.integer(13)
   } else {
     stop('Prior specified in priorDistr not recognized')
   }

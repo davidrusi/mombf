@@ -224,6 +224,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
 
   } //end while iter
 
+  //Rprintf("nparam= %d, niter=%d\n",this->thlength, iter); //debug
 }
 
 
@@ -325,6 +326,73 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
   free_dvector(delta, 0,this->thlength); free_dvector(g, 0,this->thlength); free_dvector(H, 0,this->thlength);
 
+}
+
+
+
+
+/* 
+
+Newton-Raphson optimization (modifying hessian to be +def when needed)
+
+*/
+void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
+
+  bool posdef;
+  int j, iter=0;
+  double *thnew, therr=1, ferr=1, fnew, *delta, *g, **H, **Hinv;
+
+  if ((this->fun)==NULL) Rf_error("To run Newton you need to specify fun");
+  if ((this->hess)==NULL) Rf_error("To run Newton you need to specify hess");
+  if ((this->gradUniv)==NULL) Rf_error("To run Newton you need to specify gradUniv");
+
+  thnew= dvector(1,this->thlength); delta= dvector(1,this->thlength); g= dvector(1,this->thlength);
+  H= dmatrix(1,this->thlength,1,this->thlength); Hinv= dmatrix(1,this->thlength,1,this->thlength);
+  
+  this->evalfun(fopt, thini, funargs); //call evalfun and initialize funargs
+  for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
+
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
+
+    this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
+    inv_posdef(H, this->thlength, Hinv, &posdef);
+    if (!posdef) {
+      int i;
+      double lmin=0, *vals;
+      vals= dvector(1,this->thlength);
+      eigenvals(H,this->thlength,vals);
+      for (i=1; i<= this->thlength; i++) if (vals[i]<lmin) lmin= vals[i];
+      lmin = -lmin + .01;
+      for (i=1; i<= this->thlength; i++) H[i][i] += lmin;
+      free_dvector(vals,1,this->thlength);
+    }
+    
+    for (j=0; j< this->thlength; j++) { this->gradUniv(g+1+j, j, thopt, this->sel, &(this->thlength), this->pars, funargs); }
+    Ax(Hinv,g,delta-1,1,this->thlength,1,this->thlength);
+
+    for (j=0; j< this->thlength; j++) { thnew[j]= thopt[j] - delta[j]; }
+    
+    this->evalfun(&fnew, thnew, funargs); //call evalfun and initialize funargs
+
+    if (fnew < *fopt) {
+      
+      for (j=0; j< this->thlength; j++) { therr= max_xy(therr, fabs(thopt[j]-thopt[j])); thopt[j]= thnew[j]; }
+      ferr= *fopt - fnew;
+      (*fopt)= fnew;
+
+    } else {
+
+      ferr= 0; //causes exit
+
+    }
+
+    iter++;
+
+  }
+
+  free_dvector(thnew, 1,this->thlength); free_dvector(delta,1,this->thlength); free_dvector(g,1,this->thlength);
+  free_dmatrix(H, 1,this->thlength,1,this->thlength); free_dmatrix(Hinv, 1,this->thlength,1,this->thlength);
+  
 }
 
 

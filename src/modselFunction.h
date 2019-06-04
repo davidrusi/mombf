@@ -95,6 +95,7 @@ public:
   void cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //CDA with approx updates given by Newton's method (uses gradhess)
   void cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);
   void blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
+  void Newton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);  //Newton-Raphson optimization (modifying hessian to be +def when needed)
 
   double laplaceapprox(double *thopt, double *fopt, double **H); //Laplace approximation to int exp(-fun(th)) dth
   double laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs);

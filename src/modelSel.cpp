@@ -2300,6 +2300,52 @@ void anegloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, in
 }
 
 
+void anegloglnormalAFTgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, idxj, nuncens, n= *((*pars).n);
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, *pnormres, ytres, *sumy2obs, sumy2D, r;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  sumy2obs= (*funargs)["sumy2obs"];
+  idxj= *((*pars).n) * sel[j];
+  (*grad)= 0;
+
+  if (j < *thlength -1) { //updating a regression coefficient
+
+    for (i=0; i< nuncens; i++) (*grad) -= res[i] * x[idxj +i]; //Uncensored observations
+    for (i=nuncens; i< n; i++) { //Censored observations
+      //Obtain r= ainvmillsnorm(-res[i]);
+      if (res[i]> 1.756506) {
+	r= (res[i] + 1.0/(res[i]+2.0/(res[i]+3.0/(res[i]+4.0/(res[i]+5.0/(res[i]+11.5/(res[i] + 4.890096)))))));
+      } else {
+	r= dnormC(-res[i],0) / pnormres[i-nuncens];
+      }
+      (*grad) -= r * x[idxj +i];
+    }
+
+  } else { //updating rho= log(residual precision)
+
+    exprho= exp(rho); ytres= sumy2D= 0;
+    for (i=0; i< nuncens; i++) ytres += res[i] * y[i]; //Uncensored observations
+    for (i=nuncens; i< n; i++) {                       //Censored observations
+      //Obtain r= ainvmillsnorm(-res[i]);
+      if (res[i]> 1.756506) {
+	r= (res[i] + 1.0/(res[i]+2.0/(res[i]+3.0/(res[i]+4.0/(res[i]+5.0/(res[i]+11.5/(res[i] + 4.890096)))))));
+      } else {
+	r= dnormC(-res[i],0) / pnormres[i-nuncens];
+      }
+      ytres += r * y[i];
+      sumy2D += y[i]*y[i] * r*(r-res[i]);
+    }
+    (*grad)= -(*(*funargs)["nuncens"]) + exprho * ytres;
+
+  }
+
+}
+
+
 //Fast approx to Full hessian matrix H[1..nsel][1..nsel] of log-likelihood for AFT model with Normal errors (only upper-triangular elements are returned)
 
 void anegloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
@@ -2427,8 +2473,9 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
    */
 
   std::map<string, double *> funargs;
-  int i, nselgroupsint, cholSsize, *uncens;
-  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fopt, *y, *pnormres;
+  bool posdef;
+  int i, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *pnormres, *g, **H, **Hinv;
   modselFunction *msfun;
 
   y= (*pars).y;
@@ -2464,10 +2511,35 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 
   //Assign functions to evaluate log-posterior, update log-posterior, gradient and hessians
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
-  msfun= new modselFunction(sel, *nsel +1, pars, NULL);
+  msfun= new modselFunction(sel, thlength, pars, NULL);
 
-  //Initialize at MLE
-  //Rprintf("Model "); for (i=0; i< *nsel; i++) { Rprintf("%d ",sel[i]); }; Rprintf("Done MLE."); //debug
+  //Initialize posterior mode
+  msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate; msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; //Zell
+  msfun->gradUniv= &fgzellgzellgrad;
+  //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
+
+  //Approx mode under group Zellner prior
+  g= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength);
+
+  for (i=0; i< thlength; i++) thini[i]= 0;
+  msfun->evalfun(&fini, thini, &funargs); //call evalfun for its side effect of initializing funargs
+  msfun->hess(H, thini, sel, &thlength, pars, &funargs);
+  inv_posdef(H, thlength, Hinv, &posdef);
+  for (i=0; i< thlength; i++) { msfun->gradUniv(g+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
+  Ax(Hinv,g,thini-1,1,thlength,1,thlength);
+
+  free_dvector(g,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength);
+
+  //Stored posterior mode under previously visited model
+  if (*((*pars).usethinit) == 2) {
+    for (i=0; i< *nsel; i++) { thopt[i]= ((*pars).thinit)[sel[i]]; }
+    thopt[*nsel]= ((*pars).thinit)[*((*pars).p)];
+    msfun->evalfun(&fini, thini, &funargs);
+    msfun->evalfun(&fopt, thopt, &funargs);
+    if (fopt < fini) { for (i=0; i< *nsel; i++) thini[i]= thopt[i]; }
+  }
+
+  /* OLD INIT STRATEGY USING LEAST SQUARES
   if (*((*pars).usethinit) != 2) {
     double *ypred;
     ypred= dvector(0, *((*pars).n));
@@ -2479,8 +2551,6 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)];
   }
 
-  //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
-  msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate; msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; //Zell
   if (priorcode==43) {
     msfun->ftol= 0.001; msfun->thtol= 0.001; //lower tolerance since we're only gonna optimize once
   } else {
@@ -2488,27 +2558,10 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   }
 
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+  for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
+  */
 
-  //Store optimal value for use in subsequent calls
-  if (*((*pars).usethinit) > 0) {
-    int iall;
-    for (iall=0; iall< sel[0]; iall++) ((*pars).thinit)[iall]= 0;
-    for (i=0; i< *nsel; i++) {
-      ((*pars).thinit)[sel[i]]= thopt[i];
-      if (i< *nsel -1) { for (iall=sel[i]+1; iall< sel[i+1]; iall++) ((*pars).thinit)[iall]= 0; }
-    }
-    ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
-    (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
-  }
-
-  //if (*((*pars).usethinit) > 0) {
-  //  for (i=0; i< *nsel; i++) { ((*pars).thinit)[sel[i]]= thopt[i]; }
-  //  ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
-  //  (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
-  //}
-
-
-  msfun->ftol= 0.001; msfun->thtol= 0.001; //decrease tolerance for posterior mode
+  msfun->ftol= 0.001; msfun->thtol= 0.001;
 
   //Find posterior mode
   if (priorcode != 43) {
@@ -2525,22 +2578,33 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     } else {
       Rf_error("priorcode in SurvMarg not recognized\n");
     }
-
-    for (i=0; i<= *nsel; i++) thini[i]= thopt[i];
-    //Avoid exact zeroes (0 prior density under non-local priors)
-    for (i=0; i< *nsel; i++) {
-      if (fabs(thini[i]) < 1.0e-5) {
-        double fminus, fplus;
-        thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
-        thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
-        if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
-      }
-    }
-
-    msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   }
 
+  //Avoid exact zeroes (0 prior density under non-local priors)
+  for (i=0; i< *nsel; i++) {
+    if (fabs(thini[i]) < 1.0e-5) {
+      double fminus, fplus;
+      thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
+      thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
+      if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+    }
+  }
+
+  msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+  
   ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
+
+  //Store optimal value for use in subsequent calls
+  if (*((*pars).usethinit) > 0) {
+    int iall;
+    for (iall=0; iall< sel[0]; iall++) ((*pars).thinit)[iall]= 0;
+    for (i=0; i< *nsel; i++) {
+      ((*pars).thinit)[sel[i]]= thopt[i];
+      if (i< *nsel -1) { for (iall=sel[i]+1; iall< sel[i+1]; iall++) ((*pars).thinit)[iall]= 0; }
+    }
+    ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
+    (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
+  }
 
   //Free memory
   free_dvector(thopt, 0, *nsel);
@@ -2664,6 +2728,16 @@ void fgzellgzellgradhess(double *grad, double *hess, int j, double *th, int *sel
   (*grad) -= priorgrad; (*hess) -= priorhess;
 }
 
+void fgzellgzellgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  double priorgrad, priorhess;
+
+  anegloglnormalAFTgrad(grad, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+
+  priorgzellgzellgradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
+
+  (*grad) -= priorgrad;
+}
+
 
 void fpmomgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
@@ -2725,6 +2799,7 @@ void fpemomgzellhess(double **hess, double *th, int *sel, int *thlength, struct 
 
 
 void fgzellgzellhess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  /* HESSIAN FOR AFT LOG-LIKELIHOOD Xobs + LOG-LIKELIHOOD Xcens evaluated at any th   */
   int j, k, kk, l, idxini, ngroups, ningroup, firstingroup;
   double priorgrad, priorhess, *Sinv= (*funargs)["Sinv"], *nvaringroup= (*funargs)["nvarinselgroups"], *cholSini= (*funargs)["cholSini"];
 
@@ -2835,6 +2910,7 @@ void priorgzellgzellgradhess(double *priorgrad, double *priorhess, int j, double
     (*priorgrad)= 0.5 * (*priorhess) + (*((*pars).alpha));
   }
 }
+
 
 
 

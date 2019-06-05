@@ -224,7 +224,7 @@ double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
 void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
 
-void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *taugroup);
+void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *tau, double *taugroup, bool orthoapprox);
 void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups);
 
 

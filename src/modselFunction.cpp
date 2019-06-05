@@ -408,32 +408,32 @@ Ouput: logarithm of Laplace approximation
 
   -fun(thopt) + 0.5 * dim(th) * log(2 pi) - 0.5*log(det(H));
 
+If returnH==false, it is assumed that H contains the pre-computed hessian matrix at the mode
+If returnH==true, then H is computed and returned, and its Cholesky decomp cholH is also returned (provided the pointer cholH is non-null)
+
  */
-double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H) {
+double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H, double **cholH= NULL, bool returnH=false, std::map<string, double *> *funargs=NULL) {
   bool posdef;
-  double ans, logdetH, **cholH;
+  double ans, logdetH, **mycholH;
 
-  cholH= dmatrix(1,this->thlength,1,this->thlength);
+  if (returnH) this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
 
-  choldc(H,this->thlength,cholH,&posdef);
-  if (!posdef) {
-    int i;
-    double lmin=0, *vals;
-    vals= dvector(1,this->thlength);
-    eigenvals(H,this->thlength,vals);
-    for (i=1; i<= this->thlength; i++) if (vals[i]<lmin) lmin= vals[i];
-    lmin = -lmin + .01;
-    for (i=1; i<= this->thlength; i++) H[i][i] += lmin;
-    choldc(H,this->thlength,cholH,&posdef);
-    free_dvector(vals,1,this->thlength);
+  if (cholH == NULL) {
+    mycholH= dmatrix(1,this->thlength,1,this->thlength);
+  } else {
+    mycholH = cholH;
   }
 
-  logdetH= logcholdc_det(cholH, this->thlength);
+  choldc(H,this->thlength,mycholH,&posdef);
+  if (!posdef) {
+    make_posdef(H,this->thlength);
+    choldc(H,this->thlength,mycholH,&posdef);
+  }
+  
+  logdetH= logcholdc_det(mycholH, this->thlength);
   ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*logdetH;
-  //detH= choldc_det(cholH, this->thlength);
-  //ans= - (*fopt) + 0.5 * (this->thlength) * LOG_M_2PI - 0.5*log(detH);
 
-  free_dmatrix(cholH, 1,this->thlength,1,this->thlength);
+  if (cholH== NULL) free_dmatrix(mycholH, 1,this->thlength,1,this->thlength);
   return ans;
 }
 

@@ -3418,6 +3418,19 @@ void maxvec(const double *x,
 }
 
 
+/* Make matrix a positive definite by replacing it by a - (lmin + offset) I, where lmin is the smallest eigenvalue of a and I the identity matrix  */
+void make_posdef(double **a, int n, double offset) {
+  int i;
+  double lmin=0, *vals;
+  vals= dvector(1,n);
+  eigenvals(a,n,vals);
+  for (i=1; i<= n; i++) if (vals[i]<lmin) lmin= vals[i];
+  lmin = -lmin + offset;
+  for (i=1; i<= n; i++) a[i][i] += lmin;
+  free_dvector(vals,1,n);
+}
+
+
 
 void choldc(double **a, int n, double **aout, bool *posdef) {
 /* Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
@@ -3514,42 +3527,46 @@ double logcholdc_det(double **chols, int n) {
 
 
 /*
- * Inverse of a symmetric, positive definite matrix a[1..n][1..n] using
- * Cholesky decomposition. Result is returned in aout. posdef returns if matrix was indeed positive definite
+  Inverse of a symmetric, positive definite matrix a[1..n][1..n] using Cholesky decomposition. 
+
+  Input: either a, its Cholesky decomposition chola, or the inverse of its Cholesky decomposition cholainv. If chola is provided then a is ignored. If cholainv is provided, then chola is ignored.
+
+  Output: aout contains the inverse of a, posdef returns if matrix was indeed positive definite
+
  */
-void inv_posdef(double **a,
-                int n,
-                double **aout,
-                bool *posdef)
-{
-    int i;
-    int j;
-    double **b;
+void inv_posdef(double **a, int n, double **aout, bool *posdef, double **chola, double **cholainv) {
+  int i, j;
+  double **b;
 
-    //assert(a != NULL);
-    //assert(aout != NULL);
-
+  if (cholainv == NULL) {
     b = dmatrix(1, n, 1, n);
-    choldc_inv(a, n, b, posdef);
-    for (i = 1; i <= n; i++) {
-        for (j = i; j <= n; j++) {
-            int k;
-            double sum;
-
-            sum = 0.0;
-            for (k = 1; k <= n; k++) {
-                sum += b[k][i] * b[k][j];
-            }
-            aout[i][j] = sum;
-        }
+    if (chola == NULL) {
+      choldc_inv(a, n, b, posdef); //inverse of chol(a)
+    } else {
+      cholS_inv(chola, n, b);  //inverse of chola
     }
-    free_dmatrix(b, 1, n, 1, n);
+  } else {
+    b= cholainv;
+  }
+  
+  for (i = 1; i <= n; i++) {
+    for (j = i; j <= n; j++) {
+      int k;
+      double sum;
 
-    for (i = 2; i <= n; i++) {
-        for (j = 1; j < i; j++) {
-            aout[i][j] = aout[j][i];
-        }
+      sum = 0.0;
+      for (k = 1; k <= n; k++) { sum += b[k][i] * b[k][j]; }
+      aout[i][j] = sum;
     }
+  }
+  
+  if (cholainv == NULL) free_dmatrix(b, 1, n, 1, n);
+
+  for (i = 2; i <= n; i++) {
+    for (j = 1; j < i; j++) {
+      aout[i][j] = aout[j][i];
+    }
+  }
 }
 
 

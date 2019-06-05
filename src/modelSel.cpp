@@ -1880,31 +1880,54 @@ void dgzellgzell(double *ans, double *th, double *nvaringroup, double *ngroups, 
   - sel: sel[j] is the index of the jth selected variable
   - cholSini: cholSini[g] is the index at which the Sinv and cholSinv for group g should start
   - XtX: XtX[sel[j],sel[l]] is the entry in the Gram matrix corresponding to variables (sel[j],sel[l])
-  - taugroup: prior dispersion parameter
+  - tau: prior dispersion parameter for groups with 1 variable
+  - taugroup: prior dispersion parameter for groups with >1 variables
 
   OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants. 
 
   If A is the submatrix of XtX corresponding to group j, then the precision matrix for group g is
 
-  (nvaringroups / taugroup) A
+  (1 / tau) A, if nvaringroups ==1 and orthoapprox==false
+
+  (1 / tau), if nvaringroups ==1 and orthoapprox==true
+
+  (nvaringroups / taugroup) A, if nvaringroups >1
 
   and it is stored in Sinv[cholSini[g]...cholSini[g+1]-1], its Cholesky decomp in cholSinv[cholSini[g]...cholSini[g+1]-1], its log-determinant is stored in ldetSinv[g]
 */
-void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *taugroup) {
+void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *tau, double *taugroup, bool orthoapprox) {
   bool posdef;
   int i, j, l, k, firstingroup, groupsize, idxini, Sidxini;
-  double ct, sqrtct;
+  double ct, sqrtct, tauinv, sqrttauinv, neglogtau;
+  if (orthoapprox) {
+    tauinv= 1.0/(*tau);
+    sqrttauinv= sqrt(tauinv);
+    neglogtau= -log(*tau);
+  }
+
   for (i=0, firstingroup=0; i< *ngroups; i++) {
     groupsize= (int) (nvaringroups[i] + .1);
     idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
     XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, ldetSinv+i, &posdef);
-    ct= nvaringroups[i] / (*taugroup); sqrtct= sqrt(ct);
-    for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
-      (*(cholSinv + Sidxini + j)) *= sqrtct;
-      Sinv[Sidxini + j]= ct * XtX->at(sel[firstingroup+l],sel[firstingroup+k]);
-      if (l< groupsize-1) { l++; } else { k++; l=k; }
+    if (groupsize==1) {
+      ct= 1.0 / (*tau);
+    } else {
+      ct= nvaringroups[i] / (*taugroup);
     }
-    ldetSinv[i] = log(ldetSinv[i]) + 2.0 * nvaringroups[i] * log(sqrtct);
+    sqrtct= sqrt(ct);
+    if ((!orthoapprox) || (groupsize>1)) {
+      for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
+	(*(cholSinv + Sidxini + j)) *= sqrtct;
+	Sinv[Sidxini + j]= ct * XtX->at(sel[firstingroup+l],sel[firstingroup+k]);
+	if (l< groupsize-1) { l++; } else { k++; l=k; }
+      }
+      ldetSinv[i] = log(ldetSinv[i]) + 2.0 * nvaringroups[i] * log(sqrtct);
+    } else {
+      cholSinv[Sidxini]= sqrttauinv;
+      Sinv[Sidxini]= tauinv;
+      ldetSinv[i] = neglogtau;
+    }
+
     firstingroup += groupsize;
   }
 }
@@ -2303,12 +2326,12 @@ void anegloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, in
 void anegloglnormalAFTgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, idxj, nuncens, n= *((*pars).n);
-  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, *pnormres, ytres, *sumy2obs, sumy2D, r;
+  double rho= th[*thlength -1], exprho, *y= (*pars).y, *x= (*pars).x, *res, *pnormres, ytres, sumy2D, r;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);
   res= (*funargs)["residuals"];
   pnormres= (*funargs)["pnormres"];
-  sumy2obs= (*funargs)["sumy2obs"];
+  //sumy2obs= (*funargs)["sumy2obs"];
   idxj= *((*pars).n) * sel[j];
   (*grad)= 0;
 
@@ -2473,12 +2496,19 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
    */
 
   std::map<string, double *> funargs;
-  bool posdef;
+  bool posdef, orthoapprox;
   int i, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1;
-  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *pnormres, *g, **H, **Hinv;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *pnormres, *g, **H, **Hinv, **cholH;
   modselFunction *msfun;
 
+  g= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
+   
   y= (*pars).y;
+
+  if (priorcode == 13) {
+      if ((*(*pars).method ==2) | ((*(*pars).method == -1) & ((*nsel)>0)))  { orthoapprox= true; }
+  }
+
   //Initialize static elements in funargs (not changed by msfun)
   uncens= (*pars).uncens;
   for (i=0; (i< *((*pars).n) && (uncens[i]==1)); i++) { sumy2obs+= y[i] * y[i]; }
@@ -2500,7 +2530,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   funargs["cholSini"]= cholSini; //cholSini[j] is the index in cholSinv at which Sinv_j starts
 
   cholSinv= dvector(0, cholSsize); Sinv= dvector(0, cholSsize);
-  gzell_Sinv(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).taugroup);
+  gzell_Sinv(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).tau, (*pars).taugroup, orthoapprox);
   funargs["ldetSinv"]= ldetSinv; funargs["cholSinv"]= cholSinv; funargs["Sinv"]= Sinv;
 
   //Initialize dynamic elements in funargs (changed by msfun)
@@ -2519,17 +2549,13 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
 
   //Approx mode under group Zellner prior
-  g= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength);
-
   for (i=0; i< thlength; i++) thini[i]= 0;
   msfun->evalfun(&fini, thini, &funargs); //call evalfun for its side effect of initializing funargs
   msfun->hess(H, thini, sel, &thlength, pars, &funargs);
   inv_posdef(H, thlength, Hinv, &posdef);
   for (i=0; i< thlength; i++) { msfun->gradUniv(g+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
   Ax(Hinv,g,thini-1,1,thlength,1,thlength);
-
-  free_dvector(g,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength);
-
+ 
   //Stored posterior mode under previously visited model
   if (*((*pars).usethinit) == 2) {
     for (i=0; i< *nsel; i++) { thopt[i]= ((*pars).thinit)[sel[i]]; }
@@ -2565,11 +2591,13 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
 
   //Find posterior mode
   if (priorcode != 43) {
-    if (priorcode==13) {
-      msfun->fun= &fpmomgzellSurv;
-      msfun->funupdate= &fpmomgzellSurvupdate;
-      msfun->gradhessUniv= &fpmomgzellgradhess;
-      msfun->hess= &fpmomgzellhess;
+    if (priorcode == 13) {
+      if (!orthoapprox) {
+	msfun->fun= &fpmomgzellSurv;
+	msfun->funupdate= &fpmomgzellSurvupdate;
+	msfun->gradhessUniv= &fpmomgzellgradhess;
+	msfun->hess= &fpmomgzellhess;
+      }
     } else if (priorcode==33) {
       msfun->fun= &fpemomgzellSurv;
       msfun->funupdate= &fpemomgzellSurvupdate;
@@ -2581,19 +2609,36 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   }
 
   //Avoid exact zeroes (0 prior density under non-local priors)
-  for (i=0; i< *nsel; i++) {
-    if (fabs(thini[i]) < 1.0e-5) {
-      double fminus, fplus;
-      thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
-      thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);
-      if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+  if ((priorcode != 43) && (!((priorcode == 13) && orthoapprox))) {
+    for (i=0; i< *nsel; i++) {
+      if (fabs(thini[i]) < 1.0e-5) {
+	double fminus, fplus;
+	thini[i]= -1.0e-5; msfun->evalfun(&fminus, thini, &funargs);
+	thini[i]=  1.0e-5; msfun->evalfun(&fplus, thini, &funargs);;
+	if (fminus<=fplus) { thini[i]= -1.0e-5; } else { thini[i]= 1.0e-5; }
+      }
     }
   }
-
+    
   msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
-  
-  ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
 
+  ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
+ //ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
+
+  if ((priorcode == 13) && orthoapprox) { //orthogonal approx to posterior expectation of MOM penalty
+    int idx;
+    double pen=0, logtau= log(*((*pars).tau));
+
+    inv_posdef(H, thlength, Hinv, &posdef, cholH); //compute Hinv
+    for (i=0; i< nselgroupsint; i++) {
+      if (nvarinselgroups[i] < 1.1) {
+	idx= (int) (firstingroup[i]+.1);
+	pen += log(thopt[idx]*thopt[idx] + Hinv[idx+1][idx+1]) - logtau;
+      }
+    }
+    ans += pen;
+  }
+  
   //Store optimal value for use in subsequent calls
   if (*((*pars).usethinit) > 0) {
     int iall;
@@ -2607,6 +2652,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   }
 
   //Free memory
+  free_dvector(g,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength); free_dmatrix(cholH, 1,thlength,1,thlength);
   free_dvector(thopt, 0, *nsel);
   free_dvector(thini, 0, *nsel);
   free_dvector(residuals, 0, *((*pars).n));

@@ -193,6 +193,8 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars);
 void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
 void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *family, int *prCoef, int *prGroup, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
+
+void update_postMode(int *postMode, int nselnew, int *selnew, int p, int family);
 bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndropgroups, intptrvec *constraints, int *nconstraints, intptrvec *invconstraints, int *ninvconstraints, int *groups, int *nvaringroup, int *sel, int *nsel);
 void sel2selnew(int newgroup, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast, int *ngroups, int *nvaringroup, int *firstingroup);
 void findselgroups(double *nvarinselgroups, double *firstingroup, double *nselgroups, double *selgroups, int *sel, int *nsel, int *nvaringroup, int *ngroups);

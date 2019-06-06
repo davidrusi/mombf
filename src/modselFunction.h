@@ -53,6 +53,8 @@ typedef void (*pt2hess)(double **H, double *th, int *sel, int *thlength, struct 
 //
 // - cda, blockcda: Coordinate Descent Algorithms using updateUniv
 // - cdaNewton, blockcdaNewton: Newton-based CDA using gradhess
+// - Newton: Newton-Raphson (modifying Hessian to be +def whenever needed)
+// - laplaceapprox: Laplace approximation to the integrated likelihood
 
 
 

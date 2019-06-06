@@ -16,7 +16,7 @@
   probability model using an iterative block search.
 }
 \usage{
-modelSelection(y, x, data, smoothterms, nknots=14,
+modelSelection(y, x, data, smoothterms, nknots=9,
 groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
 enumerate, includevars=rep(FALSE,ncol(x)),
 maxvars, niter=10^4, thinning=1,

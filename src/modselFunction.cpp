@@ -346,7 +346,7 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
   if ((this->hess)==NULL) Rf_error("To run Newton you need to specify hess");
   if ((this->gradUniv)==NULL) Rf_error("To run Newton you need to specify gradUniv");
 
-  thnew= dvector(1,this->thlength); delta= dvector(1,this->thlength); g= dvector(1,this->thlength);
+  thnew= dvector(0,this->thlength -1); delta= dvector(1,this->thlength); g= dvector(1,this->thlength);
   H= dmatrix(1,this->thlength,1,this->thlength); Hinv= dmatrix(1,this->thlength,1,this->thlength);
   
   this->evalfun(fopt, thini, funargs); //call evalfun and initialize funargs
@@ -368,15 +368,15 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
     }
     
     for (j=0; j< this->thlength; j++) { this->gradUniv(g+1+j, j, thopt, this->sel, &(this->thlength), this->pars, funargs); }
-    Ax(Hinv,g,delta-1,1,this->thlength,1,this->thlength);
+    Ax(Hinv,g,delta,1,this->thlength,1,this->thlength);
 
-    for (j=0; j< this->thlength; j++) { thnew[j]= thopt[j] - delta[j]; }
+    for (j=0; j< this->thlength; j++) { thnew[j]= thopt[j] - delta[j+1]; }
     
     this->evalfun(&fnew, thnew, funargs); //call evalfun and initialize funargs
 
     if (fnew < *fopt) {
       
-      for (j=0; j< this->thlength; j++) { therr= max_xy(therr, fabs(thopt[j]-thopt[j])); thopt[j]= thnew[j]; }
+      for (j=0, therr=0; j< this->thlength; j++) { therr= max_xy(therr, fabs(thopt[j]-thnew[j])); thopt[j]= thnew[j]; }
       ferr= *fopt - fnew;
       (*fopt)= fnew;
 
@@ -390,7 +390,7 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
 
   }
 
-  free_dvector(thnew, 1,this->thlength); free_dvector(delta,1,this->thlength); free_dvector(g,1,this->thlength);
+  free_dvector(thnew, 0,this->thlength -1); free_dvector(delta,1,this->thlength); free_dvector(g,1,this->thlength);
   free_dmatrix(H, 1,this->thlength,1,this->thlength); free_dmatrix(Hinv, 1,this->thlength,1,this->thlength);
   
 }

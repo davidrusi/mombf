@@ -19,7 +19,7 @@
 modelSelection(y, x, data, smoothterms, nknots=9,
 groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
 enumerate, includevars=rep(FALSE,ncol(x)),
-maxvars, niter=10^4, thinning=1,
+maxvars, niter=5000, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef,
 priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints=priorDelta,

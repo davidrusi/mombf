@@ -158,7 +158,7 @@ defaultmom= function(outcometype=outcometype,family=family) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=10^4, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors

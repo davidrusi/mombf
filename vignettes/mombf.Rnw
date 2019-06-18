@@ -1,0 +1,1097 @@
+\documentclass[a4paper,12pt]{article}
+%\VignetteIndexEntry{Manual for the mombf library}
+%\VignettePackage{mombf}
+
+\usepackage{Sweave}
+\usepackage{amsmath}    % need for subequations
+\usepackage{amssymb}    %useful mathematical symbols
+\usepackage{bm}         %needed for bold greek letters and math symbols
+\usepackage{graphicx}   % need for PS figures
+\usepackage{verbatim}   % useful for program listings
+%\usepackage{color}      % use if color is used in text
+\usepackage{hyperref}   % use for hypertext links, including those to external documents and URLs
+\usepackage{natbib}    %number and author-year style referencing
+\usepackage{epsf}
+\usepackage{lscape}
+\bibpunct{(}{)}{;}{a}{,}{,}
+
+%Theorem environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\newtheorem{defn}{Definition}
+\newtheorem{example}{Example}
+\newcommand{\qed}{\nobreak \ifvmode \relax \else
+      \ifdim\lastskip<1.5em \hskip-\lastskip
+      \hskip1.5em plus0em minus0.5em \fi \nobreak
+      \vrule height0.75em width0.5em depth0.25em\fi}
+
+\pagestyle{empty} % use if page numbers not wanted
+
+\begin{document}
+
+\title{Bayesian model selection and averaging with mombf}
+\author{David Rossell}
+\date{}  %comment to include current date
+\maketitle
+
+The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
+for regression (linear, asymmetric linear, median and quantile regression, accelerated failure times) and mixture models.
+This is the main package implementing {\it non-local priors} (NLP)
+but some other priors are also implemented, e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures.
+NLPs are briefly reviewed here, see \cite{johnson:2010,johnson:2012} for their model selection properties
+and \cite{rossell:2017} for parameter estimation and posterior sampling.
+The main \texttt{mombf} features are:
+
+\begin{itemize}
+\item Density, cumulative density, quantiles and random numbers for NLPs
+
+\item BMS (Section \ref{sec:priors}, \cite{johnson:2010,johnson:2012})
+and BMA (Section \ref{sec:bma}, \cite{rossell:2017}) in linear regression.
+
+\item Exact BMS and BMA under orthogonal and block-diagonal linear regression
+(Section \ref{sec:block_diag}, \cite{papaspiliopoulos:2016}).
+
+\item BMS and BMA for certain generalized linear models (Section \ref{sec:bfglm}, \cite{johnson:2012,rossell:2013b})
+
+\item BMS in linear regression with non-normal residuals \citep{rossell:2018b}. Particular cases are Bayesian versions
+  of asymmetric least squares, median and quantile regression.
+
+\item BMS for Accelerated Failure Time models.
+
+\item BMS for mixture models (Section \ref{sec:mixtures}, currently only Normal mixtures) \citep{fuquene:2018}.
+\end{itemize}
+
+This manual introduces basic notions underlying NLPs
+and the main R functions implementing model selection and averaging.
+Most of these are internally implemented in C++ so, while they are not optimal in any sense
+they are designed to be minimally scalable to large sample sizes $n$ and high dimensions (large $p$).
+
+
+
+\section{Quick start}
+\label{sec:quickstart}
+
+
+The main BMS function is \texttt{modelSelection}. BMA is also available for some models, mainly linear regression and Normal mixtures.
+Details are in subsequent sections, here we illustrate quickly how to get posterior model probabilities,
+marginal posterior inclusion probabilities,
+BMA point estimates and posterior intervals for the regression coefficients and predicted outcomes.
+
+
+\footnotesize
+<<quickstart>>=
+library(mombf)
+set.seed(1234)
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x %*% theta + rnorm(100)
+
+#Default MOM prior on parameters
+priorCoef <- momprior(tau=0.348)
+
+#Beta-Binomial prior for model space
+priorDelta <- modelbbprior(1,1)
+
+#Model selection
+fit1 <- modelSelection(y ~ x[,1]+x[,2]+x[,3], priorCoef=priorCoef, priorDelta=priorDelta)
+
+#Posterior model probabilities
+postProb(fit1)
+
+#BMA estimates, 95% intervals, marginal post prob
+coef(fit1)
+
+#BMA predictions for y, 95% intervals
+ypred= predict(fit1)
+head(ypred)
+cor(y, ypred[,1])
+@
+\normalsize
+
+
+
+\section{Basics on non-local priors}
+\label{sec:priors}
+
+The basic motivation for NLPs is what one may denominate the {\it model separation principle}.
+The idea is quite simple, suppose we are considering a (possibly infinite) set of probability models
+$M_1,M_2,\ldots$ for an observed dataset $y$,
+if these models overlap then it becomes hard to tell which of them generated $y$.
+The notion is important because the vast majority of applications
+consider nested models: if say $M_1$ is nested within $M_2$ then these two models are not well-separated.
+Intuitively, if $y$ are truly generated from $M_1$
+then $M_1$ will receive high integrated likelihood
+however that for $M_2$ will also be relatively large given that $M_1$ is contained in $M_2$.
+We remark that the notion remains valid when none of the posed models are true,
+in that case $M_1$ is the model of smallest dimension
+minimizing Kullback-Leibler divergence to the data-generating distribution of $y$.
+A usual mantra is that performing Bayesian model selection via posterior model probabilities
+(equivalently, Bayes factors)
+automatically incorporates Occam's razor, e.g. $M_1$ will eventually be favoured over $M_2$
+as the sample size $n \rightarrow \infty$.
+This statement is correct but can be misleading: there is no guarantee that parsimony is enforced to an adequate extent,
+indeed it turns out to be insufficient in many practical situations even for small $p$.
+This issue is exacerbated for large $p$ to the extent
+that one may even loose consistency of posterior model probabilities \citep{johnson:2012}
+unless sufficiently strong sparsity penalities are introduced into the model space prior.
+See \citep{rossell:2018} for theoretical results on what priors achieve model selection consistency
+and a discussion on how set priors that balance sparsity versus power to detect truly active coefficients.
+
+
+Intuitively, NLPs induce a probabilistic separation between the considered models which,
+aside from being philosophically appealing (to us), one can show mathematically leads to stronger parsimony.
+When we compare two nested models and the smaller one is true
+the resulting BFs converge faster to 0 than when using conventional priors and,
+when the larger model is true, they present the usual exponential convergence rates in standard procedures.
+That is, the extra parsimony induced by NLPs is data-dependent, as opposed to inducing sparsity
+by formulating sparse model prior probabilities or increasingly vague prior distributions on model-specific parameters.
+
+To fix ideas we first give the general definition of NLPs and then proceed to show some examples.
+Let $y \in \mathcal{Y}$ be the observed data with density $p(y \mid \theta)$
+where $\theta \in \Theta$ is the (possibly infinite-dimensional) parameter.
+Suppose we are interested in comparing a series of models $M_1,M_2,\ldots$
+with corresponding parameter spaces $\Theta_k \subseteq \Theta$
+such that $\Theta_j \cap \Theta_k$ have zero Lebesgue measure for $j \neq k$
+and, for precision, there exists an $l$ such that $\Theta_l= \Theta_j \cap \Theta_k$
+so that the whole parameter space is covered.
+\begin{defn}
+A prior density $p(\theta \mid M_k)$ is a non-local prior under $M_k$ iff
+$\lim p(\theta \mid M_k)=0$ as $\theta \rightarrow \theta_0$ for any $\theta_0 \in \Theta_j \subset \Theta_k$.
+\label{def:nlp}
+\end{defn}
+
+In words, $p(\theta \mid M_k)$ vanishes
+as $\theta$ approaches any value that would be consistent with a submodel $M_j$.
+Any prior not satisfying Definition \ref{def:nlp} is a {\it local prior} (LP).
+As a canonical example, suppose that $y=(y_1,\ldots,y_n)$ with independent $y_i \sim N(\theta,\phi)$ and known $\phi$,
+and that we entertain the two following models:
+\begin{align}
+M_1: \theta = 0 \nonumber \\
+M_2: \theta \neq 0 \nonumber
+\end{align}
+Under $M_1$ all parameter values are fully specified, the question is thus reduced to setting $p(\theta \mid M_2)$.
+Ideally this prior should reflect one's knowledge or beliefs about likely values of $\theta$, conditionally on the fact that $\theta \neq 0$.
+The left panel in Figure \ref{fig:priorplot} shows two LPs, specifically the unit information prior $\theta \sim N(0,1)$
+and a heavy-tailed alternative $\theta \sim \mbox{Cachy}(0,1)$ as recommended by Jeffreys.
+These assign $\theta=0$ as their most likely value a priori, even though $\theta=0$ is not even a possible value under $M_2$,
+which we view as philosophically unappealing.
+The right panel shows three NLPs (called MOM, eMOM and iMOM, introduced below). Their common defining feature is their
+vanishing as $\theta \rightarrow 0$, thus probabilistically separating $M_2$ from $M_1$ or,
+to borrow terminology from the stochastic processes literature, inducing a repulsive force between $M_1$ and $M_2$.
+As illustrated in the figure beyond this defining feature the user is free to choose any other desired property,
+e.g. the speed at which $p(\theta \mid M_2)$ vanishes at the origin, prior dispersion, tail thickness
+or in multivariate cases the prior dependence structure.
+
+Once the NLP has been specified inference proceeds as usual, e.g. posterior model probabilities are
+\begin{align}
+p(M_k \mid y)= \frac{p(y \mid M_k) p(M_k)}{\sum_{j}^{} p(y\mid M_j) p(M_j)}
+\label{eq:ppmodel}
+\end{align}
+where $p(y \mid M_k)= \int p(y \mid \theta) dP(\theta \mid M_k)$ is the integrated likelihood under $M_k$
+and $p(M_k)$ the prior model probability. Similarly, inference on parameters can be carried out
+conditional on any chosen model via $p(\theta \mid M_k,y) \propto p(y \mid \theta) p(\theta \mid M_k)$
+or via Bayesian model averaging $p(\theta \mid y)= \sum_{k}^{} p(\theta \mid M_k,y) p(M_k\mid y)$.
+A useful construction \citep{rossell:2017} is that any NLP can be expressed as
+\begin{align}
+p(\theta \mid M_k)= \frac{p(\theta \mid M_k)}{p^L(\theta \mid M_k)} p^L(\theta \mid M_k)=
+d_k(\theta) p^L(\theta \mid M_k),
+\label{eq:nlp_from_lp}
+\end{align}
+where $p^L(\theta \mid M_k)$ is a LP and $d_k(\theta)=p(\theta \mid M_k)/p^L(\theta \mid M_k)$ a penalty term.
+Simple algebra shows that
+\begin{align}
+p(y \mid M_k)= p^L(y \mid M_k) E^L(d_k(\theta) \mid M_k,y),
+\label{eq:marglhood_nlp}
+\end{align}
+where $E^L(d_k(\theta) \mid M_k,y)= \int d_k(\theta) dP^L(\theta \mid M_k,y)$ is the posterior mean of the penalty term under the underlying LP.
+That is, the integrated likelihood under a NLP is equal to that under a LP times the posterior expected penalty under that LP.
+The construction allows to use NLPs in any situation where LPs are already implemented,
+all one needs is $p^L(y \mid M_k)$ or an estimate thereof and posterior samples under $p^L(\theta \mid y,M_k)$.
+We remark that most functions in mombf do not rely on construction \eqref{eq:nlp_from_lp}
+but instead work directly with NLPs, as this is typically more efficient computationally.
+For instance, there are closed-form expressions and Laplace approximations to $p(y \mid M_k)$ \citep{johnson:2012},
+and one may sample from $p(\theta \mid M_k,y)$ via simple latent truncation representations \citep{rossell:2017}.
+
+
+Up to this point we kept the discussion as generic as possible, Section \ref{sec:prodvsadditive} illustrates NLPs for variable selection
+and mixture models.
+For extensions to other settings see \cite{consonni:2010} for directed acyclic graphs under an objective Bayes framework,
+\cite{chekouo:2015} for gene regulatory networks, \cite{collazo:2016} for chain event graphs, or \cite{fuquene:2016} for finite mixture models.
+We also remark that this manual focuses mainly on practical aspects. Readers interested in theoretical NLP properties
+should see \cite{johnson:2010} and \cite{rossell:2017} for an asymptotic characterization
+under asymptotically Normal models with fixed $\mbox{dim}(\Theta)$,
+essentially showing that $E^L(d_k(\theta) \mid M_k,y)$ leads to stronger parsimony,
+\cite{fuquene:2016} for similar results in mixture models,
+and Rossell and Rubio (work in progress) for robust linear regression with non-normal residuals where data may be generated
+by a model other than those under consideration (M-complete).
+Regarding high-dimensional results
+\cite{johnson:2012} prove that under certain linear regression models $p(M_t \mid y) \stackrel{P}{\longrightarrow} 1$ as $n \rightarrow \infty$
+where $M_t$ is the data-generating truth when using NLPs and $p=O(n^{\alpha})$ with $\alpha<1$.
+The authors also proved the conceptually stronger result that $p(M_t \mid y) \stackrel{P}{\longrightarrow} 0$ under LPs,
+which implies that NLPs are a necessary condition for strong consistency in high dimensions
+(unless extra parsimony is induced via $p(M_k)$ or increasingly diffuse $p(\theta \mid M_k)$ as $n$ grows,
+but this may come at a loss of signal detection power).
+\cite{shin:2015} extend the consistency result to ultra-high linear regression with $p=O(e^{n^{\alpha}})$ with $\alpha <1$
+under certain specific NLPs.
+
+
+
+
+\section{Some default non-local priors}
+\label{sec:prodvsadditive}
+
+\subsection{Regression models}
+
+Definition \ref{def:nlp} in principle allows one to define NLPs in any manner that is convenient,
+as long as $p(\theta \mid M_k)$ vanishes for any value $\theta_0$ that would be consistent with a submodel of $M_k$.
+mombf implements some simple priors that lead to convenient implementation and interpretation
+while offering a reasonable modelling flexibility, but naturally we encourage everyone to come up with
+more sophisticated alternatives as warranted by their specific problem at hand.
+It is important to distinguish between two main strategies to define NLPs, namely imposing additive vs. product penalties.
+Additive NLPs were historically the first to be introduced \citep{johnson:2010}
+and primarily aimed to compare only two models,
+whereas product NLPs were introduced later on \citep{johnson:2012}
+for the more general setting where considers multiple models.
+Throughout let $\theta=(\theta_1,\ldots,\theta_p) \in \mathbb{R}^p$ be a vector of regression coefficients and
+$\phi$ a dispersion parameter such as the residual variance in linear regression.
+
+Suppose first that we wish to test $M_1: \theta=(0,\ldots,0)$ versus $M_2:\theta \neq (0,\ldots,0)$.
+An additive NLP takes the form
+$p(\theta \mid M_k)= d(q(\theta)) p^L(\theta \mid M_k)$,
+where $q(\theta)= \theta' V \theta$ for some positive-definite $p \times p$ matrix $V$,
+the penalty $d(q(\theta))=0$ if and only if $q(\theta)=0$
+and $p^L(\theta \mid M_k)$ is an arbitrary LP with the only restriction that $p(\theta \mid M_k)$ is proper.
+For instance,
+\begin{align}
+p_M(\theta \mid \phi,M_k) &= \frac{\theta' V \theta}{p \tau \phi}  N(\theta; 0, \tau \phi V^{-1})
+\nonumber \\
+p_E(\theta \mid \phi,M_k) &= c_E e^{-\frac{\tau\phi}{\theta' V \theta}}  N(\theta; 0, \tau \phi V^{-1})
+\nonumber \\
+p_I(\theta \mid \phi,M_k) &=  \frac{\Gamma(p/2)}{|V|^{\frac{1}{2}}(\tau \phi)^{\frac{p}{2}} \Gamma(\nu/2) \pi^{p/2}}
+ (\theta' V \theta)^{-\frac{\nu+p}{2}} e^{-\frac{\tau\phi}{\theta' V \theta}}
+\label{eq:additive_nlps}
+\end{align}
+are the so-called moment (MOM), exponential moment (eMOM) and inverse moment (iMOM) priors, respectively,
+and $c_E$ is the moment generating function of an inverse chi-square random variable evaluated at -1.
+By default $V=I$, but naturally other choices are possible.
+
+Suppose now that we wish to consider all $2^p$ models arising from setting individual elements in $\theta$ to 0.
+Product NLPs are akin to \eqref{eq:additive_nlps} but now the penalty term $d(\theta)$
+is a product of univariate penalties.
+\begin{align}
+p_M(\theta \mid \phi, M_k) = \prod_{i \in M_k}^{} \frac{\theta_i^2}{\tau
+    \phi_k} N(\theta_i; 0, \tau \phi_k)
+\nonumber \\
+p_E(\theta \mid \phi, M_k) = \prod_{i \in M_k}^{} \exp \left\{
+    \sqrt{2} - \frac{\tau \phi_k}{\theta_i^2} \right\} N(\theta_i; 0, \tau \phi_k),
+\nonumber \\
+p_I(\theta \mid \phi, M_k) = \prod_{i \in M_k}^{} \frac{(\tau \phi_k)^{\frac{1}{2}}}{\sqrt{\pi} \theta_i^2}
+\mbox{exp}\left\{ - \frac{\tau \phi_k}{\theta_i^2} \right\}.
+\label{eq:product_nlps}
+\end{align}
+This implies that $d(\theta) \rightarrow 0$ whenever any individual $\theta_i \rightarrow 0$,
+in contrast with \eqref{eq:additive_nlps} which requires the whole vector $\theta=0$.
+More generally, one can envision settings requiring a combination of additive and product penalties.
+For instance in regression models for continuous predictors product penalties are generally appropriate,
+but for categorical predictors one would like to either include or exclude all the corresponding coefficients simultaneously,
+in this sense additive NLPs resemble group-lasso type penalties and have the nice property of being
+invariant to the chosen reference category.
+At this moment mombf primarily implements product NLPs and in some cases additive NLPs,
+we plan to incorporate combined product and addivite penalties in the future.
+
+Figure \ref{fig:priorplot} displays the prior densities in the univariate case,
+where \eqref{eq:additive_nlps} and \eqref{eq:product_nlps} are equivalent.
+$p_M$ induces a quadratic penalty as $\theta \rightarrow 0$, and has the computational advantage that
+for posterior inference the penalty can often be integrated in closed-form, as it simply requires second order moments.
+$p_E$ and $p_I$ vanish exponentially fast as $\theta \rightarrow 0$,
+inducing stronger parsimony in the Bayes factors than $p_M$. This exponential term converges to 1 as $q(\theta)$ increases,
+thus the eMOM has Normal tails and the iMOM can be easily checked to have tails proportional to those of a Cauchy.
+Thick tails can be interesting to address the so-called {\it information paradox},
+namely that the posterior probability of the alternative model converges to 1 as the residual sum of squares
+from regressing $y$ on a series of covariates converges to 0 \citep{liang:2008,johnson:2010},
+although in our experience this is often not an issue unless $n$ is extremely small.
+The priors above can be extended to include nuisance regression parameters that are common to all models,
+and also to consider higher powers $q(\theta)^r$ for some $r>1$, but for simplicity we restrict attention to \eqref{eq:additive_nlps}.
+
+\texttt{modelSelection} automatically sets default prior distributions that from our experience are sensible in most applications.
+If you are happy with these defaults are not interested in how they were obtained you can skip to the next section.
+Of course, we encourage you to think what prior settings are appropriate for your problem at hand.
+In linear regression by default we set $\tau$ so that $P(|\theta/\sqrt{\phi}|>0.2)=0.99$,
+that is the signal-to-noise ratio $|\theta_j|/\sqrt{\phi}$ is a priori expected to be $>0.2$.
+The reason for choosing the 0.2 threshold is that in many applications smaller signals are not practically relevant
+(e.g. the implied contribution to the $R^2$ coefficient is small).
+Function \texttt{priorp2g} finds $\tau$ for any given threshold.
+Other useful functions are \texttt{pmom}, \texttt{pemom} and \texttt{pimom} for distribution functions,
+and \texttt{qmom}, \texttt{qemom} and \texttt{qimom} for quantiles.
+For instance, under a MOM prior $\tau=0.348$ gives $P(|\theta/\sqrt{\phi}|>0.2)=0.99$,
+
+<<priorp2g>>=
+priorp2g(.01, q=.2, prior='normalMom')
+2*pmom(-.2, tau=0.3483356)
+@
+
+For Accelerated Failure Time models $e^{\theta_j}$ is the increase in median survival time for a unit standard deviation increase in $x_j$ (for continuous variables) or between two categories (for discrete variables). A small change, say $<15\%$ (i.e. $\exp(|\theta_j|)<1.15$), is often viewed as practically irrelevant. By default we set $\tau$ such that
+\begin{eqnarray}
+  P( \vert \beta_j \vert > \log(1.15) ) = 0.99.
+  \label{eq:prior_g}
+\end{eqnarray}
+The probability in \eqref{eq:prior_g} is under the marginal priors $\pi_M(\theta_j)$, $\pi_E(\theta_j)$ and $\pi_I(\theta_j)$
+which depend on $\tau$ and on $(a_\phi,b_\phi)$.
+By default we set $a_\phi=b_\phi=3$, as then the tails of $\pi_M(\theta_j)$ and $\pi_E(\theta_j)$ are proportional to a t distribution with 3degrees of freedom and the marginal prior variance is finite.
+This gives $\tau=0.192$ for $\pi_M$ and $g_E=0.091$ for $\pi_E$.
+
+
+Prior densities can be evaluated as shown below.
+
+
+\footnotesize
+\setkeys{Gin}{width=0.5\textwidth}
+<<label=priorplota,include=FALSE>>=
+ thseq <- seq(-3,3,length=1000)
+ plot(thseq,dnorm(thseq),type='l',ylab='Prior density')
+ lines(thseq,dt(thseq,df=1),lty=2,col=2)
+ legend('topright',c('Normal','Cauchy'),lty=1:2,col=1:2)
+@
+
+\setkeys{Gin}{width=0.5\textwidth}
+<<label=priorplotb,include=FALSE>>=
+ thseq <- seq(-3,3,length=1000)
+ plot(thseq,dmom(thseq,tau=.348),type='l',ylab='Prior density',ylim=c(0,1.2))
+ lines(thseq,demom(thseq,tau=.119),lty=2,col=2)
+ lines(thseq,dimom(thseq,tau=.133),lty=3,col=4)
+ legend('topright',c('MOM','eMOM','iMOM'),lty=1:3,col=c(1,2,4))
+@
+\normalsize
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+<<label=fpriorplota,fig=TRUE,echo=FALSE>>=
+<<priorplota>>
+@
+<<label=fpriorplotb,fig=TRUE,echo=FALSE>>=
+<<priorplotb>>
+@
+\end{tabular}
+\end{center}
+\caption{Priors for $\theta$ under a model $M_2:\theta \neq 0$.
+Left: local priors. Right: non-local priors}
+\label{fig:priorplot}
+\end{figure}
+
+Another way to elicit $\tau$ is to mimic the Unit Information Prior and set the prior variance to 1,
+for the MOM prior this leads to the same $\tau$ as the earlier rule $P(|\theta/\sqrt{\phi}|>0.2)=0.99$.
+
+
+%Another helpful function for prior elicitation of $\tau$ is \texttt{mode2g},
+%which returns the $\tau$ value associated to a given prior mode $m=\arg\max_{|\theta|} p(|\theta|)$, for instance $m=0.4$ in our example below.
+%The intuition is that NLPs place most of the prior mass on $|\theta|>m$,
+%which implicitly means we have little interest in detecting $|\theta|<m$.
+%
+%\footnotesize
+%<<priortau>>=
+%prior.mode <- .4^2
+%taumom <- mode2g(prior.mode,prior='normalMom')
+%tauimom <- mode2g(prior.mode,prior='iMom')
+%taumom
+%tauimom
+%@
+%\normalsize
+
+
+\subsection{Mixture models}
+
+Let $y=(y_1,\ldots,y_n)$ be the observed data, where $n$ is the sample size.
+Denote by $M_k$ a mixture model with $k$ components and density
+\begin{align}
+p(y_i \mid \vartheta_k, M_k)= \sum_{j=1}^{k} \eta_j p(y_i \mid \theta_j),
+\label{eq:mixture}
+\end{align}
+where $\eta=(\eta_1,\ldots,\eta_k)$ are the mixture weights,
+$\theta=(\theta_1,\ldots,\theta_k)$ component-specific parameters,
+and $\vartheta_k=(\eta,\theta)$ denotes the whole parameter vector.
+For instance, for Normal mixtures $\theta_j=(\mu_j,\Sigma_j)$, where $\mu_j$ is the mean
+and $\Sigma_j$ the covariance matrix.
+A standard prior choice for such location-scale mixtures is the Normal-IW-Dir prior
+\begin{align}
+\tilde{p}(\vartheta_k \mid M_k)=
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g \Sigma_j) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \mbox{Dir}(\eta; \tilde{q})
+\label{eq:normal_iw_dir}
+\end{align}
+for some given prior parameters $(\mu_0,g,\nu_0,S_0,\tilde{q})$. This choice defines a local prior,
+which we view as unappealing in this setting: it assigns positive prior density to two components
+having the same parameters and, if $\tilde{q} \leq 1$, also to having some mixture weights $\eta_j=0$.
+
+A non-local prior on $\vartheta_k$ must penalize parameter values that would make the $k$-component
+mixture equivalent to a mixture with $<k$ components.
+As formalized in \cite{fuquene:2018} for any generically identifiable mixture this is achieved by
+penalizing zero weights ($\eta_j=0$) and any two components having the same parameter values (i.e. $\theta_j=\theta_l$ for $j\neq l$).
+Specifically, for location scale mixtures where $\theta_j=(\mu_j,\Sigma_j)$ we consider the MOM-IW-Dir prior
+$p(\vartheta_k \mid M_k)=$
+\begin{align}
+ C_k^{-1} \left[  \prod_{j<l}^{} (\mu_j-\mu_l)' A^{-1} (\mu_j-\mu_l)  \right]
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g A) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \mbox{Dir}(\eta; q)
+\label{eq:mom_iw_dir}
+\end{align}
+where $C_k$ is the prior normalization constant (implemented in mombf),
+$A^{-1}= \frac{1}{k} \sum_{j=1}^{k} \Sigma_j^{-1}$ the average precision matrix,
+$(\mu_0,g,\nu_0,S_0)$ are given prior parameters (mombf implements defaults for all of them)
+and one must have $q>1$ for \eqref{eq:mom_iw_dir} to define a non-local prior.
+
+Computing Bayes factors and posterior model probabilities turns out to be surprisingly easy
+due to two results by \cite{fuquene:2018}.
+First, the integrated likelihood under a MOM-IW-Dir prior
+\begin{align}
+  p(y \mid M_k)= \tilde{p}(y \mid M_k) \int d_k(\vartheta_k) \tilde{p}(\vartheta_k \mid y, M_k),
+  \nonumber
+\end{align}
+where $\tilde{p}(y \mid M_k)$ is the integrated likelihood associated to the Normal-IW-Dir prior,
+$\tilde{p}(\vartheta_k \mid y,M_k) \propto p(y \mid \vartheta_k,M_k) \tilde{p}(\vartheta_k \mid M_k)$ the corresponding posterior
+and $d_k(\vartheta_k)=$
+\begin{align}
+  C_k^{-1} \left[  \prod_{j<l}^{} (\mu_j-\mu_l)' A^{-1} (\mu_j-\mu_l)  \right]
+  \left[ \prod_{j=1}^{k} N(\mu_j; \mu_0, g A) \mbox{IW}(\Sigma_j; \nu_0, S_0) \right]
+  \frac{\mbox{Dir}(\eta; q)}{\mbox{Dir}(\eta; \tilde{q})}
+\label{eq:momiwdir_penalty}
+\end{align}
+is a penalty term straightforward to estimate provided one has access to posterior samples from
+$\tilde{p}(\vartheta_k \mid y,M_k)$.
+
+The second result is the following simple connection between Bayes factors and empty-component posterior probabilities:
+$$
+\frac{\tilde{p}(y \mid M_{k-1})}{\tilde{p}(y \mid M_k)}=
+\frac{1}{k a_k} \sum_{j=1}^{k} P(n_j=0 \mid y,M_k)
+$$
+where $a_k=\Gamma(kq) \Gamma(n+kq-q) / (\Gamma(kq-q) \Gamma(n+kq))$
+and $n_j$ is the number of individuals allocated to cluster $j$.
+The right-hand side requires the average marginal posterior probability of one cluster being empty $P(n_j=0 \mid y,M_k)$.
+Given $T$ posterior samples $\vartheta_k^{(1)},\ldots,\vartheta_k^{(T)}$ this
+can be estimated in a Rao-Blackwellized fashion as
+$\hat{P}(n_j=0 \mid y,M_k)=$
+$$
+\frac{1}{T} \sum_{t=1}^{T} P(n_j=0 \mid y,\vartheta_k^{(t)},M_k)=
+\frac{1}{T} \sum_{t=1}^{T} \prod_{i=1}^{n} P(z_i \neq j \mid y,\vartheta_k^{(t)},M_k),
+$$
+where $z_i \in \{1,\ldots,k\}$ for $i=1,\ldots,n$ are latent cluster indicators.
+mombf implements this computational strategy, see Section \ref{sec:mixtures} for examples.
+
+We remark that $\hat{P}(n_j=0 \mid y,M_k)$ only requires cluster allocation probabilities
+$P(z_i \neq j \mid y,\vartheta_k^{(t)},M_k)$. The latter are readily available as a by-product of any standard MCMC algorithm
+and for any parametric mixture model.
+That is relative to running a standard MCMC one can obtain $\hat{P}(n_j=0 \mid y,M_k)$
+at very little cost, further the estimator is readily applicable to non-conjugate models
+(in constrast to other estimators, see \cite{marin:2008}).
+
+
+
+\section{Variable selection for linear models}
+\label{sec:varsellm}
+
+The main function for model selection is \texttt{modelSelection}, which returns model posterior probabilities under linear regression models
+allowing for Normal, asymmetric Normal, Laplace and asymmetric Laplace residuals.
+A second interesting function is \texttt{nlpMarginal}, which computes the integrated likelihood for a given model under the same settings.
+We illustrate their use with a simple simulated dataset.
+Let us generate 100 observations for the response variable and 3 covariates,
+where the true regression coefficient for the third covariate is 0.
+
+\footnotesize
+<<varsel1>>=
+set.seed(2011*01*18)
+x <- matrix(rnorm(100*3),nrow=100,ncol=3)
+theta <- matrix(c(1,1,0),ncol=1)
+y <- x %*% theta + rnorm(100)
+@
+\normalsize
+
+
+To start with we assume Normal residuals (the default).
+We need to specify the prior distribution for the regression coefficients, the model space and the residual variance.
+We specify a product iMOM prior on the coefficients with prior dispersion \texttt{tau=.133},
+which targets the detection of standardized effect sizes above 0.2.
+Regarding the model space we use a Beta-binomial(1,1) prior \citep{scott:2010}.
+Finally, for the residual variance we set a minimally informative inverse gamma prior.
+For defining other prior distributions see the help for \texttt{msPriorSpec}
+{\it e.g.} \texttt{momprior}, \texttt{emomprior} and \texttt{zellnerprior} define MOM, eMOM and Zellner priors,
+and \texttt{modelunifprior}, \texttt{modelcomplexprior} set uniform and complexity priors on the model space
+(the latter as defined in \cite{castillo:2015}).
+
+
+\footnotesize
+<<varsel2>>=
+priorCoef <- imomprior(tau=.133)
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
+priorVar <- igprior(.01,.01)
+@
+\normalsize
+
+
+\texttt{modelSelection} enumerates all models when its argument \texttt{enumerate} is set to TRUE,
+otherwise it uses a Gibbs sampling scheme to explore the model space (saved in the slot \texttt{postSample}).
+It returns the visited model with highest posterior probability
+and the marginal posterior inclusion probabilities for each covariate
+(when using Gibbs sampling these are estimated via Rao-Blackwellization to improve accuracy).
+
+\footnotesize
+<<varsel3>>=
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar)
+fit1$postMode
+fit1$margpp
+postProb(fit1)
+
+fit2 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
+enumerate=FALSE, niter=1000)
+fit2$postMode
+fit2$margpp
+postProb(fit2,method='norm')
+postProb(fit2,method='exact')
+@
+\normalsize
+
+The highest posterior probability model is the simulation truth,
+indicating that covariates 1 and 2 should be included and covariate 3 should be excluded.
+\texttt{fit1} was obtained by enumerating the $2^3=8$ possible models,
+whereas \texttt{fit2} ran 1,000 Gibbs iterations, delivering very similar results.
+\texttt{postProb} estimates posterior probabilities by renormalizing the probability of each model conditional
+to the set of visited models when \texttt{method='norm'} (the default), otherwise it uses the proportion of Gibbs iterations spent on each model.
+
+Below we run modelSelection again but now using Zellner's prior,
+with prior dispersion set to obtain the so-called Unit Information Prior.
+The posterior mode is still the data-generating truth, albeit its posterior probability
+has decreased substantially.
+This illustrates the core issue with NLPs: they tend to concentrate more posterior probability
+around the true model (or that closest in the Kullback-Leibler sense).
+This difference in behaviour relative to LPs becomes amplified as the number of considered models becomes larger,
+which may result in the latter giving a posterior probability that converges to 0 for the true model \citep{johnson:2012}.
+
+\footnotesize
+<<varsel4>>=
+priorCoef <- zellnerprior(tau=nrow(x))
+fit3 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE, niter=10^2,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
+method='Laplace')
+postProb(fit3)
+@
+\normalsize
+
+Finally, we illustrate how to relax the assumption that residuals are Normally distributed.
+We may set the argument \texttt{family} to \texttt{'twopiecenormal'}, \texttt{'laplace'} or \texttt{'twopiecelaplace'}
+to allow for asymmetry (for two-piece Normal and two-piece Laplace) or thicker-than-normal tails (for Laplace and asymmetric Laplace).
+For instance, the maximum likelihood estimator under Laplace residuals is equivalent to median regression
+and under asymmetric Laplace residuals to quantile regression, thus these options can be interpreted as robust alternatives to Normal residuals.
+A nice feature is that regression coefficients can still be interpreted in the usual manner.
+These families add flexibility while maintaining analytical and computational tractability, e.g. they lead to convex optimization and efficient approximations to marginal likelihoods,
+and additionally to robustness we have found they can also lead to increased sensitivity to detect non-zero coefficients.
+Alas, computations under Normal residuals are inevitably faster, hence whenever this extra flexibility is not needed it is nice to
+be able to fall back onto the Normal family, particularly when $p$ is large.
+\texttt{modelSelection} and \texttt{nlpMarginal} incorporate this option by setting \texttt{family=='auto'},
+which indicates that the residual distribution should be inferred from the data.
+When $p$ is small a full model enumeration is conducted, but when $p$ is large the Gibbs scheme spends most time on models with high posterior probability,
+thus automatically focusing on the Normal family when it provides a good enough approximation and resorting to one of the alternatives when warranted by the data.
+
+For instance, in the example below there's roughly 0.95 posterior probability that residuals are Normal, hence the Gibbs algorithm would spend most time on the (faster) Normal model.
+The two-piece Normal and two-piece Laplace (also known as asymmetric Laplace) incorporate an asymmetry parameter $\alpha \in [-1,1]$,
+where $\alpha=0$ corresponds to the symmetric case (i.e. Normal and Laplace residuals).
+We set a NLP on $\mbox{atanh}(\alpha) \in (-\infty,infty)$ so that under the asymmetric model we push prior mass away from $\alpha=0$,
+which intuitively means we are interested in finding significant departures from asymmetry and otherwise we fall back onto the simpler symmetric case.
+
+\footnotesize
+<<varsel5>>=
+priorCoef <- imomprior(tau=.133)
+fit4 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta, priorVar=priorVar,
+priorSkew=imomprior(tau=.133),family='auto')
+head(postProb(fit4))
+@
+\normalsize
+
+
+All examples above use \texttt{modelSelection}, which is based on product NLPs \eqref{eq:product_nlps}.
+\texttt{mombf} also provides some (limited) functionality for additive NLPs \eqref{eq:additive_nlps}.
+The code below contains an example based on the Hald data, which has $n=13$ observations, a continuous response variable and
+$p=4$ predictors. We load the data and fit a linear regression model.
+
+\footnotesize
+<<haldlm>>=
+data(hald)
+dim(hald)
+lm1 <- lm(hald[,1] ~ hald[,2] + hald[,3] + hald[,4] + hald[,5])
+summary(lm1)
+V <- summary(lm1)$cov.unscaled
+diag(V)
+@
+\normalsize
+
+
+Bayes factors between a fitted model and a submodel where some of the variables are dropped
+can be easily computed from the \texttt{lm} output using functions \texttt{mombf} and \texttt{imombf}.
+As an example here we drop the second coefficient from the model.
+Parameter $g$ corresponds to the prior dispersion $\tau$ in our notation.
+There are several options to estimate numerically iMOM Bayes factors (for MOM they have closed form),
+here we compare adaptive quadrature with a Monte Carlo estimate.
+
+\footnotesize
+<<three>>=
+mombf(lm1,coef=2,g=0.348)
+imombf(lm1,coef=2,g=.133,method='adapt')
+imombf(lm1,coef=2,g=.133,method='MC',B=10^5)
+@
+\normalsize
+
+
+
+\section{Parameter estimation}
+\label{sec:bma}
+
+A natural question after performing model selection is obtaining estimates for the parameters.
+\cite{rossell:2017} developed a general posterior sampling framework for NLPs based on Gibbs sampling
+an augmented probability model that expresses NLPs as mixtures of truncated distributions.
+The methodology is implemented in function \texttt{rnlp}.
+Its basic use is simple, by setting parameter \texttt{msfit} to the output of \texttt{modelSelection}
+the function produces posterior samples under each model $\gamma$ visited by \texttt{modelSelection}.
+The number of samples is proportional to its posterior probability $p(\gamma \mid y)$,
+thus averaging the output gives Bayesian model averaging estimates
+$E(\theta \mid y)= \sum_{\gamma}^{} E(\theta \mid \gamma,y) p(\gamma \mid y)$
+and likewise for the residual variance $E(\phi \mid y)$.
+For convenience the method \texttt{coef} extracts such BMA estimates,
+along with BMA 95\% posterior intervals and marginal posterior inclusion probabilities
+(i.e. when such inclusion probability is large there's Bayesian evidence that the
+variable has an effect).
+
+\footnotesize
+<<rnlp>>=
+priorCoef <- momprior(tau=.348)
+priorDelta <- modelbbprior(alpha.p=1,beta.p=1)
+fit1 <- modelSelection(y=y, x=x, center=FALSE, scale=FALSE,
+priorCoef=priorCoef, priorDelta=priorDelta)
+b <- coef(fit1)
+head(b)
+th <- rnlp(msfit=fit1,priorCoef=priorCoef,niter=10000)
+colMeans(th)
+head(th)
+@
+\normalsize
+
+From this output we can obtain model-specific posterior means.
+
+\footnotesize
+<<rnlp>>=
+model <- apply(th!=0,1,function(z) paste(which(z),collapse=','))
+table(model)
+colMeans(th[model=='1,2,4',])
+colMeans(th[model=='1,2,3,4',])
+@
+\normalsize
+
+Another interestingn use of \texttt{rnlp} is to obtain posterior samples under a generic non-local posterior
+$$p(\theta \mid y) \propto d(\theta) N(\theta; m, V),$$
+where $d(\theta)$ is a non-local prior penalty and $N(\theta;m,V)$ is the normal posterior that one would obtain
+under the underlying local prior.
+For instance, suppose our prior is proportional to Zellner's prior times a product MOM penalty
+$p(\theta) \propto \prod_{j}^{} \theta_j^2 N(\theta;0,n\tau \phi (X'X)^{-1})$
+where $\phi$ is the residual variance, then the posterior is proportional to
+$p(\theta \mid y) \propto \prod_{j}^{} \theta_j^2 N(\theta;m, V)$
+where $m=s_\tau (X'X)^{-1}X'y$, $V=\phi (X'X)^{-1} s_{\tau}^2$ where $s_\tau=n\tau/(1+n\tau)$ is the usual ridge regression shrinkage factor.
+We may obtain posterior samples as follows.
+Note that the posterior mean is close to that obtained above.
+
+\footnotesize
+<<rnlponemodel>>=
+tau= 0.348
+shrinkage= nrow(x)*tau/(1+nrow(x)*tau)
+V= shrinkage * solve(t(x) %*% x)
+m= as.vector(shrinkage * V %*% t(x) %*% y)
+phi= mean((y - x%*%m)^2)
+th= rnlp(m=m,V=phi * V,priorCoef=momprior(tau=tau))
+colMeans(th)
+@
+\normalsize
+
+
+\section{Exact inference for block-diagonal regression}
+\label{sec:block_diag}
+
+\cite{papaspiliopoulos:2016} proposed a fast computational framework to compute exact
+posterior model probabilities, variable inclusion probabilities and parameter estimates
+for Normal linear regression when the $X'X$ matrix is block-diagonal.
+Naturally this includes the important particular case of orthogonal regression where $X'X$ is diagonal.
+The framework performs a fast model search that finds the best model of each size (i.e. with $1,2,\ldots,p$ variables)
+and a fast deterministic integration to account for the fact that the residual variance is uknown
+(the residual variance acts as a "cooling" parameter that affects how many variables
+are included, hence the associated uncertainty must be dealt with appropriately).
+The function \texttt{postModeOrtho} tackles the diagonal $X'X$ case
+and \texttt{postModeBlockDiag} the block-diagonal case.
+
+The example below simulates $n=210$ observations with $p=200$ variables where all regression coefficients
+are 0 except for the last three (0.5, 0.75, 1) and the residual variance is one.
+We then perform variable selection under Zellner's and the MOM prior.
+
+\footnotesize
+<<bmsortho>>=
+set.seed(1)
+p <- 200; n <- 210
+x <- scale(matrix(rnorm(n*p),nrow=n,ncol=p),center=TRUE,scale=TRUE)
+S <- cov(x)
+e <- eigen(cov(x))
+x <- t(t(x %*% e$vectors)/sqrt(e$values))
+th <- c(rep(0,p-3),c(.5,.75,1)); phi <- 1
+y <- x %*% matrix(th,ncol=1) + rnorm(n,sd=sqrt(phi))
+priorDelta=modelbinomprior(p=1/p)
+priorVar=igprior(0.01,0.01)
+
+priorCoef=zellnerprior(tau=n)
+pm.zell <-
+postModeOrtho(y,x=x,priorCoef=priorCoef,priorDelta=priorDelta,
+priorVar=priorVar,bma=TRUE)
+head(pm.zell$models)
+
+priorCoef=momprior(tau=0.348)
+pm.mom <- postModeOrtho(y,x=x,priorCoef=priorCoef,priorDelta=priorDelta,
+priorVar=priorVar,bma=TRUE)
+head(pm.mom$models)
+@
+
+\texttt{postModelBlockDiag} returns a list with the best model of each size
+and its corresponding (exact) posterior probability,
+displayed in Figure \ref{fig:bmsorthopp} (left panel).
+It also returns marginal inclusion probabilities and BMA estimates, shown in the right panel.
+The code required to produce these figures is below.
+
+\footnotesize
+\setkeys{Gin}{width=0.5\textwidth}
+<<label=bmsorthopp,include=FALSE>>=
+par(mar=c(5,5,1,1))
+nvars <- sapply(strsplit(as.character(pm.zell$models$modelid),split=','),length)
+plot(nvars,pm.zell$models$pp,ylab=expression(paste("p(",gamma,"|y)")),
+xlab=expression(paste("|",gamma,"|")),cex.lab=1.5,ylim=0:1,xlim=c(0,50))
+sel <- pm.zell$models$pp>.05
+text(nvars[sel],pm.zell$models$pp[sel],pm.zell$models$modelid[sel],pos=4)
+nvars <- sapply(strsplit(as.character(pm.mom$models$modelid),split=','),length)
+points(nvars,pm.mom$models$pp,col='gray',pch=17)
+sel <- pm.mom$models$pp>.05
+text(nvars[sel],pm.mom$models$pp[sel],pm.mom$models$modelid[sel],pos=4,col='gray')
+legend('topright',c('Zellner','MOM'),pch=c(1,17),col=c('black','gray'),cex=1.5)
+@
+\normalsize
+
+
+\footnotesize
+\setkeys{Gin}{width=0.5\textwidth}
+<<label=bmaortho,include=FALSE>>=
+par(mar=c(5,5,1,1))
+ols <- (t(x) %*% y) / colSums(x^2)
+plot(ols,pm.zell$bma$coef,xlab='Least squares estimate',
+ylab=expression(paste('E(',beta[j],'|y)')),cex.lab=1.5,cex.axis=1.2,col=1)
+points(ols,pm.mom$bma$coef,pch=3,col='darkgray')
+legend('topleft',c('Zellner','MOM'),pch=c(1,3),col=c('black','darkgray'))
+@
+\normalsize
+
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cc}
+<<label=bmsorthopp,fig=TRUE,echo=FALSE>>=
+<<bmsorthopp>>
+@
+&
+<<label=bmaortho,fig=TRUE,echo=FALSE>>=
+<<bmaortho>>
+@
+\end{tabular}
+\end{center}
+\caption{Posterior probability under simulated orthogonal data}
+\label{fig:bmsorthopp}
+\end{figure}
+
+
+We now illustrate similar functionality under block-diagonal $X'X$.
+To this end we consider a total $p=100$ variables split into 10 blocks of 10 variables each,
+generated in such a way that they all have unit variance and within-blocks pairwise correlation of 0.5.
+The first block has three non-zero coefficients, the second block two and the remaining blocks contain no active variables.
+
+\footnotesize
+<<bmsblockdiag1>>=
+set.seed(1)
+p <- 100; n <- 110
+blocksize <- 10
+blocks <- rep(1:(p/blocksize),each=blocksize)
+x <- scale(matrix(rnorm(n*p),nrow=n,ncol=p),center=TRUE,scale=TRUE)
+S <- cov(x)
+e <- eigen(cov(x))
+x <- t(t(x %*% e$vectors)/sqrt(e$values))
+Sblock <- diag(blocksize)
+Sblock[upper.tri(Sblock)] <- Sblock[lower.tri(Sblock)] <- 0.5
+vv <- eigen(Sblock)$vectors
+sqSblock <- vv %*% diag(sqrt(eigen(Sblock)$values)) %*% t(vv)
+for (i in 1:(p/blocksize)) x[,blocks==i] <- x[,blocks==i] %*% sqSblock
+th <- rep(0,ncol(x))
+th[blocks==1] <- c(rep(0,blocksize-3),c(.5,.75,1))
+th[blocks==2] <- c(rep(0,blocksize-2),c(.75,-1))
+phi <- 1
+y <- x %*% matrix(th,ncol=1) + rnorm(n,sd=sqrt(phi))
+@
+\normalsize
+
+\texttt{postModeBlockDiag} performs the model search using an algorithm nicknamed "Coolblock"
+(as it is motivated by treating the residual variance as a cooling parameter).
+Briefly, Coolblock visits a models of sizes ranging from 1 to p and returns the best model for that given size,
+thus also helping identify the best model overall.
+%A remark is that under the presence of strong correlations Coolblock may sometimes skip some model sizes,
+%in practice this is not a problem as these sizes are by construction extremely unlikely to contain the most probable model.
+
+\footnotesize
+<<bmsblockdiag2>>=
+priorCoef=zellnerprior(tau=n)
+priorDelta=modelbinomprior(p=1/p)
+priorVar=igprior(0.01,0.01)
+pm <- postModeBlockDiag(y=y,x=x,blocks=blocks,priorCoef=priorCoef,
+priorDelta=priorDelta,priorVar=priorVar,bma=TRUE)
+
+head(pm$models)
+head(pm$postmean.model)
+@
+\normalsize
+
+Figure \ref{fig:coolblock} shows a LASSO-type plot with the posterior means under the best model of each size visited by Coolblock.
+We appreciate how the truly active variables 8, 9, 10, 19 and 20 are picked up first.
+
+\footnotesize
+\setkeys{Gin}{width=0.5\textwidth}
+<<label=coolblock,include=FALSE>>=
+maxvars=50
+ylim=range(pm$postmean.model[,-1])
+plot(NA,NA,xlab='Model size',
+  ylab='Posterior mean given model',
+  xlim=c(0,maxvars),ylim=ylim,cex.lab=1.5)
+visited <- which(!is.na(pm$models$pp))
+for (i in 2:ncol(pm$postmean.model)) {
+  lines(pm$models$nvars[visited],pm$postmean.model[visited,i])
+}
+text(maxvars, pm$postmean.model[maxvars,which(th!=0)+1],
+paste('X',which(th!=0),sep=''), pos=3)
+@
+\normalsize
+
+
+
+
+\begin{figure}
+\begin{center}
+<<label=coolblock,fig=TRUE,echo=FALSE>>=
+<<coolblock>>
+@
+\end{center}
+\caption{Coolblock algorithm: posterior mean of regression coefficients under best model of each size}
+\label{fig:coolblock}
+\end{figure}
+
+
+
+\section{Bayes factors for generalized linear models}
+\label{sec:bfglm}
+
+At the moment \texttt{mombf} provides some limited functionality for generalized linear models.
+\texttt{pmomLM} implements probit models following the framework in \cite{rossell:2013b},
+see also \cite{nikooienejad:2016} for an alternative framework that bypasses the need to sample $\theta$
+to improve the mixing of the Markov Chain.
+
+As an illustration we simulate $n=50$ observations from a probit regression model
+with $p=2$ correlated predictors and $\theta=(\log(2),0)$.
+The predictors are stored in the matrix \texttt{x}, the success
+probabilities in the vector \texttt{p} and the observed responses in the vector \texttt{y}.
+For reproducibility purposes we set the random number generator seed.
+
+\footnotesize
+<<six>>=
+set.seed(4*2*2008)
+n <- 50; theta <- c(log(2),0)
+x <- matrix(NA,nrow=n,ncol=2)
+x[,1] <- rnorm(n,0,1); x[,2] <- rnorm(n,.5*x[,1],1)
+p <- pnorm(x %*% matrix(theta,ncol=1))
+y <- rbinom(n,1,p)
+@
+\normalsize
+
+
+\footnotesize
+<<pmomLM>>=
+th <- pmomLM(y=y,x=x,xadj=rep(1,n),niter=10000)
+head(th$postModel)
+table(apply(th$postModel,1,paste,collapse=','))
+@
+\normalsize
+
+An alternative to \texttt{pmomLM}, which considers all possible models under product NLPs,
+is to compute Bayes factors between pairs of models under additive NLPs
+using functions \texttt{momknown} and \texttt{imomknown}.
+
+Before computing Bayes factors, we fit a probit regression model with the function \texttt{glm}.
+The maximum likelihood estimates are stored in \texttt{thetahat} and
+the asymptotic covariance matrix in \texttt{V}.
+These functions take as primary arguments a vector of regression coefficients
+and their covariance matrix, and hence they
+can be used in any setting where one has a statistic that
+is asymptotically sufficient and normally distributed.
+The resulting Bayes factors are approximate.
+The functions also allow for the presence of a dispersion parameter \texttt{sigma},
+{\it i.e.} the covariance of the regression coefficients is \texttt{sigma*V},
+but they assume that \texttt{sigma} is known.
+The probit regression model that we simulated has no over-dispersion and hence
+it corresponds to \texttt{sigma=1}.
+We first compare the full model with the model resulting from excluding the second covariate (the first term corresponds to the intercept),
+setting $g=0.5$ for illustration.
+
+\footnotesize
+<<seven>>=
+glm1 <- glm(y~x[,1]+x[,2],family=binomial(link = "probit"))
+thetahat <- coef(glm1)
+V <- summary(glm1)$cov.scaled
+g <- .5
+bfmom.1 <- momknown(thetahat[2],V[2,2],n=n,g=g,sigma=1)
+bfimom.1 <- imomknown(thetahat[2],V[2,2],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.1
+bfimom.1
+@
+\normalsize
+
+Both priors result in evidence for including the first covariate.
+We now check whether the second covariate can be dropped.
+
+\footnotesize
+<<nine>>=
+bfmom.2 <- momknown(thetahat[3],V[3,3],n=n,g=g,sigma=1)
+bfimom.2 <- imomknown(thetahat[3],V[3,3],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.2
+bfimom.2
+@
+\normalsize
+
+Both Mom and iMom BF provide strong evidence in favor of the simpler model, {\it i.e.} excluding \texttt{x[,2]}.
+To compare the full model with the model that has no covariates
+({\it i.e.} only the constant term remains) we use the same
+routines, passing a vector as the first argument and a matrix as the second argument.
+
+\footnotesize
+<<ten>>=
+bfmom.0 <- momknown(thetahat[2:3],V[2:3,2:3],n=n,g=g,sigma=1)
+bfimom.0 <- imomknown(thetahat[2:3],V[2:3,2:3],n=n,nuisance.theta=2,g=g,sigma=1)
+bfmom.0
+bfimom.0
+@
+\normalsize
+
+Based on the resulting BF being close to 1, it is not clear whether the full
+model is preferable to the model with no covariates.
+
+The BF can be used to easily compute posterior probabilities for each
+of the four considered models: no covariates, only \texttt{x[,1]}, only \texttt{x[,2]}
+and both \texttt{x[,1]} and \texttt{x[,2]}.
+We assume equal probabilities {\it a priori}.
+
+\footnotesize
+<<eleven>>=
+prior.prob <- rep(1/4,4)
+bf <- c(bfmom.0,bfmom.1,bfmom.2,1)
+pos.prob <- prior.prob*bf/sum(prior.prob*bf)
+pos.prob
+@
+\normalsize
+
+The model with the highest posterior probability is the one including only \texttt{x[,1]},
+{\it i.e.} the correct model,
+and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
+
+
+\section{Model selection for mixtures}
+\label{sec:mixtures}
+
+\texttt{bfnormmix} is the main function to obtain posterior probabilities on the number of mixture components,
+as well as posterior samples for any given number of components.
+We start by simulating univariate Normal data truly arising from a single component.
+
+\footnotesize
+<<mixtures1>>=
+set.seed(1)
+n=200; k=1:3
+x= rnorm(n)
+@
+\normalsize
+
+We run \texttt{bfnormmix} based on \texttt{B=10000} MCMC iterations and default prior parameters.
+The prior dispersion $g$ in \eqref{eq:mom_iw_dir} is an important parameter
+that determines how separated one expects components to be a priori.
+Roughly speaking its default value assigns 0.95 prior probability to any two components giving a multimodal density,
+this default helps focus the analysis on detecting well-separated components and enforcing parsimony whenever components
+are poorly separated.
+The Dirichlet prior parameter $q$ is also important, \texttt{bfnormmix} allows one to specify different values for the
+MOM-IW-Dir prior in \eqref{eq:mom_iw_dir} (argument \texttt{q})
+and the Normal-IW-Dir prior in \eqref{eq:normal_iw_dir} (argument \texttt{q.niw}).
+The default $\texttt{q}$=3 helps discard components with small weights, since these could be due to over-fitting or outliers.
+
+\footnotesize
+<<mixtures2>>=
+fit= bfnormmix(x=x,k=k,q=3,q.niw=1,B=10^4)
+postProb(fit)
+@
+\normalsize
+
+Under a MOM-Dir-IW prior one assigns high posterior probability $P(M_1 \mid y) \approx 0.96$ to the data-generating truth,
+for the Normal-Dir-IW this probability is $\approx 0.753$.
+
+We can use \texttt{postSamples} to retrieve samples from the Normal-Dir-IW posterior,
+and \texttt{coef} to obtain the coresponding posterior means.
+
+
+\footnotesize
+<<mixturesNIW>>=
+mcmcout= postSamples(fit)
+names(mcmcout)
+names(mcmcout[[2]])
+colMeans(mcmcout[[2]]$eta)
+
+parest= coef(fit)
+names(parest)
+parest[[2]]
+@
+\normalsize
+
+We remark that one can reweight these samples to obtain posterior samples from the non-local MOM-Dir-IW posterior,
+these weights are given by the term $d_k(\vartheta_k)$ in \eqref{eq:momiwdir_penalty}
+and are stored in \texttt{momiw.weight}.
+As illustrated below in our example under the 2-component model the location parameters under the MOM-Dir-IW posterior
+are more separated than under the Normal-Dir-IW, as one would expect from the repulsive force between components.
+
+\footnotesize
+<<mixturesMOMIW>>=
+w= postSamples(fit)[[2]]$momiw.weight
+apply(mcmcout[[2]]$eta, 2, weighted.mean, w=w)
+apply(mcmcout[[2]]$mu, 2, weighted.mean, w=w)
+@
+\normalsize
+
+To further illustrate we simulate another dataset, this time where the data-generating truth are $k=2$ components.
+Interestingly the MOM-IW-Dir favours $k=2$ more than the Normal-IW-Dir and both clearly discard $k=1$,
+as expected given that the two components are well-separated (the means are 3 standard deviations away from each other).
+
+\footnotesize
+<<mixture2comp>>=
+set.seed(1)
+n=200; k=1:3; probs= c(1/2,1/2)
+mu1= -1.5; mu2=  1.5
+x= rnorm(n) + ifelse(runif(n)<probs[1],mu1,mu2)
+fit= bfnormmix(x=x,k=k,q=3,q.niw=1,B=10^4)
+postProb(fit)
+@
+\normalsize
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

@@ -215,7 +215,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       typeofvar[nlevels==2]= 'factor'
   } else {
       if (class(y)=="Surv") {
-          outcometype= 'Survival'; uncens= as.integer(y[,2]); y= des$y[,1]
+          outcometype= 'Survival'; uncens= as.integer(y[,2]); y= y[,1]
           ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
       } else {

@@ -389,7 +389,8 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     mf = na.action(mf)
     mt = attributes(mf)[["terms"]]  #mt is an object of class "terms" storing info about the model, see help(terms.object) for a description
     y <- model.response(mf, "any")
-    x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(y), 0)
+    x <- if (!is.empty.model(mt)) model.matrix(mt, mf) else matrix(, NROW(y), 0)
+    #x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(y), 0)
     groups <- attr(x,"assign") #group that each variable belongs to, e.g. for factors
     tab= table(groups);
     typeofvar= ifelse(groups %in% as.numeric(names(tab)[tab>1]),'factor','numeric')

@@ -12,6 +12,10 @@ To submit a Pull Request, fork `mombf`'s GitHub repository, fix some bug, improv
 and submit a Pull Request on GitHub.
 
 # `mombf` developer guide
+This section of the Contributing guide is intended for _developers_
+of `mombf` in the sense that they are expected to release new versions
+of the package, which is done via R-forge. All other contributions can
+be done with GitHub forks and Pull Requests.
 
 ## Get Started
 

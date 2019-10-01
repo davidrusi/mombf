@@ -61,7 +61,6 @@ GitHub must be merged into R-forge:
 
     $ git checkout r-forge_local
     $ git merge master
-    $ git rebase
 
 And finally, push this changes to R-forge:
 

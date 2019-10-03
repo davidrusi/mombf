@@ -81,7 +81,8 @@ recommended to work on master.
 
 ## Merge GitHub changes back into R-forge
 Once there are enough changes to release a new version of `mombf`, changes in
-GitHub must be merged into R-forge:
+GitHub must be merged into R-forge. After making sure that local master is up
+to date with GitHub master:
 
     $ git checkout r-forge_local
     $ git merge master

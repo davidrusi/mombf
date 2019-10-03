@@ -73,6 +73,7 @@ Set the local repository to track the GitHub repository too, and create a
 branch following GitHub's master:
 
     $ git remote add origin https://github.com/davidrusi/mombf.git
+    $ git fetch origin
     $ git checkout master
 
 Finally, checkout and create a feature branch to work on. It is not

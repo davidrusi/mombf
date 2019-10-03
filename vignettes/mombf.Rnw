@@ -598,7 +598,7 @@ thus automatically focusing on the Normal family when it provides a good enough 
 For instance, in the example below there's roughly 0.95 posterior probability that residuals are Normal, hence the Gibbs algorithm would spend most time on the (faster) Normal model.
 The two-piece Normal and two-piece Laplace (also known as asymmetric Laplace) incorporate an asymmetry parameter $\alpha \in [-1,1]$,
 where $\alpha=0$ corresponds to the symmetric case (i.e. Normal and Laplace residuals).
-We set a NLP on $\mbox{atanh}(\alpha) \in (-\infty,infty)$ so that under the asymmetric model we push prior mass away from $\alpha=0$,
+We set a NLP on $\mbox{atanh}(\alpha) \in (-\infty,\infty)$ so that under the asymmetric model we push prior mass away from $\alpha=0$,
 which intuitively means we are interested in finding significant departures from asymmetry and otherwise we fall back onto the simpler symmetric case.
 
 \footnotesize
@@ -941,7 +941,7 @@ can be used in any setting where one has a statistic that
 is asymptotically sufficient and normally distributed.
 The resulting Bayes factors are approximate.
 The functions also allow for the presence of a dispersion parameter \texttt{sigma},
-{\it i.e.} the covariance of the regression coefficients is \texttt{sigma*V},
+{\it i.e.} the covariance of the regression coefficients is \texttt{sigma\^{}2*V},
 but they assume that \texttt{sigma} is known.
 The probit regression model that we simulated has no over-dispersion and hence
 it corresponds to \texttt{sigma=1}.

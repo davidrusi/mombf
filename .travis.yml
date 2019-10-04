@@ -6,6 +6,10 @@ cache: packages
 warnings_are_errors: false
 r_check_args: --as-cran
 
+branches:
+  only:
+    - master
+
 matrix:
   include:
     - os: linux

@@ -19,5 +19,5 @@ matrix:
       latex: false
       r: release
       r_build_args: --no-build-vignettes
-      r_check_args: --no-vignettes --no-codoc
+      r_check_args: --no-build-vignettes --ignore-vignettes --no-vignettes --no-codoc
 

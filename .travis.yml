@@ -1,0 +1,23 @@
+# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
+
+language: r
+sudo: false
+cache: packages
+
+branches:
+  only:
+    - master
+
+matrix:
+  include:
+    - os: linux
+      r: release
+    - os: linux
+      r: oldrel
+      r_check_args: --no-build-vignettes --no-codoc
+    - os: osx
+      latex: false
+      r: release
+      r_build_args: --no-build-vignettes
+      r_check_args: --no-build-vignettes --ignore-vignettes --no-vignettes --no-codoc
+

@@ -11,7 +11,7 @@
 %\usepackage{color}      % use if color is used in text
 \usepackage{hyperref}   % use for hypertext links, including those to external documents and URLs
 \usepackage{natbib}    %number and author-year style referencing
-\usepackage{epsf}
+% \usepackage{epsf}
 \usepackage{lscape}
 \bibpunct{(}{)}{;}{a}{,}{,}
 

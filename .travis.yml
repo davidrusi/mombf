@@ -4,9 +4,6 @@ language: r
 sudo: false
 cache: packages
 
-before_install:
-  - tlmgr install epsf
-
 branches:
   only:
     - master
@@ -19,7 +16,8 @@ matrix:
       r: oldrel
       r_check_args: --no-build-vignettes --no-codoc
     - os: osx
-      sudo: true
+      latex: false
       r: release
-      r_check_args: --no-build-vignettes --no-codoc
+      r_build_args: --no-build-vignettes
+      r_check_args: --no-vignettes --no-codoc
 

@@ -19,6 +19,7 @@ matrix:
       r: oldrel
       r_check_args: --no-build-vignettes --no-codoc
     - os: osx
+      sudo: true
       r: release
       r_check_args: --no-build-vignettes --no-codoc
 

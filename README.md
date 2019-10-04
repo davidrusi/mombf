@@ -1,4 +1,7 @@
 # mombf
+
+[![Build Status](https://travis-ci.org/davidrusi/mombf.svg?branch=master)](https://travis-ci.org/davidrusi/mombf)
+
 Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.
 
 ## Installation
@@ -7,7 +10,7 @@ Bayesian model selection and averaging for regression and mixtures for non-local
 # Install mombf from CRAN
 install.packages("mombf")
 
-# Or the the development version
+# Or the development version
 # from R-forge
 install.packages("mombf", repos = "http://R-Forge.R-project.org")
 

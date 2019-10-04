@@ -10,7 +10,7 @@ Imports: Rcpp (>= 0.12.16), mclust, survival
 Suggests: parallel
 LinkingTo: Rcpp, RcppArmadillo
 Description: Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.
-License: GPL (>= 2), file LICENSE
+License: GPL (>= 2) | file LICENSE
 URL: http://mombf.r-forge.r-project.org/
 LazyLoad: yes
 Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R dmom.R emomLM.R gam.R greedyGLM.R msPriorSpec.R modelsearch.R modelSelection.R mombf.R normaliwish.R normmix.R nlpMarginal.R pmomLM.R pmomPM.R postMode.R pplProbit.R ppmodel.R rmom.R RcppExports.R testfunction.R zellnerLM.R

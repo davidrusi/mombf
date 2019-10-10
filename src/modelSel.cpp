@@ -1190,9 +1190,9 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   priorcode= mspriorCode(prCoef, prGroup, pars);
   marginalFunction= set_marginalFunction(&priorcode, knownphi, family, pars);
   priorFunction= set_priorFunction(prDelta, prConstr, family);
-  
+
   addgroups= ivector(0,1); dropgroups= ivector(0,1); newJ= dvector(0,2); ppnew= dvector(0,3); modelidx= ivector(0,3);
-  
+
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
   if ((*family)==0) {
     nbvars= (*(*pars).p)+1;
@@ -1207,7 +1207,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   nvaringroup= (*pars).nvaringroup;
   firstingroup= ivector(0,ngroups);
   for (j=1, firstingroup[0]=0; j<ngroups; j++) { firstingroup[j]= firstingroup[j-1] + nvaringroup[j-1]; }
-  
+
   //Determine if there are groups that need to be jointly sampled
   //By setting jointlysample== true the Gibbs algorithm is modified to sample jointly pairs of groups related by constraints
   //Example: group 1 is linear effect of a variable, group 2 its non-linear effect.
@@ -1230,10 +1230,10 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
     nonbinary= false;
     for (j=0; j < ngroups; j++) sample[j]= 1;
   }
-  
+
   sel= ivector(0,nbvars); selnew= ivector(0,nbvars);
   if (nonbinary) { selnew2= ivector(0,nbvars); selnew3= ivector(0, nbvars); }
-    
+
   //Initialize
   if (*verbose ==1) Rprintf("Running Gibbs sampler");
   niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
@@ -1257,20 +1257,20 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
     ilow=1; savecnt=1; iupper= *niter;
   } //if no burnin, start at i==1 & save initial value
 
-  
+
   //Iterate
   for (i=ilow; i< iupper; i++) {
     j= jgroup= 0;
     while (j< *(*pars).p) {
 
       if (sample[jgroup]>0) { //if jgroup should be sampled
-	
+
         sel2selnew(jgroup,sel,&nsel,selnew,&nselnew,copylast,&ngroups,nvaringroup,firstingroup); //copy sel into selnew, adding/removing jth group
         if (nsel > nselnew) { naddgroups= 0; ndropgroups=1; dropgroups[0]= jgroup; } else { naddgroups=1 ; ndropgroups=0; addgroups[0]= jgroup; }
         validmodel= checkConstraints(addgroups,&naddgroups,dropgroups,&ndropgroups,constraints,nconstraints,invconstraints,ninvconstraints,(*pars).groups,nvaringroup,sel,&nsel);
         if (nselnew > (*(*pars).n)) validmodel= false;
 
-        ppnew[0]= ppnewsum= 1; 
+        ppnew[0]= ppnewsum= 1;
         if (includevars[j]==0 && validmodel) { //if proposed model is valid
             if ((*family)==0) { nselplus1= nselnew+1; newJ[0]= integrals->getJoint(selnew,&nselplus1,pars); } else { newJ[0]= integrals->getJoint(selnew,&nselnew,pars); }
             if (newJ[0] > *postModeProb) { *postModeProb= newJ[0];  update_postMode(postMode, nselnew, selnew, *(*pars).p, *family); } //update posterior mode
@@ -1279,12 +1279,12 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
         } else {
 	  ppnew[1]= -0.1;
         }
-      
+
         if ((nonbinary) && sample[jgroup]==2) { //non-binary update
 
 	  jgroup2= (*invconstraints)[jgroup][0];
 	  sel2selnew(jgroup2,sel,&nsel,selnew2,&nselnew2,copylast,&ngroups,nvaringroup,firstingroup); //Model changing inclusion/exclusion of jgroup2
-	
+
 	  sel2selnew(jgroup2,selnew,&nselnew,selnew3,&nselnew3,copylast,&ngroups,nvaringroup,firstingroup); //Model changing inclusion/exclusion of (jgroup,jgroup2)
 	  if ((nsel > nselnew) && (nselnew > nselnew3)) {         //nselnew3 dropped jgroup, dropped jgroup2
 	    modelidx[0]= 2; modelidx[1]= -1; modelidx[2]= 1; modelidx[3]= 0;
@@ -1338,7 +1338,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 	      margpp[firstingroup[jgroup2]] += ppnew[k];
 	    }
 	  }
-	
+
 	} else {  //binary update
 
 	  if (includevars[j]==0 && validmodel) { //if proposed model is valid
@@ -1347,13 +1347,13 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 	    if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew[1]; } else { margpp[j]+= (1-ppnew[1]); } } //update Rao-Blackwellized inclusion probabilities
 	    u= runif();
 	    if (u < ppnew[1]) {  selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ[0]; } //update model
-	  
+
 	  } else {
 
 	    if ((i>=0) && (ndropgroups>0) && (!validmodel)) { margpp[j] += 1.0 ; } //conditional marginal inclusion prob=1
 
 	  }
-	
+
 	}
 
       } //end if jgroup should be sampled
@@ -1423,7 +1423,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
     }
   }
 
-  free_ivector(addgroups, 0,1); free_ivector(dropgroups, 0,1); free_dvector(newJ, 0,2); free_dvector(ppnew, 0,3); free_ivector(modelidx, 0,3); 
+  free_ivector(addgroups, 0,1); free_ivector(dropgroups, 0,1); free_dvector(newJ, 0,2); free_dvector(ppnew, 0,3); free_ivector(modelidx, 0,3);
   free_ivector(firstingroup,0,ngroups);
   free_ivector(sel,0,nbvars); free_ivector(selnew,0,nbvars); free_ivector(sample, 0,ngroups-1);
   if (nonbinary) { free_ivector(selnew2, 0,nbvars); free_ivector(selnew3, 0,nbvars); }
@@ -1543,7 +1543,7 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
     nchanges= 0;
     for (j=0; j < ngroups; j++) {
       if ((postMode[firstingroup[j]]==1) && (nconstraints[j]>0)) {
-	
+
 	for (i=0; i < nconstraints[j]; i++) {
 	  k= (*constraints)[j][i]; //include all variables in group k
 	  if (postMode[firstingroup[k]]==0) {
@@ -1561,7 +1561,7 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *fami
     (*postModeProb)= marginalFunction(selnew,&nselnew,pars) + priorFunction(selnew,&nselnew,pars);
   }
 
-  
+
   if (*verbose==1) Rprintf("Done.\n");
 
   free_ivector(firstingroup,0,ngroups);free_ivector(sel,0,*(*pars).p); free_ivector(selnew,0,*(*pars).p);
@@ -2016,7 +2016,7 @@ void dgzellgzell(double *ans, double *th, double *nvaringroup, double *ngroups, 
   - tau: prior dispersion parameter for groups with 1 variable
   - taugroup: prior dispersion parameter for groups with >1 variables
 
-  OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants. 
+  OUTPUT. Sinv, cholSinv and ldetSinv store the group Zellner's prior precision matrix, its Cholesky decomposition and log-determinants.
 
   If A is the submatrix of XtX corresponding to group j, then the precision matrix for group g is
 
@@ -2635,7 +2635,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   modselFunction *msfun;
 
   g= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
-  thopt= dvector(0, *nsel); thini= dvector(0, *nsel);   
+  thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
   y= (*pars).y;
 
   if (priorcode == 13) {
@@ -2687,7 +2687,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   inv_posdef(H, thlength, Hinv, &posdef);
   for (i=0; i< thlength; i++) { msfun->gradUniv(g+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
   Ax(Hinv,g,thini-1,1,thlength,1,thlength);
- 
+
   //Stored posterior mode under previously visited model
   if (*((*pars).usethinit) == 2) {
     for (i=0; i< *nsel; i++) { thopt[i]= ((*pars).thinit)[sel[i]]; }
@@ -2736,7 +2736,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
  //ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
 
-  
+
   if ((priorcode == 13) && orthoapprox) { //orthogonal approx to posterior expectation of MOM penalty
     int idx;
     double pen=0, logtau= log(*((*pars).tau));
@@ -2750,7 +2750,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     }
     ans += pen;
   }
-  
+
   //Store optimal value for use in subsequent calls
   if (*((*pars).usethinit) > 0) {
     int iall;
@@ -6202,6 +6202,130 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   return ans;
 }
 
+
+//*************************************************************************************
+// Normal's prior routines
+//*************************************************************************************
+
+// Marginal likelihood for linear models under Normal's prior. For now, the covariance matrix is assumed to be the identity
+// Input:
+// - sel: model indicator. Vector of length p indicating the index of the variables in the model (starting the indexing at 0)
+// - nsel: length of sel
+// - n: sample size (length of y)
+// - p: number of columns in XtX
+// - y: observed response vector (length n)
+// - sumy2: sum of y*y
+// - XtX: X'X where X is the design matrix (includes all covariates, even those excluded under the current model)
+// - ytX: vector of length p containing y'X (where y is the length n response vector)
+// - phi: residual variance
+// - tau: prior dispersion parameter
+// - logscale: if set to 1 result is returned in log scale
+
+SEXP normalMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
+  struct marginalPars pars;
+  int emptyint=0, SoptimMethod=1, usethinit=0;
+  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
+  crossprodmat *XtX;
+  SEXP ans;
+
+  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&usethinit,&emptydouble,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
+  rans = REAL(ans);
+  *rans= normalMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
+  delete XtX;
+  UNPROTECT(1);
+  return ans;
+}
+
+
+double normalMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
+  int i;
+  double *m, s, **S, **Sinv, detS, num, den, adj, tau= *(*pars).tau, logphi= log(*(*pars).phi), ans=0.0, zero=0;
+
+  if (*nsel ==0) {
+
+    m= dvector(1,1);
+    m[1]=0; s= sqrt(*(*pars).phi);
+    ans= dnormC_jvec((*pars).y,*(*pars).n,m[1],s,1);
+    free_dvector(m,1,1);
+
+  } else {
+
+    m= dvector(1,*nsel);
+    S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX into S
+    adj= 1/tau;
+    for (i=1; i<=(*nsel); i++) {
+      S[i][i]= S[i][i] + adj;
+    }
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+
+    num= -.5*(*(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel))/(*(*pars).phi);
+    den= .5*((*(*pars).n +.0)*(LOG_M_2PI+logphi) + (*nsel)*log(tau+1.0));
+    //den= .5*((*(*pars).n +.0)*(LOG_M_2PI+logphi) + log(detS) + (*nsel)*logtau);
+    ans= num - den;
+
+    free_dvector(m,1,*nsel);
+    free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
+}
+
+
+SEXP normalMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
+  int emptyint=0, optimMethod=1, usethinit=0;
+  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
+  struct marginalPars pars;
+  crossprodmat *XtX;
+  SEXP ans;
+
+  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&usethinit,&emptydouble,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  PROTECT(ans = Rf_allocVector(REALSXP, 1));
+  rans = REAL(ans);
+  *rans= normalMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  delete XtX;
+  UNPROTECT(1);
+  return ans;
+}
+
+double normalMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
+  int i;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
+  if (*nsel ==0) {
+
+    term1= .5*(*(*pars).n + *(*pars).alpha);
+    num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
+    ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
+
+  } else {
+
+    m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    adj= 1/tau;
+    for (i=1; i<=(*nsel); i++) {
+      S[i][i]= S[i][i] + adj;
+    }
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+    nuhalf= .5*(*(*pars).n + *(*pars).alpha);
+
+    ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
+    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
+    den= .5*(*(*pars).n * LOG_M_2PI) + .5 * (*nsel) *log((*(*pars).tau)+1.0) + gamln(&alphahalf);
+    //den= .5*(*(*pars).n * LOG_M_2PI + log(detS)) + .5 * (*nsel) *log(*(*pars).tau) + gamln(&alphahalf);
+    ans= num - den;
+
+    free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
+}
 
 
 //*************************************************************************************

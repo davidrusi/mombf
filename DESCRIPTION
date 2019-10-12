@@ -7,7 +7,7 @@ Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck, Oriol Abril
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.14.0), methods, mvtnorm, ncvreg, mgcv
 Imports: Rcpp (>= 0.12.16), mclust, survival
-Suggests: parallel
+Suggests: parallel, testthat, patrick
 LinkingTo: Rcpp, RcppArmadillo
 Description: Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.
 License: GPL (>= 2) | file LICENSE
@@ -15,6 +15,3 @@ URL: https://github.com/davidrusi/mombf
 BugReports: https://github.com/davidrusi/mombf/issues
 LazyLoad: yes
 Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R dmom.R emomLM.R gam.R greedyGLM.R msPriorSpec.R modelsearch.R modelSelection.R mombf.R normaliwish.R normmix.R nlpMarginal.R pmomLM.R pmomPM.R postMode.R pplProbit.R ppmodel.R rmom.R RcppExports.R testfunction.R zellnerLM.R
-
-
-

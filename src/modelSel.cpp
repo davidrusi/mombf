@@ -6221,7 +6221,7 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // - tau: prior dispersion parameter
 // - logscale: if set to 1 result is returned in log scale
 
-SEXP normalMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
+SEXP normalidMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
   struct marginalPars pars;
   int emptyint=0, SoptimMethod=1, usethinit=0;
   double *rans, emptydouble=0, offset=0, *taualpha=NULL;
@@ -6232,14 +6232,14 @@ SEXP normalMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssu
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&usethinit,&emptydouble,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
-  *rans= normalMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
+  *rans= normalidMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
   delete XtX;
   UNPROTECT(1);
   return ans;
 }
 
 
-double normalMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
+double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   int i;
   double *m, s, **S, **Sinv, detS, num, den, adj, tau= *(*pars).tau, logphi= log(*(*pars).phi), ans=0.0, zero=0;
 
@@ -6275,7 +6275,7 @@ double normalMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 }
 
 
-SEXP normalMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
+SEXP normalidMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
   int emptyint=0, optimMethod=1, usethinit=0;
   double *rans, emptydouble=0, offset=0, *taualpha=NULL;
   struct marginalPars pars;
@@ -6286,13 +6286,13 @@ SEXP normalMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssu
   set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&usethinit,&emptydouble,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
-  *rans= normalMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
+  *rans= normalidMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
   delete XtX;
   UNPROTECT(1);
   return ans;
 }
 
-double normalMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
+double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
   if (*nsel ==0) {

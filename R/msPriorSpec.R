@@ -195,8 +195,8 @@ zellnerprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="zellner", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
-normalprior <- function(tau, tau.adj=10^6) {
-    new("msPriorSpec", priorType="coefficients", priorDistr="normal", priorPars=c(tau=tau, tau.adj=tau.adj))
+normalidprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="normalid", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
 groupmomprior <- function(tau, tau.adj=10^6) {

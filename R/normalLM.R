@@ -1,6 +1,6 @@
 ####### MARGINAL LIKELIHOOD FOR NORMAL PRIOR
 
-normalMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
+normalidMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
 #Marginal density of the data y~N(x*theta,phi*I) under normal prior
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) x <- matrix(x,ncol=1)
@@ -14,12 +14,12 @@ normalMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
   phi <- as.double(phi); tau <- as.double(tau)
   logscale <- as.integer(logscale)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("normalMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale, ngroups, nvaringroup)
+  ans <- .Call("normalidMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
 
-normalMarginalKR <- function(y, x, phi, tau, logscale=TRUE) {
+normalidMarginalKR <- function(y, x, phi, tau, logscale=TRUE) {
   #Marginal likelihood for normal prior
   n <- length(y); p <- ncol(x)
   if (p==0) {
@@ -34,7 +34,7 @@ normalMarginalKR <- function(y, x, phi, tau, logscale=TRUE) {
 }
 
 
-normalMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logscale=TRUE, XtX, ytX) {
+normalidMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logscale=TRUE, XtX, ytX) {
 #Marginal density of the data y~N(x*theta,phi*I) under normal prior (unknown variance)
   if (is.matrix(y)) y <- as.vector(y)
   if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
@@ -49,11 +49,11 @@ normalMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logscal
   logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("normalMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda,ngroups,nvaringroup)
+  ans <- .Call("normalidMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 
-normalMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau, logscale=TRUE) {
+normalidMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau, logscale=TRUE) {
   #Marginal likelihood for normal prior
   n <- length(y); p <- ncol(x)
   if (ncol(x)==0) {

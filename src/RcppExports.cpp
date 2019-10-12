@@ -48,8 +48,8 @@ RcppExport SEXP modelSelectionEnumCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, S
 RcppExport SEXP modelSelectionGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP nlpMarginalAlaplI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP nlpMarginalSkewNormI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP normalMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP normalMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP normalidMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP normalidMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP normalmixGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP pemomMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP pimomMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -78,8 +78,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 45},
     {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     24},
     {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  22},
-    {"normalMarginalKI",      (DL_FUNC) &normalMarginalKI,      13},
-    {"normalMarginalUI",      (DL_FUNC) &normalMarginalUI,      15},
+    {"normalidMarginalKI",    (DL_FUNC) &normalidMarginalKI,    13},
+    {"normalidMarginalUI",    (DL_FUNC) &normalidMarginalUI,    15},
     {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
     {"pemomMarginalUI",       (DL_FUNC) &pemomMarginalUI,       17},
     {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       15},

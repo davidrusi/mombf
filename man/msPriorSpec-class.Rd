@@ -7,6 +7,7 @@
 \alias{imomprior}
 \alias{momprior}
 \alias{zellnerprior}
+\alias{normalidprior}
 \alias{groupmomprior}
 \alias{groupemomprior}
 \alias{groupimomprior}
@@ -29,6 +30,7 @@ momprior(tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)
 zellnerprior(tau, tau.adj=10^6)
+normalidprior(tau, tau.adj=10^6)
 
 groupmomprior(tau, tau.adj=10^6)
 groupimomprior(tau, tau.adj=10^6)
@@ -76,7 +78,7 @@ and these can be speicified in the slot \code{priorDist}. }
 
     \item{\code{priorDistr}:}{Object of class \code{"character"}.
 If \code{priorType=="coefficients"}, \code{priorDistr} can be equal to
-"pMOM", "piMOM", "peMOM" or "zellner"
+"pMOM", "piMOM", "peMOM", "zellner", "normalid" or "groupzellner"
 (product moment, product inverse moment, product exponential moment or Zellner prior, respectively).
 If \code{priorType=="modelIndicator"}, \code{priorDistr} can be equal to "uniform" or "binomial"
 to specify a uniform prior (all models equaly likely a priori) or a
@@ -114,7 +116,7 @@ No methods defined with class "msPriorSpec" in the signature.
 }
 \details{
   DISCUSSION OF PRIOR ON PARAMETERS
-  
+
   Let beta=(beta_1,...,beta_p) be the regression coefficients for
   individual variables and delta=(delta_1,...,delta_q) those for grouped
   variables (e.g. factors or smooth terms in modelSelection).
@@ -123,7 +125,7 @@ No methods defined with class "msPriorSpec" in the signature.
   beta. For further information see the vignette.
 
   groupzellnerprior is the prior density on delta
-  
+
   p_z(delta)= prod_j N(delta_j; 0, (tau/ncol(X_j)) (X_j'X_j)^{-1})
 
   where X_j are the design matrix columns associated to delta_j. A default
@@ -132,14 +134,14 @@ No methods defined with class "msPriorSpec" in the signature.
   1 a priori.
 
   groupmomprior adds a quadratic MOM penalty
-  
+
   p_m(delta)= p_z(delta) prod_j delta_j'X_j'X_jdelta_j ncol(X_j)/tau
 
-  and analogously for eMOM and iMOM.  
+  and analogously for eMOM and iMOM.
 
 
   DISCUSSION OF PRIOR ON MODELS
-  
+
 Under the uniform prior, the prior probability of any model is
 1 / number of models.
 

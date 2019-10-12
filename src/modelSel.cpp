@@ -239,7 +239,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //   1: peMOM on all coef
   //   2: piMOM on all coef
   //   3: Zellner on all coef
-  //   4: group Zellner on all coef
+  //   4: normalid on all coef
+  //   9: group Zellner on all coef
   //  10: pMOM + group MOM
   //  13: pMOM + group Zellner
   //  32: peMOM + group eMOM
@@ -257,8 +258,10 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if (*prCoef==3) { //Zellner on all coef
       ans= 3;
-    } else if (*prCoef==13) { //block Zellner on all coef
+    } else if (*prCoef==4) { //Zellner on all coef
       ans= 4;
+    } else if (*prCoef==13) { //block Zellner on all coef
+      ans= 9;
     } else {
       Rf_error("Prior specified by priorCoef not currently implemented\n");
     }
@@ -307,6 +310,8 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       if (*knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
     } else if (*priorcode==3) {
       if (*knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
+    } else if (*priorcode==4) {
+      if (*knownphi==1) { ans= normalidMarginalKC; } else { ans= normalidMarginalUC; }
     } else if (*priorcode==10) {
       ans= pmomgmomMarg;
     } else if (*priorcode==13) {
@@ -329,7 +334,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       } else if (*priorcode==3) {
 	Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
 	ans= gzellgzellSurvMarg;
-      } else if (*priorcode==4) {
+      } else if (*priorcode==9) {
 	ans= gzellgzellSurvMarg;
       } else {
 	Rf_error("The prior in priorCoef not implemented for the specified AFT model");

@@ -297,7 +297,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
   //Returns pointer to function to compute the marginal density of the data for a given model indicator
   // - priorcode: prior code returned by mspriorCode
   // - knownphi: 1 if residual variance phi is known, 0 otherwise. knownphi==1 currently only allowed for Normal errors
-  // - family: distribution of errors. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace
+  // - family: distribution of errors. 1 for Normal, 2 for two-piece Normal; 3 for Laplace,; 4 for two-piece Laplace, 0 for auto
   // Note: if phi known, when actually calling the returned pt2margFun, phi must be set in the parameter of type struct marginalPars *
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
   pt2margFun ans=NULL;

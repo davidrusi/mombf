@@ -47,7 +47,7 @@ valid_msPriorSpec <- function(object) {
     ## Validate rest based on type
     switch(object@priorType,
            coefficients = {
-               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner")
+               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner","normalid")
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
                    msg <- c(msg,
@@ -193,6 +193,10 @@ emomprior <- function(tau, tau.adj=10^6) {
 
 zellnerprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="zellner", priorPars=c(tau=tau, tau.adj=tau.adj))
+}
+
+normalidprior <- function(tau, tau.adj=10^6) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="normalid", priorPars=c(tau=tau, tau.adj=tau.adj))
 }
 
 groupmomprior <- function(tau, tau.adj=10^6) {

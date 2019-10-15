@@ -47,6 +47,10 @@ extern "C" {
   SEXP zellnerMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup);
   SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup);
 
+  //Integrated likelihood for linear models under Normal prior
+  SEXP normalidMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup);
+  SEXP normalidMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup);
+
   //Integrated likelihoods under skew normal, laplace and asymmetric laplace residuals
   SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Smethod, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef, SEXP Sngroups, SEXP Snvaringroup);
   SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Ssymmetric, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef, SEXP Sngroups, SEXP Snvaringroup);
@@ -256,6 +260,10 @@ double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 // Zellner on all coef
 double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// Normal on all coef
+double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
 // pMOM on individual coef, group MOM on groups
 double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars);

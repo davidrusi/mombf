@@ -21,6 +21,8 @@ nlpMarginal <- function(sel, y, x, family="normal", priorCoef=momprior(tau=0.348
       ans= pemomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
     } else if (priorCoef@priorDistr=='zellner') {
       ans= zellnerMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,logscale=logscale,XtX=XtX,ytX=ytX)
+    } else if (priorCoef@priorDistr=='normalid') {
+      ans= normalidMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,logscale=logscale,XtX=XtX,ytX=ytX)
     } else { stop("Prior distribution in priorCoef not recognized") }
   } else if (family=='twopiecenormal') {
     ans= nlpMarginalSkewnorm(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,optimMethod=optimMethod,B=B,logscale=logscale,XtX=XtX,ytX=ytX)

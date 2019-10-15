@@ -45,5 +45,6 @@ export(unifPrior)
 export(zbfknown, zbfunknown, zellnerbf)
 S3method(zellnerbf,lm)
 export(zellnerprior,groupzellnerprior)
+export(normalidprior)
 
 #exportClasses("msPriorSpec")

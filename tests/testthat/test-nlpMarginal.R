@@ -19,7 +19,8 @@ patrick::with_parameters_test_that(
     momprior=list(pCoef=momprior(tau=0.328, r=1), expected_max=-37.47804, expected_all=-41.73017),
     imomprior=list(pCoef=imomprior(tau=0.328), expected_max=-38.35765, expected_all=-43.9903),
     emomprior=list(pCoef=emomprior(tau=0.328), expected_max=-37.31882, expected_all=-42.475),
-    zellnerprior=list(pCoef=zellnerprior(tau=0.328), expected_max=-39.81047, expected_all=-39.97039)
+    zellnerprior=list(pCoef=zellnerprior(tau=0.328), expected_max=-39.81047, expected_all=-39.97039),
+    normalidprior=list(pCoef=normalidprior(tau=0.328), expected_max=-38.35193, expected_all=-39.4416)
   )
 )
 

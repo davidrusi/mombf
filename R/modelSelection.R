@@ -596,6 +596,8 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
     prior <- as.integer(2)
   } else if (priorCoef@priorDistr=='zellner') {
     prior <- as.integer(3)
+  } else if (priorCoef@priorDistr=='normalid') {
+    prior <- as.integer(4)
   } else if (priorCoef@priorDistr=='groupzellner') {
     prior <- as.integer(13)
   } else {
@@ -609,6 +611,8 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
     priorgr= as.integer(2)
   } else if (priorGroup@priorDistr=='zellner') {
       priorgr= as.integer(3)
+  } else if (priorGroup@priorDistr=='normalid') {
+      priorgr= as.integer(4)
   } else if (priorGroup@priorDistr=='groupMOM') {
     priorgr= as.integer(10)
   } else if (priorGroup@priorDistr=='groupiMOM') {

@@ -2,3 +2,4 @@
 ^Meta$
 ^.travis.yml$
 ^CONTRIBUTING\.md$
+^compile_flags\.txt$

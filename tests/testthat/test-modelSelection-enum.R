@@ -6,7 +6,6 @@ tolerance <- 1e-5
 
 patrick::with_parameters_test_that(
   "modelSelection without groups works for", {
-    pCoef <- momprior(tau=0.348)
     pDelta <- modelbbprior(1,1)
     log <- capture.output(
       fit1 <- modelSelection(y=y3, x=X3, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE, family=family, priorSkew=pCoef),
@@ -20,6 +19,36 @@ patrick::with_parameters_test_that(
     expect_equal(pp1$modelid, pp3$modelid)
     expect_equal(pp1$pp, pp2$pp, tolerance=tolerance)
     expect_equal(pp1$pp, pp3$pp, tolerance=tolerance)
+  },
+  patrick::cases(
+    mom_normal=list(family="normal", pCoef=momprior(tau=0.248)),
+    mom_twopiecenormal=list(family="twopiecenormal", pCoef=momprior(tau=0.248)),
+    mom_laplace=list(family="laplace", pCoef=momprior(tau=0.248)),
+    mom_twopiecelaplace=list(family="twopiecelaplace", pCoef=momprior(tau=0.248)),
+    imom_normal=list(family="normal", pCoef=imomprior(tau=0.248)),
+    imom_twopiecenormal=list(family="twopiecenormal", pCoef=imomprior(tau=0.248)),
+    imom_laplace=list(family="laplace", pCoef=imomprior(tau=0.248)),
+    imom_twopiecelaplace=list(family="twopiecelaplace", pCoef=imomprior(tau=0.248)),
+    emom_normal=list(family="normal", pCoef=emomprior(tau=0.248)),
+    emom_twopiecenormal=list(family="twopiecenormal", pCoef=emomprior(tau=0.248)),
+    emom_laplace=list(family="laplace", pCoef=emomprior(tau=0.248)),
+    emom_twopiecelaplace=list(family="twopiecelaplace", pCoef=emomprior(tau=0.248))
+  )
+)
+
+patrick::with_parameters_test_that(
+  "modelSelection with groups works for", {
+    pDelta <- modelbbprior(1,1)
+    groups <- c(1, 1, 2, 2, 3, 4, 4)
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE,
+        family=family, priorSkew=pCoef, priorGroup=pCoef, groups=groups
+      )
+    )
+    pprobs <- postProb(fit)
+    expect_equal(length(pprobs$modelid), 16)
+    expect_equal(as.character(pprobs$modelid[1]), "3,4,6,7")
   },
   patrick::cases(
     mom_normal=list(family="normal", pCoef=momprior(tau=0.248)),

@@ -1,6 +1,9 @@
+# configuration related to pull request comments
+# to remove the comment, use:
+# comment: false
 comment:
-  behaviour: new
-  require_changes: true
+  behaviour: new # when posting a new report, remove the old one instead of updating it
+  require_changes: true # only post messages if the coverage changes
 
 coverage:
-  range: 50..90
+  range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code

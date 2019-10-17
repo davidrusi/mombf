@@ -1,19 +1,16 @@
 # configuration related to pull request comments
-# to remove the comment, use:
-comment: false
-# comment:
-#   behaviour: new # when posting a new report, remove the old one instead of updating it
-#   require_changes: true # only post messages if the coverage changes
+comment: false # do not comment PR with the result
 
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
 
   status:
-    project:
+    project: # settings affecting project coverage
       default:
-        target: auto
-        threshold: 5%
+        target: auto # auto % coverage target
+        threshold: 5%  # allow for 5% reduction of coverage without failing
 
+    # do not run coverage on patch nor changes
     patch: no
 
     changes: no

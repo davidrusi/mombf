@@ -3,3 +3,4 @@
 ^.travis.yml$
 ^CONTRIBUTING\.md$
 ^compile_flags\.txt$
+^.codecov.yml$

@@ -1,0 +1,6 @@
+comment:
+  behaviour: new
+  require_changes: true
+
+coverage:
+  range: 50..90

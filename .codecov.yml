@@ -8,12 +8,12 @@ comment: false
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
 
-status:
-  project: yes
-    default:
-      target: auto
-      threshold: 5%
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
 
-  patch: no
+    patch: no
 
-  changes: no
+    changes: no

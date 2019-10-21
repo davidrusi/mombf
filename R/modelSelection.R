@@ -278,8 +278,9 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       hasXtX= as.logical(FALSE)
   }
 
-  tmp= formatmsPriors(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, priorDelta=priorDelta, priorConstraints=priorConstraints)
+  tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+  tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints)
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
 
@@ -583,10 +584,10 @@ formatmsMethod= function(method, priorCoef, knownphi) {
   return(method)
 }
 
-#Routine to format modelSelection prior distribution parameters
-#Input: priorCoef, priorVar, priorSkew, priorDelta
-#Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha), model space prior (prDelta, prDeltap, parprDeltap)
-formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta, priorConstraints) {
+#Routine to format modelSelection prior distribution parameters for marginal likelihood
+#Input: priorCoef, priorVar, priorGroup, priorSkew
+#Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha)
+formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
   r= as.integer(1)
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
@@ -635,6 +636,14 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
       taualpha <- 0.358
       fixatanhalpha <- as.double(priorSkew)
   }
+    ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha)
+  return(ans)
+}
+
+#Routine to format modelSelection prior distribution parameters in model space
+#Input: priorDelta, priorConstraints
+#Output: model space prior (prDelta, prDeltap, parprDeltap) and constraints (prConstr,prConstrp,parprConstrp)
+formatmsPriorsModel <- function(priorDelta, priorConstraints) {
   #Prior on model space (parameters not subject to hierarchical constraints)
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)
@@ -684,11 +693,9 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
     stop('Prior specified in priorConstraints not recognized')
   }
 
-  ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha,prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap,prConstr=prConstr,prConstrp=prConstrp,parprConstrp=parprConstrp)
+  ans= list(prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap,prConstr=prConstr,prConstrp=prConstrp,parprConstrp=parprConstrp)
   return(ans)
 }
-
-
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
   #Greedy version of modelSelectionR where variables with prob>0.5 at current iteration are included deterministically (prob<.5 excluded)

@@ -21,3 +21,8 @@ matrix:
       r_build_args: --no-build-vignettes
       r_check_args: --no-build-vignettes --ignore-vignettes --no-vignettes --no-codoc
 
+r_packages:
+  - covr
+
+after_success:
+  - Rscript -e 'covr::codecov()'

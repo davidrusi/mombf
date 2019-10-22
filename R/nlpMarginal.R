@@ -32,7 +32,7 @@ nlpMarginal <- function(
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   # format arguments for .Call
-  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=knownphi)
+  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=0)
   hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B)

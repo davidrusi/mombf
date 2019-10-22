@@ -68,7 +68,7 @@ patrick::with_parameters_test_that(
 )
 
 test_that(
-  "modelSelection with smoothterms and no groups works for", {
+  "modelSelection with smoothterms and no groups works", {
     pCoef=momprior(tau=0.348)
     pDelta <- modelbbprior(1,1)
     log <- capture.output(

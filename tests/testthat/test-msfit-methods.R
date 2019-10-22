@@ -35,8 +35,8 @@ test_that(
 patrick::with_parameters_test_that(
   "msfit postProb method works", {
     log <- capture.output(fit <- modelSelection(y=y3, x=X3, enumerate=FALSE))
-    pprobs <- postProb(fit)
-    pprobs_cut <- postProb(fit, nmax=5)
+    pprobs <- postProb(fit, method=method)
+    pprobs_cut <- postProb(fit, nmax=5, method=method)
     expect_equal(nrow(pprobs_cut), 5)
     expect_equal(pprobs[1:5,3], pprobs_cut[,3], tolerance=tolerance)
   },

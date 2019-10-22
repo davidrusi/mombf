@@ -147,6 +147,7 @@ void testfunction(double *x);
 //Setting prior & marginals
 //*************************************************************************************
 
+int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars);
 pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, struct marginalPars *pars);
 pt2margFun set_priorFunction(int *prDelta, int *prConstr, int *family);
 pt2modavgPrior set_priorFunction_modavg(int *priorModel);

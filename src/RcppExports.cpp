@@ -47,6 +47,7 @@ RcppExport SEXP mnormCI(SEXP, SEXP, SEXP);
 RcppExport SEXP modelSelectionEnumCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP modelSelectionGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP nlpMarginalAlaplI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP nlpMarginalCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP nlpMarginalSkewNormI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP normalidMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP normalidMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -77,6 +78,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  39},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 45},
     {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     24},
+    {"nlpMarginalCI",         (DL_FUNC) &nlpMarginalCI,         30},
     {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  22},
     {"normalidMarginalKI",    (DL_FUNC) &normalidMarginalKI,    13},
     {"normalidMarginalUI",    (DL_FUNC) &normalidMarginalUI,    15},

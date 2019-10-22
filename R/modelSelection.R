@@ -207,8 +207,6 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   call <- list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
   if (!missing(smoothterms)) call$smoothterms <- smoothterms
   p= ncol(x); n= length(y)
-  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
-  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
@@ -374,6 +372,8 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
       }
       formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
   }
+  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
+  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   ans <- list(
     x=x, y=y, formula=formula, splineDegree=splineDegree,
     groups=groups, constraints=constraints, outcometype=outcometype, uncens=uncens,

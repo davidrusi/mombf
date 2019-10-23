@@ -67,3 +67,42 @@ patrick::with_parameters_test_that(
     emom_twopiecelaplace=list(family="twopiecelaplace", pCoef=emomprior(tau=0.348))
   )
 )
+
+patrick::with_parameters_test_that(
+  "model space prior work in modelSelection:", {
+    pCoef <- momprior(tau=0.348)
+    log <- capture.output(
+      fit <- modelSelection(y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE, family="normal")
+    )
+    expect_output(show(fit))
+    pprobs <- postProb(fit)
+    expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
+  },
+  test_name=c("uniform", "binomial", "betabinomial", "complex"),
+  pDelta=c(modelunifprior(), modelbinomprior(p=0.5), modelbbprior(alpha.p=1, beta.p=1), modelcomplexprior(c=1))
+)
+
+patrick::with_parameters_test_that(
+  "modelSelection method arg works for", {
+    if (method == "Hybrid") {pCoef <- imomprior(tau=0.348)} else {pCoef <- momprior(tau=0.348)}
+    pDelta <- modelbbprior(1,1)
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE,
+        method=method, B=200, optimMethod=optimMethod, hess=hess
+      )
+    )
+    expect_output(show(fit))
+    pprobs <- postProb(fit)
+    expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
+  },
+  patrick::cases(
+    auto=list(method="auto", optimMethod="CDA", hess="asymp"),
+    laplace_cda=list(method="Laplace", optimMethod="CDA", hess="asymp"),
+    laplace_cda_asympdiag=list(method="Laplace", optimMethod="CDA", hess="asympDiagAdj"),
+    laplace_lma=list(method="Laplace", optimMethod="LMA", hess="asymp"),
+    hybrid=list(method="Hybrid", optimMethod="CDA", hess="asymp"),
+    mc=list(method="MC", optimMethod="CDA", hess="asymp"),
+    bic=list(method="plugin", optimMethod="CDA", hess="asymp")
+  )
+)

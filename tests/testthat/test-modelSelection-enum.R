@@ -26,10 +26,12 @@ patrick::with_parameters_test_that(
     mom_twopiecenormal=list(family="twopiecenormal", pCoef=momprior(tau=0.348)),
     mom_laplace=list(family="laplace", pCoef=momprior(tau=0.348)),
     mom_twopiecelaplace=list(family="twopiecelaplace", pCoef=momprior(tau=0.348)),
+    imom_auto=list(family="auto", pCoef=imomprior(tau=0.348)),
     imom_normal=list(family="normal", pCoef=imomprior(tau=0.348)),
     imom_twopiecenormal=list(family="twopiecenormal", pCoef=imomprior(tau=0.348)),
     imom_laplace=list(family="laplace", pCoef=imomprior(tau=0.348)),
     imom_twopiecelaplace=list(family="twopiecelaplace", pCoef=imomprior(tau=0.348)),
+    emom_auto=list(family="auto", pCoef=emomprior(tau=0.348)),
     emom_normal=list(family="normal", pCoef=emomprior(tau=0.348)),
     emom_twopiecenormal=list(family="twopiecenormal", pCoef=emomprior(tau=0.348)),
     emom_laplace=list(family="laplace", pCoef=emomprior(tau=0.348)),
@@ -52,7 +54,6 @@ patrick::with_parameters_test_that(
     expect_equal(as.character(pprobs$modelid[1]), "3,4,6,7")
   },
   patrick::cases(
-    # mom_auto=list(family="auto", pCoef=momprior(tau=0.348)),
     mom_normal=list(family="normal", pCoef=momprior(tau=0.348)),
     mom_twopiecenormal=list(family="twopiecenormal", pCoef=momprior(tau=0.348)),
     mom_laplace=list(family="laplace", pCoef=momprior(tau=0.348)),
@@ -83,12 +84,37 @@ patrick::with_parameters_test_that(
 )
 
 patrick::with_parameters_test_that(
-  "modelSelection method arg works for", {
+  "modelSelection methods in normal family work:", {
     if (method == "Hybrid") {pCoef <- imomprior(tau=0.348)} else {pCoef <- momprior(tau=0.348)}
     pDelta <- modelbbprior(1,1)
     log <- capture.output(
       fit <- modelSelection(
-        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE,
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE, family="normal",
+        method=method, B=200, optimMethod=optimMethod, hess=hess
+      )
+    )
+    expect_output(show(fit))
+    pprobs <- postProb(fit)
+    expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
+  },
+  patrick::cases(
+    auto=list(method="auto", optimMethod="CDA", hess="asymp"),
+    laplace_cda=list(method="Laplace", optimMethod="CDA", hess="asymp"),
+    laplace_cda_asympdiag=list(method="Laplace", optimMethod="CDA", hess="asympDiagAdj"),
+    laplace_lma=list(method="Laplace", optimMethod="LMA", hess="asymp"),
+    hybrid=list(method="Hybrid", optimMethod="CDA", hess="asymp"),
+    mc=list(method="MC", optimMethod="CDA", hess="asymp"),
+    bic=list(method="plugin", optimMethod="CDA", hess="asymp")
+  )
+)
+
+patrick::with_parameters_test_that(
+  "modelSelection methods in laplace family work:", {
+    if (method == "Hybrid") {pCoef <- imomprior(tau=0.348)} else {pCoef <- momprior(tau=0.348)}
+    pDelta <- modelbbprior(1,1)
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=TRUE, family="laplace",
         method=method, B=200, optimMethod=optimMethod, hess=hess
       )
     )

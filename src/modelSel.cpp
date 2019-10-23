@@ -5974,25 +5974,6 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 //*************************************************************************************
 // Product eMOM routines
 //*************************************************************************************
-
-
-SEXP pemomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, SoptimMethod=1, emptyint=1, usethinit=0;
-  double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *x=REAL(Sx), *ytX=REAL(SytX), *tau=REAL(Stau), *alpha=REAL(Salpha), *lambda=REAL(Slambda), *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  struct marginalPars pars;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,n,n,p,y,&emptyint,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,alpha,lambda,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= pemomMarginalUC(sel, nsel, &pars);
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
 double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   return 0.0;
 }

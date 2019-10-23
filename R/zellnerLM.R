@@ -155,90 +155,10 @@ zellnerMargKuniv <- function(y,x,phi,tau=1,logscale=TRUE) {
   if (missing(tau)) tau <- n
   s <- sum(x^2) * (1+1/tau)
   m <- sum(x*y)/s
-  ans <- -.5*(sum(y^2) - s*m^2)/phi - .5*n*log(2*pi*phi) - .5*(log(s)+log(tau)) 
+  ans <- -.5*(sum(y^2) - s*m^2)/phi - .5*n*log(2*pi*phi) - .5*(log(s)+log(tau))
   if (!logscale) ans <- exp(ans)
   return(ans)
 }
-
-
-
-####### MARGINAL LIKELIHOOD FOR ZELLNER'S PRIOR
-
-zellnerMarginalK <- function(sel, y, x, phi, tau, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data y~N(x*theta,phi*I) under Zellner's prior
-  if (is.matrix(y)) y <- as.vector(y)
-  if (is.vector(x)) x <- matrix(x,ncol=1)
-  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
-  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  if (is.logical(sel)) sel <- which(sel)
-  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
-  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
-  y <- as.double(y); sumy2 <- sum(y^2)
-  phi <- as.double(phi); tau <- as.double(tau)
-  logscale <- as.integer(logscale)
-  ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("zellnerMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, logscale, ngroups, nvaringroup)
-  return(ans)
-}
-
-
-zellnerMarginalKR <- function(y, x, phi, tau, logscale=TRUE) {
-  #Marginal likelihood for Zellner's prior 
-  n <- length(y); p <- ncol(x)
-  if (p==0) {
-    ans <- sum(dnorm(y,0,sd=sqrt(phi),log=TRUE))
-  } else {
-    S <- (1+1/tau) * t(x) %*% x
-    m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-    ans <- -.5*(sum(y^2) - t(m) %*% S %*% m)/phi - .5*n*log(2*pi*phi) - .5*p*log(tau) - log(sqrt(det(S)))
-  }
-  if (!logscale) ans <- exp(ans)
-  return(ans)
-}
-
-
-zellnerMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data y~N(x*theta,phi*I) under Zellner's prior (unknown variance)
-  if (is.matrix(y)) y <- as.vector(y)
-  if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
-  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
-  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  if (is.logical(sel)) sel <- which(sel)
-  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel)); 
-  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
-  y <- as.double(y); sumy2 <- sum(y^2)
-  tau <- as.double(tau)
-  logscale <- as.integer(logscale)
-  alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("zellnerMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,logscale,alpha,lambda,ngroups,nvaringroup)
-  return(ans);
-}
-
-zellnerMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau, logscale=TRUE) {
-  #Marginal likelihood for Zellner's prior
-  n <- length(y); p <- ncol(x)
-  if (ncol(x)==0) {
-    term1 <- .5*(n + alpha)
-    num <- .5*alpha*log(lambda) + lgamma(term1)
-    den <- .5*n*log(pi) + lgamma(alpha/2)
-    ans <- num -den - term1*log(lambda + sum(y^2))
-  } else {
-    S <- (1+1/tau) * (t(x) %*% x)
-    m <- solve(S) %*% t(x) %*% matrix(y,ncol=1)
-    nu <- n + alpha
-    ss <- as.numeric(lambda + sum(y^2) - t(m) %*% S %*% m)
-    #
-    num <- lgamma(nu/2) + .5*alpha*log(lambda/2) + .5*nu*log(2) - .5*nu*log(ss)
-    den <- .5*n*log(2*pi) + .5*log(det(S)) + (.5*p)*log(tau) + lgamma(alpha/2)
-    ans <- num - den
-  }
-  if (!logscale) ans <- exp(ans)
-  return(ans)
-}
-
 
 
 ################################################################################
@@ -283,7 +203,7 @@ zellnerbf.lm <- function(lm1, coef, g, theta0, logbf=FALSE) {
 zbfunknown <- function(theta1hat, V1, n, nuisance.theta, g=1, theta0, ssr, logbf=FALSE) {
   if (missing(theta0)) { theta0 <- rep(0, length(theta1hat)) }
   p1 <- length(theta1hat); p <- p1 + nuisance.theta
-  l <- theta1hat-theta0; l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)  
+  l <- theta1hat-theta0; l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)
   sigma2hat <- (ssr + l/(1+n*g))/(n-nuisance.theta)
   bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)
   if (!logbf) { bf <- exp(bf) }
@@ -351,7 +271,7 @@ zellnerbf.knownsig <- function(theta1hat,
 ### zellnerbf.unknownsig.R
 ###
 
-#Bayes factor based on Zellner's g-prior for linear models (unknown sigma^2 case). 
+#Bayes factor based on Zellner's g-prior for linear models (unknown sigma^2 case).
 # - theta1hat: vector with estimated value of the coefficients to be tested
 # - V1: submatrix of covariance corresponding to elements in theta1hat
 # - n: sample size used to fit the model
@@ -373,7 +293,7 @@ zellnerbf.unknownsig <- function(theta1hat,
   p1 <- length(theta1hat)
   p <- p1 + nuisance.theta
   l <- theta1hat-theta0
-  l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)  
+  l <- matrix(l, nrow=1) %*% solve(V1) %*% matrix(l, ncol=1)
   sigma2hat <- (ssr + l/(1+n*g)) / (n-nuisance.theta)
   muk <- p1+ l* n*g/((1+n*g)*sigma2hat)
   bf <- (-(n-nuisance.theta)/2)*log(1+n*g*ssr/(ssr+l)) + ((n-p)/2)*log(1+n*g)

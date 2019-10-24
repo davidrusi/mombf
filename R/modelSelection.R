@@ -347,7 +347,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   call <- match.call()
   groups <- NULL; constraints <- NULL; ordery <- NULL
   if (class(y)=="formula") {
-      formula= y; splineDegree= 3
+      formula= y; is_formula=TRUE; splineDegree= 3
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
       if (class(des$y)=="Surv") {
@@ -370,12 +370,12 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
       } else {
           outcometype= 'Continuous'; uncens= integer(0)
       }
-      formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
+      formula= splineDegree= NA; is_formula=FALSE; typeofvar= rep('numeric',ncol(x))
   }
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   ans <- list(
-    x=x, y=y, formula=formula, splineDegree=splineDegree,
+    x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
     groups=groups, constraints=constraints, outcometype=outcometype, uncens=uncens,
     ordery=ordery, typeofvar=typeofvar
   )

@@ -13,9 +13,10 @@ nlpMarginal <- function(
 ) {
   #Check input
   if (!(family %in% c('normal','twopiecenormal','laplace','twopiecelaplace'))) stop("family not recognized, it should be 'normal','twopiecenormal','laplace' or 'twopiecelaplace'")
+  familyint <- as.integer(family_dict[family])
   # format input data
   tmp <- formatInputdata(y=y,x=x,data=data,smoothterms=smoothterms,nknots=nknots,family=family)
-  x <- tmp$x; y <- tmp$y; formula <- tmp$formula;
+  x <- tmp$x; y <- tmp$y; is_formula <- tmp$is_formula
   splineDegree <- tmp$splineDegree
   if (!is.null(tmp$groups)) groups <- tmp$groups
   if (!is.null(tmp$constraints)) constraints <- tmp$constraints
@@ -40,18 +41,26 @@ nlpMarginal <- function(
   ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
-  familyint <- as.integer(family_dict[family])
 
-  if (is.na(formula)) {
-    sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
+  if (!is_formula) {
+    check_sel_groups(sel, groups)
+    sel <- as.integer(sel-1); nsel <- as.integer(length(sel))
   } else {
     if (!missing(sel)) warning("y is of type formula: ignoring sel argument")
-    sel <- as.integer(seq(ncol(ngroups))-1)
+    sel <- as.integer(seq(p)-1)
     nsel <- length(sel)
   }
 
   ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, x, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
+}
+
+check_sel_groups <- function(sel, groups) {
+  p <- length(groups); seqp <- seq(p)
+  if (is.logical(sel)) sel <- seqp[sel]
+  if (any(sel > p)) stop("found index in sel larger than ncol(x). Please make sure all indexes refer to existing variables")
+  invsel <- seqp[!(seqp %in% sel)]
+  if (any(groups[sel] %in% groups[invsel])) stop("selected indexes incompatible with defined groups. Make sure each group is selected or discarded at once")
 }
 
 ##############################################################################################

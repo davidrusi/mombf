@@ -232,8 +232,8 @@ void testfunction() {
 int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //Returns a two-digit code indicating the prior on regression coefficients. The 1st digit is the prior on individual coef; The 2nd digit the prior on groups of coefficients
   // Input
-  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 13 for group Zellner
-  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
+  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 13 for group Zellner
+  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
   // Output
   //   0: pMOM on all coef
   //   1: peMOM on all coef
@@ -258,7 +258,7 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if (*prCoef==3) { //Zellner on all coef
       ans= 3;
-    } else if (*prCoef==4) { //Zellner on all coef
+    } else if (*prCoef==4) { //normalid on all coef
       ans= 4;
     } else if (*prCoef==13) { //block Zellner on all coef
       ans= 9;
@@ -274,6 +274,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if ((*prCoef==3) & (*prGroup==3)) { //Zellner on all coef
       ans= 3;
+    } else if ((*prCoef==4) & (*prGroup==4)) { //normalid on all coef
+      ans= 4;
     } else if ((*prCoef==0) & (*prGroup==10)) { //pMOM + group MOM
       ans= 10;
     } else if ((*prCoef==0) & (*prGroup==13)) { //pMOM + group Zellner

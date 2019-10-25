@@ -16,3 +16,11 @@ theta6_truth <- matrix(c(0, 0, 1, 1, 0, 1, 1), ncol = 1)
 theta6_truth_bool <- as.logical(theta6_truth)
 theta6_truth_idx <- which(theta6_truth_bool)
 y6 <- X6 %*% theta6_truth + rnorm(n)
+
+n <- 150
+X9 <- matrix(rnorm(n * 9), nrow = n, ncol = 9)
+X9 <- cbind(matrix(1, nrow = n, ncol = 1), X9) # add intercept
+theta9_truth <- matrix(c(0, 1, 1, 0, 1, 1, 1, 0, 0, 0), ncol = 1)
+theta9_truth_bool <- as.logical(theta9_truth)
+theta9_truth_idx <- which(theta9_truth_bool)
+y9 <- X9 %*% theta9_truth + rnorm(n)

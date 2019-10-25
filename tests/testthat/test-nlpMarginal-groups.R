@@ -28,3 +28,26 @@ test_that(
     expect_equal(ans1, ans3)
   }
 )
+
+patrick::with_parameters_test_that(
+  "nlpMarginal with same kind of priorCoef and Group is correctly impemented for normal family:", {
+    pVar <- igprior(alpha=0.01, lambda=0.01)
+    groups <- c(1,2,3,4,5,5,5,6,6,6)
+    ans_max <- nlpMarginal(theta9_truth_idx, y9, X9, family="normal", priorCoef=pCoef, priorVar=pVar)
+    ans_max_group <- nlpMarginal(
+      theta9_truth_idx, y9, X9, groups=groups, family="normal",
+      priorCoef=pCoef, priorGroup=pCoef, priorVar=pVar
+    )
+
+    ans_all <- nlpMarginal(seq_along(theta9_truth), y9, X9, family="normal",priorCoef=pCoef, priorVar=pVar)
+    ans_all_group <- nlpMarginal(
+      seq_along(theta9_truth), y9, X9, groups=groups, family="normal",
+      priorCoef=pCoef, priorGroup=pCoef, priorVar=pVar
+    )
+    expect_true(ans_max_group > ans_all_group)
+    expect_equal(ans_max, ans_max_group)
+    expect_equal(ans_all, ans_all_group)
+  },
+  test_name=c("mom", "imom", "emom", "zellner", "normalid"),
+  pCoef=c(momprior(tau=0.35), imomprior(tau=0.35), emomprior(tau=0.35), zellnerprior(tau=0.35), normalidprior(tau=0.35))
+)

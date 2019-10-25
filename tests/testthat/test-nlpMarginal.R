@@ -48,7 +48,6 @@ patrick::with_parameters_test_that(
 
 patrick::with_parameters_test_that(
   "nlpMarginal is correctly impemented for laplace family and",{
-    # TODO: do not use priorSkew, #6 must be fixed
     pVar <- igprior(alpha=0.01, lambda=0.01)
     ans_max <- nlpMarginal(
       theta3_truth_idx, y3, X3, family="laplace", priorCoef=pCoef, priorVar=pVar

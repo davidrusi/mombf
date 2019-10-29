@@ -232,8 +232,8 @@ void testfunction() {
 int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //Returns a two-digit code indicating the prior on regression coefficients. The 1st digit is the prior on individual coef; The 2nd digit the prior on groups of coefficients
   // Input
-  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 13 for group Zellner
-  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
+  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 13 for group Zellner
+  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
   // Output
   //   0: pMOM on all coef
   //   1: peMOM on all coef
@@ -258,7 +258,7 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if (*prCoef==3) { //Zellner on all coef
       ans= 3;
-    } else if (*prCoef==4) { //Zellner on all coef
+    } else if (*prCoef==4) { //normalid on all coef
       ans= 4;
     } else if (*prCoef==13) { //block Zellner on all coef
       ans= 9;
@@ -274,6 +274,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 2;
     } else if ((*prCoef==3) & (*prGroup==3)) { //Zellner on all coef
       ans= 3;
+    } else if ((*prCoef==4) & (*prGroup==4)) { //normalid on all coef
+      ans= 4;
     } else if ((*prCoef==0) & (*prGroup==10)) { //pMOM + group MOM
       ans= 10;
     } else if ((*prCoef==0) & (*prGroup==13)) { //pMOM + group Zellner
@@ -3186,50 +3188,6 @@ double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars) {
 //*************************************************************************************
 // TWO-PIECE LAPLACE ROUTINES
 //*************************************************************************************
-
-SEXP nlpMarginalAlaplI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Ssymmetric, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef, SEXP Sngroups, SEXP Snvaringroup) {
-  //Note: Ssel[Snsel]==p+1
-  int prCoef= INTEGER(SprCoef)[0], symmetric= INTEGER(Ssymmetric)[0], emptyint=0, usethinit=0;
-  double *rans, emptydouble=0, offset=0;
-  crossprodmat *XtX;
-  struct marginalPars pars;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),INTEGER(Shesstype),INTEGER(SoptimMethod),&usethinit,&emptydouble,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  if (symmetric==0) {
-    if (prCoef==0) {
-      *rans= pmomMargAlaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else if (prCoef==1) {
-      *rans= pimomMargAlaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else if (prCoef==2) {
-      *rans= pemomMargAlaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else {
-      Rf_error("Wrong prior specified\n");
-    }
-  } else {
-    if (prCoef==0) {
-      *rans= pmomMargLaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else if (prCoef==1) {
-      *rans= pimomMargLaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else if (prCoef==2) {
-      *rans= pemomMargLaplU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-    } else {
-      Rf_error("Wrong prior specified\n");
-    }
-  }
-
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
-
-
 double pmomMargLaplU(int *sel, int *nsel, struct marginalPars *pars) {
   int prior=1, symmetric=1;
   return nlpMargAlapl(sel, nsel, pars, &prior, &symmetric);
@@ -4064,37 +4022,6 @@ void quadapproxALaplace(double *hdiag, double **H, int *nsel, int *sel, int *n, 
 //*************************************************************************************
 // TWO-PIECE NORMAL ROUTINES
 //*************************************************************************************
-
-SEXP nlpMarginalSkewNormI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Smethod, SEXP SoptimMethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP SprCoef, SEXP Sngroups, SEXP Snvaringroup) {
-  int prCoef= INTEGER(SprCoef)[0], emptyint=1, usethinit=0;
-  double *rans, emptydouble=0, offset=0;
-  crossprodmat *XtX;
-  struct marginalPars pars;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),INTEGER(Smethod),&emptyint,INTEGER(SoptimMethod),&usethinit,&emptydouble,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,REAL(Staualpha),REAL(Sfixatanhalpha),INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  if (prCoef==0) {
-    *rans= pmomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-  } else if (prCoef==1) {
-    *rans= pimomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-  } else if (prCoef==2) {
-    *rans= pemomMargSkewNormU(INTEGER(Ssel), INTEGER(Snsel), &pars);
-  } else {
-    Rf_error("Wrong prior specified\n");
-  }
-
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
-
-
 double pmomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars) {
   int prior=1, symmetric=0;
   return nlpMargSkewNorm(sel, nsel, pars, &prior, &symmetric);
@@ -6049,25 +5976,6 @@ double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 //*************************************************************************************
 // Product eMOM routines
 //*************************************************************************************
-
-
-SEXP pemomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, SoptimMethod=1, emptyint=1, usethinit=0;
-  double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *x=REAL(Sx), *ytX=REAL(SytX), *tau=REAL(Stau), *alpha=REAL(Salpha), *lambda=REAL(Slambda), *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  struct marginalPars pars;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,n,n,p,y,&emptyint,sumy2,x,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,alpha,lambda,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= pemomMarginalUC(sel, nsel, &pars);
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
 double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   return 0.0;
 }
@@ -6098,25 +6006,6 @@ double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // - phi: residual variance
 // - tau: prior dispersion parameter
 // - logscale: if set to 1 result is returned in log scale
-
-SEXP zellnerMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
-  struct marginalPars pars;
-  int emptyint=0, SoptimMethod=1, usethinit=0;
-  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&usethinit,&emptydouble,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= zellnerMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
-
 double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   int i,j;
   double *m, s, **S, **Sinv, detS, num, den, adj, tau= *(*pars).tau, logphi= log(*(*pars).phi), ans=0.0, zero=0;
@@ -6150,24 +6039,6 @@ double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
     free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
-  return ans;
-}
-
-
-SEXP zellnerMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int emptyint=0, optimMethod=1, usethinit=0;
-  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  struct marginalPars pars;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&usethinit,&emptydouble,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= zellnerMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
-  delete XtX;
-  UNPROTECT(1);
   return ans;
 }
 
@@ -6225,25 +6096,6 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // - phi: residual variance
 // - tau: prior dispersion parameter
 // - logscale: if set to 1 result is returned in log scale
-
-SEXP normalidMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
-  struct marginalPars pars;
-  int emptyint=0, SoptimMethod=1, usethinit=0;
-  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,XtX,REAL(SytX),&emptyint,&emptyint,&SoptimMethod,&usethinit,&emptydouble,&emptyint,&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= normalidMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
-  delete XtX;
-  UNPROTECT(1);
-  return ans;
-}
-
-
 double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
   int i;
   double *m, s, **S, **Sinv, detS, num, den, adj, tau= *(*pars).tau, logphi= log(*(*pars).phi), ans=0.0, zero=0;
@@ -6275,24 +6127,6 @@ double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
     free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
-  return ans;
-}
-
-
-SEXP normalidMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int emptyint=0, optimMethod=1, usethinit=0;
-  double *rans, emptydouble=0, offset=0, *taualpha=NULL;
-  struct marginalPars pars;
-  crossprodmat *XtX;
-  SEXP ans;
-
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),REAL(Sx),XtX,REAL(SytX),&emptyint,&emptyint,&optimMethod,&usethinit,&emptydouble,&emptyint,REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,&emptyint,NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
-  PROTECT(ans = Rf_allocVector(REALSXP, 1));
-  rans = REAL(ans);
-  *rans= normalidMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
-  delete XtX;
-  UNPROTECT(1);
   return ans;
 }
 

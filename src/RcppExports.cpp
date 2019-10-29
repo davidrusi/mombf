@@ -46,12 +46,8 @@ RcppExport SEXP greedyVarSelCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, S
 RcppExport SEXP mnormCI(SEXP, SEXP, SEXP);
 RcppExport SEXP modelSelectionEnumCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP modelSelectionGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP nlpMarginalAlaplI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP nlpMarginalSkewNormI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP normalidMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP normalidMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP nlpMarginalCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP normalmixGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pemomMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP pimomMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP pimomMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP pmomLM_I(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -63,8 +59,6 @@ RcppExport SEXP rnorm_truncMultCI(SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP rtmvnormCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP rtmvnormProdCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 RcppExport SEXP testfunctionCI(SEXP);
-RcppExport SEXP zellnerMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP zellnerMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
@@ -76,12 +70,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"mnormCI",               (DL_FUNC) &mnormCI,                3},
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  39},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 45},
-    {"nlpMarginalAlaplI",     (DL_FUNC) &nlpMarginalAlaplI,     24},
-    {"nlpMarginalSkewNormI",  (DL_FUNC) &nlpMarginalSkewNormI,  22},
-    {"normalidMarginalKI",    (DL_FUNC) &normalidMarginalKI,    13},
-    {"normalidMarginalUI",    (DL_FUNC) &normalidMarginalUI,    15},
+    {"nlpMarginalCI",         (DL_FUNC) &nlpMarginalCI,         30},
     {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
-    {"pemomMarginalUI",       (DL_FUNC) &pemomMarginalUI,       17},
     {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       15},
     {"pimomMarginalUI",       (DL_FUNC) &pimomMarginalUI,       17},
     {"pmomLM_I",              (DL_FUNC) &pmomLM_I,              36},
@@ -93,8 +83,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"rtmvnormCI",            (DL_FUNC) &rtmvnormCI,             7},
     {"rtmvnormProdCI",        (DL_FUNC) &rtmvnormProdCI,         9},
     {"testfunctionCI",        (DL_FUNC) &testfunctionCI,         1},
-    {"zellnerMarginalKI",     (DL_FUNC) &zellnerMarginalKI,     13},
-    {"zellnerMarginalUI",     (DL_FUNC) &zellnerMarginalUI,     15},
     {NULL, NULL, 0}
 };
 

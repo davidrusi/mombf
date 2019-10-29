@@ -14,4 +14,4 @@ License: GPL (>= 2) | file LICENSE
 URL: https://github.com/davidrusi/mombf
 BugReports: https://github.com/davidrusi/mombf/issues
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R dmom.R emomLM.R gam.R greedyGLM.R msPriorSpec.R modelsearch.R modelSelection.R mombf.R normaliwish.R normalLM.R normmix.R nlpMarginal.R pmomLM.R pmomPM.R postMode.R pplProbit.R ppmodel.R rmom.R RcppExports.R testfunction.R zellnerLM.R
+Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cox.R derivatives_nlps.R distribs.R dmom.R emomLM.R gam.R greedyGLM.R msPriorSpec.R modelsearch.R modelSelection.R mombf.R normaliwish.R normmix.R nlpMarginal.R pmomLM.R pmomPM.R postMode.R pplProbit.R ppmodel.R rmom.R RcppExports.R testfunction.R zellnerLM.R

@@ -19,7 +19,8 @@
   compatibility with old code, and will be deprecated in the future.
 }
 \usage{
-nlpMarginal(sel, y, x, family="normal", priorCoef=momprior(tau=0.348),
+nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
+family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
 method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX)
 
@@ -33,10 +34,28 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-\item{sel}{Vector with indexes of columns in x to be included in the model}
-\item{y}{Vector with observed responses}
-\item{x}{Design matrix with covariates. Only the columns specified in
-  \code{sel} are included in the model, the rest are disregarded}
+\item{sel}{Vector with indexes of columns in x to be included in the model.
+  Ignored if \code{y} is a formula}
+\item{y}{Either a formula with the regression equation or a vector with
+  observed responses. The response can be either continuous or of class
+  \code{Surv} (survival outcome). If \code{y} is a formula then \code{x},
+  \code{groups} and \code{constraints} are automatically created}
+\item{x}{Design matrix with linear covariates for which we want to
+  assess if they have a linear effect on the response. Ignored if
+  \code{y} is a formula}
+\item{data}{If \code{y} is a formula then \code{data} should be a data
+  frame containing the variables in the model}
+\item{smoothterms}{Formula for non-linear covariates (cubic splines),
+  modelSelection assesses if the variable has no effect, linear or
+  non-linear effect. \code{smoothterms} can also be a design matrix or
+  data.frame containing linear terms, for each column modelSelection
+  creates a spline basis and tests no/linear/non-linear effects}
+\item{nknots}{Number of spline knots. For cubic splines the non-linear
+  basis adds knots-4 coefficients for each linear term, we recommend
+  setting \code{nknots} to a small/moderate value}
+\item{groups}{If variables in \code{x} such be added/dropped in groups,
+  \code{groups} indicates the group that each variable corresponds to
+  (by default each variable goes in a separate group)}
 \item{family}{Residual distribution. Possible values are
   'normal','twopiecenormal','laplace', 'twopiecelaplace'}
 \item{priorCoef}{Prior on coefficients, created
@@ -45,6 +64,10 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   Prior dispersion is on coefficients/sqrt(scale) for Normal and
   two-piece Normal, and on coefficients/sqrt(2*scale) for Laplace
   and two-piece Laplace.}
+\item{priorGroup}{Prior on grouped coefficients (e.g. categorical
+  predictors with >2 categories, splines). Created by
+  \code{groupmomprior}, \code{groupemomprior},
+  \code{groupimomprior} or \code{groupzellnerprior}}
 \item{priorVar}{Inverse gamma prior on scale parameter, created by
   \code{igprior(). For Normal variance=scale, for Laplace variance=2*scale.}}
 \item{priorSkew}{Either a number fixing tanh(alpha) where alpha is the

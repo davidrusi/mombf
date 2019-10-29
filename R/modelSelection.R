@@ -197,37 +197,16 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 # - postProb: unnormalized posterior prob of each visited model (log scale)
 
   #Check input
-  if (class(y)=="formula") {
-      formula= y; splineDegree= 3
-      des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
-      x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
-      if (class(des$y)=="Surv") {
-          if (all(des$y[,1] >0)) {
-              cat("Response type is survival and all its values are >0. Remember that you should log-transform the response prior to running modelSelection\n")
-          }
-          outcometype= 'Survival'; uncens= as.integer(des$y[,2]); y= des$y[,1]
-          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
-          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
-      } else {
-          outcometype= 'Continuous'; y= des$y; uncens= integer(0)
-      }
-      nlevels= apply(x,2,function(z) length(unique(z)))
-      typeofvar[nlevels==2]= 'factor'
-  } else {
-      if (class(y)=="Surv") {
-          outcometype= 'Survival'; uncens= as.integer(y[,2]); y= y[,1]
-          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
-          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
-      } else {
-          outcometype= 'Continuous'; uncens= integer(0)
-      }
-      formula= splineDegree= NA; typeofvar= rep('numeric',ncol(x))
-  }
-  call= list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
-  if (!missing(smoothterms)) call$smoothterms= smoothterms
+  tmp <- formatInputdata(y=y,x=x,data=data,smoothterms=smoothterms,nknots=nknots,family=family)
+  x <- tmp$x; y <- tmp$y; formula <- tmp$formula;
+  splineDegree <- tmp$splineDegree
+  if (!is.null(tmp$groups)) groups <- tmp$groups
+  if (!is.null(tmp$constraints)) constraints <- tmp$constraints
+  outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
+  typeofvar <- tmp$typeofvar
+  call <- list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
+  if (!missing(smoothterms)) call$smoothterms <- smoothterms
   p= ncol(x); n= length(y)
-  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
-  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
@@ -278,8 +257,9 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       hasXtX= as.logical(FALSE)
   }
 
-  tmp= formatmsPriors(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, priorDelta=priorDelta, priorConstraints=priorConstraints)
+  tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+  tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints)
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
 
@@ -361,7 +341,46 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   new("msfit",ans)
 }
 
-
+# format input data from either formula (y), formula and data.frame (y,data) or matrix and vector (y, x)
+# it accepts smoothterms, groups and survival data
+formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
+  call <- match.call()
+  groups <- NULL; constraints <- NULL; ordery <- NULL
+  if (class(y)=="formula") {
+      formula= y; is_formula=TRUE; splineDegree= 3
+      des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
+      x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
+      if (class(des$y)=="Surv") {
+          if (all(des$y[,1] >0)) {
+              cat("Response type is survival and all its values are >0. Remember that you should log-transform the response prior to running modelSelection\n")
+          }
+          outcometype= 'Survival'; uncens= as.integer(des$y[,2]); y= des$y[,1]
+          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
+          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
+      } else {
+          outcometype= 'Continuous'; y= des$y; uncens= integer(0)
+      }
+      nlevels <- apply(x,2,function(z) length(unique(z)))
+      typeofvar[nlevels==2]= 'factor'
+  } else {
+      if (class(y)=="Surv") {
+          outcometype= 'Survival'; uncens= as.integer(y[,2]); y= y[,1]
+          ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
+          if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
+      } else {
+          outcometype= 'Continuous'; uncens= integer(0)
+      }
+      formula= splineDegree= NA; is_formula=FALSE; typeofvar= rep('numeric',ncol(x))
+  }
+  if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
+  if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  ans <- list(
+    x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
+    groups=groups, constraints=constraints, outcometype=outcometype, uncens=uncens,
+    ordery=ordery, typeofvar=typeofvar
+  )
+  return(ans)
+}
 
 #Create a design matrix for the given formula. Return also covariate groups (e.g. from factors), covariate type (factor/numeric) and hierarchical constraints (e.g. from interaction terms), these are the parameters "groups" and "constraints" in modelSelection
 createDesign <- function(formula, data, smoothterms, subset, na.action, splineDegree=3, nknots=14) {
@@ -583,10 +602,10 @@ formatmsMethod= function(method, priorCoef, knownphi) {
   return(method)
 }
 
-#Routine to format modelSelection prior distribution parameters
-#Input: priorCoef, priorVar, priorSkew, priorDelta
-#Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha), model space prior (prDelta, prDeltap, parprDeltap)
-formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta, priorConstraints) {
+#Routine to format modelSelection prior distribution parameters for marginal likelihood
+#Input: priorCoef, priorVar, priorGroup, priorSkew
+#Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha)
+formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
   r= as.integer(1)
   if (priorCoef@priorDistr=='pMOM') {
     r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
@@ -635,6 +654,14 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
       taualpha <- 0.358
       fixatanhalpha <- as.double(priorSkew)
   }
+    ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha)
+  return(ans)
+}
+
+#Routine to format modelSelection prior distribution parameters in model space
+#Input: priorDelta, priorConstraints
+#Output: model space prior (prDelta, prDeltap, parprDeltap) and constraints (prConstr,prConstrp,parprConstrp)
+formatmsPriorsModel <- function(priorDelta, priorConstraints) {
   #Prior on model space (parameters not subject to hierarchical constraints)
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)
@@ -684,11 +711,9 @@ formatmsPriors= function(priorCoef, priorGroup, priorVar, priorSkew, priorDelta,
     stop('Prior specified in priorConstraints not recognized')
   }
 
-  ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha,prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap,prConstr=prConstr,prConstrp=prConstrp,parprConstrp=parprConstrp)
+  ans= list(prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap,prConstr=prConstr,prConstrp=prConstrp,parprConstrp=parprConstrp)
   return(ans)
 }
-
-
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
   #Greedy version of modelSelectionR where variables with prob>0.5 at current iteration are included deterministically (prob<.5 excluded)
@@ -721,110 +746,6 @@ greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFuncti
   }
   return(sel)
 }
-
-modelSelectionR <- function(y, x, niter=10^4, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
-# Input
-# - y: vector with response variable
-# - x: design matrix with all potential predictors
-# - niter: number of Gibbs sampling iterations
-# - marginalFunction: function to compute the marginal density of the data under each model
-# - priorFunction: function to compute the model prior probability
-# - betaBinPrior: if specified, priorFunction argument is ignored and set to a binomial prior with Beta-hyperprior for the success prob. betaBinPrior should be a vector with named elements 'alpha.p' and 'beta.p', e.g. betaBinPrior= c(alpha.p=1,beta.p=1)
-# - deltaini: logical vector of length ncol(x) indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model
-# ...: other arguments to be passed on to marginalFunction
-# Output: list
-# - postSample: posterior samples for model indicator
-# - postOther: posterior samples for other parameters (probBin: success probability for Binomial prior on number of coefficients in the model)
-# - margpp: marginal posterior probability for inclusion of each covariate (approx by averaging marginal post prob for inclusion in each Gibbs iteration. This approx is more accurate than simply taking colMeans(postSample))
-# - postMode: model with highest posterior probability amongst all those visited
-# - postModeProb: unnormalized posterior prob of posterior mode (log scale)
-# - postProb: unnormalized posterior prob of each visited model (log scale)
-if (class(y)=='Surv') {
-  if ((length(y)/2) != nrow(x)) stop("Dimensions of y and x do not match")
-} else {
-  if (length(y) != nrow(x)) stop("Dimensions of y and x do not match")
-}
-if (any(is.na(x))) stop("x cannot have missing values")
-p <- ncol(x)
-if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
-if (!missing(betaBinPrior)) {
-  #Initialize probBin
-  if ((betaBinPrior['alpha.p']>1) && (betaBinPrior['beta.p']>1)) {
-    probBin <- (betaBinPrior['alpha.p']-1)/(betaBinPrior['alpha.p']+betaBinPrior['beta.p']-2)
-  } else {
-    probBin <- (betaBinPrior['alpha.p'])/(betaBinPrior['alpha.p']+betaBinPrior['beta.p'])
-  }
-  postOther <- matrix(NA,nrow=niter,ncol=1); colnames(postOther) <- c('probBin')
-  priorFunction <- function(sel, logscale=TRUE) dbinom(x=sum(sel),size=length(sel),prob=probBin,log=logscale)
-} else {
-  postOther <- matrix(NA,nrow=niter,ncol=0)
-}
-if (ncol(x)>12) {
-  sel <- postMode <- deltaini
-  currentJ <- postModeProb <- marginalFunction(y=y,x=x[,sel,drop=FALSE],logscale=TRUE,...) + priorFunction(sel,logscale=TRUE)
-  postSample <- matrix(NA,nrow=niter,ncol=p)
-  margpp <- double(p)
-  postProb <- double(niter)
-  k <- 1; postProb[k] <- postModeProb
-  names(postProb)[k] <- paste("V",which(sel),collapse=',',sep='')
-  niter10 <- ceiling(niter/10)
-  for (i in 1:niter) {
-    for (j in 1:p) {
-      selnew <- sel; selnew[j] <- !sel[j]
-      namenew <- paste(which(selnew),collapse=',')
-      newJ <- postProb[namenew]
-      if (is.na(newJ)) {
-        newJ <- marginalFunction(y=y,x=x[,selnew,drop=FALSE],logscale=TRUE,...) + priorFunction(selnew,logscale=TRUE)
-        k <- k+1; postProb[k] <- newJ
-        names(postProb)[k] <- paste("V",which(selnew),collapse=',',sep='')
-      }
-      if (newJ>postModeProb) {
-        postModeProb <- newJ
-        postMode <- selnew
-      }
-      pp <- 1/(1+exp(-currentJ+newJ))
-      if (sel[j]) {  #if variable in the model
-        sel[j] <- runif(1)<pp
-        margpp[j] <- margpp[j]+pp
-      } else {       #if variable not in the model
-        sel[j] <- runif(1)>pp
-        margpp[j] <- margpp[j]+1-pp
-      }
-      if (sel[j]==selnew[j]) {  #if value was updated, update marginal and prior densities
-        currentJ <- newJ
-      }
-    }
-    if (!missing(betaBinPrior)) {
-      probBin <- rbeta(1,betaBinPrior['alpha.p']+sum(sel), betaBinPrior['beta.p']+sum(!sel))
-      postOther[i,'probBin'] <- probBin
-    }
-    postSample[i,] <- sel
-    postProb[i] <- currentJ
-    if (verbose && ((i%%niter10)==0)) cat('.')
-  }
-  margpp <- margpp/niter
-  if (verbose) cat('\n')
-  #Format postProb
-  modelid <- sapply(apply(postSample,1,which),function(z) paste("V",z,collapse=',',sep=''))
-  postProb <- postProb[modelid]
-} else {
-  if (verbose) cat(paste("Computing posterior probabilities for all",2^ncol(x),"models..."))
-  models <- expand.grid(lapply(1:ncol(x),function(z) c(FALSE,TRUE)))
-  postProb <- apply(models,1, function(z) marginalFunction(y=y,x=x[,z,drop=FALSE],logscale=TRUE,...) + priorFunction(z,logscale=TRUE))
-  if (verbose) cat('\n')
-  postMode <- models[which.max(postProb),]
-  postModeProb <- max(postProb)
-  pp <- postProb - postModeProb; pp <- exp(pp)/sum(exp(pp))
-  sampledmodels <- rep(1:nrow(models), rmultinom(1,size=niter,prob=pp)[,1])
-  postSample <- models[sampledmodels,]
-  postProb <- postProb[sampledmodels]
-  margpp <- as.vector(t(models) %*% matrix(pp,ncol=1))
-}
-ans <- list(postSample=postSample,postOther=postOther,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb)
-ans <- new("msfit",ans)
-return(ans)
-}
-
 
 #Gibbs model selection using BIC to approximate marginal likelihood
 # - y, x, xadj: response, covariates under selection and adjustment covariates

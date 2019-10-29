@@ -26,10 +26,12 @@ patrick::with_parameters_test_that(
     mom_twopiecenormal=list(family="twopiecenormal", pCoef=momprior(tau=0.348)),
     mom_laplace=list(family="laplace", pCoef=momprior(tau=0.348)),
     mom_twopiecelaplace=list(family="twopiecelaplace", pCoef=momprior(tau=0.348)),
+    imom_auto=list(family="auto", pCoef=imomprior(tau=0.348)),
     imom_normal=list(family="normal", pCoef=imomprior(tau=0.348)),
     imom_twopiecenormal=list(family="twopiecenormal", pCoef=imomprior(tau=0.348)),
     imom_laplace=list(family="laplace", pCoef=imomprior(tau=0.348)),
     imom_twopiecelaplace=list(family="twopiecelaplace", pCoef=imomprior(tau=0.348)),
+    emom_auto=list(family="auto", pCoef=emomprior(tau=0.348)),
     emom_normal=list(family="normal", pCoef=emomprior(tau=0.348)),
     emom_twopiecenormal=list(family="twopiecenormal", pCoef=emomprior(tau=0.348)),
     emom_laplace=list(family="laplace", pCoef=emomprior(tau=0.348)),
@@ -51,7 +53,6 @@ patrick::with_parameters_test_that(
     expect_equal(as.character(pprobs$modelid[1]), "3,4,6,7")
   },
   patrick::cases(
-    mom_auto=list(family="auto", pCoef=momprior(tau=0.348)),
     mom_normal=list(family="normal", pCoef=momprior(tau=0.348)),
     mom_twopiecenormal=list(family="twopiecenormal", pCoef=momprior(tau=0.348)),
     mom_laplace=list(family="laplace", pCoef=momprior(tau=0.348)),

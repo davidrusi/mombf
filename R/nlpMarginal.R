@@ -3,35 +3,64 @@
 ## ROUTINES TO COMPUTE INTEGRATED LIKELIHOODS
 ##
 ##############################################################################################
+family_dict <- list(normal=1, twopiecenormal=2, laplace=3, twopiecelaplace=4)
 
-
-nlpMarginal <- function(sel, y, x, family="normal", priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX) {
+nlpMarginal <- function(
+  sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
+  priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
+  priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod='CDA',
+  B=10^5, logscale=TRUE, XtX, ytX
+) {
+  #Check input
   if (!(family %in% c('normal','twopiecenormal','laplace','twopiecelaplace'))) stop("family not recognized, it should be 'normal','twopiecenormal','laplace' or 'twopiecelaplace'")
-  if (family=='normal') {
-    tau= as.double(priorCoef@priorPars['tau'])
-    aa= priorVar@priorPars['alpha']; ll= priorVar@priorPars['lambda']
-    if (priorCoef@priorDistr=='pMOM') {
-      r <- priorCoef@priorPars['r']
-      ans= pmomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,r=r,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
-    } else if (priorCoef@priorDistr=='piMOM') {
-      if (method=='auto') method <- 'Laplace'
-      ans= pimomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
-    } else if (priorCoef@priorDistr=='peMOM') {
-      if (method=='auto') method <- 'Laplace'
-      ans= pemomMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,method=method,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
-    } else if (priorCoef@priorDistr=='zellner') {
-      ans= zellnerMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,logscale=logscale,XtX=XtX,ytX=ytX)
-    } else if (priorCoef@priorDistr=='normalid') {
-      ans= normalidMarginalU(sel=sel,y=y,x=x,alpha=aa,lambda=ll,tau=tau,logscale=logscale,XtX=XtX,ytX=ytX)
-    } else { stop("Prior distribution in priorCoef not recognized") }
-  } else if (family=='twopiecenormal') {
-    ans= nlpMarginalSkewnorm(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,optimMethod=optimMethod,B=B,logscale=logscale,XtX=XtX,ytX=ytX)
-  } else if (family=='laplace') {
-    ans= nlpMarginalAlapl(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,hess=hess,optimMethod=optimMethod,logscale=logscale,symmetric=TRUE)
-  } else {
-    ans= nlpMarginalAlapl(sel=sel,y=y,x=x,priorCoef=priorCoef,priorVar=priorVar,priorSkew=priorSkew,method=method,hess=hess,optimMethod=optimMethod,logscale=logscale,symmetric=FALSE)
+  familyint <- as.integer(family_dict[family])
+  # format input data
+  tmp <- formatInputdata(y=y,x=x,data=data,smoothterms=smoothterms,nknots=nknots,family=family)
+  x <- tmp$x; y <- tmp$y; is_formula <- tmp$is_formula
+  splineDegree <- tmp$splineDegree
+  if (!is.null(tmp$groups)) groups <- tmp$groups
+  if (!is.null(tmp$constraints)) constraints <- tmp$constraints
+  outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
+  typeofvar <- tmp$typeofvar
+  p= ncol(x); n= length(y)
+  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
+  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
+  sumy2 <- as.double(sum(y^2))
+  # check prior and set defaults if necessary
+  if (missing(priorCoef)) {
+      defaultprior= defaultmom(outcometype=outcometype,family=family)
+      priorCoef= defaultprior$priorCoef; priorVar= defaultprior$priorVar
   }
+  if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
+  # format arguments for .Call
+  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=0)
+  hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
+  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
+  B <- as.integer(B)
+  tmp= codeGroupsAndConstraints(p=p,groups=groups)
+  ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
+  tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
+  r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+
+  if (!is_formula) {
+    check_sel_groups(sel, groups)
+    sel <- as.integer(sel-1); nsel <- as.integer(length(sel))
+  } else {
+    if (!missing(sel)) warning("y is of type formula: ignoring sel argument")
+    sel <- as.integer(seq(p)-1)
+    nsel <- length(sel)
+  }
+
+  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, x, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
+}
+
+check_sel_groups <- function(sel, groups) {
+  p <- length(groups); seqp <- seq(p)
+  if (is.logical(sel)) sel <- seqp[sel]
+  if (any(sel > p)) stop("found index in sel larger than ncol(x). Please make sure all indexes refer to existing variables")
+  invsel <- seqp[!(seqp %in% sel)]
+  if (any(groups[sel] %in% groups[invsel])) stop("selected indexes incompatible with defined groups. Make sure each group is selected or discarded at once")
 }
 
 ##############################################################################################
@@ -552,142 +581,4 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
   }
   if (!logscale) ans <- exp(ans)
   return(ans)
-}
-
-
-pemomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data y~N(x*theta,phi*I) under a product emom prior (unknown variance)
-# - sel: vector with indexes of variables included in the model
-# - y: response variable
-# - x: design matrix
-# - alpha, lambda: prior for phi is IGamma(alpha/2,lambda/2)
-# - tau: prior dispersion parameter
-# - method: method to approximate the integral for known phi. Integral wrt phi is performed via integrate. 'Laplace' for Laplace approx which may underestimate true value, 'MC' for exact evaluation which can be very computationally expensive. 'Hybrid' combines Laplace for fixed phi with numerical integration wrt phi. The Laplace error is estimated using a single exact evaluation for a value of phi close to the posterior mode
-# - B: number of Monte Carlo samples to use (ignored unless method=='MC')
-  if (is.matrix(y)) y <- as.vector(y)
-  if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
-  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
-  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  if (is.logical(sel)) sel <- which(sel)
-  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
-  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
-  y <- as.double(y); sumy2 <- sum(y^2)
-  tau <- as.double(tau)
-  if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
-  method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
-  alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("pemomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
-  return(ans);
-}
-
-
-
-
-##############################################################################################
-## INTEGRATED LIKELIHOOD FOR LINEAR MODELS UNDER TWO-PIECE NORMAL AND LAPLACE RESIDUALS
-##############################################################################################
-
-nlpMarginalSkewnorm <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='Laplace', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX) {
-#Marginal density of the data under non-local priors and skew-normal residuals
-# - sel: vector with indexes of variables included in the model
-# - y: response variable
-# - x: design matrix
-  if (((!is.integer(sel)) || (!is.vector(sel))) & ((!is.logical(sel)) || (!is.vector(sel)))) stop("sel must be either an integer or a logical vector")
-  if (class(priorSkew)=='msPriorSpec') {
-    if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
-  }
-  if (priorCoef@priorDistr=='pMOM') {
-    r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
-  } else if (priorCoef@priorDistr=='piMOM') {
-    r <- as.integer(1); prior <- as.integer(1)
-  } else if (priorCoef@priorDistr=='peMOM') {
-    r <- as.integer(1); prior <- as.integer(2)
-  } else if (priorCoef@priorDistr=='zellner') {
-    r <- as.integer(1); prior <- as.integer(3)
-  } else {
-    stop('Prior specified in priorDistr not recognized')
-  }
-  tau <- as.double(priorCoef@priorPars['tau'])
-  if (class(priorSkew)=='msPriorSpec') {
-      taualpha <- as.double(priorSkew@priorPars['tau'])
-      fixatanhalpha <- as.double(-10000)
-  } else {  #fixed quantile level
-      taualpha <- 0.358
-      fixatanhalpha <- as.double(priorSkew)
-  }
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
-  #
-  if (is.matrix(y)) y <- as.vector(y)
-  if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
-  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
-  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  if (is.logical(sel)) sel <- which(sel)
-  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
-  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
-  y <- as.double(y); sumy2 <- sum(y^2)
-  tau <- as.double(tau); r <- as.integer(r)
-  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
-  method <- as.integer(method)
-  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
-  B <- as.integer(B); logscale <- as.integer(logscale)
-  alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("nlpMarginalSkewNormI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,method,optimMethod,B,logscale,alpha,lambda,prior,ngroups,nvaringroup)
-  return(ans);
-}
-
-
-nlpMarginalAlapl <- function(sel, y, x, priorCoef=momprior(tau=0.348), priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348), method='Laplace', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX, symmetric=FALSE) {
-#Marginal density of the data under non-local priors and asymmetric Laplace residuals
-# - sel: vector with indexes of variables included in the model
-# - y: response variable
-# - x: design matrix
-  if (((!is.integer(sel)) || (!is.vector(sel))) & ((!is.logical(sel)) || (!is.vector(sel)))) stop("sel must be either an integer or a logical vector")
-  if (class(priorSkew)=='msPriorSpec') {
-    if (priorCoef@priorDistr != priorSkew@priorDistr) stop("Prior in priorCoef and priorSkew must have same functional form (e.g. mom)")
-  }
-  if (priorCoef@priorDistr=='pMOM') {
-    r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
-  } else if (priorCoef@priorDistr=='piMOM') {
-    r <- as.integer(1); prior <- as.integer(1)
-  } else if (priorCoef@priorDistr=='peMOM') {
-    r <- as.integer(1); prior <- as.integer(2)
-  } else if (priorCoef@priorDistr=='zellner') {
-    r <- as.integer(1); prior <- as.integer(3)
-  } else {
-    stop('Prior specified in priorDistr not recognized')
-  }
-  tau <- as.double(priorCoef@priorPars['tau'])
-  if (class(priorSkew)=='msPriorSpec') {
-      taualpha <- as.double(priorSkew@priorPars['tau'])
-      fixatanhalpha <- as.double(-10000)
-  } else {  #fixed quantile level
-      taualpha <- 0.358
-      fixatanhalpha <- as.double(priorSkew)
-  }
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
-  symmetric <- as.integer(as.logical(symmetric))
-  #
-  if (is.matrix(y)) y <- as.vector(y)
-  if (is.vector(x)) { x <- matrix(x,ncol=1) } else { x <- as.matrix(x) }
-  if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
-  if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  if (is.logical(sel)) sel <- which(sel)
-  if ((length(sel)>0) && ((min(sel)<1) | max(sel)>ncol(x))) stop('Invalid specification of parameter sel')
-  sel <- as.integer(sel-1); nsel <- as.integer(length(sel));
-  p <- as.integer(ncol(x)); n <- as.integer(nrow(x))
-  y <- as.double(y); sumy2 <- sum(y^2)
-  tau <- as.double(tau); r <- as.integer(r)
-  if (method=='auto') method=-1 else if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid 'method'")
-  method <- as.integer(method)
-  hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
-  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
-  B <- as.integer(B); logscale <- as.integer(logscale)
-  alpha <- as.double(alpha); lambda <- as.double(lambda)
-  ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("nlpMarginalAlaplI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,taualpha,fixatanhalpha,r,symmetric,method,hess,optimMethod,B,logscale,alpha,lambda,prior,ngroups,nvaringroup)
-  return(ans);
 }

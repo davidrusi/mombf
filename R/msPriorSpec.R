@@ -47,7 +47,7 @@ valid_msPriorSpec <- function(object) {
     ## Validate rest based on type
     switch(object@priorType,
            coefficients = {
-               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner","normalid")
+               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner","normalid","bic")
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
                    msg <- c(msg,
@@ -174,6 +174,10 @@ msPriorSpec <- function(priorType=c("coefficients",
         priorPars=priorPars)
 }
 
+
+bicprior <- function() {
+    new("msPriorSpec", priorType="coefficients", priorDistr="bic", priorPars=c(tau=-1))
+}
 
 igprior <- function(alpha=.01, lambda=.01) {
     new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=alpha,lambda=lambda))

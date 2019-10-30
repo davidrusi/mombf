@@ -836,8 +836,8 @@ nselConstraints= function(sel, groups, constraints) {
 binomPrior <- function(sel, prob=.5, logscale=TRUE, probconstr=prob, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0))) {
     nsel= nselConstraints(sel=sel, groups=groups, constraints=constraints)
     if (!nsel$violateConstraint) {
-        ans= dbinom(x=nsel$ngroups0,size=nsel$ngroups-nsel$ngroupsconstr,prob=prob,log=TRUE)
-        if (nsel$ngroupsconstr>0) ans= ans+ dbinom(x=nsel$ngroups1,size=nsel$ngroupsconstr,prob=probconstr,log=TRUE)
+        ans= dbinom(x=nsel$ngroups0,size=nsel$ngroups-nsel$ngroupsconstr,prob=prob,log=TRUE) - lchoose(nsel$ngroups-nsel$ngroupsconstr, nsel$ngroups0)
+        if (nsel$ngroupsconstr>0) ans= ans+ dbinom(x=nsel$ngroups1,size=nsel$ngroupsconstr,prob=probconstr,log=TRUE) - lchoose(nsel$ngroupsconstr, nsel$ngroups1)
     } else { ans= -Inf }
     if (!logscale) ans= exp(ans)
     return(ans)

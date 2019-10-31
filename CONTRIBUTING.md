@@ -20,6 +20,17 @@ of `mombf` in the sense that they are expected to release new versions
 of the package, which is done via R-forge. All other contributions can
 be done with GitHub forks and Pull Requests.
 
+## Contents
+1. [Background](#Background)
+2. [Getting Started](#Getting-Started)
+3. [Development on GitHub](#Development-on-GitHub)
+   1. [Development on a feature branch](#Development-on-a-feature-branch)
+   2. [Development on master](#Development-on-master)
+1. [Merge GitHub changes back into R-forge](#Merge-GitHub-changes-back-into-R-forge)
+   1. [`update_remotes.sh`](#`update_remotes.sh`)
+1. [Syncing the local repository with GitHub and R-forge](#Syncing-the-local-repository-with-GitHub-and-R-forge)
+   1. [`update_locals.sh`](#`update_locals.sh`)
+
 ## Background
 `mombf` uses both GitHub and R-forge. GitHub is used to track
 changes, issues and handle pull requests, and R-forge is used to
@@ -42,7 +53,7 @@ If the changes are developed in R-forge, then before merging anything into
 GitHub master, it should be checked that GitHub master is up to date with
 R-forge.
 
-## Get Started
+## Getting Started
 
 In order
 to create a folder tracking both platforms, start by creating a
@@ -79,6 +90,26 @@ branch following GitHub's master:
 Finally, checkout and create a feature branch to work on. It is not
 recommended to work on master.
 
+## Development on GitHub
+#### Development on a feature branch
+The development on GitHub is based on Pull Requests, which allows to automatically check the package with `R CMD check`, run tests and check code coverage automatically. In order to take full profit of all this features, the procedure should be the following:
+
+1. Make sure `master` is up to date. See [Syncing the local repository with GitHub and R-forge](#Syncing-the-local-repository-with-GitHub-and-R-forge) for details.
+1. Switch to a new branch using `git checkout -b <branch-name> master` and edit and commit there.
+1. `git commit` to add the changes to the feature branch.
+1. Push the changes to Github with `git push`. You may get an error if this is the first time the branch is pushed to GitHub, but Git itself should provide the correct command, execute Git's recommendation.
+
+Once the changes have been pushed to Github, it is recommended to use the website interface to add any comments on the new feature, check that continuous integration builds are run without errors, that code coverage is acceptable and merge the new feature into the master branch using the button "Squash and merge".
+
+#### Development on master
+For simple changes, it may be better to directly commit to `master`. In this case, the workflow would be simpler and faster because no checks are performed before merging and GitHub's web interface is not used.
+
+1. Make sure `master` is up to date. See [Syncing the local repository with GitHub and R-forge](#Syncing-the-local-repository-with-GitHub-and-R-forge) for details.
+2. Work on feature
+3. `git commit` to add changes to `master`
+4. Follow the steps in [Merge GitHub changes back into R-forge](#Merge-GitHub-changes-back-into-R-forge)
+
+
 ## Merge GitHub changes back into R-forge
 Once there are enough changes to release a new version of `mombf`, changes in
 GitHub must be merged into R-forge. After making sure that local master is up
@@ -103,3 +134,39 @@ Note that the push of the rebased master to GitHub must be a forced one
 because we are actually updating the commit ids to match the ones in R-forge.
 However, it should also be noted that the code is **not** changed, so there
 should never be merge problems while rebasing.
+
+#### `update_remotes.sh`
+For convenience, all these commands can be run at once using `update_remotes.sh`. As an extra precaution, given that `git push -f` must be used carefully, the script can be run in two ways:
+
+    $ bash scripts/update_remotes.sh     # to omit the last git push -f
+    $ bash scripts/update_remotes.sh -f  # to also push changes to GitHub
+
+## Syncing the local repository with GitHub and R-forge
+Before starting to work it is crucial to make sure our local branches are up to date with their remote repositories. That is, `f-forge_local` has all the changes in R-forge and `master` has all the changes in GitHub. Update `r-forge_local` with R-forge changes using `git svn rebase` (equivalent to `svn update`):
+
+    $ git checkout r-forge_local
+    $ git svn rebase
+
+Update `master` with GitHub changes:
+
+    $ git checkout master
+    $ git fetch origin
+    $ git rebase origin/master
+
+When updating a local branch we may want to pull the changes from its remote branch or merge the updates in master to the branch. To sync the local branch with its remote, follow the same steps described right above changing `master` by the branch name. To merge the changes in master into the master branch, run the following commands **after** having updated master:
+
+    $ git checkout local_branch
+    $ git merge master
+
+#### `update_locals.sh`
+For convenience, a bash script, `update_locals.sh` has been added to convert all this instructions to a single line of code. It will always update `r-forge_local` and `master` when called:
+
+    $ bash scripts/update_locals.sh
+
+Moreover, it can also update a local branch with its remote:
+
+    $ bash scripts/update_locals.sh -p local_branch
+
+Or merge master into a local branch:
+
+    $ bash scripts/update_locals.sh -m local_branch

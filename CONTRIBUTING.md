@@ -27,9 +27,9 @@ be done with GitHub forks and Pull Requests.
    1. [Development on a feature branch](#Development-on-a-feature-branch)
    2. [Development on master](#Development-on-master)
 1. [Merge GitHub changes back into R-forge](#Merge-GitHub-changes-back-into-R-forge)
-   1. [`update_remotes.sh`](#`update_remotes.sh`)
+   1. [`update_remotes.sh`](#update_remotes)
 1. [Syncing the local repository with GitHub and R-forge](#Syncing-the-local-repository-with-GitHub-and-R-forge)
-   1. [`update_locals.sh`](#`update_locals.sh`)
+   1. [`update_locals.sh`](#update_locals)
 
 ## Background
 `mombf` uses both GitHub and R-forge. GitHub is used to track
@@ -135,6 +135,7 @@ because we are actually updating the commit ids to match the ones in R-forge.
 However, it should also be noted that the code is **not** changed, so there
 should never be merge problems while rebasing.
 
+<a name="update_remotes"></a>
 #### `update_remotes.sh`
 For convenience, all these commands can be run at once using `update_remotes.sh`. As an extra precaution, given that `git push -f` must be used carefully, the script can be run in two ways:
 
@@ -158,7 +159,9 @@ When updating a local branch we may want to pull the changes from its remote bra
     $ git checkout local_branch
     $ git merge master
 
+<a name="update_locals"></a>
 #### `update_locals.sh`
+
 For convenience, a bash script, `update_locals.sh` has been added to convert all this instructions to a single line of code. It will always update `r-forge_local` and `master` when called:
 
     $ bash scripts/update_locals.sh

@@ -26,6 +26,7 @@ do
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
+printf "$PULL_BRANCH"
 # store current branch
 CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
 

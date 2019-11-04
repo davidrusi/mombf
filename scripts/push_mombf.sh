@@ -1,23 +1,10 @@
 #!/bin/bash
 
-FORCE=false
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-    key="$1"
-
-    case $key in
-        -f|--force)
-        FORCE=true
-        shift # past argument
-        shift # past value
-        ;;
-    esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
-
 # store current branch
 CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
+
+# make sure repository is up to date
+bash scripts/pull_mombf.sh
 
 # merge GitHub changes into r-forge_local
 printf "Merging master into r-forge_local\n"
@@ -35,11 +22,7 @@ git checkout master
 git rebase r-forge_local
 
 printf "Pushing master to GitHub repo\n"
-if [ "$FORCE" = true ] ; then
-    git push -f
-else
-    git push
-fi
+git push -f
 
 # return to original branch
 printf "\nReturning to original branch ${CURRENT_BRANCH}\n"

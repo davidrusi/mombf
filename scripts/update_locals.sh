@@ -25,7 +25,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # store current branch
-CURRENT_BRANCH=git branch | grep \* | cut -d ' ' -f2
+CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
 
 # Update r-forge_local
 git checkout r-forge_local
@@ -48,4 +48,4 @@ if [ "$MERGE" = true ] ; then
 fi
 
 # return to original branch
-git checkout CURRENT_BRANCH
+git checkout "$CURRENT_BRANCH"

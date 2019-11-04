@@ -42,4 +42,5 @@ else
 fi
 
 # return to original branch
+printf "\nReturning to original branch ${CURRENT_BRANCH}\n"
 git checkout "$CURRENT_BRANCH"

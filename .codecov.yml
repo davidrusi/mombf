@@ -1,5 +1,5 @@
 # configuration related to pull request comments
-comment: false # do not comment PR with the result
+comment: off # do not comment PR with the result
 
 coverage:
   range: 50..90 # coverage lower than 50 is red, higher than 90 green, between color code
@@ -12,6 +12,5 @@ coverage:
         threshold: 5%  # allow for 5% reduction of coverage without failing
 
     # do not run coverage on patch nor changes
-    patch: false
-
-    changes: false
+    patch: no
+    changes: no

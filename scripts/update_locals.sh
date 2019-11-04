@@ -24,6 +24,9 @@ do
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
+# store current branch
+CURRENT_BRANCH=git branch | grep \* | cut -d ' ' -f2
+
 # Update r-forge_local
 git checkout r-forge_local
 git svn rebase
@@ -43,3 +46,6 @@ if [ "$MERGE" = true ] ; then
     git checkout "$MERGE_BRANCH"
     git merge master
 fi
+
+# return to original branch
+git checkout CURRENT_BRANCH

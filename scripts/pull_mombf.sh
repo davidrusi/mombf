@@ -37,8 +37,6 @@ do
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-printf "$PULL_BRANCH"
-
 # Update r-forge_local
 printf "Updating r-forge_local with changes from R-forge repo\n"
 git checkout r-forge_local

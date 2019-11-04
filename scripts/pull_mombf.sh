@@ -2,6 +2,9 @@
 
 set -e # fail on first error
 
+# store current branch
+CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
+
 PULL=false
 MERGE=false
 POSITIONAL=()
@@ -11,24 +14,30 @@ do
 
     case $key in
         -p|--pull)
-        PULL_BRANCH="$2"
-        PULL=true
+        if [[ -n "$2" ]]; then
+          PULL_BRANCH="$2"
+          shift # past value
+        else
+          PULL_BRANCH="$CURRENT_BRANCH"
+        fi
         shift # past argument
-        shift # past value
+        PULL=true
         ;;
         -m|--merge)
-        MERGE_BRANCH="$2"
-        MERGE=true
+        if [[ -n "$2" ]]; then
+          MERGE_BRANCH="$2"
+          shift # past value
+        else
+          MERGE_BRANCH="$CURRENT_BRANCH"
+        fi
         shift # past argument
-        shift # past value
+        MERGE=true
         ;;
     esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 printf "$PULL_BRANCH"
-# store current branch
-CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
 
 # Update r-forge_local
 printf "Updating r-forge_local with changes from R-forge repo\n"

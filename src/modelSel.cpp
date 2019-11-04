@@ -286,6 +286,10 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 33;
     } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
       ans= 43;
+    } else if ((*prCoef==3) & (*prGroup==4)) { //Zellner + normalid
+      ans= 44;
+    } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
+      ans= 58;
     } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
       ans= 53;
     } else {
@@ -324,6 +328,10 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       ans= pemomgzellMarg;
     } else if (*priorcode==43) {
       ans= zellgzellMarg;
+    } else if (*priorcode==44) {
+      ans= zellnormidMarg;
+    } else if (*priorcode==58) {
+      ans= normidgzellMarg;
     } else {
       Rf_error("The prior in (priorCoef,priorGroup) not currently implemented for linear regression");
     }
@@ -2178,6 +2186,15 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("Zellner + block Zellner not currently implemented for linear regression");
 }
 
+// Zellner on individual coef, normalid on groups
+double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + block Zellner not currently implemented for linear regression");
+}
+
+// Zellner on individual coef, block Zellner on groups
+double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + block Zellner not currently implemented for linear regression");
+}
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS

@@ -266,7 +266,11 @@ double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);
 // Zellner on individual coef, block Zellner on groups
 double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 
+// Zellner on individual coef, normalid on groups
+double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars);
 
+// normalid on individual coef, group Zellner on groups
+double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS

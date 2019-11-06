@@ -24,6 +24,7 @@ hasPostSampling <- function(object) {
   hassamples[2,]=    c('Continuous','normal',  'peMOM',  'peMOM')
   hassamples[3,]=    c('Continuous','normal',  'piMOM',  'piMOM')
   hassamples[4,]=    c('Continuous','normal','zellner','zellner')
+  hassamples[5,]=    c('glm','binomial-logit','bic','bic')
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
   found= FALSE
@@ -358,7 +359,12 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
           ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
       } else {
-          outcometype= 'Continuous'; y= des$y; uncens= integer(0)
+          if (family %in% c('normal','twopiecenormal','laplace','twopiecelaplace','auto')) {
+            outcometype= 'Continuous'
+          } else {
+            outcometype= 'glm'
+          }
+          y= des$y; uncens= integer(0)
       }
       nlevels <- apply(x,2,function(z) length(unique(z)))
       typeofvar[nlevels==2]= 'factor'
@@ -368,7 +374,12 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
           ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
       } else {
-          outcometype= 'Continuous'; uncens= integer(0)
+        if (family %in% c('normal','twopiecenormal','laplace','twopiecelaplace','auto')) {
+          outcometype= 'Continuous'
+        } else {
+          outcometype= 'glm'
+        }
+        uncens= integer(0)
       }
       formula= splineDegree= NA; is_formula=FALSE; typeofvar= rep('numeric',ncol(x))
   }

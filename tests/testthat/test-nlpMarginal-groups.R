@@ -11,9 +11,9 @@ patrick::with_parameters_test_that(
   },
   patrick::cases(
     sel_outofbounds=list(sel=c(1,7,20), error_msg="sel larger than"),
-    sel_outofbounds=list(sel=c(1,2,7), error_msg="incompatible with .+ groups"),
-    sel_outofbounds=list(sel=c(2,3,4,7,8), error_msg=NA),
-    sel_outofbounds=list(sel=c(TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE, FALSE), error_msg=NA)
+    sel_incompatible_groups=list(sel=c(1,2,7), error_msg="incompatible with .+ groups"),
+    sel_good_int=list(sel=c(2,3,4,7,8), error_msg=NA),
+    sel_good_bool=list(sel=c(TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,TRUE, FALSE), error_msg=NA)
   )
 )
 

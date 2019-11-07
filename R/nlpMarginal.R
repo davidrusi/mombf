@@ -43,7 +43,7 @@ nlpMarginal <- function(
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
 
   if (!is_formula) {
-    check_sel_groups(sel, groups)
+    sel <- check_sel_groups(sel, groups)
     sel <- as.integer(sel-1); nsel <- as.integer(length(sel))
   } else {
     if (!missing(sel)) warning("y is of type formula: ignoring sel argument")
@@ -61,6 +61,7 @@ check_sel_groups <- function(sel, groups) {
   if (any(sel > p)) stop("found index in sel larger than ncol(x). Please make sure all indexes refer to existing variables")
   invsel <- seqp[!(seqp %in% sel)]
   if (any(groups[sel] %in% groups[invsel])) stop("selected indexes incompatible with defined groups. Make sure each group is selected or discarded at once")
+  return(sel)
 }
 
 ##############################################################################################

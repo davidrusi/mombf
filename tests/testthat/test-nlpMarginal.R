@@ -87,3 +87,17 @@ patrick::with_parameters_test_that(
     emomprior=list(pCoef=emomprior(tau=0.328), pSkew=emomprior(tau=0.3), expected_max=-38.85072, expected_all=-47.06661)
   )
 )
+
+test_that(
+  "logical or integer sel give equal results", {
+    pVar <- igprior(alpha=0.01, lambda=0.01)
+    pCoef=momprior(tau=0.328, r=1)
+    ans_int <- nlpMarginal(
+      theta3_truth_idx, y3, X3, family="normal", priorCoef=pCoef, priorVar=pVar
+    )
+    ans_bool <- nlpMarginal(
+      theta3_truth_bool, y3, X3, family="normal", priorCoef=pCoef, priorVar=pVar
+    )
+    expect_equal(ans_int, ans_bool)
+  }
+)

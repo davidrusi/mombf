@@ -38,25 +38,44 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
     colnames(ans)= nn
   }
   #Return posterior samples in non-standardized parameterization
-  my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
-  sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
-  ct= (sx==0)
-  b= ans[,1:ncol(x)]
-  b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
-  #ans[,1:ncol(x)]= b
-  if (any(ct)) {
-      b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
-      ans[,1:ncol(x)]= b
-      #ans[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
-  } else {
-      intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
-      ans= cbind(intercept,b,ans[,-1:-ncol(x)]); colnames(ans)= c('intercept',nn)
-      #ans[,1:ncol(x)]= b; ans= cbind(intercept,ans); colnames(ans)= c('intercept',nn)
-  }
-  if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
+  ans= unstdcoef(ans,p=ncol(x),msfit=msfit,coefnames=nn)
+  #
+  #my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
+  #sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
+  #ct= (sx==0)
+  #b= ans[,1:ncol(x)]
+  #b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
+  #if (any(ct)) {
+  #    b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+  #    ans[,1:ncol(x)]= b
+  #} else {
+  #    intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
+  #    ans= cbind(intercept,b,ans[,-1:-ncol(x)]); colnames(ans)= c('intercept',nn)
+  #}
+  #if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
   return(ans)
 }
 )
+
+
+#Return posterior samples in non-standardized parameterization
+unstdcoef <- function(ans, p, msfit, coefnames) {
+  my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
+  sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
+  ct= (sx==0)
+  b= ans[,1:p]
+  b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
+  if (any(ct)) {
+      b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+      ans[,1:p]= b
+  } else {
+      intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
+      ans= cbind(intercept,b,ans[,-1:-p]); colnames(ans)= c('intercept',coefnames)
+  }
+  if ('phi' %in% coefnames) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
+  return(ans)
+}
+
 
 
 setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {

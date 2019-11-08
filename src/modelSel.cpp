@@ -2206,13 +2206,13 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
     adj= (tau+1)/tau;
     for (varcount=1, groupcount=0; varcount <= *nsel; varcount++, groupcount++) {
-      p_i = nvarinselgroups[groupcount];
+      p_i = (int) nvarinselgroups[groupcount];
       if (p_i==1) {
         S[varcount][varcount] = S[varcount][varcount] * 1/tau;
       } else {
-        for (i=varcount; i<=varcount + p_i; i++) {
+        for (i=varcount; i<varcount + p_i; i++) {
           S[i][i]= S[i][i] * adj;
-          for (j=i+1; j<=varcount + p_i; j++) { S[i][j]= S[i][j] * adj; }
+          for (j=i+1; j<varcount + p_i; j++) { S[i][j]= S[i][j] * adj; }
         }
         varcount = varcount + p_i - 1;
       }

@@ -1,16 +1,18 @@
 \name{rnlp}
 \alias{rnlp}
 \alias{rnlp-methods}
-\alias{rnlp,missing,missing,missing,missing,msfit-method}
-\alias{rnlp,ANY,matrix,missing,missing,missing-method}
-\alias{rnlp,ANY,matrix,missing,missing,msfit-method}
-\alias{rnlp,missing,missing,numeric,matrix,missing-method}
+\alias{rnlp,missing,missing,missing,missing,msfit,missing,missing-method}
+\alias{rnlp,ANY,matrix,missing,missing,missing,missing,missing-method}
+\alias{rnlp,ANY,matrix,missing,missing,msfit,missing,missing-method}
+\alias{rnlp,missing,missing,numeric,matrix,missing,missing,missing-method}
+\alias{rnlp,ANY,matrix,missing,missing,missing,character,character-method}
 \title{
-Posterior sampling for Non-Local Priors
+Posterior sampling for regression parameters
 }
 \description{
-Gibbs sampler for linear and Cox proportional hazards model
-under product non-local priors and Zellner's prior.
+Gibbs sampler for linear, generalized linear and survival models
+under product non-local priors, Zellner's prior and a Normal
+approximation to the posterior.
 Both sampling conditional on a model and Bayesian model averaging are
 implemented (see Details).
 
@@ -19,8 +21,8 @@ density proportional to d(theta) N(theta; m, V) are produced,
 where d(theta) is the non-local penalty term.
 }
 \usage{
-rnlp(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3,
-burnin=round(niter/10), thinning=1, pp='norm')
+rnlp(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup,
+priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
 }
 \arguments{
   \item{y}{Vector with observed responses. When \code{class(y)=='Surv'}
@@ -33,9 +35,12 @@ burnin=round(niter/10), thinning=1, pp='norm')
     \code{modelSelection}. If specified Bayesian model averaging
     posterior samples are returned, according to posterior model
     probabilities in \code{msfit}, and then arguments \code{y},
-    \code{x}, \code{m}, \code{V}, \code{priorCoef},
-    \code{priorVar} are all ignored. If \code{msfit} is missing then
+    \code{x}, \code{m}, \code{V} etc. If \code{msfit} is missing then
     posterior samples under the full model \code{y ~ x} are returned}
+  \item{outcometype}{Type of outcome. Possible values are "Continuous",
+    "glm" or "Survival"}
+  \item{family}{Assumed family for the family. Some possible values are
+    "normal", "binomial logit" and "Cox"}
   \item{priorCoef}{Prior distribution for the coefficients. Ignored if
     \code{msfit} is supplied. Must be object of class
     \code{msPriorSpec}, e.g. created by \code{momprior},

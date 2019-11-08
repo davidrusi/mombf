@@ -18,31 +18,37 @@ hasPostSampling <- function(object) {
 #Sends an error message if posterior sampling is not implemented for the priors and outcome type of the msFit object
 #
   #List combinations for which posterior sampling is implemented
-  hassamples= data.frame(matrix(NA,nrow=4,ncol=4))
+  hassamples= data.frame(matrix(NA,nrow=10,ncol=4))
   names(hassamples)= c('outcometype','family','priorCoef','priorGroup')
-  hassamples[1,]=    c('Continuous','normal',   'pMOM',   'pMOM')
-  hassamples[2,]=    c('Continuous','normal',  'peMOM',  'peMOM')
-  hassamples[3,]=    c('Continuous','normal',  'piMOM',  'piMOM')
-  hassamples[4,]=    c('Continuous','normal','zellner','zellner')
-  hassamples[5,]=    c('glm','binomial-logit','bic','bic')
+  hassamples[1,] =    c('Continuous','normal',   'pMOM',   'pMOM')
+  hassamples[2,] =    c('Continuous','normal',  'peMOM',  'peMOM')
+  hassamples[3,] =    c('Continuous','normal',  'piMOM',  'piMOM')
+  hassamples[4,] =    c('Continuous','normal','zellner','zellner')
+  hassamples[5,] =    c('glm','binomial logit','bic','bic')
+  hassamples[6,] =    c('glm','binomial probit','bic','bic')
+  hassamples[7,] =    c('glm','gamma inverse','bic','bic')
+  hassamples[8,] =    c('glm','inverse.gaussian 1/mu^2','bic','bic')
+  hassamples[9,] =    c('glm','poisson log','bic','bic')
+  hassamples[10,]=    c('Survival','Cox','bic','bic')
+  #hassamples[11,]=    c('Survival','normal','bic','bic') #to be added
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
-  found= FALSE
   outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr
+  outcomefam= paste(outcometype,family,sep=',')
   if (hasgroups) {
-    for (i in 1:nrow(hassamples)) {
-      if (outcometype==hassamples[i,1] && family==hassamples[i,2] && priorCoef==hassamples[i,3] && priorGroup==hassamples[i,4]) found= TRUE
-    }
+    outcomefamprior= paste(outcomefam,priorCoef,priorGroup,sep=',')
   } else {
-    for (i in 1:nrow(hassamples)) {
-      if (outcometype==hassamples[i,1] && family==hassamples[i,2] && priorCoef==hassamples[i,3]) found= TRUE
-    }
+    outcomefamprior= paste(outcomefam,priorCoef)
   }
+  found= outcomefam %in% apply(hassamples[,1:2],1,paste,collapse=',')
+  exactsampling= outcomefamprior  %in% apply(hassamples,1,paste,collapse=',')
   if (!found) {
     cat("Inference on parameters currently only available for the following settings: \n\n")
     print(hassamples)
     cat("\n")
     stop("Inference on parameters not implemented for outcometype= ",outcometype,", family=",family,", priorCoef=",priorCoef,", priorGroup=",priorGroup)
+  } else {
+    if (!exactsampling) warning("Exact posterior sampling not implemented, using Normal approx instead")
   }
 }
 
@@ -53,12 +59,24 @@ coef.msfit <- function(object,...) {
     hasPostSampling(object)
     th= rnlp(msfit=object,niter=10^4)
     ct= (object$stdconstants[-1,'scale']==0)
+    if (!is.null(names(object$margpp))) {
+        nn= names(object$margpp)
+    } else if (!is.null(colnames(th))) {
+        nn= colnames(th)
+    } else { nn= paste('beta',1:ncol(th))  }
     if (any(ct)) {
-        margpp= c(object$margpp,1)
-        nn= c(names(object$margpp),'phi')
+        if (ncol(th) > length(object$margpp)) {
+            margpp= c(object$margpp,1)
+            nn= c(nn,'phi')
+        } else { margpp= object$margpp }
     } else {
-        margpp= c(mean(th[,1]!=0),object$margpp,1)
-        nn= c('intercept',names(object$margpp),'phi')
+        if (ncol(th) > length(object$margpp)) {
+            margpp= c(mean(th[,1]!=0),object$margpp,1)
+            nn= c('intercept',nn,'phi')
+        } else {
+            margpp= c(mean(th[,1]!=0),object$margpp)
+            nn= c('intercept',nn)
+        }
     }
     ans= cbind(colMeans(th),t(apply(th,2,quantile,probs=c(.025,0.975))),margpp=margpp)
     colnames(ans)= c('estimate','2.5%','97.5%','margpp')
@@ -208,6 +226,12 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   call <- list(formula=formula, smoothterms= NULL, splineDegree=splineDegree, nknots=nknots)
   if (!missing(smoothterms)) call$smoothterms <- smoothterms
   p= ncol(x); n= length(y)
+      if (is.numeric(includevars)) {
+      tmp= rep(FALSE,p)
+      if (max(includevars) > p) stop(paste("includevars contains index ",max(includevars)," but the design matrix only has ",p," columns",sep=""))
+      tmp[includevars]= TRUE
+      includevars= tmp
+  }
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
   if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
@@ -232,6 +256,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   if (!center) { my=0; mx= rep(0,p) } else { my= mean(y) }
   if (!scale) { sy=1; sx= rep(1,p) } else { sy= sd(y) }
   mx[typeofvar=='factor']=0; sx[typeofvar=='factor']= 1
+  if (!(outcometype %in% c('Continuous','Survival'))) { my=0; sy= 1 }
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('shift','scale')

@@ -11,6 +11,7 @@ importFrom(Rcpp, evalCpp)
 useDynLib(mombf, .registration=TRUE)
 
 export(bbPrior)
+export(bicprior)
 export(bfnormmix)
 S3method(coef,mixturebf)
 S3method(coef,msfit)

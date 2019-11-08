@@ -51,6 +51,6 @@ if (!isGeneric("postSamples")) {
 
 
 if (!isGeneric("rnlp")) {
-  setGeneric("rnlp", function(y, x, m, V, msfit, priorCoef, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') standardGeneric("rnlp"))
+  setGeneric("rnlp", function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') standardGeneric("rnlp"))
 }
 

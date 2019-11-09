@@ -2186,8 +2186,13 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   Rf_error("Zellner + block Zellner not currently implemented for linear regression");
 }
 
-// Zellner on individual coef, normalid on groups
+// Zellner on individual coef, normid on groups
 double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
+  Rf_error("Zellner + normalid not currently implemented for linear regression");
+}
+
+// Zellner on individual coef, normalid on groups
+double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, p_i, varcount, groupcount;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   if (*nsel ==0) {
@@ -2205,16 +2210,17 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
     adj= (tau+1)/tau;
-    for (varcount=1, groupcount=0; varcount <= *nsel; varcount++, groupcount++) {
+    for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
       p_i = (int) nvarinselgroups[groupcount];
       if (p_i==1) {
         S[varcount][varcount] = S[varcount][varcount] * 1/tau;
+        varcount++;
       } else {
         for (i=varcount; i<varcount + p_i; i++) {
           S[i][i]= S[i][i] * adj;
           for (j=i+1; j<varcount + p_i; j++) { S[i][j]= S[i][j] * adj; }
         }
-        varcount = varcount + p_i - 1;
+        varcount = varcount + p_i;
       }
     }
     invdet_posdef(S,*nsel,Sinv,&detS);
@@ -2232,11 +2238,6 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
   return ans;
-}
-
-// Zellner on individual coef, block Zellner on groups
-double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("Zellner + block Zellner not currently implemented for linear regression");
 }
 
 //*************************************************************************************

@@ -2244,9 +2244,7 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
     }
     logtaus = singlevarcount*log(tau) + (*nsel - singlevarcount) * log(taugroup);
     logdetV0 = log(detV0tau) - logtaus;
-    Rcpp::Rcout << "det(V0) " << logdetV0 << "\n";
     invdet_posdef(S,*nsel,Sinv,&detS);
-    Rcpp::Rcout << "det(S) " << detS << "\n";
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= .5*(*(*pars).n + *(*pars).alpha);
 

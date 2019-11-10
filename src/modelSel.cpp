@@ -2193,8 +2193,9 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
 // Zellner on individual coef, normalid on groups
 double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, p_i, varcount, groupcount;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, adj, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **XtX_group, **XtX_groupinv, **V0, **cholV0, detS, detV0, detXtX_group, aux, tau= *(*pars).tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  bool posdef=true;
   if (*nsel ==0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -2204,36 +2205,56 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
   } else {
 
-    // TODO: improve loop to define matrix, see findselgroups in line 1732
     nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
     findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    V0 = dmatrix(1, *nsel, 1, *nsel); cholV0 = dmatrix(1, *nsel, 1, *nsel);
+    for (i=1; i<=*nsel; i++) {
+      for (j=1; j<=*nsel; j++) {
+        V0[i][j] = 0;
+      }
+    }
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
-    adj= (tau+1)/tau;
     for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
       p_i = (int) nvarinselgroups[groupcount];
       if (p_i==1) {
-        S[varcount][varcount] = S[varcount][varcount] * 1/tau;
+        S[varcount][varcount] = S[varcount][varcount] + 1/tau;
+        V0[varcount][varcount] = 1/tau;
         varcount++;
       } else {
-        for (i=varcount; i<varcount + p_i; i++) {
-          S[i][i]= S[i][i] * adj;
-          for (j=i+1; j<varcount + p_i; j++) { S[i][j]= S[i][j] * adj; }
+        XtX_group = dmatrix(1,p_i,1,p_i); XtX_groupinv = dmatrix(1,p_i,1,p_i);
+        groupsel = ivector(0,p_i);
+        for (i=0; i<p_i; i++) { groupsel[i] = sel[varcount-1+i]; }
+        addct2XtX(&zero, (*pars).XtX, groupsel, &p_i, (*pars).p, XtX_group);
+        invdet_posdef(XtX_group,p_i,XtX_groupinv,&detXtX_group);
+        for (i_var=varcount, i=1; i<=p_i; i_var++, i++) {
+          for (j_var=i_var, j=i; j<=p_i; j_var++, j++) {
+            aux = XtX_groupinv[i][j]/tau;
+            S[i_var][j_var]= S[i_var][j_var] + aux;
+            V0[i_var][j_var]= aux;
+            Rcpp::Rcout << XtX_groupinv[i][j] << "\n";
+          }
         }
         varcount = varcount + p_i;
+        free_dmatrix(XtX_group,1,p_i,1,p_i); free_dmatrix(XtX_groupinv,1,p_i,1,p_i);
+        free_ivector(groupsel,0,p_i);
       }
     }
+    choldc(V0, *nsel, cholV0, &posdef);
+    detV0 = choldc_det(cholV0, *nsel);
+    Rcpp::Rcout << "detv0 " << detV0 << "\n";
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= .5*(*(*pars).n + *(*pars).alpha);
 
+    // check normalization
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-    den= .5*(*(*pars).n * LOG_M_2PI) + .5 * (*nsel) *log((*(*pars).tau)+1.0) + gamln(&alphahalf);
-    //den= .5*(*(*pars).n * LOG_M_2PI + log(detS)) + .5 * (*nsel) *log(*(*pars).tau) + gamln(&alphahalf);
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) + log(detV0)) + .5 * (*nsel) *log(tau) + gamln(&alphahalf);
     ans= num - den;
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+    free_dmatrix(V0,1,*nsel,1,*nsel); free_dmatrix(cholV0,1,*nsel,1,*nsel);
 
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }

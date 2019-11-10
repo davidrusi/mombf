@@ -97,9 +97,9 @@ double crossprodmat::at(int i, int j) {
 
       int iini, jini, k; double ans= 0;
       if (this->userows ==NULL) {
-	for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[k + iini] * x[k + jini];
+        for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows+this->userowsini; k++) ans += x[k + iini] * x[k + jini];
       } else {
-	for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
+        for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
       }
 
       XtXcomputed(i,j)= 1;
@@ -128,11 +128,11 @@ double crossprodmat::at(int k) {
       int iini, jini, k; double ans= 0;
       if (this->userows ==NULL) {
 
-	for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[k + iini] * x[k + jini];
+        for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows+this->userowsini; k++) ans += x[k + iini] * x[k + jini];
 
       } else {
 
-	for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
+        for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
 
       }
 

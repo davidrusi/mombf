@@ -2193,8 +2193,8 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
 // Zellner on individual coef, normalid on groups
 double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, **XtX_group, **XtX_groupinv, **V0, **V0inv, detS, detV0, detXtX_group, tau= *(*pars).tau, taugroup=*(*pars).taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **XtX_group, **XtX_groupinv, **V0, **V0inv, detS, detV0tau, logdetV0, detXtX_group, tau= *(*pars).tau, taugroup=*(*pars).taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   if (*nsel ==0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -2218,6 +2218,7 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
       if (p_i==1) {
         V0[varcount][varcount] = tau;
         varcount++;
+        singlevarcount++;
       } else {
         XtX_group = dmatrix(1,p_i,1,p_i); XtX_groupinv = dmatrix(1,p_i,1,p_i);
         groupsel = ivector(0,p_i);
@@ -2234,14 +2235,15 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
         free_ivector(groupsel,0,p_i);
       }
     }
-    invdet_posdef(V0,*nsel,V0inv,&detV0);
+    invdet_posdef(V0,*nsel,V0inv,&detV0tau);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
     for (i=1; i<=*nsel; i++) {
       for (j=i; j<=*nsel; j++) {
         S[i][j]+=V0inv[i][j];
       }
     }
-    Rcpp::Rcout << "det(V0) " << detV0 << "\n";
+    logdetV0 = log(detV0tau) - singlevarcount*log(tau) - (*nsel - singlevarcount) * log(taugroup);
+    Rcpp::Rcout << "det(V0) " << logdetV0 << "\n";
     invdet_posdef(S,*nsel,Sinv,&detS);
     Rcpp::Rcout << "det(S) " << detS << "\n";
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
@@ -2249,7 +2251,7 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) + log(detV0)) + .5 * (*nsel) *log(tau) + gamln(&alphahalf);
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) + logdetV0) + .5 * (*nsel) *log(tau) + gamln(&alphahalf);
     ans= num - den;
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);

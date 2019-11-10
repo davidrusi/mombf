@@ -2194,7 +2194,7 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
 // Zellner on individual coef, normalid on groups
 double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, **XtX_group, **XtX_groupinv, **V0, **V0inv, detS, detV0tau, logdetV0, detXtX_group, tau= *(*pars).tau, taugroup=*(*pars).taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **XtX_group, **XtX_groupinv, **V0, **V0inv, detS, detV0tau, logdetV0, detXtX_group, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   if (*nsel ==0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -2242,7 +2242,8 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
         S[i][j]+=V0inv[i][j];
       }
     }
-    logdetV0 = log(detV0tau) - singlevarcount*log(tau) - (*nsel - singlevarcount) * log(taugroup);
+    logtaus = singlevarcount*log(tau) + (*nsel - singlevarcount) * log(taugroup);
+    logdetV0 = log(detV0tau) - logtaus;
     Rcpp::Rcout << "det(V0) " << logdetV0 << "\n";
     invdet_posdef(S,*nsel,Sinv,&detS);
     Rcpp::Rcout << "det(S) " << detS << "\n";
@@ -2251,7 +2252,7 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) + logdetV0) + .5 * (*nsel) *log(tau) + gamln(&alphahalf);
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) + logdetV0) + .5 * logtaus + gamln(&alphahalf);
     ans= num - den;
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);

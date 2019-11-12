@@ -60,6 +60,7 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
     if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     nmodels= nrow(models)
+    postmean= postvar= matrix(NA, nrow=nmodels, ncol=ncol(xstd))
     bicmodel= double(nmodels)
     if (verbose) cat("Enumerating",nmodels,"models")
     iterprogress= round(nmodels/10)
@@ -68,6 +69,9 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
       if (any(sel)>0) {
         fit1= glm(y ~ xstd[,sel], data=data, family=familyglm)
       } else { fit1= glm(y ~ -1, data=data, family=familyglm) }
+      pm= postmomentsGLM(fit1, priorCoef=priorCoef, priorGroup=priorGroup)
+      postmean[i,]= pm$m
+      postvar[i,]= diag(pm$S)
       bicmodel[i]= BIC(fit1)
       if (verbose && ((i %% iterprogress)==0)) cat('.')
     }
@@ -97,7 +101,7 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 
     priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorDelta, priorVar=priorVar, priorSkew=NULL)
     names(constraints)= paste('group',0:(length(constraints)-1))
-    ans= list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
+    ans= list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
     if (enumerate) { ans$models= models }
     new("msfit",ans)
 }

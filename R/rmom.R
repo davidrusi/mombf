@@ -201,29 +201,42 @@ glmfamilycode <- function(family) {
 
 rnlpGLM <- function(y, x, m, V, msfit, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
 #Approximate posterior sampling for GLMs
-    tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x)
     if (p==0) {
-      ans <- matrix(double(0),nrow=(niter-burnin)/thinning,ncol=0)
+      ans= matrix(double(0),nrow=(niter-burnin)/thinning,ncol=0)
     } else {
-      fam <- glmfamilycode(family)
-      fit <- glm(y ~ -1 + ., data=data.frame(x), family=fam)
-      thhat <- matrix(coef(fit),ncol=1);
-      if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
-          Vinv <- (t(fit$R) %*% fit$R)
-          S <- solve(Vinv + diag(p)/tau)
-          m <- S %*% Vinv %*% thhat
-      } else if (priorCoef@priorDistr == 'zellner') {
-          Vinv <- (t(fit$R) %*% fit$R)
-          S <- solve((t(fit$R) %*% fit$R)) / (1+1/tau)
-          m <- S %*% Vinv %*% thhat
-      } else if (priorCoef@priorDistr == 'bic') {
-          S <- vcov(fit)
-          m <-  thhat
-      } else stop("This kind of prior is not implemented")
-      ans <- rnlp(m=as.vector(m), V=S, priorCoef=priorCoef, priorGroup=priorGroup, niter=niter, burnin=burnin, thinning=thinning)
+      fam= glmfamilycode(family)
+      fit= glm(y ~ -1 + ., data=data.frame(x), family=fam)
+      pm= postmomentsGLM(fit=fit, priorCoef=priorCoef, priorGroup=priorGroup)
+      ans= rnlp(m=pm$m, V=pm$S, priorCoef=priorCoef, priorGroup=priorGroup, niter=niter, burnin=burnin, thinning=thinning)
     }
     return(ans)
+}
+
+
+postmomentsGLM <- function(fit, priorCoef, priorGroup) {
+# Extract approximate posterior mean and covariance from GLM fit
+# Input
+#  - fit: object returned by glm
+#  - priorCoef: prior distribution on coefficients
+#  - priorGroup: prior on coefficient groups
+# Output: list with two elements, m containing the posterior mean and S the posterior covariance
+  if (priorCoef@priorDistr != priorGroup@priorDistr) stop("priorGroup != priorCoef not currently implemented")
+  tau <- as.double(priorCoef@priorPars['tau'])
+  thhat <- matrix(coef(fit),ncol=1)
+  if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
+      Vinv <- (t(fit$R) %*% fit$R)
+      S <- solve(Vinv + diag(nrow(thhat))/tau)
+      m <- S %*% Vinv %*% thhat
+  } else if (priorCoef@priorDistr == 'zellner') {
+      Vinv <- (t(fit$R) %*% fit$R)
+      S <- solve((t(fit$R) %*% fit$R)) / (1+1/tau)
+      m <- S %*% Vinv %*% thhat
+  } else if (priorCoef@priorDistr == 'bic') {
+      S <- vcov(fit)
+      m <-  thhat
+  } else stop("This kind of prior is not implemented")
+  return(list(m=as.vector(m), S=S))
 }
 
 rnlpCox <- function(y, x, m, V, msfit, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {

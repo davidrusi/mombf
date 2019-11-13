@@ -3,6 +3,7 @@
 \docType{class}
 \alias{msPriorSpec}
 \alias{msPriorSpec-class}
+\alias{bicprior}
 \alias{emomprior}
 \alias{imomprior}
 \alias{momprior}
@@ -26,6 +27,8 @@ This class can be used to specify the prior on non-zero regression coefficients,
 the model indicator or the nuisance parameters.
 }
 \usage{
+bicprior()
+
 momprior(tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)

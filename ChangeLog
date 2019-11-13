@@ -1,3 +1,6 @@
+CHANGES IN VERSION 2.2.6
+- Added coefByModel, and hidden function modelSelectionGLM with preliminary GLM support
+
 CHANGES IN VERSION 2.2.5
 - Fixed bug that prevented modelSelection to run for survival outcomes where no formula is specified
 

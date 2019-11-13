@@ -45,6 +45,8 @@ priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
     \code{msfit} is supplied. Must be object of class
     \code{msPriorSpec}, e.g. created by \code{momprior},
     \code{emomprior}, \code{imomprior}, \code{zellnerprior}}
+  \item{priorGroup}{Prior on grouped coefficients (e.g. categorical
+  predictors with >2 categories, splines), as passed to \code{modelSelection}}
   \item{priorVar}{Prior on residual variance. Ignored if \code{msfit}
     supplied. Must be object of class \code{msPriorSpec}, e.g. created
     with \code{igprior}}

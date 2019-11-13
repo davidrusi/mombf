@@ -678,17 +678,6 @@ head(th)
 @
 \normalsize
 
-From this output we can obtain model-specific posterior means.
-
-\footnotesize
-<<rnlp>>=
-model <- apply(th!=0,1,function(z) paste(which(z),collapse=','))
-table(model)
-colMeans(th[model=='1,2,4',])
-colMeans(th[model=='1,2,3,4',])
-@
-\normalsize
-
 Another interestingn use of \texttt{rnlp} is to obtain posterior samples under a generic non-local posterior
 $$p(\theta \mid y) \propto d(\theta) N(\theta; m, V),$$
 where $d(\theta)$ is a non-local prior penalty and $N(\theta;m,V)$ is the normal posterior that one would obtain

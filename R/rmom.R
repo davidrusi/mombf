@@ -39,20 +39,6 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
   }
   #Return posterior samples in non-standardized parameterization
   ans= unstdcoef(ans,p=ncol(x),msfit=msfit,coefnames=nn)
-  #
-  #my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
-  #sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
-  #ct= (sx==0)
-  #b= ans[,1:ncol(x)]
-  #b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
-  #if (any(ct)) {
-  #    b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
-  #    ans[,1:ncol(x)]= b
-  #} else {
-  #    intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
-  #    ans= cbind(intercept,b,ans[,-1:-ncol(x)]); colnames(ans)= c('intercept',nn)
-  #}
-  #if ('phi' %in% nn) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
   return(ans)
 }
 )
@@ -115,6 +101,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 
 rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+    if (missing(priorGroup)) priorGroup= priorCoef
     tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x); n <- length(y)
     if (nrow(x) != n) stop('Dimensions of y and x do not match')
@@ -160,6 +147,7 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=rou
 
 
 setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+  if (missing(priorGroup)) priorGroup= priorCoef
   p <- ncol(V)
   tau <- as.double(priorCoef@priorPars['tau'])
   if ((priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) && (priorCoef@priorDistr == priorGroup@priorDistr)) {
@@ -191,7 +179,7 @@ glmfamilycode <- function(family) {
         ans= binomial(link=link)
     } else if (length(grep("gamma",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
-        ans= gamma(link=link)
+        ans= Gamma(link=link)
     } else if (length(grep("inverse.gaussian",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
         ans= inverse.gaussian(link=link)

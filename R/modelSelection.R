@@ -85,6 +85,85 @@ coef.msfit <- function(object,...) {
 }
 
 
+#Return point estimate, 95% interval and posterior model prob for nmax top models
+setMethod("coefByModel", signature(object='msfit'), function(object, maxmodels, alpha=0.05, niter=10^3, burnin=round(niter/10)) {
+
+  if (!is.null(object$postmean) & (object$prior$priorCoef@priorDistr %in% c('bic','zellner'))) {
+
+      postmean= object$postmean[1:min(maxmodels,nrow(object$postmean)),]
+      postsd= sqrt(object$postvar[1:min(maxmodels,nrow(object$postvar)),])
+      ans= list(postmean= postmean, ci.low= postmean + qnorm(alpha/2) * postsd, ci.up= postmean - qnorm(alpha/2) * postsd)
+
+  } else {
+
+    hasPostSampling(object)
+    y= object$ystd; x= object$xstd
+    outcometype= object$outcometype; family= object$family
+    b= min(50, ceiling((burnin/niter) * niter))
+    #List models for which estimates are to be obtained
+    pp= postProb(object,method=pp)
+    modelid= strsplit(as.character(pp$modelid), split=',')
+    modelid= modelid[1:min(maxmodels,length(modelid))]
+    priorCoef= object$priors$priorCoef
+    priorGroup= object$priors$priorGroup
+    priorVar= object$priors$priorVar
+    #Obtain point estimates and posterior intervals
+    ans= vector("list",3); names(ans)= c('postmean','ci.low','ci.up')
+    if ((outcometype== 'Continuous') && (family== 'normal')) { ##Linear model
+      ans[[1]]= ans[[2]]= ans[[3]]= matrix(0,nrow=length(modelid),ncol=ncol(x)+1)
+      for (i in 1:length(modelid)) {  #for each model
+        colsel= as.numeric(modelid[[i]])
+        bm= coefOneModel(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, alpha=alpha, niter=niter, burnin=b)
+        ans[[1]][i,colsel]= bm[,1]
+        ans[[2]][i,colsel]= bm[,2]
+        ans[[3]][i,colsel]= bm[,3]
+      }
+      if (is.null(colnames(x))) nn= c(paste('beta',1:ncol(x),sep=''),'phi') else nn= c(colnames(x),'phi')
+    } else {                                                   ##GLM or Survival model
+      ans[[1]]= ans[[2]]= ans[[3]]= matrix(0, nrow=length(modelid), ncol=ncol(x))
+      for (i in 1:length(modelid)) {   #for each model
+        colsel= as.numeric(modelid[[i]])
+        if (length(colsel)>0) {
+          bm= coefOneModel(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, alpha=alpha, niter=niter, burnin=b)
+          ans[[1]][i,colsel]= bm[,1]
+          ans[[2]][i,colsel]= bm[,2]
+          ans[[3]][i,colsel]= bm[,3]
+        }
+      }
+      if (is.null(colnames(x))) nn= paste('beta',1:ncol(x),sep='') else nn= colnames(x)
+    }
+    colnames(ans[[1]])= colnames(ans[[2]])= colnames(ans[[3]]) = nn
+    rownames(ans[[1]])= rownames(ans[[2]])= rownames(ans[[3]]) = pp$modelid[1:nrow(ans[[1]])]
+
+  }
+
+  #Return parameter estimates in non-standardized parameterization
+  ans[[1]]= unstdcoef(ans[[1]],p=ncol(ans[[1]]),msfit=object,coefnames=nn)
+  ans[[2]]= unstdcoef(ans[[2]],p=ncol(ans[[2]]),msfit=object,coefnames=nn)
+  ans[[3]]= unstdcoef(ans[[3]],p=ncol(ans[[3]]),msfit=object,coefnames=nn)
+  return(ans)
+}
+)
+
+
+
+setMethod("coefOneModel", signature(y='ANY',x='matrix',m='missing',V='missing',outcometype='character',family='character'), function(y, x, m, V, outcometype, family, priorCoef, priorGroup, priorVar, alpha=0.05, niter=10^3, burnin=round(niter/10)) {
+  if ((outcometype== 'Continuous') && (family== 'normal')) {  ##Linear model
+    b= rnlpLM(y=y, x=x, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, niter=niter, burnin=burnin)
+  } else if (outcometype=='glm') { #GLM
+    b= rnlpGLM(y=y, x=x, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, niter=niter, burnin=burnin)
+  } else if ((outcometype=='Survival') && (family=='Cox')) {  #Cox model
+    b= rnlpCox(y=y, x=x, priorCoef=priorCoef, priorGroup=priorGroup, niter=niter, burnin=burnin)
+  } else {
+    stop(paste("outcometype",outcometype,"and family=",family,"not implemented",sep=""))
+  }
+  ans= cbind(colMeans(b), t(apply(b,2,quantile,probs=c(alpha/2,1-alpha/2))))
+  return(ans)
+}
+)
+
+
+
 predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     hasPostSampling(object)
     th= rnlp(msfit=object,niter=10^4)

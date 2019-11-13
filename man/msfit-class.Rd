@@ -6,6 +6,9 @@
 \alias{show,msfit-method}
 \alias{msfit.coef}
 \alias{msfit.predict}
+\alias{coefByModel}
+\alias{coefByModel-methods}
+\alias{coefByModel,msfit-method}
 
 
 \title{Class "msfit"}
@@ -15,9 +18,10 @@ function \code{modelSelection}.
 The class extends a list, so all usual methods for lists also work for
 \code{msfit} objects, e.g. accessing elements, retrieving names etc.
 
-Some additional methods are provided for printing information on screen,
-computing posterior probabilities or sampling from the posterior of
-regression coefficients, as indicated below.
+Methods are provided to compute posterior probabilities,
+obtaining regression coefficient estimates and posterior intervals
+(both via Bayesian model averaging and for individual models),
+and sampling from their posterior distribution, as indicated below.
 }
 \section{Objects from the Class}{
   Typically objects are automatically created by a call to \code{modelSelection}.
@@ -66,6 +70,8 @@ regression coefficients, as indicated below.
   \describe{
     \item{coef}{Obtains posterior means and intervals via Bayesian model
       averaging}
+    \item{coefByModel}{Obtains posterior means and intervals for
+      individual models}
     \item{predict}{Obtains posterior means and intervals for given
       covariate values. These are posterior intervals for the mean, not
       posterior predictive intervals for the outcome}

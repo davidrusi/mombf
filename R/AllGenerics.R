@@ -2,6 +2,15 @@
 ### AllGenerics.R
 ###
 
+if (!isGeneric("coefByModel")) {
+  setGeneric("coefByModel", function(object, maxmodels, alpha=0.05, niter=10^3, burnin=round(niter/10)) standardGeneric("coefByModel"))
+}
+
+if (!isGeneric("coefOneModel")) {
+  setGeneric("coefOneModel", function(y, x, m, V, outcometype, family, priorCoef, priorGroup, priorVar, alpha=0.05, niter=10^3, burnin=round(niter/10)) standardGeneric("coefOneModel"))
+}
+
+
 if (!isGeneric("dpimom")) {
     setGeneric("dpimom",
                function(x,

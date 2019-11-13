@@ -10,7 +10,8 @@
 
   modelSelection enumerates all models when feasible
   and uses a Gibbs scheme otherwise.
-  See \code{rnlp} for posterior samples for the coefficients.
+  See \code{coef} and \code{coefByModel} for estimates and posterior
+  intervals of regression coefficients, and \code{rnlp} for posterior samples.
 
   modelsearchBlockDiag seeks the highest posterior
   probability model using an iterative block search.

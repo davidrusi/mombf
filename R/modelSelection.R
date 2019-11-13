@@ -345,8 +345,10 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
         margpp= c(margpp[1:ncol(xstd)],sum(pp[modelfam==0]),sum(pp[modelfam==1]),sum(pp[modelfam==2]),sum(pp[modelfam==3]))
         modeltxt= ifelse(modelfam==0,'normal',ifelse(modelfam==1,'twopiecenormal',ifelse(modelfam==2,'laplace','twopiecelaplace')))
         models= data.frame(modelid=modelid,family=modeltxt,pp=pp)
+        postmean= postvar= NULL
     } else {
         models= data.frame(modelid=modelid,family=family,pp=pp)
+        postmean= postvar= NULL
     }
     models= models[order(models$pp,decreasing=TRUE),]
   }
@@ -362,7 +364,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorConstraints, priorVar=priorVar, priorSkew=priorSkew)
   if (length(uncens)>0) { ystd[ordery]= ystd; uncens[ordery]= uncens; ystd= Surv(time=ystd, event= uncens); xstd[ordery,]= xstd }
   names(constraints)= paste('group',0:(length(constraints)-1))
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }

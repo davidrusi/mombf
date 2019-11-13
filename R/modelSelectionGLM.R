@@ -1,4 +1,4 @@
-modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, includevars=rep(FALSE,ncol(x)), maxvars, familyglm= gaussian(), priorDelta= modelbbprior(1,1), verbose= TRUE) {
+modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, includevars=rep(FALSE,ncol(x)), maxvars, familyglm= gaussian(), priorCoef, priorGroup, priorVar, priorDelta= modelbbprior(1,1), verbose= TRUE) {
     #Enumerate all models and return posterior prob as approximated by BIC. Enumerated models satisfy group and hierarchical restrictions from factors and interaction terms
     #Input
     # - data: data.frame with a column named 'y' containing the response
@@ -7,7 +7,11 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     # - verbose: set to TRUE to display progress information
     # Output: object of class msfit, as returned by modelSelection in mombf
 
-    priorCoef= priorGroup= bicprior(); priorVar= igprior(0,0)
+    if (missing(priorCoef)) priorCoef= bicprior()
+    if (missing(priorGroup)) priorGroup= bicprior()
+    if (missing(priorVar)) priorVar= igprior(0,0)
+    if ((priorCoef@priorDistr != 'bic') | (priorGroup@priorDistr != 'bic')) stop("Only priorCoef=bicprior() and priorGroup=bicprior() currently implemented")
+
     enumerate= TRUE #currently only full enumeration is supported
     family= paste(familyglm$family,familyglm$link)
     familyint= -1 #argument currently ignored, set to value != 0 to prevent inference on the family
@@ -60,18 +64,18 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
     if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     nmodels= nrow(models)
-    postmean= postvar= matrix(NA, nrow=nmodels, ncol=ncol(xstd))
+    postmean= postvar= matrix(0, nrow=nmodels, ncol=ncol(xstd))
     bicmodel= double(nmodels)
     if (verbose) cat("Enumerating",nmodels,"models")
     iterprogress= round(nmodels/10)
     for (i in 1:nmodels) {
       sel= models[i,]
       if (any(sel)>0) {
-        fit1= glm(y ~ xstd[,sel], data=data, family=familyglm)
+        fit1= glm(y ~ -1 + xstd[,sel], data=data, family=familyglm)
       } else { fit1= glm(y ~ -1, data=data, family=familyglm) }
       pm= postmomentsGLM(fit1, priorCoef=priorCoef, priorGroup=priorGroup)
-      postmean[i,]= pm$m
-      postvar[i,]= diag(pm$S)
+      postmean[i,sel]= pm$m
+      postvar[i,sel]= diag(pm$S)
       bicmodel[i]= BIC(fit1)
       if (verbose && ((i %% iterprogress)==0)) cat('.')
     }
@@ -97,8 +101,11 @@ modelSelectionbic= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     margpp= as.vector(t(models) %*% pp)
     modelid= apply(models[,1:ncol(xstd),drop=FALSE]==1, 1, function(z) paste(which(z),collapse=','))
     models= data.frame(modelid=modelid,family=family,pp=pp)
-    models= models[order(models$pp,decreasing=TRUE),]
-
+    rownames(postmean)= rownames(postvar)= modelid
+    colnames(postmean)= colnames(postvar)= colnames(xstd)
+    o= order(models$pp,decreasing=TRUE)
+    models= models[o,]; postmean= postmean[o,]; postvar= postvar[o,]
+    
     priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorDelta, priorVar=priorVar, priorSkew=NULL)
     names(constraints)= paste('group',0:(length(constraints)-1))
     ans= list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)

@@ -58,22 +58,29 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
 )
 
 
-#Return posterior samples in non-standardized parameterization
-unstdcoef <- function(ans, p, msfit, coefnames) {
+#Return regression parameter estimates in the parameterization of non-standardized X's (i.e. where X does not have 0 mean, unit variance)
+# Input
+# - bstd: regression parameters, a matrix with columns corresponding to parameters and rows corresponding to different models / MCMC samples
+# - p: columns 1:p in bstd contain regression coefficients for covariate effects, this is to consider that subsequent columns could contain nuisance parameters (phi, the residual variance in linear regression)
+# - msfit: object returned by modelSelection.
+# - coefnames: names that should be assigned to the output columns
+#
+# Output: matrix with same dimension as bstd, containing parameter estimates for non-standardized X's
+unstdcoef <- function(bstd, p, msfit, coefnames) {
   my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
   sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
   ct= (sx==0)
-  b= ans[,1:p]
+  b= bstd[,1:p]
   b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
   if (any(ct)) {
       b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
-      ans[,1:p]= b
+      bstd[,1:p]= b
   } else {
       intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
-      ans= cbind(intercept,b,ans[,-1:-p]); colnames(ans)= c('intercept',coefnames)
+      bstd= cbind(intercept,b,bstd[,-1:-p]); colnames(bstd)= c('intercept',coefnames)
   }
-  if ('phi' %in% coefnames) ans[,'phi']= sy^2*ans[,'phi'] #re-scale residual variance
-  return(ans)
+  if ('phi' %in% coefnames) bstd[,'phi']= sy^2*bstd[,'phi'] #re-scale residual variance
+  return(bstd)
 }
 
 
@@ -93,11 +100,11 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing',outcometype='character',family='character'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if ((outcometype== 'Continuous') && (family== 'normal')) {  ##Linear model
-    ans <- rnlpLM(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning,pp=pp)
+    ans <- rnlpLM(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning)
   } else if (outcometype=='glm') { #GLM
-    ans <- rnlpGLM(y=y,x=x,family=family,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning,pp=pp)
+    ans <- rnlpGLM(y=y,x=x,family=family,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning)
   } else if ((outcometype=='Survival') && (family=='Cox')) {  #Cox model
-    ans <- rnlpCox(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning,pp=pp)
+    ans <- rnlpCox(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,niter=niter,burnin=burnin,thinning=thinning)
   } else {
     stop(paste("outcometype",outcometype,"and family=",family,"not implemented",sep=""))
   }
@@ -107,7 +114,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 
 
-rnlpLM <- function(y, x, m, V, msfit, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
     tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x); n <- length(y)
     if (nrow(x) != n) stop('Dimensions of y and x do not match')
@@ -199,7 +206,7 @@ glmfamilycode <- function(family) {
 
 
 
-rnlpGLM <- function(y, x, m, V, msfit, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+rnlpGLM <- function(y, x, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
 #Approximate posterior sampling for GLMs
     p <- ncol(x)
     if (p==0) {
@@ -239,7 +246,7 @@ postmomentsGLM <- function(fit, priorCoef, priorGroup) {
   return(list(m=as.vector(m), S=S))
 }
 
-rnlpCox <- function(y, x, m, V, msfit, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+rnlpCox <- function(y, x, priorCoef, priorGroup, niter=10^3, burnin=round(niter/10), thinning=1) {
     tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x)
     if (p==0) {

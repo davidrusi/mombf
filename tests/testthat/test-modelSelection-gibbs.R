@@ -82,7 +82,8 @@ patrick::with_parameters_test_that(
     expect_true("3,4,6,7" %in% pprobs$modelid[1:4])
   },
   patrick::cases(
-    normid_gzell=list(family="normal", pCoef=normalidprior(tau=0.348), pGroup=groupzellnerprior(tau=0.4))
+    normid_gzell=list(family="normal", pCoef=normalidprior(tau=0.348), pGroup=groupzellnerprior(tau=0.4)),
+    zell_gzell=list(family="normal", pCoef=zellnerprior(tau=0.348), pGroup=groupzellnerprior(tau=0.4))
   )
 )
 

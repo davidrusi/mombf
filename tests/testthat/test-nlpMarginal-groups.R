@@ -65,11 +65,11 @@ patrick::with_parameters_test_that(
       seq_along(theta9_truth), y9, X9, groups=groups, family="normal",
       priorCoef=pCoef, priorGroup=pGroup, priorVar=pVar
     )
-    expect_true(ans_max > ans_all)
     expect_equal(ans_max, expected_max, tolerance=tolerance)
     expect_equal(ans_all, expected_all, tolerance=tolerance)
   },
   patrick::cases(
-    normid_gzell=list(pCoef=normalidprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-305.4831201, expected_all=-307.8938408)
+    normid_gzell=list(pCoef=normalidprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-305.4831201, expected_all=-307.8938408),
+    zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-335.9330409, expected_all=-335.6280634)
   )
 )

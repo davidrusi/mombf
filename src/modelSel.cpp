@@ -286,8 +286,6 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 33;
     } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
       ans= 43;
-    } else if ((*prCoef==3) & (*prGroup==4)) { //Zellner + normalid
-      ans= 44;
     } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
       ans= 58;
     } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
@@ -328,8 +326,6 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       ans= pemomgzellMarg;
     } else if (*priorcode==43) {
       ans= zellgzellMarg;
-    } else if (*priorcode==44) {
-      ans= zellnormidMarg;
     } else if (*priorcode==58) {
       ans= normidgzellMarg;
     } else {
@@ -2184,12 +2180,87 @@ double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
 // Zellner on individual coef, block Zellner on groups
 double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("Zellner + block Zellner not currently implemented for linear regression");
-}
+  int i_var, i, j_group, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0;
+  double num, den, ans=0.0, aux, term1, *m, **S, **Sinv, **Vinv, **Vinv_chol, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  crossprodmat *V0inv=(*pars).V0inv;
+  bool posdef;
+  if (*nsel ==0) {
 
-// Zellner on individual coef, normid on groups
-double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("Zellner + normalid not currently implemented for linear regression");
+    term1= .5*(*(*pars).n + *(*pars).alpha);
+    num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
+    ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
+
+  } else {
+
+    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+    m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    Vinv = dmatrix(1, *nsel, 1, *nsel); Vinv_chol = dmatrix(1, *nsel, 1, *nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    for (i=1; i<=*nsel; i++) {
+      for (j=i; j<=*nsel; j++) {
+        Vinv[i][j] = 0;
+      }
+    }
+    for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
+      p_i = (int) nvarinselgroups[groupcount];
+      if (p_i==1) {
+        for (j_group=groupcount; j_group< nselgroups; j_group++) {
+          if (nvarinselgroups[j_group] == 1) {
+            j_var = firstingroup[j_group] + 1;
+            if (V0inv->computed_at(sel[varcount-1], sel[j_var-1])) {
+              Vinv[varcount][j_var] = V0inv->at(sel[varcount-1], sel[j_var-1]);
+              S[varcount][j_var]+=Vinv[varcount][j_var];
+            } else {
+              aux = (*pars).XtX->at(sel[varcount-1], sel[j_var-1])/tau;
+              V0inv->set(sel[varcount-1], sel[j_var-1], aux);
+              Vinv[varcount][j_var]= aux;
+              S[varcount][j_var]+=aux;
+            }
+          }
+        }
+        varcount++;
+        singlevarcount++;
+      } else {
+        groupsel = ivector(0,p_i);
+        for (i=0; i<p_i; i++) {  groupsel[i] = sel[varcount-1+i]; }
+        for (i_var=varcount, i=0; i<p_i; i_var++, i++) {
+          for (j_var=i_var, j=i; j<p_i; j_var++, j++) {
+            if (V0inv->computed_at(groupsel[i], groupsel[j])) {
+              Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
+              S[i_var][j_var]+=Vinv[i_var][j_var];
+            } else {
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup;
+              V0inv->set(groupsel[i], groupsel[j], aux);
+              Vinv[i_var][j_var]= aux;
+              S[i_var][j_var]+=aux;
+            }
+          }
+        }
+        varcount = varcount + p_i;
+        free_ivector(groupsel,0,p_i);
+      }
+    }
+    choldc(Vinv, *nsel, Vinv_chol, &posdef);
+    detVinvtau = choldc_det(Vinv_chol, *nsel);
+    logtaus = singlevarcount*log(tau) + (*nsel - singlevarcount) * log(taugroup);
+    logdetVinv = log(detVinvtau) + logtaus;
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+    nuhalf= .5*(*(*pars).n + *(*pars).alpha);
+
+    ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
+    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) - logdetVinv) + .5 * logtaus + gamln(&alphahalf);
+    ans= num - den;
+
+    free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+    free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vinv_chol,1,*nsel,1,*nsel);
+
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
 }
 
 // Zellner on individual coef, normalid on groups

@@ -62,6 +62,7 @@ struct marginalPars {
   double *x;
   crossprodmat *XtX;  //t(x) %*% x using all observations
   crossprodmat *XtXuncens; //t(x) %*% x using uncensored observations
+  crossprodmat *V0inv;  // covariance matrix for coef and groups priors
   double *ytX;             //t(x) %*% y using all observations
   double *ytXuncens;       //t(x) %*% y using uncensored observations
   double *m;  //Sinv * Xty   (needed by mom and emom)

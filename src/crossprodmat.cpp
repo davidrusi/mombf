@@ -73,11 +73,21 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense) {
     (this->XtXs)= arma::sp_mat(ncolx, ncolx);
     (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
   }
-
-
 }
 
 
+crossprodmat::crossprodmat(int ncolx) {
+
+  this->nrowx= 0;
+  this->ncolx= ncolx;
+  this->userowsini= 0;
+  this->nuserows= 0;
+  this->userows= NULL;
+
+  this->dense= false;
+  (this->XtXs)= arma::sp_mat(ncolx, ncolx);
+  (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
+}
 
 //Class destructor
 crossprodmat::~crossprodmat() { }
@@ -111,6 +121,31 @@ double crossprodmat::at(int i, int j) {
   }
 }
 
+// Check if element has already been computed with matrix-type index,
+// e.g. A(0,1) is element in row 0, column 1
+bool crossprodmat::computed_at(int i, int j) {
+
+  if (dense) {
+
+    return true;
+
+  } else {
+
+    if (XtXcomputed.at(i,j) == 0) {  //if this entry has not been already computed
+      return false;
+    } else {
+      return true;
+    }
+  }
+}
+
+// Set element with matrix-type index and mark it as computed,
+// e.g. A(0,1) is element in row 0, column 1
+void crossprodmat::set(int i, int j, double value) {
+
+  XtXcomputed(i,j)= 1;
+  XtXs(i,j)= value;
+}
 
 //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 double crossprodmat::at(int k) {
@@ -171,12 +206,12 @@ void crossprodmat::choldc(int idxini, int idxfi, double *cholXtX, double *detXtX
       sum= this->at(idxini+i-1,idxini+j-1);
       for (k=i-1; k>=1; k--) { kk= (k-1)*n - (k-1)*(k-2)/2; sum -= cholXtX[kk + i-k] * cholXtX[kk + j-k]; } //sum -= cholXtX[i][k]*cholXtX[j][k];
       if (i == j) {
-	if (sum <= 0.0) *posdef= false;
-	cholXtX[ii]=sqrt(sum);  //cholXtX[i][i]=sqrt(sum);
-	(*detXtX) *= sum;
+        if (sum <= 0.0) *posdef= false;
+        cholXtX[ii]=sqrt(sum);  //cholXtX[i][i]=sqrt(sum);
+        (*detXtX) *= sum;
       } else {
-	max_a=max_xy(fabs(cholXtX[ii]), 1e-10);  //max_a=max_xy(fabs(cholXtX[i][i]), 1e-10);
-	cholXtX[ii + j-i]= sum/max_a; //cholXtX[j][i]=sum/max_a;
+        max_a=max_xy(fabs(cholXtX[ii]), 1e-10);  //max_a=max_xy(fabs(cholXtX[i][i]), 1e-10);
+        cholXtX[ii + j-i]= sum/max_a; //cholXtX[j][i]=sum/max_a;
       }
     }
   }

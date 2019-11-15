@@ -10,6 +10,7 @@
 //Include other headers
 #include "cstat.h"
 #include "crossprodmat.h"
+#include "covariancemat.h"
 #include "modelSel.h"
 #include "modselIntegrals.h"
 #include "modselFunction.h"
@@ -897,7 +898,7 @@ void set_marginalPars(struct marginalPars *pars, int *n,int *nuncens,int *p,doub
   (*pars).ytX= ytX;
   (*pars).XtXuncens= XtXuncens;
   (*pars).ytXuncens= ytXuncens;
-  (*pars).V0inv = new crossprodmat(*p);
+  (*pars).V0inv = new covariancemat(*p);
   (*pars).method= method;
   (*pars).hesstype= hesstype;
   (*pars).optimMethod= optimMethod;
@@ -2182,7 +2183,7 @@ double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   int i_var, i, j_group, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0;
   double num, den, ans=0.0, aux, term1, *m, **S, **Sinv, **Vinv, **Vinv_chol, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
-  crossprodmat *V0inv=(*pars).V0inv;
+  covariancemat *V0inv=(*pars).V0inv;
   bool posdef;
   if (*nsel ==0) {
 
@@ -2267,7 +2268,7 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0;
   double num, den, ans=0.0, aux, term1, *m, **S, **Sinv, **Vinv, **Vinv_chol, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
-  crossprodmat *V0inv=(*pars).V0inv;
+  covariancemat *V0inv=(*pars).V0inv;
   bool posdef;
   if (*nsel ==0) {
 

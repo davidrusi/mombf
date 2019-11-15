@@ -59,13 +59,10 @@ public:
   crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int nuserows, int *userows); //if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
   crossprodmat(double *mymat, int nrowx, int ncolx, bool dense, int nuserows, int userowsini);
   crossprodmat(double *mymat, int nrowx, int ncolx, bool dense);
-  crossprodmat(int ncolx);
 
   ~crossprodmat();
 
   double at(int i, int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
-  bool computed_at(int i, int j);
-  void set(int i, int j, double value);
   double at(int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 
   void choldc(int idxini, int idxfi, double *cholXtX, double *detXtX, bool *posdef); //Cholesky decomp and determinant

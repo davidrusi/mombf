@@ -75,20 +75,6 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense) {
   }
 }
 
-
-crossprodmat::crossprodmat(int ncolx) {
-
-  this->nrowx= 0;
-  this->ncolx= ncolx;
-  this->userowsini= 0;
-  this->nuserows= 0;
-  this->userows= NULL;
-
-  this->dense= false;
-  (this->XtXs)= arma::sp_mat(ncolx, ncolx);
-  (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
-}
-
 //Class destructor
 crossprodmat::~crossprodmat() { }
 
@@ -121,31 +107,6 @@ double crossprodmat::at(int i, int j) {
   }
 }
 
-// Check if element has already been computed with matrix-type index,
-// e.g. A(0,1) is element in row 0, column 1
-bool crossprodmat::computed_at(int i, int j) {
-
-  if (dense) {
-
-    return true;
-
-  } else {
-
-    if (XtXcomputed.at(i,j) == 0) {  //if this entry has not been already computed
-      return false;
-    } else {
-      return true;
-    }
-  }
-}
-
-// Set element with matrix-type index and mark it as computed,
-// e.g. A(0,1) is element in row 0, column 1
-void crossprodmat::set(int i, int j, double value) {
-
-  XtXcomputed(i,j)= 1;
-  XtXs(i,j)= value;
-}
 
 //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
 double crossprodmat::at(int k) {

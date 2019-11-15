@@ -69,12 +69,12 @@ patrick::with_parameters_test_that(
 )
 
 patrick::with_parameters_test_that(
-  "modelSelection with groups (pCoef!=pGroup, tests crossprodmat for covariance matrix) works for", {
+  "modelSelection with groups (pCoef!=pGroup), crossprodmat and covariancemat work for", {
     pDelta <- modelbbprior(1,1)
     groups <- c(1, 1, 2, 2, 3, 4, 4)
     log <- capture.output(
       fit <- modelSelection(
-        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=FALSE,
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=FALSE, XtXprecomp=FALSE,
         family=family, priorSkew=pCoef, priorGroup=pGroup, groups=groups
       )
     )

@@ -50,17 +50,17 @@ git rebase origin/master
 
 
 if [ "$PULL" = true ] ; then
-    printf "\nUpdating ${PULL_BRANCH} with changes from GitHub\n"
+    printf "\nUpdating %s with changes from GitHub\n" "${PULL_BRANCH}"
     git checkout "$PULL_BRANCH"
     git pull
 fi
 
 if [ "$MERGE" = true ] ; then
-    printf "\nMerging master changes into ${PULL_BRANCH}\n"
+    printf "\nMerging master changes into %s\n" "${PULL_BRANCH}"
     git checkout "$MERGE_BRANCH"
     git merge master
 fi
 
 # return to original branch
-printf "\nReturning to original branch ${CURRENT_BRANCH}\n"
+printf "\nReturning to original branch %s\n" "${CURRENT_BRANCH}"
 git checkout "$CURRENT_BRANCH"

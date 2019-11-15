@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e # fail on first error
+
 # store current branch
 CURRENT_BRANCH="$(git branch | grep \* | cut -d ' ' -f2)"
 
@@ -25,5 +27,5 @@ printf "Pushing master to GitHub repo\n"
 git push -f
 
 # return to original branch
-printf "\nReturning to original branch ${CURRENT_BRANCH}\n"
+printf "\nReturning to original branch %s\n" "${CURRENT_BRANCH}"
 git checkout "$CURRENT_BRANCH"

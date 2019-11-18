@@ -8,6 +8,7 @@
 
  - ncolx: number of columns in x (equivalently, number of rows & columns in XtX)
 
+TODO: store block determinants. A vector of length ngroups?
 */
 covariancemat::covariancemat(int ncolx) {
 

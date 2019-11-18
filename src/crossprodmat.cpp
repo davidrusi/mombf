@@ -73,11 +73,7 @@ crossprodmat::crossprodmat(double *mymat, int nrowx, int ncolx, bool dense) {
     (this->XtXs)= arma::sp_mat(ncolx, ncolx);
     (this->XtXcomputed)= arma::SpMat<short>(ncolx, ncolx);
   }
-
-
 }
-
-
 
 //Class destructor
 crossprodmat::~crossprodmat() { }
@@ -97,9 +93,9 @@ double crossprodmat::at(int i, int j) {
 
       int iini, jini, k; double ans= 0;
       if (this->userows ==NULL) {
-	for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[k + iini] * x[k + jini];
+        for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows+this->userowsini; k++) ans += x[k + iini] * x[k + jini];
       } else {
-	for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
+        for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
       }
 
       XtXcomputed(i,j)= 1;
@@ -128,11 +124,11 @@ double crossprodmat::at(int k) {
       int iini, jini, k; double ans= 0;
       if (this->userows ==NULL) {
 
-	for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[k + iini] * x[k + jini];
+        for (k= this->userowsini, iini=i*nrowx, jini=j*nrowx; k< this->nuserows+this->userowsini; k++) ans += x[k + iini] * x[k + jini];
 
       } else {
 
-	for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
+        for (k= 0, iini=i*nrowx, jini=j*nrowx; k< this->nuserows; k++) ans += x[(this->userows[k]) + iini] * x[(this->userows[k]) + jini];
 
       }
 
@@ -171,12 +167,12 @@ void crossprodmat::choldc(int idxini, int idxfi, double *cholXtX, double *detXtX
       sum= this->at(idxini+i-1,idxini+j-1);
       for (k=i-1; k>=1; k--) { kk= (k-1)*n - (k-1)*(k-2)/2; sum -= cholXtX[kk + i-k] * cholXtX[kk + j-k]; } //sum -= cholXtX[i][k]*cholXtX[j][k];
       if (i == j) {
-	if (sum <= 0.0) *posdef= false;
-	cholXtX[ii]=sqrt(sum);  //cholXtX[i][i]=sqrt(sum);
-	(*detXtX) *= sum;
+        if (sum <= 0.0) *posdef= false;
+        cholXtX[ii]=sqrt(sum);  //cholXtX[i][i]=sqrt(sum);
+        (*detXtX) *= sum;
       } else {
-	max_a=max_xy(fabs(cholXtX[ii]), 1e-10);  //max_a=max_xy(fabs(cholXtX[i][i]), 1e-10);
-	cholXtX[ii + j-i]= sum/max_a; //cholXtX[j][i]=sum/max_a;
+        max_a=max_xy(fabs(cholXtX[ii]), 1e-10);  //max_a=max_xy(fabs(cholXtX[i][i]), 1e-10);
+        cholXtX[ii + j-i]= sum/max_a; //cholXtX[j][i]=sum/max_a;
       }
     }
   }

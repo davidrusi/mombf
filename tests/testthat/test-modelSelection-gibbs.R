@@ -40,7 +40,7 @@ patrick::with_parameters_test_that(
 )
 
 patrick::with_parameters_test_that(
-  "modelSelection with groups works for", {
+  "modelSelection with groups (pCoef=pGroup) works for", {
     pDelta <- modelbbprior(1,1)
     groups <- c(1, 1, 2, 2, 3, 4, 4)
     log <- capture.output(
@@ -67,6 +67,26 @@ patrick::with_parameters_test_that(
     emom_twopiecelaplace=list(family="twopiecelaplace", pCoef=emomprior(tau=0.348))
   )
 )
+
+patrick::with_parameters_test_that(
+  "modelSelection with groups (pCoef!=pGroup), crossprodmat and covariancemat work for", {
+    pDelta <- modelbbprior(1,1)
+    groups <- c(1, 1, 2, 2, 3, 4, 4)
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, enumerate=FALSE, XtXprecomp=FALSE,
+        family=family, priorSkew=pCoef, priorGroup=pGroup, groups=groups
+      )
+    )
+    pprobs <- postProb(fit)
+    expect_true("3,4,6,7" %in% pprobs$modelid[1:4])
+  },
+  patrick::cases(
+    normid_gzell=list(family="normal", pCoef=normalidprior(tau=0.348), pGroup=groupzellnerprior(tau=0.4)),
+    zell_gzell=list(family="normal", pCoef=zellnerprior(tau=0.348), pGroup=groupzellnerprior(tau=0.4))
+  )
+)
+
 
 test_that(
   "modelSelection with smoothterms and no groups works", {

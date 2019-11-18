@@ -8,6 +8,7 @@
 #include <vector>
 #include <stdlib.h>
 #include "crossprodmat.h"
+#include "covariancemat.h"
 #include "Polynomial.h"
 
 
@@ -62,6 +63,7 @@ struct marginalPars {
   double *x;
   crossprodmat *XtX;  //t(x) %*% x using all observations
   crossprodmat *XtXuncens; //t(x) %*% x using uncensored observations
+  covariancemat *V0inv;  // covariance matrix for coef and groups priors
   double *ytX;             //t(x) %*% y using all observations
   double *ytXuncens;       //t(x) %*% y using uncensored observations
   double *m;  //Sinv * Xty   (needed by mom and emom)
@@ -266,7 +268,11 @@ double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);
 // Zellner on individual coef, block Zellner on groups
 double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 
+// Zellner on individual coef, normalid on groups
+double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars);
 
+// normalid on individual coef, group Zellner on groups
+double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS

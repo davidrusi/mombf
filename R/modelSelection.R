@@ -551,7 +551,7 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     groups= groups+intercept
     #Add spline terms
     if (!missing(smoothterms)) {
-        if (!(class(smoothterms) %in% c('formula','matrix','data.frame'))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
+        if (!any(c('formula','matrix','data.frame') %in% class(smoothterms))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
         maxgroups= max(groups)
         if ('formula' %in% class(smoothterms)) {
             smoothterms= formula(paste("~ ",-1,"+",as.character(smoothterms)[2])) #remove intercept

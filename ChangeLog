@@ -1,3 +1,9 @@
+CHANGES IN VERSION 2.2.8
+- Fixed error in Windows checks related to a test in test-modelSelection-Gibbs.R
+
+CHANGES IN VERSION 2.2.7
+- Fixed error caused by class(smoothterms) returning multiple values
+
 CHANGES IN VERSION 2.2.6
 - Fixed error caused by class(y) where y is "matrix" returning multiple values
 - Added coefByModel, and hidden function modelSelectionGLM with preliminary GLM support

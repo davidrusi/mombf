@@ -25,7 +25,7 @@ devtools::install_github("davidrusi/mombf")
 The main Bayesian model selection (BMS) function is `modelSelection`. Bayesian model averaging (BMA)
 is also available for some models,
 mainly linear regression and Normal mixtures.
-Details are in [`mombf`'s vignette](https://cran.r-project.org/web/packages/mombf/vignettes/mombf.pdf),
+Details are in [`mombf`'s vignette](https://CRAN.R-project.org/package=mombf/vignettes/mombf.pdf),
 here we illustrate quickly how to get posterior model probabilities,
 marginal posterior inclusion probabilities, BMA point estimates and posterior
 intervals for the regression coefficients and predicted outcomes.

@@ -1,4 +1,5 @@
 CHANGES IN VERSION 2.2.6
+- Fixed error caused by class(y) where y is "matrix" returning multiple values
 - Added coefByModel, and hidden function modelSelectionGLM with preliminary GLM support
 
 CHANGES IN VERSION 2.2.5

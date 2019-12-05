@@ -10,7 +10,7 @@ pmomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Normal',
   # - tau: prior dispersion
   # - r: prior power parameter
   # - method: set to 'Normal' to compute E(prod(th^2)^i) exactly, to 'plugin' to use prod(E(th)^2). By default 'Normal' is used for up to 10 dimensions
-  if (class(y)!="Surv") stop("y must be of class 'Surv'")
+  if (!("Surv" %in% class(y))) stop("y must be of class 'Surv'")
   if (r != 1) stop("Only r=1 currently implemented")
   if (missing(x)) {
     p <- 0
@@ -40,14 +40,14 @@ pmomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Normal',
 pimomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Laplace','plugin'), logscale=TRUE) {
   #Laplace approx to Integrated Cox partial likelihood (Normal approximation) wrt product iMOM prior
   # - Partial Likelihood: f(y|th)= exp(-.5 (th-thhat)' solve(V) (th-thhat))
-  # - Prior proportional to prod (1/th)^2 exp(-tau/th^2) 
+  # - Prior proportional to prod (1/th)^2 exp(-tau/th^2)
   # Input
   # - y: Surv object
   # - x: covariates
   # - tau: prior dispersion
   # - r: prior power parameter
   # - method: set to 'Laplace' for Laplace approx, for BIC-type approx.
-  if (class(y)!="Surv") stop("y must be of class 'Surv'")
+  if (!("Surv" %in% class(y))) stop("y must be of class 'Surv'")
   if (r != 1) stop("Only r=1 currently implemented")
   if (missing(x)) {
     p <- 0
@@ -118,8 +118,8 @@ logPLSingle <- function(n, event, x, beta) {
   L = 0.0
   for(i in 1:n){
      temp = 0.0
-     for(j in i:n) temp = temp + exp(sum(beta*x[j,])) 
+     for(j in i:n) temp = temp + exp(sum(beta*x[j,]))
      L = L - event[i]*(sum(beta*x[i,])-log(temp))
-  }         
+  }
   return(-L)
-} 
+}

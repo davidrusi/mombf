@@ -170,7 +170,7 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     mx= object$stdconstants[-1,'shift']; sx= object$stdconstants[-1,'scale']
     if (!missing(newdata)) {
         f= object$call$formula
-        if (class(f)=='formula') {
+        if ('formula' %in% class(f)) {
             alldata= rbind(data,newdata)
             alldata[,as.character(f)[2]]= 0  #ensure there's no NAs in the response, so createDesign doesn't drop those rows from newdata
             nn= rownames(alldata)[(nrow(data)+1):(nrow(data)+nrow(newdata))]
@@ -454,11 +454,11 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   call <- match.call()
   groups <- NULL; constraints <- NULL; ordery <- NULL
-  if (class(y)=="formula") {
+  if ('formula' %in% class(y)) {
       formula= y; is_formula=TRUE; splineDegree= 3
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar
-      if (class(des$y)=="Surv") {
+      if ('Surv' %in% class(des$y)) {
           if (all(des$y[,1] >0)) {
               cat("Response type is survival and all its values are >0. Remember that you should log-transform the response prior to running modelSelection\n")
           }
@@ -476,7 +476,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
       nlevels <- apply(x,2,function(z) length(unique(z)))
       typeofvar[nlevels==2]= 'factor'
   } else {
-      if (class(y)=="Surv") {
+      if ('Surv' %in% class(y)) {
           outcometype= 'Survival'; uncens= as.integer(y[,2]); y= y[,1]
           ordery= c(which(uncens==1),which(uncens!=1)); y= y[ordery]; x= x[ordery,,drop=FALSE]; uncens= uncens[ordery]
           if (family !="normal") stop("For survival outcomes only family='normal' is currently implemented")
@@ -553,7 +553,7 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     if (!missing(smoothterms)) {
         if (!(class(smoothterms) %in% c('formula','matrix','data.frame'))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
         maxgroups= max(groups)
-        if (class(smoothterms)=='formula') {
+        if ('formula' %in% class(smoothterms)) {
             smoothterms= formula(paste("~ ",-1,"+",as.character(smoothterms)[2])) #remove intercept
             L= createDesign(smoothterms, data=data, subset=subset, na.action=na.action)$x
         } else {
@@ -765,7 +765,7 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
   taugroup <- as.double(priorGroup@priorPars['tau'])
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
   #
-  if (class(priorSkew)=='msPriorSpec') {
+  if ('msPriorSpec' %in% class(priorSkew)) {
       taualpha <- as.double(priorSkew@priorPars['tau'])
       fixatanhalpha <- as.double(-10000)
   } else {

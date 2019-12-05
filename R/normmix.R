@@ -97,8 +97,8 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
         #Initialize clusters via MLE
         em= Mclust(data=x, G=k[i], modelNames=ifelse(p==1,'V','VVV'),verbose=0)
         #if MLE failed, set prior to prevent 0 variances
-        if (class(em)=="NULL")  em <- try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
-        if (class(em)=='try-error') { z <- as.integer(kmeans(x, centers=k[i])$cluster) } else { z= as.integer(em$classification) }
+        if ("NULL" %in% class(em)) em= try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
+        if ('try-error' %in% class(em)) { z= as.integer(kmeans(x, centers=k[i])$cluster) } else { z= as.integer(em$classification) }
         #Gibbs sampling (version using mombf)
         mcmcfit= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
         names(mcmcfit)= c('logprobempty','logpen','eta','mu','cholSigmainv')

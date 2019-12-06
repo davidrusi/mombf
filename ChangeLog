@@ -1,3 +1,6 @@
+CHANGES IN VERSION 2.2.9
+- Fixed NOTE due to specifying non-canonical URL for mombf package
+
 CHANGES IN VERSION 2.2.8
 - Fixed error in Windows checks related to a test in test-modelSelection-Gibbs.R
 

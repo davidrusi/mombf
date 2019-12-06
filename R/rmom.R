@@ -101,7 +101,10 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 
 rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+<<<<<<< HEAD
     if (missing(priorGroup)) priorGroup= priorCoef
+=======
+>>>>>>> Added storage of posterior means and variances
     tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x); n <- length(y)
     if (nrow(x) != n) stop('Dimensions of y and x do not match')

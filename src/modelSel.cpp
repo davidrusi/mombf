@@ -5417,6 +5417,7 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
     ans= dnormC_jvec((*pars).y,*(*pars).n,m[1],s,1);
     free_dvector(m,1,1);
   } else {
+
     m= dvector(1,*nsel);
     S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     addct2XtX(&tauinv,(*pars).XtX,sel,nsel,(*pars).p,S);
@@ -5479,8 +5480,8 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, nu;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss;
+  int i, j, nu, groupcount, p_i;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), taugroupinv=1.0/(*(*pars).taugroup), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
 
   if (*nsel == 0) {
 
@@ -5498,8 +5499,21 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
     } else {
 
+      nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+      findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
       m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
-      addct2XtX(&tauinv,(*pars).XtX,sel,nsel,(*pars).p,S);
+      addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);
+      for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
+        p_i = (int) nvarinselgroups[groupcount];
+        if (p_i==1) {
+          S[i][i] += tauinv;
+        } else {
+          for (j=0; j<p_i; j++) {
+            S[i+j][i+j] += taugroupinv;
+          }
+        }
+        i += p_i;
+      }
       invdet_posdef(S,*nsel,Sinv,&detS);
       Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
       nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);

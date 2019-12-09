@@ -6255,7 +6255,8 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // - tau: prior dispersion parameter
 // - logscale: if set to 1 result is returned in log scale
 double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
-  double *m, s, **S, **Sinv, detS, num, den, tau= *(*pars).tau, tauinv=1/tau, logphi= log(*(*pars).phi), ans=0.0;
+  double *m, s, **S, **Sinv, detS, num, den, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv=1/taugroup, logphi= log(*(*pars).phi), ans=0.0, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  int groupcount, i, j, p_i;
 
   if (*nsel ==0) {
 
@@ -6266,9 +6267,22 @@ double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 
   } else {
 
+    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
     m= dvector(1,*nsel);
     S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
-    addct2XtX(&tauinv,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX into S
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX into S
+    for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
+      p_i = (int) nvarinselgroups[groupcount];
+      if (p_i==1) {
+        S[i][i] += tauinv;
+      } else {
+        for (j=0; j<p_i; j++) {
+          S[i+j][i+j] += taugroupinv;
+        }
+      }
+      i += p_i;
+    }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
 
@@ -6284,7 +6298,8 @@ double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 }
 
 double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, tau= *(*pars).tau, tauinv=1/tau, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv = 1/taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  int groupcount, i, j, p_i, singlevarcount=0;
   if (*nsel ==0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -6294,15 +6309,29 @@ double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
   } else {
 
+    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
-    addct2XtX(&tauinv,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
+      p_i = (int) nvarinselgroups[groupcount];
+      if (p_i==1) {
+        S[i][i] += tauinv;
+        singlevarcount++;
+      } else {
+        for (j=0; j<p_i; j++) {
+          S[i+j][i+j] += taugroupinv;
+        }
+      }
+      i += p_i;
+    }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
     nuhalf= .5*(*(*pars).n + *(*pars).alpha);
 
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-    den= .5*(*(*pars).n * LOG_M_2PI + log(detS)) + .5 * (*nsel) *log(tau) + gamln(&alphahalf);
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS)) + .5 * (singlevarcount * log(tau) + (*nsel - singlevarcount) * log(taugroup)) + gamln(&alphahalf);
     ans= num - den;
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);

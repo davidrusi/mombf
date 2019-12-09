@@ -69,6 +69,7 @@ patrick::with_parameters_test_that(
     expect_equal(ans_all, expected_all, tolerance=tolerance)
   },
   patrick::cases(
+    normalid=list(pCoef=normalidprior(tau=0.3), pGroup=normalidprior(tau=0.4), expected_max=-231.1117570, expected_all=-236.9719668),
     normid_gzell=list(pCoef=normalidprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-305.4831201, expected_all=-307.8938408),
     zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-335.9330409, expected_all=-335.6280634)
   )

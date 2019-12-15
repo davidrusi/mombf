@@ -44,7 +44,7 @@ SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP Sp
     for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &emptyint, &emptydouble, INTEGER(SB), REAL(Salpha),REAL(Slambda), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), 0, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &emptyint, &emptydouble, INTEGER(SB), REAL(Salpha),REAL(Slambda), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
   *rans= nlpMarginal(INTEGER(Ssel), INTEGER(Snsel), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   delete XtX;
   UNPROTECT(1);

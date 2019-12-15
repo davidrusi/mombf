@@ -6312,8 +6312,8 @@ double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 }
 
 double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv = 1/taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
-  int groupcount, i, j, p_i, singlevarcount=0;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, detS, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv = 1/taugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
+  int i, singlevarcount=0, *isgroup=(*pars).isgroup, varingroup;
   if (*nsel ==0) {
 
     term1= .5*(*(*pars).n + *(*pars).alpha);
@@ -6323,21 +6323,16 @@ double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
   } else {
 
-    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
-    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
-    for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
-      p_i = (int) nvarinselgroups[groupcount];
-      if (p_i==1) {
+    for (i = 1; i <= *nsel; i++ ) {
+      varingroup = isgroup[sel[i-1]];
+      if (varingroup==0) {
         S[i][i] += tauinv;
         singlevarcount++;
       } else {
-        for (j=0; j<p_i; j++) {
-          S[i+j][i+j] += taugroupinv;
-        }
+        S[i][i] += taugroupinv;
       }
-      i += p_i;
     }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);

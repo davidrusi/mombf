@@ -5480,8 +5480,8 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, nu, groupcount, p_i;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), taugroupinv=1.0/(*(*pars).taugroup), nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  int i, j, nu, *isgroup=pars->isgroup, varingroup, singlevarcount=0;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), taugroupinv=1.0/(*(*pars).taugroup), tautaugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
 
   if (*nsel == 0) {
 
@@ -5499,20 +5499,16 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
     } else {
 
-      nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
-      findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
       m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
       addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);
-      for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
-        p_i = (int) nvarinselgroups[groupcount];
-        if (p_i==1) {
+      for (i = 1; i <= *nsel; i++ ) {
+        varingroup = isgroup[sel[i-1]];
+        if (varingroup==0) {
           S[i][i] += tauinv;
+          singlevarcount++;
         } else {
-          for (j=0; j<p_i; j++) {
-            S[i+j][i+j] += taugroupinv;
-          }
+          S[i][i] += taugroupinv;
         }
-        i += p_i;
       }
       invdet_posdef(S,*nsel,Sinv,&detS);
       Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
@@ -5521,7 +5517,8 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
       ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
       num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-      den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + (*nsel)*(.5 + *(*pars).r)*log(*(*pars).tau) + gamln(&alphahalf);
+      tautaugroup = (.5 + *(*pars).r)*(singlevarcount*log(*(*pars).tau) + (*nsel - singlevarcount)*log(*(*pars).taugroup));
+      den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + tautaugroup + gamln(&alphahalf);
 
       if (*(*pars).method ==1) {  //MC
 

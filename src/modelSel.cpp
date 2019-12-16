@@ -5481,7 +5481,8 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   int i, j, nu, *isgroup=pars->isgroup, varingroup, singlevarcount=0;
-  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tauinv= 1.0/(*(*pars).tau), taugroupinv=1.0/(*(*pars).taugroup), tautaugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
+  double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tau=*(*pars).tau, tauinv= 1.0/tau, taugroup=*(*pars).taugroup, taugroupinv=1.0/taugroup, tautaugroup, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
+  bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
 
   if (*nsel == 0) {
 
@@ -5493,6 +5494,9 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
   } else {
 
     if (*(*pars).method ==0)  { //Laplace
+      if ((abs(tau - taugroup) > 1e-7) and hasgroups) {
+        Rprintf("Laplace method does not support different tau values between priorCoef and priorGroup\nUsing only tau from priorCoef");
+      }
 
       int prior=1, symmetric=1;
       ans= nlpMargSkewNorm(sel, nsel, pars, &prior, &symmetric);
@@ -5517,7 +5521,7 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 
       ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
       num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
-      tautaugroup = (.5 + *(*pars).r)*(singlevarcount*log(*(*pars).tau) + (*nsel - singlevarcount)*log(*(*pars).taugroup));
+      tautaugroup = (.5 + *(*pars).r)*(singlevarcount*log(tau) + (*nsel - singlevarcount)*log(taugroup));
       den= (*nsel)*ldoublefact(2*(*(*pars).r)-1.0) + .5*(*(*pars).n * LOG_M_2PI + log(detS)) + tautaugroup + gamln(&alphahalf);
 
       if (*(*pars).method ==1) {  //MC

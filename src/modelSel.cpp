@@ -2186,7 +2186,7 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
     for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
       p_i = (int) nvarinselgroups[groupcount];
       if (p_i==1) {
-        if (V0inv->computed_at(sel[varcount-1], sel[j_var-1])) {
+        if (V0inv->computed_at(sel[varcount-1], sel[varcount-1])) {
           Vinv[varcount][varcount] = V0inv->at(sel[varcount-1], sel[varcount-1]);
           S[varcount][varcount]+=Vinv[varcount][varcount];
         } else {

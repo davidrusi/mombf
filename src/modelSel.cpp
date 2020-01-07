@@ -2205,7 +2205,7 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
               Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
               S[i_var][j_var]+=Vinv[i_var][j_var];
             } else {
-              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup;
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup*p_i;
               V0inv->set(groupsel[i], groupsel[j], aux);
               Vinv[i_var][j_var]= aux;
               S[i_var][j_var]+=aux;
@@ -2314,7 +2314,7 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
               Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
               S[i_var][j_var]+=Vinv[i_var][j_var];
             } else {
-              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup;
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup*p_i;
               V0inv->set(groupsel[i], groupsel[j], aux);
               Vinv[i_var][j_var]= aux;
               S[i_var][j_var]+=aux;

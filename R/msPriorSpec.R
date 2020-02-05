@@ -47,7 +47,9 @@ valid_msPriorSpec <- function(object) {
     ## Validate rest based on type
     switch(object@priorType,
            coefficients = {
-               valid_coef_prior_distrs <- c("pMOM","piMOM","peMOM","zellner","groupzellner","normalid","bic")
+               valid_coef_prior_distrs <- c(
+                 "pMOM","groupMOM","piMOM","peMOM","zellner","groupzellner","normalid","bic"
+               )
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
                    msg <- c(msg,

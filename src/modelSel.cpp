@@ -16,6 +16,7 @@
 #include "modselFunction.h"
 #include "Polynomial.h"
 
+#include <csignal>
 #include <map>
 #include <string>
 
@@ -2247,7 +2248,108 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
 // pMOM on individual coef, groups MOM on groups
 double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("pMOM + group MOM not currently implemented for linear regression");
+  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0, *isgroup=pars->isgroup;
+  double num, den, ans=0.0, aux, trSV, term1, *m, *mj, **S, **Sinv, **Vinv, **Vinv_chol, **Vinvj, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  covariancemat *V0inv=(*pars).V0inv;
+  bool posdef;
+  if (*nsel ==0) {
+
+    term1= .5*(*(*pars).n + *(*pars).alpha);
+    num= .5*(*(*pars).alpha)*log(*(*pars).lambda) + gamln(&term1);
+    den= .5*(*(*pars).n)*(LOG_M_PI) + gamln(&alphahalf);
+    ans= num -den - term1*log(*(*pars).lambda + *(*pars).sumy2);
+
+  } else {
+
+    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+    m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
+    Vinv = dmatrix(1, *nsel, 1, *nsel); Vinv_chol = dmatrix(1, *nsel, 1, *nsel);
+    addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
+    for (i=1; i<=*nsel; i++) {
+      for (j=i; j<=*nsel; j++) {
+        Vinv[i][j] = 0;
+      }
+    }
+    for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
+      p_i = (int) nvarinselgroups[groupcount];
+      if (p_i==1) {
+        Vinv[varcount][varcount] = 1/tau;
+        S[varcount][varcount]+=Vinv[varcount][varcount];
+        varcount++;
+        singlevarcount++;
+      } else {
+        groupsel = ivector(0,p_i);
+        for (i=0; i<p_i; i++) {  groupsel[i] = sel[varcount-1+i]; }
+        for (i_var=varcount, i=0; i<p_i; i_var++, i++) {
+          for (j_var=i_var, j=i; j<p_i; j_var++, j++) {
+            if (V0inv->computed_at(groupsel[i], groupsel[j])) {
+              Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
+              S[i_var][j_var]+=Vinv[i_var][j_var];
+            } else {
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])/taugroup;
+              V0inv->set(groupsel[i], groupsel[j], aux);
+              Vinv[i_var][j_var]= aux;
+              S[i_var][j_var]+=aux;
+            }
+          }
+        }
+        varcount = varcount + p_i;
+        free_ivector(groupsel,0,p_i);
+      }
+    }
+    choldc(Vinv, *nsel, Vinv_chol, &posdef);
+    detVinvtau = choldc_det(Vinv_chol, *nsel);
+    logtaus = singlevarcount*log(tau) + (*nsel - singlevarcount) * log(taugroup);
+    logdetVinv = log(detVinvtau) + logtaus;
+    invdet_posdef(S,*nsel,Sinv,&detS);
+    Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
+    nuhalf= .5*(*(*pars).n + *(*pars).alpha);
+
+    ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
+    num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
+    den= .5*(*(*pars).n * LOG_M_2PI + log(detS) - logdetVinv) + .5 * logtaus + gamln(&alphahalf);
+    ans= num - den;
+
+    // Orthogonal approx
+    term1= ss / ((double) (2*nuhalf-2));
+    for (i=1; i<=(*nsel); i++) {
+      if (isgroup[sel[i-1]] == 0) {
+        ans+= log(pow(m[i],2.0) + Sinv[i][i] * term1);
+      }
+    }
+    for (varcount=1, groupcount=0; varcount <= *nsel; groupcount++) {
+      p_i = (int) nvarinselgroups[groupcount];
+      if (p_i==1) {
+        ans+= log(pow(m[varcount],2.0) + Sinv[varcount][varcount] * term1);
+        varcount++;
+      } else {
+        trSV = 0;
+        Vinvj = dmatrix(1, p_i+1, 1, p_i+1);
+        mj = dvector(1, p_i+1);
+        groupsel = ivector(0,p_i);
+        for (i=0; i<p_i; i++) {  groupsel[i] = sel[varcount-1+i]; }
+        for (i=1, i_var=varcount; i<p_i+1; i++, i_var++) {
+          Vinvj[i][i] = Vinv[varcount][varcount];
+          trSV += Vinv[i_var][j_var] * S[i_var][j_var];
+          for (j=i+1, j_var=varcount+1; j<p_i+1; j++, j_var++) {
+            Vinvj[i][j] = Vinv[i_var][j_var];
+            trSV += 2 * Vinv[i_var][j_var] * S[i_var][j_var];
+          }
+        }
+        Asym_xsel(Sinv,p_i,(*pars).ytX,groupsel,mj);
+        ans += log(trSV + term1 * quadratic_xtAx(mj, Vinvj, 1, p_i+1));
+        varcount = varcount + p_i;
+        free_dmatrix(Vinvj,1,p_i+1,1,p_i+1);
+        free_dvector(mj,1,p_i+1);
+        free_ivector(groupsel,0,p_i);
+      }
+    }
+    free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
+    free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vinv_chol,1,*nsel,1,*nsel);
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+  return ans;
 }
 
 // peMOM on individual coef, group eMOM on groups

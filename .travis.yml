@@ -15,6 +15,9 @@ matrix:
     - os: linux
       r: oldrel
       r_check_args: --no-build-vignettes --no-codoc
+    - os: linux
+      r: devel
+      r_check_args: --no-build-vignettes --no-codoc
     - os: osx
       latex: false
       r: release

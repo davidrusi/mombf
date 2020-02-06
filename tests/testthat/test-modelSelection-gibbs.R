@@ -104,3 +104,15 @@ test_that(
     #expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
   }
 )
+
+test_that(
+  "modelSelection with includevars works", {
+    log <- capture.output(
+      fit <- modelSelection(
+        y9, X9, enumerate=FALSE, includevars=c(rep(TRUE, 3), rep(FALSE, 7))
+      )
+    )
+    models <- postProb(fit)$modelid
+    expect_true(all(grepl("1,2,3", models)))
+  }
+)

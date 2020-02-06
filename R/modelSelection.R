@@ -342,7 +342,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 
   #Format arguments for .Call
   if (missing(deltaini)) {
-    deltaini= as.integer(which(includevars)); ndeltaini= as.integer(length(deltaini))
+    deltaini= as.integer(which(includevars)-1); ndeltaini= as.integer(length(deltaini))
   } else {
     if (length(deltaini)!=p) stop('deltaini must be of length ncol(x)')
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }

@@ -2161,7 +2161,7 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 
 // pMOM on individual coef, group Zellner on groups
 double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0, *isgroup=pars->isgroup;
+  int i_var, i, j_var, j, p_i, varcount, groupcount, *groupsel, singlevarcount=0, *isgroup=pars->isgroup, nu;
   double num, den, ans=0.0, aux, term1, *m, **S, **Sinv, **Vinv, **Vinv_chol, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, taugroup=*(*pars).taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   covariancemat *V0inv=(*pars).V0inv;
   bool posdef;
@@ -2223,7 +2223,9 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
     logdetVinv = log(detVinvtau) + logtaus;
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);
-    nuhalf= .5*(*(*pars).n + *(*pars).alpha);
+    /* nuhalf= .5*(*(*pars).n + *(*pars).alpha); */
+    nuhalf= (*(*pars).r)*(*nsel) + .5*(*(*pars).n + *(*pars).alpha);
+    nu= (int) (2.0*nuhalf);
 
     ss= *(*pars).lambda + *(*pars).sumy2 - quadratic_xtAx(m,S,1,*nsel);
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
@@ -2231,7 +2233,7 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
     ans= num - den;
 
     // Orthogonal approx
-    term1= ss / ((double) (2*nuhalf-2));
+    term1= ss / ((double) (nu-2));
     for (i=1; i<=(*nsel); i++) {
       if (isgroup[sel[i-1]] == 0) {
         ans+= log(pow(m[i],2.0) + Sinv[i][i] * term1);

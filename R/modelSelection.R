@@ -36,12 +36,14 @@ hasPostSampling <- function(object) {
   outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr
   outcomefam= paste(outcometype,family,sep=',')
   if (hasgroups) {
-    outcomefamprior= paste(outcomefam,priorCoef,priorGroup,sep=',')
+      outcomefamprior= paste(outcomefam,priorCoef,priorGroup,sep=',')
+      avail_outcomefamprior= apply(hassamples,1,paste,collapse=',')
   } else {
-    outcomefamprior= paste(outcomefam,priorCoef)
+      outcomefamprior= paste(outcomefam,priorCoef,sep=',')
+      avail_outcomefamprior= apply(hassamples[,1:3],1,paste,collapse=',')
   }
   found= outcomefam %in% apply(hassamples[,1:2],1,paste,collapse=',')
-  exactsampling= outcomefamprior  %in% apply(hassamples,1,paste,collapse=',')
+  exactsampling= outcomefamprior  %in% avail_outcomefamprior
   if (!found) {
     cat("Inference on parameters currently only available for the following settings: \n\n")
     print(hassamples)
@@ -101,7 +103,7 @@ setMethod("coefByModel", signature(object='msfit'), function(object, maxmodels, 
     outcometype= object$outcometype; family= object$family
     b= min(50, ceiling((burnin/niter) * niter))
     #List models for which estimates are to be obtained
-    pp= postProb(object,method=pp)
+    pp= postProb(object,method="norm")
     modelid= strsplit(as.character(pp$modelid), split=',')
     modelid= modelid[1:min(maxmodels,length(modelid))]
     priorCoef= object$priors$priorCoef
@@ -114,9 +116,10 @@ setMethod("coefByModel", signature(object='msfit'), function(object, maxmodels, 
       for (i in 1:length(modelid)) {  #for each model
         colsel= as.numeric(modelid[[i]])
         bm= coefOneModel(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, alpha=alpha, niter=niter, burnin=b)
-        ans[[1]][i,colsel]= bm[,1]
-        ans[[2]][i,colsel]= bm[,2]
-        ans[[3]][i,colsel]= bm[,3]
+        colselphi= c(colsel,ncol(ans[[1]]))
+        ans[[1]][i,colselphi]= bm[,1]
+        ans[[2]][i,colselphi]= bm[,2]
+        ans[[3]][i,colselphi]= bm[,3]
       }
       if (is.null(colnames(x))) nn= c(paste('beta',1:ncol(x),sep=''),'phi') else nn= c(colnames(x),'phi')
     } else {                                                   ##GLM or Survival model

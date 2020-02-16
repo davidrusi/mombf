@@ -2308,6 +2308,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
     den= .5*(*(*pars).n * LOG_M_2PI + log(detS) - logdetVinv) + .5 * logtaus + gamln(&alphahalf);
     ans= num - den;
+    Rcpp::Rcout << "local p " << ans << std::endl;
 
     // Orthogonal approx
     term1= ss / ((double) (nu-2));
@@ -2320,23 +2321,22 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
         trSV = 0;
         Vinvj = dmatrix(1, p_i+1, 1, p_i+1);
         mj = dvector(1, p_i+1);
-        groupsel = ivector(0,p_i);
-        for (i=0; i<p_i; i++) {  groupsel[i] = sel[varcount-1+i]; }
         for (i=1, i_var=varcount; i<p_i+1; i++, i_var++) {
           Vinvj[i][i] = Vinv[varcount][varcount];
-          trSV += Vinv[i_var][i_var] * S[i_var][i_var];
-          for (j=i+1, j_var=varcount+1; j<p_i+1; j++, j_var++) {
+          trSV += Vinv[i_var][i_var] * Sinv[i_var][i_var];
+          mj[i] = m[i_var];
+          for (j=i+1, j_var=i_var+1; j<p_i+1; j++, j_var++) {
             Vinvj[i][j] = Vinv[i_var][j_var];
-            trSV += 2 * Vinv[i_var][j_var] * S[i_var][j_var];
+            trSV += 2 * Vinv[i_var][j_var] * Sinv[i_var][j_var];
           }
         }
-        Asym_xsel(Sinv,p_i,(*pars).ytX,groupsel,mj);
+        Rcpp::Rcout << "trace " << trSV << std::endl;
         aux = quadratic_xtAx(mj, Vinvj, 1, p_i+1);
+        Rcpp::Rcout << "correction " << log(trSV + aux / term1) << std::endl;
         ans += log(trSV + aux / term1);
         varcount = varcount + p_i;
         free_dmatrix(Vinvj,1,p_i+1,1,p_i+1);
         free_dvector(mj,1,p_i+1);
-        free_ivector(groupsel,0,p_i);
       }
     }
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);

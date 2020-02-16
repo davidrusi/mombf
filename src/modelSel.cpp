@@ -2308,7 +2308,6 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
     num= gamln(&nuhalf) + alphahalf*log(lambdahalf) + nuhalf*(log(2.0) - log(ss));
     den= .5*(*(*pars).n * LOG_M_2PI + log(detS) - logdetVinv) + .5 * logtaus + gamln(&alphahalf);
     ans= num - den;
-    Rcpp::Rcout << "local p " << ans << std::endl;
 
     // Orthogonal approx
     term1= ss / ((double) (nu-2));
@@ -2330,9 +2329,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
             trSV += 2 * Vinv[i_var][j_var] * Sinv[i_var][j_var];
           }
         }
-        Rcpp::Rcout << "trace " << trSV << std::endl;
         aux = quadratic_xtAx(mj, Vinvj, 1, p_i+1);
-        Rcpp::Rcout << "correction " << log(trSV + aux / term1) << std::endl;
         ans += log(trSV + aux / term1);
         varcount = varcount + p_i;
         free_dmatrix(Vinvj,1,p_i+1,1,p_i+1);

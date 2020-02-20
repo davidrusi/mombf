@@ -32,16 +32,15 @@ test_that(
 patrick::with_parameters_test_that(
   "nlpMarginal with same kind of priorCoef and Group is correctly impemented for normal family:", {
     pVar <- igprior(alpha=0.01, lambda=0.01)
-    groups <- c(1,2,3,4,5,5,5,6,6,6)
     ans_max <- nlpMarginal(theta9_truth_idx, y9, X9, family="normal", priorCoef=pCoef, priorVar=pVar)
     ans_max_group <- nlpMarginal(
-      theta9_truth_idx, y9, X9, groups=groups, family="normal",
+      theta9_truth_idx, y9, X9, groups=groups9, family="normal",
       priorCoef=pCoef, priorGroup=pCoef, priorVar=pVar
     )
 
     ans_all <- nlpMarginal(seq_along(theta9_truth), y9, X9, family="normal",priorCoef=pCoef, priorVar=pVar)
     ans_all_group <- nlpMarginal(
-      seq_along(theta9_truth), y9, X9, groups=groups, family="normal",
+      seq_along(theta9_truth), y9, X9, groups=groups9, family="normal",
       priorCoef=pCoef, priorGroup=pCoef, priorVar=pVar
     )
     expect_true(ans_max_group > ans_all_group)
@@ -55,22 +54,23 @@ patrick::with_parameters_test_that(
 patrick::with_parameters_test_that(
   "nlpMarginal with groups is correctly impemented for normal family:", {
     pVar <- igprior(alpha=0.01, lambda=0.01)
-    groups <- c(1,2,3,4,5,5,5,6,6,6)
     ans_max <- nlpMarginal(
-      theta9_truth_idx, y9, X9, groups=groups, family="normal",
+      theta9_truth_idx, y9, X9, groups=groups9, family="normal",
       priorCoef=pCoef, priorGroup=pGroup, priorVar=pVar
     )
 
     ans_all <- nlpMarginal(
-      seq_along(theta9_truth), y9, X9, groups=groups, family="normal",
+      seq_along(theta9_truth), y9, X9, groups=groups9, family="normal",
       priorCoef=pCoef, priorGroup=pGroup, priorVar=pVar
     )
     expect_equal(ans_max, expected_max, tolerance=tolerance)
     expect_equal(ans_all, expected_all, tolerance=tolerance)
   },
   patrick::cases(
-    normalid=list(pCoef=normalidprior(tau=0.3), pGroup=normalidprior(tau=0.4), expected_max=-231.1117570, expected_all=-236.9719668),
-    normid_gzell=list(pCoef=normalidprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-305.4831201, expected_all=-307.8938408),
-    zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-335.9330409, expected_all=-335.6280634)
+    normalid=list(pCoef=normalidprior(tau=0.3), pGroup=normalidprior(tau=0.4), expected_max=-231.111757, expected_all=-236.971966),
+    normid_gzell=list(pCoef=normalidprior(tau=1), pGroup=groupzellnerprior(tau=0.4), expected_max=-316.658333, expected_all=-320.087106),
+    zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-342.339794, expected_all=-342.19151),
+    mom_gzell=list(pCoef=momprior(tau=0.3), pGroup=groupzellnerprior(tau=10), expected_max=-262.450681, expected_all=-274.104395),
+    mom_gmom=list(pCoef=momprior(tau=0.3), pGroup=groupmomprior(tau=0.4), expected_max=-232.550517, expected_all=-246.652839)
   )
 )

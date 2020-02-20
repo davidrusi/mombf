@@ -1,3 +1,9 @@
+CHANGES IN VERSION 2.3.1
+- Implement groupzellner prior combinations with MOM, Zellner and normalid
+priors
+- Implement groupmom prior with MOM
+- Fix some inconsistencies between tau and taugroup usage
+
 CHANGES IN VERSION 2.3.0
 - Fixed error in coefByModel (typo in calling postProb)
 - Fixed unnecessary warnings returned by hastPostSamples

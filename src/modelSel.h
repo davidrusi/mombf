@@ -253,11 +253,11 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 
-// pMOM on individual coef, group MOM on groups
-double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars);
-
 // pMOM on individual coef, block Zellner on groups
 double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);
+
+// pMOM on individual coef, group MOM on groups
+double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars);
 
 // peMOM on individual coef, group eMOM on groups
 double pemomgemomMarg(int *sel, int *nsel, struct marginalPars *pars);

@@ -1,10 +1,11 @@
-modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, includevars=rep(FALSE,ncol(x)), maxvars, familyglm= gaussian(), priorCoef, priorGroup, priorVar, priorDelta= modelbbprior(1,1), verbose= TRUE) {
-    #Enumerate all models and return posterior prob as approximated by BIC. Enumerated models satisfy group and hierarchical restrictions from factors and interaction terms
+modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, includevars=rep(FALSE,ncol(x)), maxvars, familyglm= gaussian(), priorCoef, priorGroup, priorVar, priorDelta= modelbbprior(1,1), models, verbose= TRUE) {
+    #Enumerate all or specified models and return posterior prob as approximated by BIC. Enumerated models satisfy group and hierarchical restrictions from factors and interaction terms
     #Input
     # - data: data.frame with a column named 'y' containing the response
     # - family: type of GLM, passed onto function 'glm'
     # - maxvars: enumeration is limited to models with <=maxvars
     # - verbose: set to TRUE to display progress information
+    # - models: logical matrix with ncol(x) columns selecting variables for each included model
     # Output: object of class msfit, as returned by modelSelection in mombf
 
     if (missing(priorCoef)) priorCoef= bicprior()
@@ -15,7 +16,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     enumerate= TRUE #currently only full enumeration is supported
     family= paste(familyglm$family,familyglm$link)
     familyint= -1 #argument currently ignored, set to value != 0 to prevent inference on the family
-
+    
     ################# Start of code copied from modelSelection #################
 
     #Check input
@@ -56,13 +57,19 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     if (!(outcometype %in% c('Continuous','Survival'))) { my=0; sy= 1 }
     ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
     #################    End of code copied from modelSelection #################
+    
     #if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
     stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('shift','scale')
 
     #Enumerate models
-    if (familyint==0) { includeenum= c(includevars[groups+1],FALSE,FALSE) } else { includeenum= includevars[groups+1] }
-    models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
-    if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
+    if (missing(models)) {
+      if (familyint==0) { includeenum= c(includevars[groups+1],FALSE,FALSE) } else { includeenum= includevars[groups+1] }
+      models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
+      if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
+    } else {
+      if (!is.matrix(models) | !is.logical(models)) stop("models must be a matrix of logicals")
+      if (dim(models)[2] != ncol(x)) stop("models must have ncol(x) columns")
+    }
     nmodels= nrow(models)
     postmean= postvar= matrix(0, nrow=nmodels, ncol=ncol(xstd))
     bicmodel= double(nmodels)
@@ -109,6 +116,6 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorDelta, priorVar=priorVar, priorSkew=NULL)
     names(constraints)= paste('group',0:(length(constraints)-1))
     ans= list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
-    if (enumerate) { ans$models= models }
+    ans$models= models
     new("msfit",ans)
 }

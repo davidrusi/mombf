@@ -6454,8 +6454,8 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // - tau: prior dispersion parameter
 // - logscale: if set to 1 result is returned in log scale
 double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
-  double *m, s, **S, **Sinv, detS, num, den, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv=1/taugroup, logphi= log(*(*pars).phi), ans=0.0, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
-  int groupcount, i, j, p_i;
+  double *m, s, **S, **Sinv, detS, num, den, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup, taugroupinv=1/taugroup, logphi= log(*(*pars).phi), ans=0.0, zero=0;
+  int i, *isgroup=(*pars).isgroup, varingroup, singlevarcount=0;
 
   if (*nsel ==0) {
 
@@ -6466,21 +6466,17 @@ double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 
   } else {
 
-    nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
-    findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
     m= dvector(1,*nsel);
     S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX into S
-    for (i = 1, groupcount = 0; i <= *nsel; groupcount++ ) {
-      p_i = (int) nvarinselgroups[groupcount];
-      if (p_i==1) {
+    for (i = 1; i <= *nsel; i++ ) {
+      varingroup = isgroup[sel[i-1]];
+      if (varingroup==0) {
         S[i][i] += tauinv;
+        singlevarcount++;
       } else {
-        for (j=0; j<p_i; j++) {
-          S[i+j][i+j] += taugroupinv;
-        }
+        S[i][i] += taugroupinv;
       }
-      i += p_i;
     }
     invdet_posdef(S,*nsel,Sinv,&detS);
     Asym_xsel(Sinv,*nsel,(*pars).ytX,sel,m);

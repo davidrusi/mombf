@@ -2283,7 +2283,10 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 // pMOM on individual coef, groups MOM on groups
 double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
   int i_var, i, j_var, j, p_i, nu, varcount, groupcount, *groupsel, singlevarcount=0, n=*(*pars).n;
-  double num, den, ans=0.0, aux, trSV, term1, *m, *mj, **S, **Sinv, **Vinv, **Vinv_chol, **Vinvj, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup*((double) n), taugroupinv=1/taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  double num, den, ans=0.0, aux, trSV, term1, *m, *mj, **S, **Sinv, **Vinv, **Vinv_chol, **Vinvj,
+         detS, detVinvtau, logdetVinv, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup*((double) n),
+         taugroupinv=1/taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda),
+         ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   covariancemat *V0inv=(*pars).V0inv;
   bool posdef;
   if (*nsel ==0) {
@@ -2323,7 +2326,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
               Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
               S[i_var][j_var]+=Vinv[i_var][j_var];
             } else {
-              aux = (*pars).XtX->at(groupsel[i], groupsel[j])*taugroupinv*p_i;
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])*taugroupinv*(p_i+2);
               V0inv->set(groupsel[i], groupsel[j], aux);
               Vinv[i_var][j_var]= aux;
               S[i_var][j_var]+=aux;
@@ -2361,7 +2364,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
         Vinvj = dmatrix(1, p_i+1, 1, p_i+1);
         mj = dvector(1, p_i+1);
         for (i=1, i_var=varcount; i<p_i+1; i++, i_var++) {
-          Vinvj[i][i] = Vinv[varcount][varcount];
+          Vinvj[i][i] = Vinv[varcount][varcount] / p_i * ((double) n);
           trSV += Vinv[i_var][i_var] * Sinv[i_var][i_var];
           mj[i] = m[i_var];
           for (j=i+1, j_var=i_var+1; j<p_i+1; j++, j_var++) {

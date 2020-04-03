@@ -2259,6 +2259,8 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
 
     nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
     findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+    free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups)));
+    free_dvector(selgroups, 0, *nsel -1);
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     Vinv = dmatrix(1, *nsel, 1, *nsel); Vinv_chol = dmatrix(1, *nsel, 1, *nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
@@ -2338,6 +2340,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
     }
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
     free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vinv_chol,1,*nsel,1,*nsel);
+    free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
   return ans;
@@ -2371,6 +2374,8 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
     findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+    free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups)));
+    free_dvector(selgroups, 0, *nsel -1);
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     Vinv = dmatrix(1, *nsel, 1, *nsel); Vinv_chol = dmatrix(1, *nsel, 1, *nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
@@ -2433,6 +2438,7 @@ double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
     free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vinv_chol,1,*nsel,1,*nsel);
+    free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
 
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }
@@ -2456,6 +2462,8 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
     findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+    free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups)));
+    free_dvector(selgroups, 0, *nsel -1);
     m= dvector(1,*nsel); S= dmatrix(1,*nsel,1,*nsel); Sinv= dmatrix(1,*nsel,1,*nsel);
     Vinv = dmatrix(1, *nsel, 1, *nsel); Vinv_chol = dmatrix(1, *nsel, 1, *nsel);
     addct2XtX(&zero,(*pars).XtX,sel,nsel,(*pars).p,S);  //copy XtX onto S
@@ -2506,6 +2514,7 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);
     free_dmatrix(Vinv,1,*nsel,1,*nsel); free_dmatrix(Vinv_chol,1,*nsel,1,*nsel);
+    free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
 
   }
   if (*(*pars).logscale !=1) { ans= exp(ans); }

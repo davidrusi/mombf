@@ -555,48 +555,101 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     #Add spline terms
     if (!missing(smoothterms)) {
         if (!any(c('formula','matrix','data.frame') %in% class(smoothterms))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
-        maxgroups= max(groups)
-        if ('formula' %in% class(smoothterms)) {
-            smoothterms= formula(paste("~ ",-1,"+",as.character(smoothterms)[2])) #remove intercept
-            L= createDesign(smoothterms, data=data, subset=subset, na.action=na.action)$x
-        } else {
-            L= as.matrix(smoothterms)
-            if (is.null(colnames(L))) colnames(L)= paste("L",1:ncol(L),sep="")
-        }
-        W <- matrix(NA,nrow=nrow(L),ncol=(nknots-4)*ncol(L))
-        namesW <- character(ncol(W))
-        groupsW <- integer(ncol(W)); constraintsW= vector("list",ncol(L))
-        groupsL <- integer(ncol(L)); constraintsL= lapply(1:ncol(L), function(i) integer(0))
-        selL= rep(FALSE,ncol(L)); nselL= 0
-        for (j in 1:ncol(L)) {
-            m= range(L[,j])
-            tmp= bspline(L[,j], degree=splineDegree, knots=seq(m[1],m[2],length=nknots)) #equally-spaced knots
-            Lj= cbind(1,L[,j]); b= solve(t(Lj) %*% Lj) %*% (t(Lj) %*% tmp)
-            idx= (1+(j-1)*(nknots-4)):(j*(nknots-4))
-            W[,idx]= tmp - Lj %*% b #project splines onto space orthogonal to linear term
-            namesW[idx]= paste(colnames(L)[j],'.s',1:length(idx),sep='')
-            repeated= which(colnames(x)==colnames(L)[j])
-            if (length(repeated)==1) {  #linear term was already in x
-                constraintsW[[j]]= groups[repeated]
-            } else {                    #linear term wasn't in x
-                selL[j]= TRUE
-                nselL= nselL+1
-                groupsL[j]= maxgroups + nselL
-                constraintsW[[j]]= groupsL[j]
-            }
-            groupsW[idx]= j
-        }
-        colnames(W)= namesW
-        groupsW= maxgroups + nselL + groupsW
-        varW= (colMeans(W^2) - colMeans(W)^2) * nrow(W)/(nrow(W)-1)
-        if (any(varW<1.0e-4)) { W= W[,varW>1.0e-4]; groupsW= groupsW[varW>1.0e-4]; constraintsW= constraintsW[unique(groupsW-min(groupsW)+1)] }
-        x= cbind(x,L[,selL],W)
-        groups= c(groups, groupsL[selL], groupsW)
-        typeofvar= c(typeofvar, rep('numeric',sum(selL)+length(groupsW)))
-        constraints= c(constraints, constraintsL[selL], constraintsW)
+        Snested= nestedSplines(x=x, groups=groups, smoothterms=smoothterms, data=data, subset=subset, na.action=na.action, splineDegree=splineDegree, nknots=nknots)        
+        x= cbind(x, Snested$L, Snested$W)
+        groups= c(groups, Snested$groups, Snested$groupsW)
+        typeofvar= c(typeofvar, Snested$typeofvar)
+        constraints= c(constraints, Snested$constraintsL, Snested$constraintsW)
+        #old code, before structuring nestedSplines as a separate function
+        #x= cbind(x,L[,selL],W)
+        #groups= c(groups, groupsL[selL], groupsW)
+        #typeofvar= c(typeofvar, rep('numeric',sum(selL)+length(groupsW)))
+        #constraints= c(constraints, constraintsL[selL], constraintsW)
     }
     return(list(y=y,x=x,groups=groups,constraints=constraints,typeofvar=typeofvar))
 }
+
+
+#Create design matrix for nested splines: linear within knots[1], knots[1] within knots[2], etc.
+nestedSplines= function(x, groups, smoothterms, data, subset, na.action, splineDegree, nknots) {
+    if (length(nknots)>1) nknots= nknots[order(nknots)]
+    maxgroups= max(groups)
+    if ('formula' %in% class(smoothterms)) {
+        smoothterms= formula(paste("~ ",-1,"+",as.character(smoothterms)[2])) #remove intercept
+        L= createDesign(smoothterms, data=data, subset=subset, na.action=na.action)$x
+    } else {
+        L= as.matrix(smoothterms)
+        if (is.null(colnames(L))) colnames(L)= paste("L",1:ncol(L),sep="")
+    }
+
+    W= constraintsW= constraintsL= groupsW= groupsL= vector("list", length(nknots))
+    for (kk in 1:length(nknots)) {
+        W[[kk]] <- matrix(NA,nrow=nrow(L),ncol=(nknots[kk]-4)*ncol(L))
+        namesW <- character(ncol(W[[kk]]))
+        groupsW[[kk]] <- integer(ncol(W[[kk]])); constraintsW[[kk]]= vector("list",ncol(L))
+        groupsL[[kk]] <- integer(ncol(L)); constraintsL[[kk]]= lapply(1:ncol(L), function(i) integer(0))
+        selL= rep(FALSE,ncol(L)); nselL= 0
+        for (j in 1:ncol(L)) {
+            m= range(L[,j])
+            tmp= bspline(L[,j], degree=splineDegree, knots=seq(m[1],m[2],length=nknots[kk])) #equally-spaced knots
+            Lj= cbind(1,L[,j]); b= solve(t(Lj) %*% Lj) %*% (t(Lj) %*% tmp)
+            idx= (1+(j-1)*(nknots[kk]-4)):(j*(nknots[kk]-4))
+            W[[kk]][,idx]= tmp - Lj %*% b #project splines onto space orthogonal to linear term
+            namesW[idx]= paste(colnames(L)[j],'.s',1:length(idx),sep='')
+            repeated= which(colnames(x)==colnames(L)[j])
+            if (length(repeated)==1) {  #linear term was already in x
+                constraintsW[[kk]][[j]]= groups[repeated]
+            } else {                    #linear term wasn't in x
+                selL[j]= TRUE
+                nselL= nselL+1
+                groupsL[[kk]][j]= maxgroups + nselL
+                constraintsW[[kk]][[j]]= groupsL[[kk]][j]
+            }
+            groupsW[[kk]][idx]= j
+        }
+        colnames(W[[kk]])= namesW
+        groupsW[[kk]]= maxgroups + nselL + groupsW[[kk]]
+        varW= (colMeans(W[[kk]]^2) - colMeans(W[[kk]])^2) * nrow(W[[kk]])/(nrow(W[[kk]])-1)
+        if (any(varW<1.0e-4)) {
+            W[[kk]]= W[[kk]][,varW>1.0e-4]; groupsW[[kk]]= groupsW[[kk]][varW>1.0e-4]; constraintsW[[kk]]= constraintsW[[kk]][unique(groupsW[[kk]]-min(groupsW[[kk]])+1)]
+        }
+    }
+    
+    #Combine design matrices hierarchically into single matrix with hierarchical constraints
+    Wall= W[[1]]; groupsWall= groupsW[[1]]; constraintsWall= constraintsW[[1]]
+    maxgroups= max(groupsWall)
+    if (length(nknots)==1) {
+        ans= list(L=L[,selL], W=Wall, groupsL=groupsL[selL], groupsW=groupsWall, typeofvar= rep('numeric',sum(selL)+length(groupsW)), constraintsL=constraintsL[selL], constraintsW=constraintsWall)
+    } else {
+        groupsWidx= unique(groupsW[[1]])
+        for (kk in 2:length(nknots)) {
+            keep= vector("list",length(groupsWidx))
+            for (g in 1:length(keep)) {
+                sel1= which(groupsW[[kk]] == groupsWidx[g])
+                sel2= which(groupsWall == groupsWidx[g])
+                r= cor(W[[kk]][,sel1], Wall[,sel2])  #correlation with basis with previous number of knots
+                o= order(abs(apply(r, 1, max)))      #sort by max absolute correlation
+                keep[[g]]= sel1[o[1:(length(sel1) - sum(groupsW[[kk-1]] == groupsWidx[g]))]]
+                keep[[g]]= keep[[g]][order(keep[[g]])]
+            }
+            newgroups= groupsW[[kk]][unlist(keep)]; newgroups= newgroups + maxgroups - min(newgroups) + 1
+            maxgroups= max(newgroups)
+            newconstraintsW= as.list(unique(newgroups) - length(groupsWidx))
+            Wall= cbind(Wall, W[[kk]][,unlist(keep)])
+            groupsWall= c(groupsWall, newgroups)
+            constraintsWall= c(constraintsWall, newconstraintsW)
+        }
+        for (j in 1:ncol(L)) {
+            pattern= sub("\\[","\\\\[",colnames(L)[j]); pattern= sub("\\]","\\\\]",pattern)
+            selj= grep(pattern, colnames(Wall))
+            colnames(Wall)[selj]= paste(colnames(L)[j],'.s',1:length(selj), sep='')
+        }
+        ans= list(L=L[,selL], W=Wall, groupsL=groupsL[selL], groupsW=groupsWall, typeofvar= rep('numeric',sum(selL)+length(groupsWall)), constraintsL=constraintsL[selL], constraintsW=constraintsWall)
+    }
+
+    return(ans)
+}
+        
 
 
 

@@ -95,12 +95,13 @@ test_that(
     log <- capture.output(
       fit <- modelSelection(
         y6~X6[,2]+X6[,3]+X6[,4]+X6[,5]+X6[,6]+X6[,7], priorCoef=pCoef,
-        priorDelta=pDelta, enumerate=FALSE, smoothterms=X6[,2:7],
+        priorDelta=pDelta, enumerate=FALSE, smoothterms=~X6[,2:7],
         family="normal", priorSkew=pCoef, priorGroup=pCoef
       )
     )
     pprobs <- postProb(fit)
     expect_equal(names(pprobs)[3], "pp")
+
     #expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
   }
 )

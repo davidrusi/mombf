@@ -1834,9 +1834,9 @@ double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struc
   double ans=0, *prDeltap=(*pars).prDeltap, *prConstrp=(*pars).prConstrp;
 
   if (*nsel == 0) {
-    for (i=0; i<len_prDeltap; i++) ans += log(1-prDeltap[i]);
+    for (i=0; i<len_prDeltap; i++) ans += log(1-prDeltap[(len_prDeltap > 1) ? i : 0]);
     if (*(*pars).ngroupsconstr > 0) {
-      for (i=0; i<len_prConstrp; i++) ans += log(1-prConstrp[i]);
+      for (i=0; i<len_prConstrp; i++) ans += log(1-prConstrp[(len_prConstrp > 1) ? i : 0]);
     }
   } else {
     for (i = 0; i<ngroups; i++) {

@@ -1829,15 +1829,46 @@ double unifPrior(int *sel, int *nsel, struct marginalPars *pars) { return -((*(*
 double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars) { return -((*(*pars).ngroups) +2.0) * log(2.0); }
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars) { return 0.0; }
 
+double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struct marginalPars *pars) {
+  int i, sel_i=0, delta_i=0, constr_i=0, ngroups=*(*pars).ngroups, *groups=(*pars).groups, *nconstraints=(*pars).nconstraints, *nvaringroup=(*pars).nvaringroup;
+  double ans=0, *prDeltap=(*pars).prDeltap, *prConstrp=(*pars).prConstrp;
+
+  for (i = 0; i<ngroups; i++) {
+    if (nconstraints[i] == 0) {
+      if (i == groups[sel[sel_i]]) {
+        ans += log(prDeltap[delta_i]);
+        sel_i += nvaringroup[groups[i]];
+      } else {
+        ans += log(1 - prDeltap[delta_i]);
+      }
+      delta_i++;
+    } else { // constrained, use prConstrp
+      if (i == groups[sel[sel_i]]) {
+        ans += log(prConstrp[delta_i]);
+        sel_i += nvaringroup[groups[i]];
+      } else {
+        ans += log(1 - prConstrp[delta_i]);
+      }
+      constr_i++;
+    }
+  }
+  return ans;
+}
+
 //nsel ~ Binom(p,prDeltap)
 double binomPrior(int *sel, int *nsel, struct marginalPars *pars) {
-  int ngroups0, ngroups1, n_notconstr;
-  double ans;
+  int ngroups0, ngroups1, n_notconstr, n_constr=*(*pars).ngroupsconstr,
+      len_prDeltap=(int) *(*pars).parprDeltap, len_prConstrp=(int) *(*pars).parprConstrp;
+  double ans, *prDeltap=(*pars).prDeltap, *prConstrp=(*pars).prConstrp;
   nselConstraints(&ngroups0, &ngroups1, sel, nsel, (*pars).groups, (*pars).nconstraints, (*pars).nvaringroup);
-  n_notconstr= *(*pars).ngroups - *(*pars).ngroupsconstr;
-  ans = dbinomial(ngroups0, n_notconstr, *(*pars).prDeltap, 1) - lnchoose((double) n_notconstr, (double) ngroups0);
-  if ((*(*pars).ngroupsconstr) >0) {
-    ans += dbinomial(ngroups1,*(*pars).ngroupsconstr,*(*pars).prConstrp,1) - lnchoose((double) (*(*pars).ngroupsconstr), (double) ngroups1);
+  n_notconstr= *(*pars).ngroups - n_constr;
+  if ((len_prDeltap == 1) & (len_prConstrp == 1)) {
+    ans= (ngroups0+.0)*log(*prDeltap) + (n_notconstr-ngroups0+.0)*log(1-*prDeltap);
+    if ((n_constr) > 0) {
+      ans += (ngroups1+.0)*log(*prConstrp) + (n_constr-ngroups1+.0)*log(1-*prConstrp);
+    }
+  } else {
+    ans = vectBinom(sel, nsel, len_prDeltap, len_prConstrp, pars);
   }
   return ans;
   //return dbinomial(*nsel,*(*pars).p,*(*pars).prDeltap,1);

@@ -227,7 +227,7 @@ modelunifprior <- function() {
 }
 
 modelbinomprior <- function(p=0.5) {
-    new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=c(p=p))
+    new("msPriorSpec",priorType='modelIndicator',priorDistr='binomial',priorPars=list(p=p))
 }
 
 modelbbprior <- function(alpha.p=1, beta.p=1) {

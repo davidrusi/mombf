@@ -84,6 +84,29 @@ patrick::with_parameters_test_that(
 )
 
 patrick::with_parameters_test_that(
+  "asymetric binomial prior works in modelSelection (pDelta_pConstr):", {
+    pDelta_vect <- TRUE
+    pConstr_vect <- TRUE
+    pCoef <- momprior(tau=0.348)
+    i0 <- integer(0)
+    constraints <- list(i0, 1, i0, 3, i0, i0, 6)
+    pDelta
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorCoef=pCoef, priorDelta=pDelta, priorConstraints=pConstr,
+        enumerate=TRUE, family="normal", constraints=constraints
+      )
+    )
+    expect_output(show(fit))
+    pprobs <- postProb(fit)
+    expect_true(any(pprobs$modelid[1:4] == "3,4,6,7"))
+  },
+  test_name=c("vect_vect", "vect_scalar", "scalar_vect"),
+  pDelta=c(modelbinomprior(p=c(0.5, .2, .3, .7)), modelbinomprior(p=c(0.5, .2, .3, .7)), modelbinomprior(p=0.5)),
+  pConstr=c(modelbinomprior(p=c(0.4, .2, .6)), modelbinomprior(p=0.5), modelbinomprior(p=c(0.4, .2, .6)))
+)
+
+patrick::with_parameters_test_that(
   "modelSelection methods in normal family work:", {
     if (method == "Hybrid") {pCoef <- imomprior(tau=0.348)} else {pCoef <- momprior(tau=0.348)}
     pDelta <- modelbbprior(1,1)

@@ -367,7 +367,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
-  tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints)
+  tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints, constraints=constraints)
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
 
@@ -555,7 +555,7 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     #Add spline terms
     if (!missing(smoothterms)) {
         if (!any(c('formula','matrix','data.frame') %in% class(smoothterms))) stop("smoothterms should be of class 'formula', 'matrix' or 'data.frame'")
-        Snested= nestedSplines(x=x, groups=groups, smoothterms=smoothterms, data=data, subset=subset, na.action=na.action, splineDegree=splineDegree, nknots=nknots)        
+        Snested= nestedSplines(x=x, groups=groups, smoothterms=smoothterms, data=data, subset=subset, na.action=na.action, splineDegree=splineDegree, nknots=nknots)
         x= cbind(x, Snested$L, Snested$W)
         groups= c(groups, Snested$groups, Snested$groupsW)
         typeofvar= c(typeofvar, Snested$typeofvar)
@@ -614,7 +614,7 @@ nestedSplines= function(x, groups, smoothterms, data, subset, na.action, splineD
             W[[kk]]= W[[kk]][,varW>1.0e-4]; groupsW[[kk]]= groupsW[[kk]][varW>1.0e-4]; constraintsW[[kk]]= constraintsW[[kk]][unique(groupsW[[kk]]-min(groupsW[[kk]])+1)]
         }
     }
-    
+
     #Combine design matrices hierarchically into single matrix with hierarchical constraints
     Wall= W[[1]]; groupsWall= groupsW[[1]]; constraintsWall= constraintsW[[1]]
     maxgroups= max(groupsWall)
@@ -649,7 +649,7 @@ nestedSplines= function(x, groups, smoothterms, data, subset, na.action, splineD
 
     return(ans)
 }
-        
+
 
 
 
@@ -833,10 +833,12 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
 }
 
 #Routine to format modelSelection prior distribution parameters in model space
-#Input: priorDelta, priorConstraints
+#Input: priorDelta, priorConstraints, constraints
 #Output: model space prior (prDelta, prDeltap, parprDeltap) and constraints (prConstr,prConstrp,parprConstrp)
-formatmsPriorsModel <- function(priorDelta, priorConstraints) {
+formatmsPriorsModel <- function(priorDelta, priorConstraints, constraints) {
   #Prior on model space (parameters not subject to hierarchical constraints)
+  n_unconstrained <- sum(sapply(constraints, function(x) length(x) == 0))
+  n_constrained <- length(constraints) - n_unconstrained
   if (priorDelta@priorDistr=='uniform') {
     prDelta <- as.integer(0)
     prDeltap <- as.double(0)
@@ -844,9 +846,10 @@ formatmsPriorsModel <- function(priorDelta, priorConstraints) {
   } else if (priorDelta@priorDistr=='binomial') {
     if ('p' %in% names(priorDelta@priorPars)) {
       prDelta <- as.integer(1)
-      prDeltap <- as.double(priorDelta@priorPars['p'])
-      if ((prDeltap<=0) | (prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
-      parprDeltap <- double(2)
+      prDeltap <- as.double(priorDelta@priorPars[['p']])
+      if (any(prDeltap<=0) | any(prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
+      if ((length(prDeltap) != 1) & (length(prDeltap) != n_unconstrained)) stop("p in priorDelta must be a scalar or have length=number of unconstrained variables")
+      parprDeltap <- as.double(length(prDeltap))
     } else {
       prDelta <- as.integer(2)
       prDeltap <- as.double(.5)
@@ -868,9 +871,10 @@ formatmsPriorsModel <- function(priorDelta, priorConstraints) {
   } else if (priorConstraints@priorDistr=='binomial') {
     if ('p' %in% names(priorConstraints@priorPars)) {
       prConstr <- as.integer(1)
-      prConstrp <- as.double(priorConstraints@priorPars['p'])
-      if ((prConstrp<=0) | (prConstrp>=1)) stop("p must be between 0 and 1 for priorConstraints@priorDistr=='binomial'")
-      parprConstrp <- double(2)
+      prConstrp <- as.double(priorConstraints@priorPars[['p']])
+      if (any(prConstrp<=0) | any(prConstrp>=1)) stop("p must be between 0 and 1 for priorConstraints@priorDistr=='binomial'")
+      if ((length(prConstrp) != 1) & (length(prConstrp) != n_constrained)) stop("p in priorConstraints must be a scalar or have length=number of constrained variables")
+      parprConstrp <- as.double(length(prConstrp))
     } else {
       prConstr <- as.integer(2)
       prConstrp <- as.double(.5)

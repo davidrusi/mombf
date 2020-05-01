@@ -1833,23 +1833,30 @@ double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struc
   int i, sel_i=0, delta_i=0, constr_i=0, ngroups=*(*pars).ngroups, *groups=(*pars).groups, *nconstraints=(*pars).nconstraints, *nvaringroup=(*pars).nvaringroup;
   double ans=0, *prDeltap=(*pars).prDeltap, *prConstrp=(*pars).prConstrp;
 
-  for (i = 0; i<ngroups; i++) {
-    if (nconstraints[i] == 0) {
-      if (i == groups[sel[sel_i]]) {
-        ans += log(prDeltap[delta_i]);
-        sel_i += nvaringroup[groups[i]];
-      } else {
-        ans += log(1 - prDeltap[delta_i]);
+  if (*nsel == 0) {
+    for (i=0; i<len_prDeltap; i++) ans += log(1-prDeltap[i]);
+    if (*(*pars).ngroupsconstr > 0) {
+      for (i=0; i<len_prConstrp; i++) ans += log(1-prConstrp[i]);
+    }
+  } else {
+    for (i = 0; i<ngroups; i++) {
+      if (nconstraints[i] == 0) {
+        if (i == groups[sel[sel_i]]) {
+          ans += log(prDeltap[delta_i]);
+          if (sel_i < *nsel-1) sel_i += nvaringroup[groups[i]];
+        } else {
+          ans += log(1 - prDeltap[delta_i]);
+        }
+        if (len_prDeltap > 1) delta_i++;
+      } else { // constrained, use prConstrp
+        if (i == groups[sel[sel_i]]) {
+          ans += log(prConstrp[constr_i]);
+          if (sel_i < *nsel-1) sel_i += nvaringroup[groups[i]];
+        } else {
+          ans += log(1 - prConstrp[constr_i]);
+        }
+        if (len_prConstrp > 1) constr_i++;
       }
-      if (len_prDeltap > 1) delta_i++;
-    } else { // constrained, use prConstrp
-      if (i == groups[sel[sel_i]]) {
-        ans += log(prConstrp[constr_i]);
-        sel_i += nvaringroup[groups[i]];
-      } else {
-        ans += log(1 - prConstrp[constr_i]);
-      }
-      if (len_prConstrp > 1) constr_i++;
     }
   }
   return ans;

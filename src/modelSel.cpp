@@ -1841,15 +1841,15 @@ double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struc
       } else {
         ans += log(1 - prDeltap[delta_i]);
       }
-      delta_i++;
+      if (len_prDeltap > 1) delta_i++;
     } else { // constrained, use prConstrp
       if (i == groups[sel[sel_i]]) {
-        ans += log(prConstrp[delta_i]);
+        ans += log(prConstrp[constr_i]);
         sel_i += nvaringroup[groups[i]];
       } else {
-        ans += log(1 - prConstrp[delta_i]);
+        ans += log(1 - prConstrp[constr_i]);
       }
-      constr_i++;
+      if (len_prConstrp > 1) constr_i++;
     }
   }
   return ans;

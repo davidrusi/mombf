@@ -259,7 +259,7 @@ defaultmom= function(outcometype=outcometype,family=family) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints=priorDelta, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -367,6 +367,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+  priorConstraints <- defaultpriorConstraints(priorDelta, priorConstraints)
   tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints, constraints=constraints)
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
@@ -830,6 +831,17 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
   }
     ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha)
   return(ans)
+}
+
+defaultpriorConstraints <- function(priorDelta, priorConstraints) {
+  if (missing(priorConstraints)) {
+    if ((priorDelta@priorDistr=='binomial') && ('p' %in% names(priorDelta@priorPars)) && (length(priorDelta@priorPars[['p']]) > 1)) {
+      priorConstraints <- modelbinomprior(p=0.5)
+    } else {
+      priorConstraints <- priorDelta
+    }
+  }
+  return(priorConstraints)
 }
 
 #Routine to format modelSelection prior distribution parameters in model space

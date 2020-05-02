@@ -84,6 +84,37 @@ patrick::with_parameters_test_that(
 )
 
 patrick::with_parameters_test_that(
+  "asymetric binomial prior works in modelSelection (pDelta_pConstr):", {
+    i0 <- integer(0)
+    constraints <- list(i0, 1, i0, 3, i0, i0, 6)
+    log <- capture.output(
+      fit <- modelSelection(
+        y=y6, x=X6, priorDelta=pDelta, priorConstraints=pConstr,
+        enumerate=TRUE, constraints=constraints
+      )
+    )
+    log <- capture.output(
+      fit_asym <- modelSelection(
+        y=y6, x=X6, priorDelta=modelbinomprior(p=c(0.7, 0.6, 0.2, 0.4)),
+        priorConstraints=pConstr, enumerate=TRUE, constraints=constraints
+      )
+    )
+    pprobs <- postProb(fit)
+    pprobs_asym <- postProb(fit_asym)
+    expect_true(pprobs[1, "modelid"] == "3,4,6,7")
+    expect_true(pprobs_asym[1, "modelid"] == "3,4,6,7")
+    expect_equal(pprobs[1, "pp"], .9957818, tolerance=tolerance)
+    expect_true(abs(pprobs[1, "pp"] - pprobs_asym[1, "pp"]) > tolerance)
+  },
+  patrick::cases(
+    vect_vect=list(pDelta=modelbinomprior(p=c(.5, .5, .5, .5)), pConstr=modelbinomprior(p=c(0.5, .5, .5))),
+    vect_scalar=list(pDelta=modelbinomprior(p=c(.5, .5, .5, .5)), pConstr=modelbinomprior(p=0.5)),
+    scalar_vect=list(pDelta=modelbinomprior(p=.5), pConstr=modelbinomprior(p=c(0.5, .5, .5))),
+    scalar_scalar=list(pDelta=modelbinomprior(p=.5), pConstr=modelbinomprior(p=0.5))
+  )
+)
+
+patrick::with_parameters_test_that(
   "modelSelection methods in normal family work:", {
     if (method == "Hybrid") {pCoef <- imomprior(tau=0.348)} else {pCoef <- momprior(tau=0.348)}
     pDelta <- modelbbprior(1,1)

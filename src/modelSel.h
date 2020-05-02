@@ -198,6 +198,7 @@ void countConstraints(int *nconstraints, intptrvec *constraints, int *ninvconstr
 double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
 double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
+double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struct marginalPars *pars);
 double binomPrior(int *sel, int *nsel, struct marginalPars *pars);
 double binomPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);

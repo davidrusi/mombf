@@ -94,9 +94,8 @@ test_that(
     pDelta <- modelbbprior(1,1)
     log <- capture.output(
       fit <- modelSelection(
-        y6~X6[,2]+X6[,3]+X6[,4]+X6[,5]+X6[,6]+X6[,7], priorCoef=pCoef,
-        priorDelta=pDelta, enumerate=FALSE, smoothterms=X6[,2:7],
-        family="normal", priorSkew=pCoef, priorGroup=pCoef
+        y6~X6[,2:7], priorCoef=pCoef, priorDelta=pDelta, enumerate=FALSE,
+        smoothterms= ~ X6[,2:7], family="normal", priorSkew=pCoef, priorGroup=pCoef
       )
     )
     pprobs <- postProb(fit)

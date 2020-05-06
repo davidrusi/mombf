@@ -1,4 +1,5 @@
 CHANGES IN VERSION 2.3.1
+- Added option to specify multiple nknots in modelSelection
 - Implement groupzellner prior combinations with MOM, Zellner and normalid
 priors
 - Implement groupmom prior with MOM

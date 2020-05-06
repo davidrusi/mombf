@@ -1018,7 +1018,7 @@ nselConstraints= function(sel, groups, constraints) {
     violateConstraint= FALSE
     if (ngroupsconstr>0) { for (i in which(hasconstraint)) { if (selgroup[i] & any(!selgroup[constraints[[i]]])) violateConstraint= TRUE } }
     ngroups0= sum(selgroup[!hasconstraint]); ngroups1= sum(selgroup[hasconstraint])
-    return(list(ngroups0=ngroups0, ngroups1=ngroups1, ngroups=ngroups, ngroupsconstr=ngroupsconstr, violateConstraint=violateConstraint))
+    return(list(ngroups0=ngroups0, ngroups1=ngroups1, ngroups=ngroups, ngroupsconstr=ngroupsconstr, violateConstraint=violateConstraint, hasconstraint=hasconstraint))
 }
 
 #binomPrior <- function(sel, prob=.5, logscale=TRUE) {  dbinom(x=sum(sel),size=length(sel),prob=prob,log=logscale) }
@@ -1026,8 +1026,9 @@ nselConstraints= function(sel, groups, constraints) {
 binomPrior <- function(sel, prob=.5, logscale=TRUE, probconstr=prob, groups=1:length(sel), constraints=lapply(1:length(unique(groups)), function(z) integer(0))) {
     nsel= nselConstraints(sel=sel, groups=groups, constraints=constraints)
     if (!nsel$violateConstraint) {
-        ans= dbinom(x=nsel$ngroups0,size=nsel$ngroups-nsel$ngroupsconstr,prob=prob,log=TRUE) - lchoose(nsel$ngroups-nsel$ngroupsconstr, nsel$ngroups0)
-        if (nsel$ngroupsconstr>0) ans= ans+ dbinom(x=nsel$ngroups1,size=nsel$ngroupsconstr,prob=probconstr,log=TRUE) - lchoose(nsel$ngroupsconstr, nsel$ngroups1)
+      hasconstraint <- nsel$hasconstraint
+      ans <- sum((log(prob) * sel)[!hasconstraint]) + sum((log(1-prob)*(1-sel))[!hasconstraint])
+      if (nsel$ngroupsconstr>0) ans= ans+ sum((log(probconstr) * sel)[hasconstraint]) + sum((log(1-probconstr)*(1-sel))[hasconstraint])
     } else { ans= -Inf }
     if (!logscale) ans= exp(ans)
     return(ans)

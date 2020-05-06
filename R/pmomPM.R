@@ -29,7 +29,7 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
     p2 <- as.integer(0); xadj <- double(1)
   }
   if (p1>1000) warning('ncol(x)>1000 may require substantial memory and computation time. If you experience problems, specify a smaller number of covariates.')
-  
+
   #Format arguments for .Call
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning)
   isbinary <- as.integer(1); ybinary <- as.integer(y); y <- as.double(y)
@@ -46,15 +46,15 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
     stop("When calling pmomLM priorCoef@priorDistr must be equal to 'pMOM'")
   }
 
-  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda']) 
+  alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
   if (priorDelta@priorDistr=='uniform') {
     priorModel <- as.integer(0)
     prModelpar <- as.double(0)
   } else if (priorDelta@priorDistr=='binomial') {
     if ('p' %in% priorDelta@priorPars) {
       priorModel <- as.integer(1)
-      prModelpar <- as.double(priorDelta@priorPars['p'])
-      if ((prModelpar<=0) | (prModelpar>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
+      prModelpar <- as.double(priorDelta@priorPars[['p']])
+      if (any(prModelpar<=0) | any(prModelpar>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
     } else {
       priorModel <- as.integer(2)
       prModelpar <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])
@@ -69,7 +69,7 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
   } else {
     S2 <- cholS2 <- S2inv <- cholS2inv <- double(1)
   }
-  
+
   #Initialize
   if (initSearch=='greedy') {
     if (verbose) cat("Initializing via greedy search...")
@@ -92,12 +92,12 @@ pmomPM <- function(y, x, xadj, niter=10^4, thinning=1, burnin=round(niter/10), p
     if (ndeltaini>0) {
       lmini <- glm(y ~ -1 + x[,deltaini==1] + xadj, family=binomial(link='probit'))
       iniCoef1[deltaini==1] <- coef(lmini)[1:ndeltaini];
-      iniCoef2 <- coef(lmini)[-1:-ndeltaini]  
+      iniCoef2 <- coef(lmini)[-1:-ndeltaini]
     } else { lmini <- glm(y ~ -1+xadj, binomial(link='probit')); iniCoef2 <- coef(lmini) }
     iniCoef1 <- as.double(iniCoef1)
     iniPhi <- as.double(summary(lmini)$sigma^2)
   } else {
-    lmini <- glm(y ~ -1+xadj, binomial(link='probit')); iniCoef2 <- coef(lmini) 
+    lmini <- glm(y ~ -1+xadj, binomial(link='probit')); iniCoef2 <- coef(lmini)
     iniCoef1 <- as.double(rep(0,p1))
     iniPhi <- as.double(summary(lmini)$sigma^2)
   }

@@ -21,7 +21,7 @@ postModeOrtho <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta=modelb
     integrateMethod <- 'AQ'; exactpp <- TRUE #exactpp=FALSE means we only find posterior mode (for Zellner's prior, for pMOM this doesn't work)
     n <- length(y); p <- ncol(x)
     if (priorDelta@priorDistr=='binomial' & ('p' %in% names(priorDelta@priorPars))) {
-        rho <- priorDelta@priorPars['p']
+        rho <- priorDelta@priorPars[['p']]
         priorModel <- function(nvar) nvar*log(rho) + (p-nvar)*log(1-rho)
         #priorModel <- function(nvar) dbinom(nvar, size=ncol(x),prob=rho,log=TRUE)
     } else if (priorDelta@priorDistr=='binomial' & !('p' %in% names(priorDelta@priorPars))) {
@@ -293,8 +293,8 @@ postModeBlockDiag <- function(y, x, blocks, priorCoef=zellnerprior(tau=nrow(x)),
     nn <- 1:ncol(x)
     varidx <- lapply(as.integer(names(blocksize)), function(k) nn[blocks==k])
     if (priorDelta@priorDistr=='binomial' & ('p' %in% names(priorDelta@priorPars))) {
-        rho <- priorDelta@priorPars['p']
-        if (rho<0 | rho>1) stop("Specified prior inclusion probability outside [0,1]. Check priorDelta")
+        rho <- priorDelta@priorPars[['p']]
+        if (any(rho<0) | any(rho>1)) stop("Specified prior inclusion probability outside [0,1]. Check priorDelta")
         priorModel <- function(nvar) nvar*log(rho) + (p-nvar)*log(1-rho)
         priorModelBlock <- function(nvar,blocksize) nvar*log(rho) + (blocksize-nvar)*log(1-rho)
     } else if (priorDelta@priorDistr=='binomial' & !('p' %in% names(priorDelta@priorPars))) {

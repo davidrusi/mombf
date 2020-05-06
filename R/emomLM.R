@@ -38,7 +38,7 @@ if (priorCoef@priorDistr=='peMOM') {
 } else {
   stop("When calling emomLM priorCoef@priorDistr must be equal to 'peMOM'")
 }
-alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda']) 
+alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda'])
 
 if (priorDelta@priorDistr=='uniform') {
   modelPrior <- unifPrior
@@ -46,7 +46,7 @@ if (priorDelta@priorDistr=='uniform') {
   if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
     modelPrior <- function(z, logscale) bbPrior(z, alpha=priorDelta@priorPars['alpha.p'], beta=priorDelta@priorPars['beta.p'], logscale=TRUE)
   } else if ('p' %in% names(priorDelta@priorPars)) {
-    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars['p'], logscale=TRUE)
+    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars[['p']], logscale=TRUE)
   }
 }
 
@@ -151,7 +151,7 @@ if (priorCoef@priorDistr=='peMOM') {
 } else {
   stop("When calling emomLM priorCoef@priorDistr must be equal to 'peMOM'")
 }
-alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda']) 
+alpha.phi <- as.double(priorVar@priorPars['alpha']); lambda.phi <- as.double(priorVar@priorPars['lambda'])
 
 if (priorDelta@priorDistr=='uniform') {
   modelPrior <- unifPrior
@@ -159,7 +159,7 @@ if (priorDelta@priorDistr=='uniform') {
   if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
     modelPrior <- function(z, logscale) bbPrior(z, alpha=priorDelta@priorPars['alpha.p'], beta=priorDelta@priorPars['beta.p'], logscale=TRUE)
   } else if ('p' %in% names(priorDelta@priorPars)) {
-    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars['p'], logscale=TRUE)
+    modelPrior <- function(z, logscale) binomPrior(z, prob=priorDelta@priorPars[['p']], logscale=TRUE)
   }
 }
 
@@ -273,7 +273,7 @@ proposaleMOM <- function(m,S,phi,tau,e,xj,m1,nu) {
   return(ans)
 }
 
-    
+
 MHTheta1emom <- function(e,j,delta,theta1,phi,tau,xj,padj,modelPrior) {
   #MH step to simulate (delta[j], theta1[j]) from its posterior given the data, delta[-j], theta1[-j], theta2 and phi parameters
   # Input

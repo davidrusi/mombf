@@ -45,8 +45,8 @@ pmomLM <- function(y, x, xadj, center=FALSE, scale=FALSE, niter=10^4, thinning=1
   } else if (priorDelta@priorDistr=='binomial') {
     if ('p' %in% priorDelta@priorPars) {
       priorModel <- as.integer(1)
-      prModelpar <- as.double(priorDelta@priorPars['p'])
-      if ((prModelpar<=0) | (prModelpar>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
+      prModelpar <- as.double(priorDelta@priorPars[['p']])
+      if (any(prModelpar<=0) | any(prModelpar>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
     } else {
       priorModel <- as.integer(2)
       prModelpar <- as.double(priorDelta@priorPars[c('alpha.p','beta.p')])

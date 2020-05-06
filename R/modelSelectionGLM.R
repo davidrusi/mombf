@@ -16,7 +16,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     enumerate= TRUE #currently only full enumeration is supported
     family= paste(familyglm$family,familyglm$link)
     familyint= -1 #argument currently ignored, set to value != 0 to prevent inference on the family
-    
+
     ################# Start of code copied from modelSelection #################
 
     #Check input
@@ -57,7 +57,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     if (!(outcometype %in% c('Continuous','Survival'))) { my=0; sy= 1 }
     ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
     #################    End of code copied from modelSelection #################
-    
+
     #if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
     stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('shift','scale')
 
@@ -93,7 +93,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
         priorp= apply(models, 1, function(z) { unifPrior(sel=z, logscale=TRUE, groups=groups, constraints=constraints) })
     } else if (priorDelta@priorDistr == "binomial") {
         if ('p' %in% names(priorDelta@priorPars)) {
-            priorp= apply(models, 1, function(z) { binomPrior(sel=z, prob=priorDelta@priorPars['p'], logscale=TRUE, groups=groups, constraints=constraints) })
+            priorp= apply(models, 1, function(z) { binomPrior(sel=z, prob=priorDelta@priorPars[['p']], logscale=TRUE, groups=groups, constraints=constraints) })
         } else if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
             priorp= apply(models, 1, function(z) { bbPrior(sel=z, alpha=priorDelta@priorPars['alpha.p'], beta=priorDelta@priorPars['beta.p'], logscale=TRUE, groups=groups, constraints=constraints) })
         } else { stop("priorDelta not recognized") }
@@ -112,7 +112,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     colnames(postmean)= colnames(postvar)= colnames(xstd)
     o= order(models$pp,decreasing=TRUE)
     models= models[o,]; postmean= postmean[o,]; postvar= postvar[o,]
-    
+
     priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorDelta, priorVar=priorVar, priorSkew=NULL)
     names(constraints)= paste('group',0:(length(constraints)-1))
     ans= list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)

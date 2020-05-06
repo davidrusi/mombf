@@ -2,7 +2,8 @@ modelsearchBlockDiag <- function(y, x, priorCoef=momprior(tau=0.348), priorDelta
     n <- length(y); p <- ncol(x)
     #Check and format input parameters
     if (priorDelta@priorDistr=='binomial' & ('p' %in% names(priorDelta@priorPars))) {
-        rho <- priorDelta@priorPars['p']
+        rho <- priorDelta@priorPars[['p']]
+        if (length(rho)>1) stop("modelsearchBlockDiag not implemented for vector p in modelbinomprior")
         priorModel <- function(nvar) nvar*log(rho) + (p-nvar)*log(1-rho)
         priorModelBlock <- function(nvar,blocksize) nvar*log(rho) + (blocksize-nvar)*log(1-rho)
     } else if (priorDelta@priorDistr=='binomial' & !('p' %in% names(priorDelta@priorPars))) {

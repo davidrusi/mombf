@@ -36,7 +36,7 @@ greedyGLM <- function(y, x, xadj, family, priorCoef, priorDelta, maxit=100) {
   } else if (priorDelta@priorDistr=='binomial') {
     if (all(c('alpha.p','beta.p') %in% names(priorDelta@priorPars))) {
       modelprior= function(sel) bbPrior(sel,alpha=priorDelta@priorPars['alpha.p'],beta=priorDelta@priorPars['beta.p'],logscale=TRUE)
-    } else modelprior= function(sel) binomPrior(sel, prob=priorDelta@priorPars['p'], logscale=TRUE)
+    } else modelprior= function(sel) binomPrior(sel, prob=priorDelta@priorPars[['p']], logscale=TRUE)
   } else {
     stop('Prior on model space prDelta not recognized')
   }

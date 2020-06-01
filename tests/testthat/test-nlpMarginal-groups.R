@@ -71,6 +71,6 @@ patrick::with_parameters_test_that(
     normid_gzell=list(pCoef=normalidprior(tau=1), pGroup=groupzellnerprior(tau=0.4), expected_max=-316.658333, expected_all=-320.087106),
     zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-342.339794, expected_all=-342.19151),
     mom_gzell=list(pCoef=momprior(tau=0.3), pGroup=groupzellnerprior(tau=10), expected_max=-262.450681, expected_all=-274.104395),
-    mom_gmom=list(pCoef=momprior(tau=0.3), pGroup=groupmomprior(tau=0.4), expected_max=-232.911568, expected_all=-242.918634)
+    mom_gmom=list(pCoef=momprior(tau=0.3), pGroup=groupmomprior(tau=0.4), expected_max=-238.026357, expected_all=-252.308801)
   )
 )

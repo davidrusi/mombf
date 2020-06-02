@@ -2283,7 +2283,10 @@ double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars) {
 // pMOM on individual coef, groups MOM on groups
 double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
   int i_var, i, j_var, j, p_i, nu, varcount, groupcount, *groupsel, singlevarcount=0, n=*(*pars).n;
-  double num, den, ans=0.0, aux, trSV, term1, *m, *mj, **S, **Sinv, **Vinv, **Vinv_chol, **Vinvj, detS, detVinvtau, logdetVinv, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup*((double) n), taugroupinv=1/taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
+  double num, den, ans=0.0, aux, trSV, term1, *m, *mj, **S, **Sinv, **Vinv, **Vinv_chol, **Vinvj,
+         detS, detVinvtau, logdetVinv, tau= *(*pars).tau, tauinv=1/tau, taugroup=*(*pars).taugroup*((double) n),
+         taugroupinv=1/taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda),
+         ss, zero=0, *nvarinselgroups, *firstingroup, nselgroups, *selgroups;
   covariancemat *V0inv=(*pars).V0inv;
   bool posdef;
   if (*nsel ==0) {
@@ -2315,7 +2318,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
         varcount++;
         singlevarcount++;
       } else {
-        groupsel = ivector(0,p_i);
+        groupsel = ivector(0,p_i-1);
         for (i=0; i<p_i; i++) {  groupsel[i] = sel[varcount-1+i]; }
         for (i_var=varcount, i=0; i<p_i; i_var++, i++) {
           for (j_var=i_var, j=i; j<p_i; j_var++, j++) {
@@ -2323,7 +2326,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
               Vinv[i_var][j_var]= V0inv->at(groupsel[i], groupsel[j]);
               S[i_var][j_var]+=Vinv[i_var][j_var];
             } else {
-              aux = (*pars).XtX->at(groupsel[i], groupsel[j])*taugroupinv*p_i;
+              aux = (*pars).XtX->at(groupsel[i], groupsel[j])*taugroupinv*(p_i+2);
               V0inv->set(groupsel[i], groupsel[j], aux);
               Vinv[i_var][j_var]= aux;
               S[i_var][j_var]+=aux;
@@ -2331,7 +2334,7 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
           }
         }
         varcount = varcount + p_i;
-        free_ivector(groupsel,0,p_i);
+        free_ivector(groupsel,0,p_i-1);
       }
     }
     choldc(Vinv, *nsel, Vinv_chol, &posdef);
@@ -2358,22 +2361,22 @@ double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars) {
         varcount++;
       } else {
         trSV = 0;
-        Vinvj = dmatrix(1, p_i+1, 1, p_i+1);
-        mj = dvector(1, p_i+1);
-        for (i=1, i_var=varcount; i<p_i+1; i++, i_var++) {
-          Vinvj[i][i] = Vinv[varcount][varcount];
-          trSV += Vinv[i_var][i_var] * Sinv[i_var][i_var];
+        Vinvj = dmatrix(1, p_i, 1, p_i);
+        mj = dvector(1, p_i);
+        for (i=1, i_var=varcount; i<=p_i; i++, i_var++) {
+          Vinvj[i][i] = Vinv[i_var][i_var] / p_i;
+          trSV += Vinvj[i][i] * Sinv[i_var][i_var];
           mj[i] = m[i_var];
-          for (j=i+1, j_var=i_var+1; j<p_i+1; j++, j_var++) {
-            Vinvj[i][j] = Vinv[i_var][j_var];
-            trSV += 2 * Vinv[i_var][j_var] * Sinv[i_var][j_var];
+          for (j=i+1, j_var=i_var+1; j<=p_i; j++, j_var++) {
+            Vinvj[i][j] = Vinv[i_var][j_var] / p_i;
+            trSV += 2 * Vinvj[i][j] * Sinv[i_var][j_var];
           }
         }
-        aux = quadratic_xtAx(mj, Vinvj, 1, p_i+1);
+        aux = quadratic_xtAx(mj, Vinvj, 1, p_i);
         ans += log(trSV + aux / term1);
         varcount = varcount + p_i;
-        free_dmatrix(Vinvj,1,p_i+1,1,p_i+1);
-        free_dvector(mj,1,p_i+1);
+        free_dmatrix(Vinvj,1,p_i,1,p_i);
+        free_dvector(mj,1,p_i);
       }
     }
     free_dvector(m,1,*nsel); free_dmatrix(S,1,*nsel,1,*nsel); free_dmatrix(Sinv,1,*nsel,1,*nsel);

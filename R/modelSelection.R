@@ -365,7 +365,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       hasXtX= as.logical(FALSE)
   }
 
-  tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew)
+  tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, n=n)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
   priorConstraints <- defaultpriorConstraints(priorDelta, priorConstraints)
   tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints, constraints=constraints)
@@ -780,46 +780,66 @@ formatmsMethod= function(method, priorCoef, knownphi) {
 #Routine to format modelSelection prior distribution parameters for marginal likelihood
 #Input: priorCoef, priorVar, priorGroup, priorSkew
 #Output: parameters for prior on coefficients (r, prior, tau), prior on variance parameter (alpha, lambda), skewness parameter (taualpha, fixatanhalpha)
-formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew) {
+formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
   r= as.integer(1)
+  has_taustd <- "taustd" %in% names(priorCoef@priorPars)
+  has_taugroupstd <- "taustd" %in% names(priorGroup@priorPars)
+  if (has_taustd) {
+    taustd <- as.double(priorCoef@priorPars['taustd'])
+  } else {
+    tau <- as.double(priorCoef@priorPars['tau'])
+  }
+  if (has_taustd) {
+    taugroupstd <- as.double(priorGroup@priorPars['taustd'])
+  } else {
+    taugroup <- as.double(priorGroup@priorPars['tau'])
+  }
   if (priorCoef@priorDistr=='pMOM') {
-    r <- as.integer(priorCoef@priorPars['r']); prior <- as.integer(0)
+    r <- as.integer(priorCoef@priorPars['r'])
+    prior <- as.integer(0)
+    if (has_taustd) tau <- taustd * 1/3
   } else if (priorCoef@priorDistr=='piMOM') {
     prior <- as.integer(1)
   } else if (priorCoef@priorDistr=='peMOM') {
     prior <- as.integer(2)
   } else if (priorCoef@priorDistr=='zellner') {
     prior <- as.integer(3)
+    if (has_taustd) tau <- taustd * n
   } else if (priorCoef@priorDistr=='normalid') {
     prior <- as.integer(4)
+    if (has_taustd) tau <- taustd
   } else if (priorCoef@priorDistr=='groupzellner') {
     prior <- as.integer(13)
+    if (has_taustd) tau <- taustd * n
   } else {
     stop('Prior specified in priorDistr not recognized')
   }
   if (priorGroup@priorDistr=='pMOM') {
     priorgr= as.integer(0)
+    if (has_taugroupstd) taugroup <- taugroupstd * 1/3
   } else if (priorGroup@priorDistr=='piMOM') {
     priorgr= as.integer(1)
   } else if (priorGroup@priorDistr=='peMOM') {
     priorgr= as.integer(2)
   } else if (priorGroup@priorDistr=='zellner') {
-      priorgr= as.integer(3)
+    priorgr= as.integer(3)
+    if (has_taugroupstd) taugroup <- taugroupstd * n
   } else if (priorGroup@priorDistr=='normalid') {
-      priorgr= as.integer(4)
+    priorgr= as.integer(4)
+    if (has_taugroupstd) taugroup <- taugroupstd
   } else if (priorGroup@priorDistr=='groupMOM') {
     priorgr= as.integer(10)
+    if (has_taugroupstd) taugroup <- taugroupstd
   } else if (priorGroup@priorDistr=='groupiMOM') {
     priorgr= as.integer(11)
   } else if (priorGroup@priorDistr=='groupeMOM') {
     priorgr= as.integer(12)
   } else if (priorGroup@priorDistr=='groupzellner') {
     priorgr= as.integer(13)
+    if (has_taugroupstd) taugroup <- taugroupstd * n
   } else {
     stop('Prior in priorGroup not recognized')
   }
-  tau <- as.double(priorCoef@priorPars['tau'])
-  taugroup <- as.double(priorGroup@priorPars['tau'])
   alpha <- as.double(priorVar@priorPars['alpha']); lambda <- as.double(priorVar@priorPars['lambda'])
   #
   if ('msPriorSpec' %in% class(priorSkew)) {

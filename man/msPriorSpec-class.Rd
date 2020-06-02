@@ -29,16 +29,16 @@ the model indicator or the nuisance parameters.
 \usage{
 bicprior()
 
-momprior(tau, tau.adj=10^6, r=1)
+momprior(taustd=1, tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)
-zellnerprior(tau, tau.adj=10^6)
-normalidprior(tau, tau.adj=10^6)
+zellnerprior(taustd=1, tau, tau.adj=10^6)
+normalidprior(taustd=1, tau, tau.adj=10^6)
 
-groupmomprior(tau, tau.adj=10^6)
+groupmomprior(taustd=1, tau, tau.adj=10^6)
 groupimomprior(tau, tau.adj=10^6)
 groupemomprior(tau, tau.adj=10^6)
-groupzellnerprior(tau, tau.adj=10^6)
+groupzellnerprior(taustd=1, tau, tau.adj=10^6)
 
 modelunifprior()
 modelbinomprior(p=0.5)
@@ -49,6 +49,8 @@ igprior(alpha=.01, lambda=.01)
 }
 \arguments{
   \item{tau}{Prior dispersion parameter for covariates undergoing selection}
+  \item{taustd}{Prior dispersion parameter for covariates undergoing selection.
+    It is calibrated so that `taustd=1` equals the unit information prior.}
   \item{tau.adj}{Prior variance in Normal prior for covariates not undergoing selection}
   \item{r}{MOM prior parameter is \code{2*r}}
   \item{p}{Prior inclusion probability for binomial prior on model space}
@@ -129,16 +131,19 @@ No methods defined with class "msPriorSpec" in the signature.
 
   groupzellnerprior is the prior density on delta
 
-  p_z(delta; tau)= prod_j N(delta_j; 0, (tau/ncol(X_j)) (X_j'X_j)^{-1})
+  p_z(delta; tau)= prod_j N(delta_j; 0, (tau/p_j)) (X_j'X_j)^{-1})
 
-  where X_j are the design matrix columns associated to delta_j. A default
+  where X_j are the design matrix columns associated to delta_j and p_j=ncol(X_j)
+  is th number of covariates in the group (for groupmomprior, the term in the
+  denominator is (p_j +2) instead of p_j). A default
   tau=n=nrow(X_j) mimics the unit information prior and implies that the
   ratio of variance explained by X_j / residual variance is expected to be
-  1 a priori.
+  1 a priori. To set the dispersion in terms of unit information prior, taustd
+  is also available.
 
   groupmomprior adds a quadratic MOM penalty
 
-  p_m(delta; tau)= p_z(delta; tau * n) prod_j delta_j'X_j'X_jdelta_j ncol(X_j)/(tau * n)
+  p_m(delta; tau)= p_z(delta; tau * n) prod_j delta_j'X_j'X_jdelta_j ncol(X_j)/(tau * n * p_j / (p_j + 2))
 
   and analogously for eMOM and iMOM. Note that unlike groupzellnerprior, the nrow(X_j)
   factor is already included in the code. This is done to give user introduced tau values

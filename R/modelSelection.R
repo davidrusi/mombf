@@ -756,23 +756,27 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
 
 #Routine to format method indicating how integrated likelihoods should be computed in modelSelection
 formatmsMethod= function(method, priorCoef, knownphi) {
-  if (method=='Laplace') {
-    method <- as.integer(0)
-  } else if (method=='MC') {
-    method <- as.integer(1)
-  } else if (method=='Hybrid') {
-    if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) {
-      warning("method=='Hybrid' is only available for 'piMOM' priors with unknown phi. Using method=='Laplace' instead")
+  if (!(method %in% c(-1, 0, 1, 2))) {
+    if (method=='Laplace') {
       method <- as.integer(0)
-    } else {
+    } else if (method=='MC') {
+      method <- as.integer(1)
+    } else if (method=='Hybrid') {
+      if ((priorCoef@priorDistr!='piMOM') | (knownphi==1)) {
+        warning("method=='Hybrid' is only available for 'piMOM' priors with unknown phi. Using method=='Laplace' instead")
+        method <- as.integer(0)
+      } else {
+        method <- as.integer(2)
+      }
+    } else if (method=='auto') {
+      if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
+    } else if (method=='plugin') {
       method <- as.integer(2)
+    } else {
+      stop("Invalid 'method'")
     }
-  } else if (method=='auto') {
-    if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
-  } else if (method=='plugin') {
-    method <- as.integer(2)
   } else {
-    stop("Invalid 'method'")
+    method <- as.integer(method)
   }
   return(method)
 }

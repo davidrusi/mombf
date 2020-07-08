@@ -5705,7 +5705,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
 
 double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
-  int i, j, nu, *isgroup=pars->isgroup, varingroup, singlevarcount=0;
+  int i, j, nu, *isgroup=pars->isgroup, varingroup, singlevarcount=0, maxvarsexact= 3;
   double num, den, ans=0.0, term1, *m, **S, **Sinv, **Voptinv, detS, tau=*(*pars).tau, tauinv= 1.0/tau, taugroup=*(*pars).taugroup, taugroupinv=1.0/taugroup, logtaus, nuhalf, alphahalf=.5*(*(*pars).alpha), lambdahalf=.5*(*(*pars).lambda), ss, zero=0;
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
 
@@ -5755,13 +5755,13 @@ double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
         for (i=1; i<= *nsel; i++) { for (j=i; j<= *nsel; j++) { Sinv[i][j]= Sinv[j][i]= Sinv[i][j]*term1; } } //Vinv matrix
         ans= MC_mom_T(m,Sinv,&nu,(*pars).r,nsel,(*pars).B);
 
-      } else if ((*(*pars).method ==2) | ((*(*pars).method == -1) & ((*nsel)>3)))  { //Orthogonal approx
+      } else if ((*(*pars).method ==2) | ((*(*pars).method == -1) & ((*nsel)>maxvarsexact)))  { //Orthogonal approx
 
         //ans= rsumlogsq(m,(*pars).r,nsel); //old version
         term1= ss / ((double) (nu-2)); // (ss/nu) * nu / (nu-2)
         for (i=1, ans=0; i<=(*nsel); i++) { ans+= log(pow(m[i],2.0) + Sinv[i][i] * term1); }
 
-      } else if ((*(*pars).method == -1) & ((*nsel)<=3)) { //Exact
+      } else if ((*(*pars).method == -1) & ((*nsel)<=maxvarsexact)) { //Exact
 
         Voptinv= dmatrix(1,*nsel,1,*nsel);
         for (i=1; i<= *nsel; i++) for (j=i; j<= *nsel; j++) Voptinv[i][j]= Voptinv[j][i]= Sinv[i][j] * ss / (nu+.0);

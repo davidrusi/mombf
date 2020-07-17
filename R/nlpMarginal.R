@@ -3,7 +3,7 @@
 ## ROUTINES TO COMPUTE INTEGRATED LIKELIHOODS
 ##
 ##############################################################################################
-family_dict <- list(normal=1, twopiecenormal=2, laplace=3, twopiecelaplace=4)
+#family_dict <- list(normal=1, twopiecenormal=2, laplace=3, twopiecelaplace=4)
 
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
@@ -13,12 +13,13 @@ nlpMarginal <- function(
 ) {
   #Check input
   if (!(family %in% c('normal','twopiecenormal','laplace','twopiecelaplace'))) stop("family not recognized, it should be 'normal','twopiecenormal','laplace' or 'twopiecelaplace'")
-  familyint <- as.integer(family_dict[family])
+  #familyint <- as.integer(family_dict[family])
   # format input data
   tmp <- formatInputdata(y=y,x=x,data=data,smoothterms=smoothterms,nknots=nknots,family=family)
   x <- tmp$x; y <- tmp$y; is_formula <- tmp$is_formula
   splineDegree <- tmp$splineDegree
   if (!is.null(tmp$groups)) groups <- tmp$groups
+  hasgroups <- tmp$hasgroups
   if (!is.null(tmp$constraints)) constraints <- tmp$constraints
   outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
   typeofvar <- tmp$typeofvar
@@ -26,6 +27,9 @@ nlpMarginal <- function(
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   sumy2 <- as.double(sum(y^2))
+  #
+  if (family=='normal') { familyint= ifelse(length(uncens)==0,1,11) } else if (family=='twopiecenormal') { familyint= 2 } else if (family=='laplace') { familyint= 3 } else if (family=='twopiecelaplace') { familyint= 4 } else stop("family not available")
+  familyint= as.integer(familyint)
   # check prior and set defaults if necessary
   if (missing(priorCoef)) {
       defaultprior= defaultmom(outcometype=outcometype,family=family)
@@ -33,7 +37,7 @@ nlpMarginal <- function(
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   # format arguments for .Call
-  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=0)
+  method= formatmsMethod(method=method, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups)
   hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   B <- as.integer(B)

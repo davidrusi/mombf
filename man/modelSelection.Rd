@@ -108,13 +108,13 @@ not performed for these variables}
 \item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
-\item{method}{Method to compute marginal likelihood. The default is to
-  used closed-form expressions whenever possible (only available for
-  pMOM priors with up to 15 covariates) and Laplace approximations otherwise.
-  \code{method=='Laplace'} for Laplace approx, \code{method=='plugin'}
-  for BIC-type approximation,
+\item{method}{Method to compute marginal likelihood.
+  \code{method=='Laplace'} for Laplace approx, \code{method=='ALA'}
+  for approximate Laplace approximation.
   \code{method=='MC'} for Importance Sampling, \code{method=='Hybrid'}
   for Hybrid Laplace-IS (only available for piMOM prior). See Details.}
+  \code{method=='auto'} attempts to use exact calculations when
+  possible, otherwise ALA if available, otherwise Laplace approx.
 \item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
   likelihood under Laplace or asymmetric Laplace errors. When
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a

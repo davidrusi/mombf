@@ -68,10 +68,10 @@ struct marginalPars {
   double *ytXuncens;       //t(x) %*% y using uncensored observations
   double *m;  //Sinv * Xty   (needed by mom and emom)
   double **S;  //XtX + I/tau  (needed by mom and emom)
-  int *method; //method==0 for Laplace; method==1 for Monte Carlo; method==2 for plug-in (method== -1 for exact, when available)
+  int *method; //method==0 for Laplace; method==1 for Monte Carlo; method==2 for ALA (method== -1 for exact, when available)
   int *hesstype; //for asymmetric Laplace residuals hess=1 means using asymptotic hessian, hess=2 means using diagonal adjustment to asymp hessian
   int *optimMethod; //optimization method to find mode
-  int *usethinit; //usethinit==1 tells optimization algorithms to store the optimal model parameters at thinit; usethinit==1 to initialize at thinit upon entry and store optimal value at thinit upon exis; usethinit==0 to ignore thinit
+  int *usethinit; //usethinit==1 tells optimization algorithms to store the optimal model parameters at thinit; usethinit==2 to initialize at thinit upon entry and store optimal value at thinit upon exit; usethinit==0 to ignore thinit
   double *thinit; //thinit[sel[j]] stores initial values for model parameters to be used by optimization algorithms
   int *B;      //number of Monte Carlo samples
   double *alpha;    //prior for residual variance is IG(.5*alpha,.5*lambda)
@@ -220,6 +220,8 @@ void dmomgzell(double *ans, double *th, double *tau, double *nvaringroup, double
 void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, double *ngroups, double *detSinv, double *cholSinv, double *cholSini, bool logscale);
 
 void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *tau, double *taugroup, bool orthoapprox);
+void gzell_Sinv_byprior(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, int *n, double *tau, double *taugroup, int *priorcode);
+double getelem_Sinv(int groupid, int k, int l, double *Sinv, double *cholSini, int ningroup);
 void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups);
 
 
@@ -295,11 +297,14 @@ void aloglnormalAFThess(double **hess, double *th, int *sel, int *thlength, stru
 
 
 // Computation of marginal likelihoods
+double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode);  //same as SurvMarg, using ALA
 double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode);  //wrapper function calling the function corresponding to the specified prior
 
 double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pMOM on individual coef, group MOM on groups
 double pemomgemomSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, group eMOM on groups
 
+double gmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
+double gmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars);
 double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // pMOM/peMOM on individual coef, block Zellner on groups
 double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars); // peMOM on individual coef, block Zellner on groups
 double gzellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Zellner on individual coef, block Zellner on groups

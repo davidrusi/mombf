@@ -20,8 +20,8 @@
 #include <string>
 
 SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
-  int i, j, idxj, nuncens, emptyint=0, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0;
-  double *rans, *ytXuncens=NULL, emptydouble=0;
+  int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit=0;
+  double *rans, *ytXuncens=NULL, emptydouble=0, *thinit;
   intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
   struct marginalPars pars;
@@ -30,23 +30,27 @@ SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP Sp
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
 
-  isgroup= ivector(0, INTEGER(Sp)[0]);
+  isgroup= ivector(0, p);
   nconstraints= ivector(0,INTEGER(Sngroups)[0]); ninvconstraints= ivector(0,INTEGER(Sngroups)[0]);
   countConstraints(nconstraints, &constraints, ninvconstraints, &invconstraints, &ngroupsconstr, isgroup, INTEGER(Sngroups), INTEGER(Snvaringroup), Sconstraints, Sinvconstraints);
 
-  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
+  XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],p,true);
   if (LENGTH(Suncens)>0) { //if there's censoring, also store t(x) %*% x and t(x) %*% y computed over uncensored observations
     int n=INTEGER(Sn)[0], *uncens= INTEGER(Suncens);
     double *pty= REAL(Sy), *ptx= REAL(Sx);
     for (nuncens=0; (nuncens<n) && (uncens[nuncens]==1); nuncens++) { }
-    XtXuncens= new crossprodmat(REAL(Sx), INTEGER(Sn)[0], INTEGER(Sp)[0], false, nuncens, 0);
-    ytXuncens= dvector(0,INTEGER(Sp)[0]);
-    for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
+    XtXuncens= new crossprodmat(REAL(Sx), INTEGER(Sn)[0], p, false, nuncens, 0);
+    ytXuncens= dvector(0,p);
+    for (j=0; j< p; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &emptyint, &emptydouble, INTEGER(SB), REAL(Salpha),REAL(Slambda), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
-  *rans= nlpMarginal(INTEGER(Ssel), INTEGER(Snsel), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
+  thinit= dvector(0, p);
+  for (j=0; j<= p; j++) { thinit[j]= 0; }
+
+  set_marginalPars(&pars, INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Sx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
+  (*rans)= nlpMarginal(INTEGER(Ssel), INTEGER(Snsel), INTEGER(Sfamily), INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   delete XtX;
+  free_dvector(thinit, 0, p);
   UNPROTECT(1);
   return ans;
 }

@@ -98,11 +98,17 @@ public:
   void cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);
   void blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
   void Newton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);  //Newton-Raphson optimization (modifying hessian to be +def when needed)
+  void Newtonuniv(double *thj, int j, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //univariate Newton-Raphson on th[j]
 
-  double laplaceapprox(double *thopt, double *fopt, double **H, double **cholH, bool returnH, std::map<string, double *> *funargs); //Laplace approximation to int exp(-fun(th)) dth
+  //LAPLACE APPROXIMATION TO int exp(-fun(th)) dth
+  double laplaceapprox(double *thopt, double *fopt, double **H, double **cholH, bool returnH, std::map<string, double *> *funargs); 
   double laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs);
   double laplaceapprox(double *thopt, std::map<string, double *> *funargs);
 
+  //APPROXIMATE LAPLACE APPROXIMATION TO int exp(-fun(th)) dth
+  double ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0, double **H0inv, bool returng0, bool returnH0, std::map<string, double *> *funargs); 
+  double ALA(double *th0, double *f0, std::map<string, double *> *funargs);
+  double ALA(double *th0, std::map<string, double *> *funargs);
 
 private:
 

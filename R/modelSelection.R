@@ -240,7 +240,7 @@ return(ans)
 )
 
 
-defaultmom= function(outcometype=outcometype,family=family) {
+defaultmom= function(outcometype,family) {
     if (outcometype=='Continuous') {
         cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348), priorVar=igprior(.01,.01)\n")
         priorCoef= momprior(tau=0.348)
@@ -285,7 +285,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 # - phi: residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored.
 # - deltaini: logical vector of length ncol(x) indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model
 # - initSearch: algorithm to refine deltaini. initSearch=='greedy' uses a greedy Gibbs sampling search. initSearch=='SCAD' sets deltaini to the non-zero elements in a SCAD fit with cross-validated regularization parameter. initSearch=='none' leaves deltaini unmodified.
-# - method: method to compute marginal densities. method=='Laplace' for Laplace approx, method=='MC' for Importance Sampling, method=='Hybrid' for Hybrid Laplace-IS (the latter method is only used for piMOM prior with unknown residual variance phi), method='plugin'
+# - method: method to compute marginal densities. method=='Laplace' for Laplace approx, method=='MC' for Importance Sampling, method=='Hybrid' for Hybrid Laplace-IS (the latter method is only used for piMOM prior with unknown residual variance phi), method='ALA' (former method=='plugin')
 # - hess: only used for asymmetric Laplace errors. When hess=='asymp' the asymptotic hessian is used to compute the Laplace approximation to the marginal likelihood, when hess=='asympDiagAdj' a diagonal adjustment to the asymptotic Hessian is used
 # - optimMethod: method to maximize objective function when method=='Laplace' or method=='MC'. Only used for family=='twopiecenormal'. optimMethod=='LMA' uses modified Newton-Raphson algorithm, 'CDA' coordinate descent algorithm
 # - B: number of samples to use in Importance Sampling scheme. Ignored if method=='Laplace'.
@@ -302,6 +302,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   x <- tmp$x; y <- tmp$y; formula <- tmp$formula;
   splineDegree <- tmp$splineDegree
   if (!is.null(tmp$groups)) groups <- tmp$groups
+  hasgroups <- tmp$hasgroups
   if (!is.null(tmp$constraints)) constraints <- tmp$constraints
   outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
   typeofvar <- tmp$typeofvar
@@ -351,7 +352,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }
   }
 
-  method= formatmsMethod(method=method, priorCoef=priorCoef, knownphi=knownphi)
+  method <-  formatmsMethod(method=method, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=knownphi, outcometype=outcometype, family=family, hasgroups=hasgroups)
   hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
 
@@ -496,9 +497,10 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   }
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
+  hasgroups <-  (length(groups) > length(unique(groups)))
   ans <- list(
     x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
-    groups=groups, constraints=constraints, outcometype=outcometype, uncens=uncens,
+    groups=groups, hasgroups=hasgroups, constraints=constraints, outcometype=outcometype, uncens=uncens,
     ordery=ordery, typeofvar=typeofvar
   )
   return(ans)
@@ -755,7 +757,25 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
 
 
 #Routine to format method indicating how integrated likelihoods should be computed in modelSelection
-formatmsMethod= function(method, priorCoef, knownphi) {
+#
+#For any method other than 'auto', it sets a numeric code corresponding to that method to pass onto C.
+#for method=='auto', the integration method is decided automatically according to the following rules
+#
+# 1. Continuous outcomes
+# - if family normal, no groups: for pMOM exact / ALA; for other NLPs & LPs: Laplace
+# - if family normal, groups:  for pMOMgMOM and pMOMgZell ALA; for other NLPs & LPs: Laplace
+# - if family != normal: Laplace approximation (since ALA not currently implemented)
+#
+# 2. Survival outcomes. Use ALA when available, LA otherwise. Currently ALA available for pmom/groupMOM/groupzellner + pmom/groupMOM/groupzellner
+#
+# 3. GLMs (to be added by Oriol). Use ALA when available, LA otherwise
+#
+# Output:
+#   0 means Laplace approximation (note: for normal outcomes + normal priors this means the calculation is exact)
+#   1 means Monte Carlo (Importance Sampling)
+#   2 means ALA (approximate Laplace approximation)
+#   -1 only available for pMOM, it means to use exact calculation for small models (<=3 parameters) and ALA for larger models
+formatmsMethod= function(method, priorCoef, priorGroup, knownphi, outcometype, family, hasgroups) {
   if (method=='Laplace') {
     method <- as.integer(0)
   } else if (method=='MC') {
@@ -768,8 +788,34 @@ formatmsMethod= function(method, priorCoef, knownphi) {
       method <- as.integer(2)
     }
   } else if (method=='auto') {
-    if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
-  } else if (method=='plugin') {
+    if (outcometype=='Continuous') {
+      if (family=='normal') {
+          if (!hasgroups) {
+            if (priorCoef@priorDistr=='pMOM') { method <- as.integer(-1) } else { method <- as.integer(0) }
+          } else {
+            if ((priorCoef@priorDistr=='pMOM') & (priorGroup@priorDistr %in% c('groupMOM','zellner','groupzellner'))) {
+                method <- as.integer(2)
+            } else { method <- as.integer(0) }
+          }
+      } else {
+          method <- as.integer(0)
+      }
+    } else if (outcometype=='Survival') {
+      if (family=='normal') {
+        if ((priorCoef@priorDistr %in% c('pMOM','groupMOM','groupzellner')) & (priorGroup@priorDistr %in% c('pMOM','groupMOM','groupzellner'))) {
+           method <- as.integer(2)
+        } else {
+           method <- as.integer(0)
+        }
+      } else { stop("For survival outcomes, only family=='normal' currently implemented") }
+    } else if (outcometype=='glm') {
+        if ((priorCoef@priorDistr %in% c('pMOM','groupMOM','groupzellner')) & (priorGroup@priorDistr %in% c('groupMOM','zellner','groupzellner'))) {
+           method <- as.integer(2)
+        } else {
+           method <- as.integer(0)
+        }
+    } else { stop("outcometype must be 'Continuous', 'Survival' or 'glm'") }
+  } else if ((method=='ALA') | (method=='plugin')) {
     method <- as.integer(2)
   } else {
     stop("Invalid 'method'")
@@ -789,7 +835,7 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
   } else {
     tau <- as.double(priorCoef@priorPars['tau'])
   }
-  if (has_taustd) {
+  if (has_taugroupstd) {
     taugroupstd <- as.double(priorGroup@priorPars['taustd'])
   } else {
     taugroup <- as.double(priorGroup@priorPars['tau'])
@@ -807,6 +853,9 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
     if (has_taustd) tau <- taustd * n
   } else if (priorCoef@priorDistr=='normalid') {
     prior <- as.integer(4)
+    if (has_taustd) tau <- taustd
+  } else if (priorCoef@priorDistr=='groupMOM') {
+    prior <- as.integer(10)
     if (has_taustd) tau <- taustd
   } else if (priorCoef@priorDistr=='groupzellner') {
     prior <- as.integer(13)

@@ -397,6 +397,66 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
 
 
 
+//Univariate Newton-Raphson on th[j] (uses gradhess and funupdate)
+// Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
+//
+// Output: 
+// - thj: optimal value of th[j], for all other parameters evaluated at thini
+// - fopt: value of objective function at thj
+
+void modselFunction::Newtonuniv(double *thj, int j, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
+
+  bool found;
+  int i, iter=0, nsteps;
+  double thjnew, thjcur, therr=1, ferr=1, fnew, delta, g, H, *thopt;
+
+  if ((this->fun)==NULL) Rf_error("To run Newtonuniv you need to specify fun");
+  if ((this->funupdate)==NULL) Rf_error("To run Newtonuniv you need to specify funupdate");
+  if ((this->gradhessUniv)==NULL) Rf_error("To run Newtonuniv you need to specify gradhessUniv");
+
+  thopt= dvector(0, this->thlength);
+
+  this->evalfun(fopt,thini,funargs); //eval fun at thini, initialize funargs
+  for (i=0; i< this->thlength; i++) { thopt[i]= thini[i]; }
+
+  while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
+
+      gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
+      if (H>0) { delta= g/H; } else { delta= g/max_xy(-H,.001); }  //if H<0 then target is -def, fix to ensure step is in the direction of -gradient
+
+      nsteps= 1; found= false;
+      while (!found & (nsteps<=maxsteps)) {
+
+	thjnew= thopt[j] - delta;
+	evalfunupdate(&fnew,&thjnew,j,fopt,thopt,funargs); //Eval fun at thjnew, update funargs
+
+	if (fnew < *fopt) {
+	  found= true;
+	  ferr= *fopt - fnew;
+	  (*fopt)= fnew;
+	  therr= fabs(delta);
+	  thopt[j]= thjnew;
+	} else {
+	  delta /= 2.0;
+	  nsteps++;
+	  thjcur= thopt[j]; thopt[j]= thjnew;
+  	  evalfunupdate(fopt,&thjcur,j,&fnew,thopt,funargs); //revert funargs to earlier th
+	  thopt[j]= thjcur;
+	}
+
+      } //end while !found
+
+    iter++;
+
+  } //end while iter
+
+  (*thj)= thopt[j];
+
+  free_dvector(thopt, 0, this->thlength);
+}
+
+
+
 /*Laplace approximation to int exp(-fun(th)) dth
 
 Input
@@ -464,6 +524,113 @@ double modselFunction::laplaceapprox(double *thopt, std::map<string, double *> *
   } else {
     this->evalfun(&fopt, thopt, funargs);
     ans= this->laplaceapprox(thopt, &fopt, funargs);
+  }
+
+  return ans;
+}
+
+
+
+/* APPROXIMATE LAPLACE APPROXIMATION */
+
+
+/*Laplace approximation to int exp(-fun(th)) dth, based on quadratic Taylor expansion at th0
+
+Input
+
+- th0: initial parameter value
+- f0: value of fun at th=th0
+- g0: gradient of fun at th=th0. Indexed g0[1], g0[2],... 
+- H0: hessian of fun at th=th0. Indexed H0[1][1], H0[1][2], ... If not positive definite then +.01 - lmin is added to the diagonal of H0, where lmin is its smallest eigenvalue
+- returng0: if returng0=true then g0 is computed, else g0 is assumed to be a pre-computed input parameter
+- returnH0: if returnH0=true then H0 is computed, else H0 is assumed to be a pre-computed input parameter
+
+Ouput: logarithm of approximate Laplace approximation
+
+  -fun(th0) + 0.5 * dim(th) * log(2 pi) - 0.5*log(det(H0)) + 0.5 g0' H0 g0;
+
+If returnH==false, it is assumed that H contains the pre-computed hessian matrix at the mode
+
+If returnH==true, then H is computed and returned, and its Cholesky decomp cholH and inverse H0inv are also returned (provided the pointers to cholH0 and H0inv are non-null)
+
+ */
+
+
+double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0= NULL, double **H0inv=NULL, bool returng0= false, bool returnH0=false, std::map<string, double *> *funargs= NULL) { 
+
+  bool posdef;
+  int j;
+  double ans, logdetH0, **mycholH0, **myH0inv, g0norm;
+
+  if (returng0) {
+    for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+  }
+
+  if (returnH0) this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
+
+  if (cholH0 == NULL) {
+    mycholH0= dmatrix(1,this->thlength,1,this->thlength);
+  } else {
+    mycholH0 = cholH0;
+  }
+
+  if (H0inv == NULL) {
+    myH0inv= dmatrix(1,this->thlength,1,this->thlength);
+  } else {
+    myH0inv = H0inv;
+  }
+
+  choldc(H0,this->thlength,mycholH0,&posdef);
+  if (!posdef) {
+    make_posdef(H0,this->thlength);
+    choldc(H0,this->thlength,mycholH0,&posdef);
+  }
+  
+  logdetH0= logcholdc_det(mycholH0, this->thlength);
+  inv_posdef(H0, this->thlength, myH0inv, &posdef, mycholH0, NULL);
+
+  g0norm= quadratic_xtAx(g0, myH0inv, 1, this->thlength);
+
+  ans= - (*f0) + 0.5 * ((this->thlength) * LOG_M_2PI - logdetH0 + g0norm);
+
+  if (cholH0== NULL) free_dmatrix(mycholH0, 1,this->thlength,1,this->thlength);
+  if (H0inv== NULL) free_dmatrix(myH0inv, 1,this->thlength,1,this->thlength);
+  return ans;
+}
+
+
+double modselFunction::ALA(double *th0, double *f0, std::map<string, double *> *funargs=NULL) {
+  int j;
+  double ans, *g0, **H0;
+
+  if ((this->gradUniv)==NULL) Rf_error("To run ALA you need to specify gradUniv");
+  if ((this->hess)==NULL) Rf_error("To run ALA you need to specify hess");
+
+  g0= dvector(1,this->thlength); H0= dmatrix(1,this->thlength,1,this->thlength);
+
+  for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+
+  this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
+
+  ans= this->ALA(th0, f0, g0, H0);
+
+  free_dvector(g0, 1,this->thlength); free_dmatrix(H0, 1,this->thlength,1,this->thlength);
+  return ans;
+}
+
+
+double modselFunction::ALA(double *th0, std::map<string, double *> *funargs=NULL) {
+  double ans, f0;
+
+  if ((this->gradUniv)==NULL) Rf_error("To run ALA you need to specify gradUniv");
+  if ((this->hess)==NULL) Rf_error("To run ALA you need to specify hess");
+
+  if (funargs==NULL) {
+    this->evalfun(&f0, th0);
+    ans= this->ALA(th0, &f0);
+  } else {
+    this->evalfun(&f0, th0, funargs);
+    ans= this->ALA(th0, &f0, funargs);
   }
 
   return ans;

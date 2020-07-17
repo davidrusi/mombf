@@ -234,21 +234,25 @@ void testfunction() {
 int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //Returns a two-digit code indicating the prior on regression coefficients. The 1st digit is the prior on individual coef; The 2nd digit the prior on groups of coefficients
   // Input
-  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 13 for group Zellner
-  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 10 for group MOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
+  // - prCoef: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 10 for group pMOM; 13 for group Zellner
+  // - prGroup: 0 for pMOM; 1 for piMOM; 2 for peMOM; 3 for Zellner; 4 for normalid; 10 for group pMOM; 11 for group iMOM; 12 for group eMOM; 13 for group Zellner
   // Output
   //   0: pMOM on all coef
   //   1: peMOM on all coef
   //   2: piMOM on all coef
   //   3: Zellner on all coef
   //   4: normalid on all coef
+  //   5: group pMOM (same as pMOM, standardized by n / X'X)
   //   9: group Zellner on all coef
   //  10: pMOM + group MOM
   //  13: pMOM + group Zellner
   //  32: peMOM + group eMOM
   //  33: peMOM + group Zellner
   //  43: Zellner + group Zellner
-  //  53: group Zellner + group Zellner
+  //  50: group MOM + group MOM
+  //  53: group MOM + group Zellner
+  //  63: group Zellner + group Zellner
+  //  73: normalid + group Zellner
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
   int ans;
   if (!hasgroups) {
@@ -262,6 +266,8 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 3;
     } else if (*prCoef==4) { //normalid on all coef
       ans= 4;
+    } else if (*prCoef==10) {
+      ans= 5;                //group pMOM 
     } else if (*prCoef==13) { //block Zellner on all coef
       ans= 9;
     } else {
@@ -288,10 +294,14 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
       ans= 33;
     } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
       ans= 43;
-    } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
-      ans= 58;
-    } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
+    } else if ((*prCoef==10) & (*prGroup==10)) { //group pMOM + group pMOM
+      ans= 50;
+    } else if ((*prCoef==10) & (*prGroup==13)) { //group pMOM + group Zellner
       ans= 53;
+    } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
+      ans= 63;
+    } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
+      ans= 73;
     } else {
       Rf_error("Prior specified by priorCoef and priorGroup not currently implemented\n");
     }
@@ -328,7 +338,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       ans= pemomgzellMarg;
     } else if (*priorcode==43) {
       ans= zellgzellMarg;
-    } else if (*priorcode==58) {
+    } else if (*priorcode==73) {
       ans= normidgzellMarg;
     } else {
       Rf_error("The prior in (priorCoef,priorGroup) not currently implemented for linear regression");
@@ -342,6 +352,8 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       } else if (*priorcode==3) {
         Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
         ans= gzellgzellSurvMarg;
+      } else if (*priorcode==5) {
+        ans= gmomgmomSurvMarg;
       } else if (*priorcode==9) {
         ans= gzellgzellSurvMarg;
       } else {
@@ -359,7 +371,11 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
       } else if (*priorcode==43) {
         Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
         ans= gzellgzellSurvMarg;
+      } else if (*priorcode==50) {
+        ans= gmomgmomSurvMarg;
       } else if (*priorcode==53) {
+        ans= gmomgzellSurvMarg;
+      } else if (*priorcode==63) {
         ans= gzellgzellSurvMarg;
       } else {
         Rf_error("The prior in (priorCoef,priorGroup) not implemented for survival data\n");
@@ -2118,6 +2134,86 @@ void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, 
 }
 
 
+//Same as gzell_Sinv, adjusting the prior dispersion for pMOM and groupMOM
+//
+//  priorcode
+//    10: pMOM + group pMOM
+//    13: pMOM + group Zellner
+//    43: group Zellner + group Zellner
+//    50: group pMOM + group pMOM
+//    53: group pMOM + group Zellner
+void gzell_Sinv_byprior(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, int *n, double *tau, double *taugroup, int *priorcode) {
+  bool posdef, idcov, groupmom, groupzell;
+  int i, j, l, k, firstingroup, groupsize, idxini, Sidxini;
+  double ct, sqrtct, ct1, tauinv, sqrttauinv, neglogtau;
+
+  idcov= ((*priorcode == 10) || (*priorcode == 13));  //is the covariance for individual coef tau * 1
+  groupmom= ((*priorcode== 10) || (*priorcode==50));
+  groupzell= ((*priorcode==13) || (*priorcode== 43) || (*priorcode== 53));    
+
+  if (idcov)  {
+    tauinv= 1.0/(*tau);
+    sqrttauinv= sqrt(tauinv);
+    neglogtau= -log(*tau);
+  }
+
+  //Pre-compute scaling factor for individual parameters
+  if (*priorcode==43) ct1= 1.0 / (*tau);  //group Zellner on individual coef
+  if ((*priorcode==50) || (*priorcode==53)) ct1= 3.0 / ((*n) * (*tau));  //group pMOM on individual coef
+
+  //Iterate over groups
+  for (i=0, firstingroup=0; i< *ngroups; i++) {
+    groupsize= (int) (nvaringroups[i] + .1);
+    idxini= sel[firstingroup]; Sidxini= (int) (cholSini[i]+.1);
+
+    if ((groupsize==1) && idcov) {
+
+      cholSinv[Sidxini]= sqrttauinv;
+      Sinv[Sidxini]= tauinv;
+      ldetSinv[i] = neglogtau;
+
+    } else { 
+
+      XtX->choldc(idxini, idxini+groupsize-1, cholSinv + Sidxini, ldetSinv+i, &posdef);
+
+      if (groupsize==1) {
+        ct= ct1;
+      } else {
+        if (groupmom) { //group MOM
+          ct= (nvaringroups[i] + 2.0) / ((*n) * (*taugroup));
+        } else if (groupzell) { //group Zellner
+          ct= nvaringroups[i] / (*taugroup);
+        } else {
+          Rf_error("prior not implemented in gzell_Sinv\n");
+        }
+      }
+      sqrtct= sqrt(ct);
+
+      for (j=0, l=0, k=0; j< groupsize*(groupsize+1)/2; j++) {
+        (*(cholSinv + Sidxini + j)) *= sqrtct;
+        Sinv[Sidxini + j]= ct * XtX->at(sel[firstingroup+l],sel[firstingroup+k]);
+        if (l< groupsize-1) { l++; } else { k++; l=k; }
+      }
+      ldetSinv[i] = log(ldetSinv[i]) + 2.0 * nvaringroups[i] * log(sqrtct);
+
+    }
+
+    firstingroup += groupsize;
+  }
+}
+
+/* Return element (k,l) in Sinv of groupid, as stored by gzell_Sinv_byprior */
+double getelem_Sinv(int groupid, int k, int l, double *Sinv, double *cholSini, int ningroup) {
+  int k0, l0, kk, idxini;
+
+  idxini= (int) (cholSini[groupid]+.1);
+
+  if (l >= k) { k0= k-1; l0= l-1; } else { k0= l-1; l0= k-1; } //ensure that l>=k
+
+  kk= idxini + k0*ningroup - k0*(k0-1)/2;
+  return *(Sinv + kk + l0-k0);  //elem (k,l) in Sinv of groupid, works for l>=k
+
+}
 
 /*Return indexes at which the Cholesky decomposition starts for each group when storing the lower-triangular Cholesky decomp as vectors
   Input
@@ -2955,11 +3051,55 @@ double infopropAFT(double z) {
 }
 */
 
-// pMOM on individual coef, group MOM on groups
+
 double pmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
-  Rf_error("pMOM + group MOM not currently implemented for the AFT Normal model");
+  /*Marginal likelihood under pMOM(tau) + group MOM(taugroup) prior
+
+    prod_j pMOM(beta_j; tau)  prod_j N(delta_j; 0, (taugroup/[ncol(S_j)+2]) n (S_j)^{-1})
+
+    where beta=(beta_1,...,beta_p) and delta=(delta_1,...,delta_q) are subsets of th
+    corresponding to coefficients for individual variables and grouped variables (respectively)
+
+    S_j is the submatrix of S indicated by sel[0], sel[1] etc.
+  */
+
+  //if (*(*pars).method ==2) {
+    return SurvMargALA(sel, nsel, pars, 10); //priorcode=10 is pMOM + group pMOM
+  //} else {
+  //  return SurvMarg(sel, nsel, pars, 10); //priorcode=10 is pMOM + group pMOM
+  //}
+
 }
 
+
+double gmomgmomSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  /*Marginal likelihood under pMOM(tau) + group MOM(taugroup) prior
+
+    prod_j pMOM(beta_j; (tau/3) n (S_j)^{-1})  prod_j gMOM(delta_j; 0, (taugroup/[ncol(S_j)+2]) n (S_j)^{-1})
+
+    S_j is the submatrix of S indicated by sel[0], sel[1] etc.
+  */
+
+  //if (*(*pars).method ==2) {
+    return SurvMargALA(sel, nsel, pars, 50); //priorcode=50 is group pMOM + group pMOM
+  //} else {
+  //  return SurvMarg(sel, nsel, pars, 50); //priorcode=50 is group pMOM + group pMOM
+  //}
+
+}
+
+
+double gmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
+  /*Marginal likelihood under group pMOM(tau) + group Zellner(taugroup) prior
+
+    prod_j pMOM(beta_j; (tau/3) n (S_j)^{-1})  prod_j N(delta_j; 0, (taugroup/ncol(S_j)) n (S_j)^{-1})
+
+    S_j is the submatrix of S indicated by sel[0], sel[1] etc.
+  */
+
+    return SurvMargALA(sel, nsel, pars, 53); //priorcode=53 is group pMOM + group Zellner
+
+}
 
 
 double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
@@ -2973,7 +3113,12 @@ double pmomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
     S_j is the submatrix of S indicated by sel[0], sel[1] etc.
   */
 
-  return SurvMarg(sel, nsel, pars, 13); //priorcode=13 is pMOM + block Zellner
+  if (*(*pars).method ==2) {
+    return SurvMargALA(sel, nsel, pars, 13); //priorcode=13 is pMOM + block Zellner
+  } else {
+    return SurvMarg(sel, nsel, pars, 13); //priorcode=13 is pMOM + block Zellner
+  }
+
 }
 
 
@@ -3001,17 +3146,154 @@ double pemomgzellSurvMarg(int *sel, int *nsel, struct marginalPars *pars) {
 // Zellner on individual coef, block Zellner on groups
 double gzellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars) {
 
-  return SurvMarg(sel, nsel, pars, 43); //priorcode=43 is block Zellner + block Zellner
+  if (*(*pars).method ==2) {
+    return SurvMargALA(sel, nsel, pars, 43); //priorcode=43 is block Zellner + block Zellner
+  } else {
+    return SurvMarg(sel, nsel, pars, 43);
+  }
 
 }
 
 
-double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
-  /*Marginal likelihood under pMOM/peMOM + block Zellner(taugroup) prior
+double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
+  /*Marginal likelihood for AFT survival model under pMOM/peMOM + block Zellner(taugroup) prior
 
-    priorcode indicates what prior is used
+    priorcode indicates what prior is used. Currently implemented options
 
     10: pMOM + group MOM
+    13: pMOM + group Zellner
+    43: group Zellner + group Zellner
+    50: group pMOM + group pMOM
+    53: group pMOM + group Zellner
+   */
+
+  std::map<string, double *> funargs;
+  bool momsingle, momgroup;
+  int i, j, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1, groupid, ningroup, idx;
+  double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, *y, *pnormres, *g, **H, **Hinv, **cholH, logdispersion, trgroup, th2group, Sij, *delta;
+  modselFunction *msfun;
+
+  g= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
+  thopt= dvector(0, *nsel); thini= dvector(0, *nsel); delta= dvector(1, thlength);
+  y= (*pars).y;
+
+  //Initialize static elements in funargs (not changed by msfun)
+  uncens= (*pars).uncens;
+  for (i=0; (i< *((*pars).n) && (uncens[i]==1)); i++) { sumy2obs+= y[i] * y[i]; }
+  nuncens= (double) i;
+  funargs["nuncens"]= &nuncens; //number of uncensored observations
+  funargs["sumy2obs"]= &sumy2obs; //sum of squares for uncensored observations, i.e. sum_{i: uncens[i]==1} y[i]^2
+
+  nvarinselgroups= dvector(0, min_xy(*nsel, *((*pars).ngroups))); firstingroup= dvector(0, min_xy(*nsel, *((*pars).ngroups))); selgroups= dvector(0, *nsel -1);
+  findselgroups(nvarinselgroups, firstingroup, &nselgroups, selgroups, sel, nsel, (*pars).nvaringroup, (*pars).ngroups); //copy subset of nvaringroup into nvarinselgroups
+  funargs["nvarinselgroups"]= nvarinselgroups;
+  funargs["firstingroup"]= firstingroup;
+  funargs["nselgroups"]= &nselgroups;
+  funargs["selgroups"]= selgroups;
+  nselgroupsint= (int) (nselgroups +.1);
+
+  //Obtain Cholesky decomp and determinant of prior scale covariances for each group
+  ldetSinv= dvector(0, nselgroupsint); cholSini= dvector(0, nselgroupsint);
+  cholSini_indexes(cholSini, &cholSsize, nselgroupsint, nvarinselgroups);
+  cholSinv= dvector(0, cholSsize); Sinv= dvector(0, cholSsize);
+
+  funargs["cholSini"]= cholSini; //cholSini[j] is the index in cholSinv at which Sinv_j starts
+  gzell_Sinv_byprior(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).n, (*pars).tau, (*pars).taugroup, &priorcode);
+  funargs["ldetSinv"]= ldetSinv; funargs["cholSinv"]= cholSinv; funargs["Sinv"]= Sinv;
+
+  //Initialize dynamic elements in funargs (changed by msfun)
+  residuals= dvector(0, *((*pars).n));
+  pnormres= dvector(0, *((*pars).n) - nuncens);
+  funargs["residuals"]= residuals;
+  funargs["pnormres"]= pnormres;
+
+  //Assign functions to evaluate log-posterior, update log-posterior, gradient and hessians
+  msfun= new modselFunction(sel, thlength, pars, NULL);
+
+  //ALA to integrated likelihood under the base Normal prior
+  msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate;  //objective function
+  msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; msfun->gradUniv= &fgzellgzellgrad; //derivatives
+  msfun->ftol= 0.001; msfun->thtol= 0.001;
+
+  //Initialize. If not previously computed, find the optimal value of log-error dispersion, given theta=0
+  for (i=0; i< thlength; i++) thini[i]= 0;
+
+  if (*((*pars).usethinit) == 2) {
+    thini[*nsel]= ((*pars).thinit)[*((*pars).p)];
+    msfun->evalfun(&fini, thini, &funargs); //evaluate fini and initialize funargs
+  } else { 
+    logdispersion= 0;
+    msfun->evalfun(&fini, thini, &funargs); //initialize funargs
+    msfun->Newtonuniv(&logdispersion, *nsel, &fini, thini, &funargs, 5); //fini returns f at optimal log dispersion
+    thini[*nsel]= ((*pars).thinit)[*((*pars).p)]= logdispersion;
+    (*((*pars).usethinit))= 2;
+  } 
+
+  //ans= msfun->ALA(thini, &fini, &funargs);
+  ans= msfun->ALA(thini, &fini, g, H, cholH, Hinv, true, true, &funargs); //same but also returns g, H, cholH and Hinv
+
+  //If needed, add term corresponding to the non-local prior penalty
+  momsingle= ((priorcode==10) || (priorcode==13) || (priorcode==50) || (priorcode==53)); //pMOM or groupMOM on single coef was set
+  momgroup= ((priorcode==10) || (priorcode)==50); //groupMOM on groups of coef was set
+
+  if (momsingle || momgroup) {
+
+    //Compute thopt= thini - Hinv g
+    Ax(Hinv,g,delta,1,thlength,1,thlength);
+    for (i=0; i<=*nsel; i++) thopt[i]= thini[i] - delta[i+1];
+
+    //For each group, compute trace(Sinv %*% Hinv) + thopt' Sinv thopt / phi
+    for (groupid=0; groupid< nselgroupsint; groupid++) {
+
+      ningroup= (int) (nvarinselgroups[groupid] +.1);
+
+      if (((ningroup==1) && momsingle) || ((ningroup>1) && momgroup)) {  //if MOM prior was set on the current group
+        idx= (int) (firstingroup[groupid]+.1);
+         
+        trgroup= th2group= 0;
+        for (i=1; i<=ningroup; i++) {
+          Sij= getelem_Sinv(groupid, i, i, Sinv, cholSini, ningroup);
+          trgroup += Sij * Hinv[idx+i][idx+i];
+          th2group += thopt[idx + i -1] * thopt[idx + i -1] * Sij;
+          for (j=i+1; j<=ningroup; j++) {
+            Sij= getelem_Sinv(groupid, i, j, Sinv, cholSini, ningroup);
+            trgroup += 2.0 * Sij * Hinv[idx+j][idx+i];  //Sinv[i][j] * Hinv[j][i]
+            th2group += 2.0 * thopt[idx + i -1] * thopt[idx + j -1] * Sij;
+          }
+        }
+         
+        th2group= th2group / exp(thopt[*nsel]);
+         
+        ans += log( (trgroup + th2group)/(ningroup +.0) );
+      }
+
+    } //end for each group
+
+  }
+
+
+  //Free memory
+  free_dvector(g,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength); free_dmatrix(cholH, 1,thlength,1,thlength);
+  free_dvector(thopt, 0, *nsel); free_dvector(thini, 0, *nsel); free_dvector(delta, 1, thlength);
+  free_dvector(residuals, 0, *((*pars).n));
+  free_dvector(pnormres, 0, *((*pars).n) - nuncens);
+  free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups)));
+  free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups)));
+  free_dvector(selgroups, 0, *nsel -1);
+  free_dvector(ldetSinv, 0, nselgroupsint); free_dvector(cholSini, 0, nselgroupsint); free_dvector(cholSinv, 0, cholSsize); free_dvector(Sinv, 0, cholSsize);
+  delete msfun;
+
+  return ans;
+}
+
+
+
+
+double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
+  /*Marginal likelihood for AFT survival model under pMOM/peMOM + block Zellner(taugroup) prior
+
+    priorcode indicates what prior is used. Currently implemented options
+
     13: pMOM + group Zellner
     32: peMOM + group eMOM
     33: peMOM + group Zellner
@@ -3019,7 +3301,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
    */
 
   std::map<string, double *> funargs;
-  bool posdef, orthoapprox;
+  bool posdef, orthoapprox=false;
   int i, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1;
   double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *pnormres, *g, **H, **Hinv, **cholH;
   modselFunction *msfun;
@@ -3028,7 +3310,8 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel);
   y= (*pars).y;
 
-  if (priorcode == 13) {
+  //For MOM priors, if ALA is specified then approximate the mean of products via the product of means
+  if ((priorcode==10) | (priorcode == 13)) {
       if ((*(*pars).method ==2) | ((*(*pars).method == -1) & ((*nsel)>0)))  { orthoapprox= true; }
   }
 
@@ -3070,14 +3353,14 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   msfun->gradUniv= &fgzellgzellgrad;
   msfun->ftol= 0.001; msfun->thtol= 0.001;
   //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
-
+   
   for (i=0; i< thlength; i++) thini[i]= 0;
   msfun->evalfun(&fini, thini, &funargs); //call evalfun for its side effect of initializing funargs
   msfun->hess(H, thini, sel, &thlength, pars, &funargs);
   inv_posdef(H, thlength, Hinv, &posdef);
   for (i=0; i< thlength; i++) { msfun->gradUniv(g+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
   Ax(Hinv,g,thini-1,1,thlength,1,thlength);
-
+   
   //Stored posterior mode under previously visited model
   if (*((*pars).usethinit) == 2) {
     for (i=0; i< *nsel; i++) { thopt[i]= ((*pars).thinit)[sel[i]]; }
@@ -3086,7 +3369,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     msfun->evalfun(&fopt, thopt, &funargs);
     if (fopt < fini) { for (i=0; i< *nsel; i++) thini[i]= thopt[i]; }
   }
-
+   
   //Optimize and approximate the integrated likelihood
   if (priorcode != 43) {
     if (priorcode == 13) {
@@ -3105,7 +3388,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
       Rf_error("priorcode in SurvMarg not recognized\n");
     }
   }
-
+   
   if ((priorcode != 43) && (!((priorcode == 13) && orthoapprox))) {   //Avoid exact zeroes (0 prior density under non-local priors)
     for (i=0; i< *nsel; i++) {
       if (fabs(thini[i]) < 1.0e-5) {
@@ -3116,21 +3399,21 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
       }
     }
   }
-
+   
   if (*nsel >=15) {
     msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
   } else {
     msfun->Newton(thopt, &fopt, thini, &funargs, 5);
   }
-
+   
   ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
- //ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
-
-
+  //ans= msfun->laplaceapprox(thopt, &fopt, &funargs); //Laplace approx
+   
+   
   if ((priorcode == 13) && orthoapprox) { //orthogonal approx to posterior expectation of MOM penalty
     int idx;
     double pen=0, logtau= log(*((*pars).tau));
-
+   
     inv_posdef(H, thlength, Hinv, &posdef, cholH); //compute Hinv
     for (i=0; i< nselgroupsint; i++) {
       if (nvarinselgroups[i] < 1.1) {
@@ -3140,7 +3423,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     }
     ans += pen;
   }
-
+   
   //Store optimal value for use in subsequent calls
   if (*((*pars).usethinit) > 0) {
     int iall;
@@ -3152,6 +3435,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     ((*pars).thinit)[*((*pars).p)]= thopt[*nsel];
     (*((*pars).usethinit))= 2; //next time SurvMarg is called it will initialize at (*pars).thinit
   }
+
 
   //Free memory
   free_dvector(g,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength); free_dmatrix(cholH, 1,thlength,1,thlength);

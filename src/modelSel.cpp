@@ -372,8 +372,10 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
         Rprintf("Zellner prior not implemented, using group Zellner prior instead\n");
         ans= gzellgzellSurvMarg;
       } else if (*priorcode==50) {
+        if (*(*pars).method !=2) Rprintf("For priorCoef=groupmomprior() + priorGroups=groupzellnerprior() only method='ALA' is implemented. Using ALA instead.\n");
         ans= gmomgmomSurvMarg;
       } else if (*priorcode==53) {
+        if (*(*pars).method !=2) Rprintf("For priorCoef=groupmomprior() + priorGroups=groupzellnerprior() only method='ALA' is implemented. Using ALA instead. You can set method='Laplace' for priorCoef=momprior() + priorGroups=groupzellnerprior()\n");
         ans= gmomgzellSurvMarg;
       } else if (*priorcode==63) {
         ans= gzellgzellSurvMarg;
@@ -1020,6 +1022,10 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
   PROTECT(ans= Rf_allocVector(VECSXP, 3));
   if (INTEGER(Sfamily)[0] !=0) { mycols= mycols2= INTEGER(Sp)[0]; } else { mycols= 2 + INTEGER(Sp)[0]; mycols2= mycols+2; }
 
+  //Allocate memory to thinit, to safeguard against cases where subroutines use it, despite usethinit==0
+  thinit= dvector(0, mycols2+1);
+  for (j=0; j<= mycols2+1; j++) { thinit[j]= 0; }
+
   SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mycols));
   postMode= INTEGER(VECTOR_ELT(ans,0));
 
@@ -1054,7 +1060,7 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
   delete XtX;
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
-  free_ivector(isgroup, 0, INTEGER(Sp)[0]);
+  free_dvector(thinit, 0,mycols2+1); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   if (LENGTH(Suncens)>0) { delete XtXuncens; free_dvector(ytXuncens,0,INTEGER(Sp)[0]); }
   UNPROTECT(1);
   return ans;

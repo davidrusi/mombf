@@ -362,6 +362,7 @@ pt2margFun set_marginalFunction(int *priorcode, int *knownphi, int *family, stru
     } else {
       if (*priorcode==10) {
         ans= pmomgmomSurvMarg;
+        if (*(*pars).method !=2) Rprintf("For priorCoef=groupmomprior() + priorGroups=groupmomprior() only method='ALA' is implemented. Using ALA instead.\n");
       } else if (*priorcode==13) {
         ans= pmomgzellSurvMarg;
       } else if (*priorcode==32) {

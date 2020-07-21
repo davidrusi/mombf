@@ -289,6 +289,7 @@ void loglnormalAFThess(double **hess, double *th, int *sel, int *thlength, struc
 
 //Approx log-likelihood of Normal AFT model and its derivatives (based on apnorm, ainvmillsnorm)
 void anegloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void anegloglnormalAFT0(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
 void anegloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void anegloglnormalAFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void anegloglnormalAFTgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
@@ -314,6 +315,7 @@ double gzellgzellSurvMarg (int *sel, int *nsel, struct marginalPars *pars); // Z
 void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fgzellgzellSurv0(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
 void fpmomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 void fpemomgzellSurvupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);

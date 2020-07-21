@@ -2859,6 +2859,32 @@ void anegloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct ma
 
 }
 
+//Same as anegloglnormalAFT, but assumes that regression coefficients th[0,...,*thlength-2]= 0
+//NOTE: error log-variance rho not assumed to be zero, th[*thlength -1] is taken
+void anegloglnormalAFT0(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) {
+  int i, nuncens, n= *((*pars).n), nvars= *thlength -1;
+  double rho= th[*thlength -1], exprho= exp(rho), *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres;
+
+  nuncens= (int) (*(*funargs)["nuncens"] +.1);
+  res= (*funargs)["residuals"];
+  pnormres= (*funargs)["pnormres"];
+  (*f)= 0.5 * (*(*funargs)["nuncens"]) * (LOG_M_2PI - 2.0 * rho);
+
+  //Uncensored observations
+  for (i=0, sumres2=0; i< nuncens; i++) { res[i]= exprho * y[i]; sumres2 += res[i]*res[i]; }
+
+  //Censored observations
+  for (i=nuncens, sumlogPhires=0; i< n; i++) { 
+     res[i]= exprho * y[i]; 
+     pnormres[i-nuncens]= apnorm(-res[i],false); 
+     sumlogPhires += log(pnormres[i-nuncens]); 
+  }
+
+  (*f)= (*f) + 0.5 * sumres2 - sumlogPhires;
+
+}
+
+
 //Fast approximation to Negative log-likelhood for AFT model with Normal errors (uses apnorm, ainvmillsnorm in cstat.cpp)
 void anegloglnormalAFTupdate(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
 
@@ -3218,7 +3244,7 @@ double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode
   msfun= new modselFunction(sel, thlength, pars, NULL);
 
   //ALA to integrated likelihood under the base Normal prior
-  msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate;  //objective function
+  msfun->funupdate= &fgzellgzellSurvupdate;  //objective function
   msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; msfun->gradUniv= &fgzellgzellgrad; //derivatives
   msfun->ftol= 0.001; msfun->thtol= 0.001;
 
@@ -3226,18 +3252,25 @@ double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode
   for (i=0; i< thlength; i++) thini[i]= 0;
 
   if (*((*pars).usethinit) == 2) {
+    //take previously-computed error log-variance parameter
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)];
-    msfun->evalfun(&fini, thini, &funargs); //evaluate fini and initialize funargs
+    //evaluate fini at regression coef th=0 and initialize funargs
+    msfun->fun= &fgzellgzellSurv0;
+    msfun->evalfun(&fini, thini, &funargs);
+    msfun->fun= &fgzellgzellSurv;
   } else { 
     logdispersion= 0;
-    msfun->evalfun(&fini, thini, &funargs); //initialize funargs
+    //evaluate fini at regression coef th=0 and initialize funargs
+    msfun->fun= &fgzellgzellSurv0; 
+    msfun->evalfun(&fini, thini, &funargs); 
+    //optimize error log-variance parameter
+    msfun->fun= &fgzellgzellSurv;
     msfun->Newtonuniv(&logdispersion, *nsel, &fini, thini, &funargs, 5); //fini returns f at optimal log dispersion
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)]= logdispersion;
     (*((*pars).usethinit))= 2;
   } 
 
-  //ans= msfun->ALA(thini, &fini, &funargs);
-  ans= msfun->ALA(thini, &fini, g, H, cholH, Hinv, true, true, &funargs); //same but also returns g, H, cholH and Hinv
+  ans= msfun->ALA(thini, &fini, g, H, cholH, Hinv, true, true, &funargs); //aprox marginal likelihood and return g, H, cholH and Hinv
 
   //If needed, add term corresponding to the non-local prior penalty
   momsingle= ((priorcode==10) || (priorcode==13) || (priorcode==50) || (priorcode==53)); //pMOM or groupMOM on single coef was set
@@ -3359,7 +3392,6 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate; msfun->gradhessUniv= &fgzellgzellgradhess; msfun->hess= &fgzellgzellhess; //Zell
   msfun->gradUniv= &fgzellgzellgrad;
   msfun->ftol= 0.001; msfun->thtol= 0.001;
-  //msfun->fun= &anegloglnormalAFT; msfun->funupdate= &anegloglnormalAFTupdate; msfun->gradhessUniv= &anegloglnormalAFTgradhess; //MLE
    
   for (i=0; i< thlength; i++) thini[i]= 0;
   msfun->evalfun(&fini, thini, &funargs); //call evalfun for its side effect of initializing funargs
@@ -3472,6 +3504,7 @@ void fpmomgzellSurv(double *f, double *th, int *sel, int *thlength, struct margi
   (*f) -= priordens;
 }
 
+
 //Evaluate negative log-likelihood + log-prior (peMOM + group MOM) and initialize funargs
 void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double priordens=0;
@@ -3483,12 +3516,23 @@ void fpemomgzellSurv(double *f, double *th, int *sel, int *thlength, struct marg
   (*f) -= priordens;
 }
 
-//Evaluate negative log-likelihood + log-prior (peMOM + group MOM) and initialize funargs
+//Evaluate negative log-likelihood + log-prior (group Zellner + group Zellner) and initialize funargs
 void fgzellgzellSurv(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   double priordens=0;
 
   anegloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   //negloglnormalAFT(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  dgzellgzell(&priordens, th, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
+  priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
+  (*f) -= priordens;
+}
+
+
+//Same as fgzllgzellSurv assuming that regression coef th=0 (error log-dispersion not assumed to be 0), and initialize funargs
+void fgzellgzellSurv0(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double priordens=0;
+
+  anegloglnormalAFT0(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
   dgzellgzell(&priordens, th, (*funargs)["nvarinselgroups"], (*funargs)["nselgroups"], (*funargs)["ldetSinv"], (*funargs)["cholSinv"], (*funargs)["cholSini"], true);
   priordens += dinvgammaC(exp(-2.0*th[*thlength -1]), *((*pars).alpha)/2.0, *((*pars).lambda)/2.0, 1) + log(2.0) - 2.0*th[*thlength -1];
   (*f) -= priordens;

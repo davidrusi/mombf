@@ -2862,7 +2862,7 @@ void anegloglnormalAFT(double *f, double *th, int *sel, int *thlength, struct ma
 //Same as anegloglnormalAFT, but assumes that regression coefficients th[0,...,*thlength-2]= 0
 //NOTE: error log-variance rho not assumed to be zero, th[*thlength -1] is taken
 void anegloglnormalAFT0(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) {
-  int i, nuncens, n= *((*pars).n), nvars= *thlength -1;
+  int i, nuncens, n= *((*pars).n);
   double rho= th[*thlength -1], exprho= exp(rho), *y= (*pars).y, sumres2, sumlogPhires, *res, *pnormres;
 
   nuncens= (int) (*(*funargs)["nuncens"] +.1);

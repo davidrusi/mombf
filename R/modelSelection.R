@@ -95,7 +95,8 @@ setMethod("coefByModel", signature(object='msfit'), function(object, maxmodels, 
       postmean= object$postmean[1:min(maxmodels,nrow(object$postmean)),]
       postsd= sqrt(object$postvar[1:min(maxmodels,nrow(object$postvar)),])
       ans= list(postmean= postmean, ci.low= postmean + qnorm(alpha/2) * postsd, ci.up= postmean - qnorm(alpha/2) * postsd)
-
+      nn= colnames(ans[[1]])
+      
   } else {
 
     hasPostSampling(object)

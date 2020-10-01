@@ -368,6 +368,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, n=n)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+  priorCoef= tmp$priorCoef; priorGroup= tmp$priorGroup
+    
   priorConstraints <- defaultpriorConstraints(priorDelta, priorConstraints)
   tmp= formatmsPriorsModel(priorDelta=priorDelta, priorConstraints=priorConstraints, constraints=constraints)
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
@@ -898,7 +900,9 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
       taualpha <- 0.358
       fixatanhalpha <- as.double(priorSkew)
   }
-    ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha)
+  if (has_taustd) priorCoef@priorPars['tau']= tau
+  if (has_taugroupstd) priorGroup@priorPars['tau']= taugroup
+  ans= list(r=r,prior=prior,priorgr=priorgr,tau=tau,taugroup=taugroup,alpha=alpha,lambda=lambda,taualpha=taualpha,fixatanhalpha=fixatanhalpha,priorCoef=priorCoef,priorGroup=priorGroup)
   return(ans)
 }
 

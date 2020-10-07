@@ -302,6 +302,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   x <- tmp$x; y <- tmp$y; formula <- tmp$formula;
   splineDegree <- tmp$splineDegree
   if (!is.null(tmp$groups)) groups <- tmp$groups
+  if (length(groups) != ncol(x)) stop(paste("groups has the wrong length. It should have length",ncol(x)))
   hasgroups <- tmp$hasgroups
   if (!is.null(tmp$constraints)) constraints <- tmp$constraints
   outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery

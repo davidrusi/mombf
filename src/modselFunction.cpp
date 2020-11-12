@@ -1,6 +1,209 @@
 #include "modselFunction.h"
 using namespace std;
 
+
+
+
+/* EVALUATE LOG-JOINT (LOG-LIKELIHOOD + LOG-PRIOR) AND INITIALIZE funargs
+
+   INPUT
+
+   - th: 0-indexed vector with values at which to evaluate the log-likelihood
+   - thlength: length of th
+   - sel: sel[0], sel[1] etc indicate the selected variables
+   - pars: further parameters needed to evaluate the likelihood and prior, see struct marginalPars in cstat.h
+
+   OUTPUT
+
+   - f: value of -loglikelihood(th) - logprior(th)
+
+   INPUT / OUTPUT
+
+   - funargs: optional input arguments storing model-specific calculations needed to evaluate the log-likelihood or prior, such as determinants of prior covariance matrices, etc. funargs can also have output parameters to store calculations done by logl, such as the linear predictor at th, to speed up subsequent log-likelihood evaluations by fjoint_update
+
+*/
+void fjoint(pt2fun logl, pt2fun logprior, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double priordens=0;
+
+  logl(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+
+  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+
+  (*f) += priordens;
+
+}
+
+
+//Update log-joint and funargs due to changing th[j] into thjnew
+void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  double priordens= 0, thtmp;
+
+  logl_update(fnew, thjnew, j, f, th, sel, thlength, pars, funargs); //-loglikelihood at thnew and update funargs["residuals"]
+
+  thtmp= th[j];
+  th[j]= *thjnew;
+  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+  th[j]= thtmp;
+
+  (*f) += priordens;
+
+}
+
+
+/*Minus log-joint gradient and hessian wrt th[j]. The function computes 
+
+      grad= logl_grad + loglprior_grad
+
+      hess= logl_hess + loglprior_hess
+
+   where
+
+   logl_grad: gradient of the negative log-likelihood
+   logl_hess: hessian of the negative log-likelihood
+
+   logprior_grad: gradient of the negative log-prior
+   logprior_hess: hessian of the negative log-prior
+*/
+void fjoint_gradhess(pt2gradhessUniv logl_gradhess, pt2gradhessUniv logprior_gradhess, double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+   double gradprior=0, hessprior=0;
+
+   logl_gradhess(grad, hess, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
+
+   logprior_gradhess(&gradprior, &hessprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
+
+   (*grad) += gradprior;
+   (*hess) += hessprior;
+
+}
+
+/* Minus log-joint gradient and hessian wrt th[j]
+
+   The function computes logl_grad + loglprior_grad, where
+
+   logl_grad: gradient of the negative log-likelihood
+   logprior_grad: gradient of the negative log-prior
+*/
+void fjoint_grad(pt2gradUniv logl_grad, pt2gradUniv logprior_grad, double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) { 
+   double gradprior=0;
+
+   logl_grad(grad, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
+
+   logprior_grad(&gradprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
+
+   (*grad) += gradprior;
+
+}
+
+
+//Hessian matrix of the minus log-joint (- loglikelihood - logprior)
+// INPUT
+// - logl_hess: function to compute the minus log-likelihood hessian
+// - logprior_hess: function that adds to the output of logl_hess the hessian of the minus log-prior
+void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+   logl_hess(hess, th, sel, thlength, pars, funargs);  //store loglikelihood hessian in hess
+
+   logprior_hess(hess, th, sel, thlength, pars, funargs); //add log-prior to hess
+
+}
+
+
+
+//*************************************************************************************
+// CLASS logJoint
+//*************************************************************************************
+
+
+//logJoint::logJoint() {
+// 
+//}
+// 
+//logJoint::~logJoint() {
+// 
+//}
+// 
+// 
+///* EVALUATE LOG-JOINT (LOG-LIKELIHOOD + LOG-PRIOR) AND INITIALIZE funargs
+// 
+//   INPUT
+// 
+//   - th: 0-indexed vector with values at which to evaluate the log-likelihood
+//   - thlength: length of th
+//   - sel: sel[0], sel[1] etc indicate the selected variables
+//   - pars: further parameters needed to evaluate the likelihood and prior, see struct marginalPars in cstat.h
+// 
+//   OUTPUT
+// 
+//   - f: value of -loglikelihood(th) - logprior(th)
+// 
+//   INPUT / OUTPUT
+// 
+//   - funargs: optional input arguments storing model-specific calculations needed to evaluate the log-likelihood or prior, such as determinants of prior covariance matrices, etc. funargs can also have output parameters to store calculations done by logl, such as the linear predictor at th, to speed up subsequent log-likelihood evaluations by fjoint_update
+// 
+//*/
+//void logJoint::fjoint(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+//  double priordens=0;
+// 
+//  logl(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+// 
+//  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+// 
+//  (*f) += priordens;
+// 
+//}
+// 
+// 
+////Update log-joint and funargs due to changing th[j] into thjnew
+//void logJoint::fjoint_update(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+//  double priordens= 0, thtmp;
+// 
+//  this->logl_update(fnew, thjnew, j, f, th, sel, thlength, pars, funargs); //-loglikelihood at thnew and update funargs["residuals"]
+// 
+//  thtmp= th[j];
+//  th[j]= *thjnew;
+//  this->logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+//  th[j]= thtmp;
+// 
+//  (*f) += priordens;
+// 
+//}
+// 
+// 
+////Minus log-joint gradient and hessian wrt th[j]
+//void logJoint::fjoint_gradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+//   double gradprior, hessprior;
+// 
+//   this->logl_gradhess(grad, hess, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
+// 
+//   this->logprior_gradhess(&gradprior, &hessprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
+// 
+//   (*grad) += gradprior;
+//   (*hess) += hessprior;
+// 
+//}
+// 
+// 
+////Hessian matrix of the minus log-joint (- loglikelihood - logprior)
+//// INPUT
+//// - logl_hess: function to compute the minus log-likelihood hessian
+//// - logprior_hess: function that adds to the output of logl_hess the hessian of the minus log-prior
+//void logJoint::fjoint_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+// 
+//   this->logl_hess(hess, th, sel, thlength, pars, funargs);  //store loglikelihood hessian in hess
+// 
+//   this->logprior_hess(hess, th, sel, thlength, pars, funargs); //add log-prior to hess
+// 
+//}
+
+
+
+
+
+//*************************************************************************************
+// CLASS modselFunction
+//*************************************************************************************
+
+
 modselFunction::modselFunction(int *sel, int thlength, struct marginalPars *pars, pt2fun fun=NULL) {
 
   this->thlength= thlength;

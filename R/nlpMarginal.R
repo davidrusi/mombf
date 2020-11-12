@@ -3,7 +3,6 @@
 ## ROUTINES TO COMPUTE INTEGRATED LIKELIHOODS
 ##
 ##############################################################################################
-#family_dict <- list(normal=1, twopiecenormal=2, laplace=3, twopiecelaplace=4)
 
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
@@ -12,8 +11,6 @@ nlpMarginal <- function(
   B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
-  if (!(family %in% c('normal','twopiecenormal','laplace','twopiecelaplace'))) stop("family not recognized, it should be 'normal','twopiecenormal','laplace' or 'twopiecelaplace'")
-  #familyint <- as.integer(family_dict[family])
   # format input data
   tmp <- formatInputdata(y=y,x=x,data=data,smoothterms=smoothterms,nknots=nknots,family=family)
   x <- tmp$x; y <- tmp$y; is_formula <- tmp$is_formula
@@ -27,9 +24,9 @@ nlpMarginal <- function(
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
   sumy2 <- as.double(sum(y^2))
+  colsumsx <- as.double(colSums(x))
   #
-  if (family=='normal') { familyint= ifelse(length(uncens)==0,1,11) } else if (family=='twopiecenormal') { familyint= 2 } else if (family=='laplace') { familyint= 3 } else if (family=='twopiecelaplace') { familyint= 4 } else stop("family not available")
-  familyint= as.integer(familyint)
+  familyint= formatFamily(family, issurvival= length(uncens)>0)$familyint
   # check prior and set defaults if necessary
   if (missing(priorCoef)) {
       defaultprior= defaultmom(outcometype=outcometype,family=family)
@@ -55,7 +52,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, x, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 

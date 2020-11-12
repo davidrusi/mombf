@@ -75,9 +75,13 @@ not performed for these variables}
 \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to thinning=1, i.e. no thinning}
 \item{burnin}{Number of burn-in MCMC iterations. Defaults to
   \code{.1*niter}. Set to 0 for no burn-in}
-\item{family}{Residual distribution. Possible values are
-  'normal','twopiecenormal','laplace', 'twopiecelaplace', or 'auto'. For
-  the latter the residual distribution is inferred from the data.
+\item{family}{Family of parametric distribution. Possible values are
+  'normal' for Normal errors, 'twopiecenormal' for two-piece Normal,
+  'laplace' for Laplace errors, 'twopiecelaplace' for double
+  exponential,
+  'binomial' for logistic regression, 'poisson' for Poisson regression.
+  For 'auto' the error distribution is inferred from the data among
+  'normal', 'laplace', 'twopiecenormal' and 'twopiecelaplace'.
   'laplace' corresponds to median regression and 'twopiecelaplace'
   to quantile regression. See argument \code{priorSkew}}
 \item{priorCoef}{Prior on coefficients, created

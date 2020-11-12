@@ -24,13 +24,15 @@ hasPostSampling <- function(object) {
   hassamples[2,] =    c('Continuous','normal',  'peMOM',  'peMOM')
   hassamples[3,] =    c('Continuous','normal',  'piMOM',  'piMOM')
   hassamples[4,] =    c('Continuous','normal','zellner','zellner')
-  hassamples[5,] =    c('glm','binomial logit','bic','bic')
-  hassamples[6,] =    c('glm','binomial probit','bic','bic')
-  hassamples[7,] =    c('glm','gamma inverse','bic','bic')
-  hassamples[8,] =    c('glm','inverse.gaussian 1/mu^2','bic','bic')
-  hassamples[9,] =    c('glm','poisson log','bic','bic')
-  hassamples[10,]=    c('Survival','Cox','bic','bic')
-  #hassamples[11,]=    c('Survival','normal','bic','bic') #to be added
+  hassamples[5,] =    c('glm','binomial','bic','bic')
+  hassamples[6,] =    c('glm','binomial logit','bic','bic')
+  hassamples[7,] =    c('glm','binomial probit','bic','bic')
+  hassamples[8,] =    c('glm','gamma inverse','bic','bic')
+  hassamples[9,] =    c('glm','inverse.gaussian 1/mu^2','bic','bic')
+  hassamples[10,] =    c('glm','poisson','bic','bic')
+  hassamples[11,] =    c('glm','poisson log','bic','bic')
+  hassamples[12,]=    c('Survival','Cox','bic','bic')
+  #hassamples[13,]=    c('Survival','normal','bic','bic') #to be added
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
   outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr
@@ -249,6 +251,10 @@ defaultmom= function(outcometype,family) {
         cat("Using default prior for Normal AFT survival outcomes priorCoef=momprior(tau=0.192), priorVar=igprior(3,3)\n")
         priorCoef= momprior(tau=0.192)
         priorVar= igprior(alpha=3,lambda=3)
+    } else if (outcometype=='glm') {
+        cat("Using default prior for GLMs priorCoef=momprior(tau=1/3), priorVar=igprior(.01,.01)\n")
+        priorCoef= momprior(tau=1/3)
+        priorVar= igprior(alpha=.01,lambda=.01)
     } else {
       stop("There is not default priorCoef for this outcome type")
     }
@@ -358,7 +364,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
 
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
-  sumy2 <- as.double(sum(ystd^2)); ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd)
+  sumy2 <- as.double(sum(ystd^2)); ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd); colsumsx <- as.double(colSums(xstd))
   if (XtXprecomp) {
       XtX= t(xstd) %*% xstd
       hasXtX= as.logical(TRUE)
@@ -376,8 +382,10 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
 
-  if (family=='auto') { familyint= 0; familygreedy=1 } else if (family=='normal') { familyint= familygreedy= ifelse(length(uncens)==0,1,11) } else if (family=='twopiecenormal') { familyint= 2; familygreedy=1 } else if (family=='laplace') { familyint= 3; familygreedy=1 } else if (family=='twopiecelaplace') { familyint= 4; familygreedy=1 } else stop("family not available")
-  familyint= as.integer(familyint); familygreedy= as.integer(familygreedy)
+  ffamily= formatFamily(family, issurvival= length(uncens)>0)
+  familyint= ffamily$familyint; familygreedy= ffamily$familygreedy
+
+    
   if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
 
   #Run model selection
@@ -388,7 +396,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -404,7 +412,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     postmean= postvar= NULL
@@ -421,7 +429,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
@@ -460,6 +468,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 # format input data from either formula (y), formula and data.frame (y,data) or matrix and vector (y, x)
 # it accepts smoothterms, groups and survival data
 formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
+  valid_families <- c('normal','twopiecenormal','laplace','twopiecelaplace','auto','binomial','binomial logit','poisson','poisson log')
+  if (!(family %in% valid_families)) stop(paste("Invalid family. Valid values are", valid_families))
   call <- match.call()
   groups <- NULL; constraints <- NULL; ordery <- NULL
   if ('formula' %in% class(y)) {
@@ -501,6 +511,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   hasgroups <-  (length(groups) > length(unique(groups)))
+  y <- as.double(y)
   ans <- list(
     x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
     groups=groups, hasgroups=hasgroups, constraints=constraints, outcometype=outcometype, uncens=uncens,
@@ -771,7 +782,7 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
 #
 # 2. Survival outcomes. Use ALA when available, LA otherwise. Currently ALA available for pmom/groupMOM/groupzellner + pmom/groupMOM/groupzellner
 #
-# 3. GLMs (to be added by Oriol). Use ALA when available, LA otherwise
+# 3. GLMs. Laplace approximation
 #
 # Output:
 #   0 means Laplace approximation (note: for normal outcomes + normal priors this means the calculation is exact)
@@ -790,6 +801,8 @@ formatmsMethod= function(method, priorCoef, priorGroup, knownphi, outcometype, f
     } else {
       method <- as.integer(2)
     }
+  } else if (method=='ALA') {
+      method <- as.integer(2)
   } else if (method=='auto') {
     if (outcometype=='Continuous') {
       if (family=='normal') {
@@ -812,11 +825,12 @@ formatmsMethod= function(method, priorCoef, priorGroup, knownphi, outcometype, f
         }
       } else { stop("For survival outcomes, only family=='normal' currently implemented") }
     } else if (outcometype=='glm') {
-        if ((priorCoef@priorDistr %in% c('pMOM','groupMOM','groupzellner')) & (priorGroup@priorDistr %in% c('groupMOM','zellner','groupzellner'))) {
-           method <- as.integer(2)
-        } else {
-           method <- as.integer(0)
-        }
+        method <- as.integer(0)
+        #if ((priorCoef@priorDistr %in% c('pMOM','groupMOM','groupzellner')) & (priorGroup@priorDistr %in% c('groupMOM','zellner','groupzellner'))) {
+        #   method <- as.integer(2)
+        #} else {
+        #   method <- as.integer(0)
+        #}
     } else { stop("outcometype must be 'Continuous', 'Survival' or 'glm'") }
   } else if ((method=='ALA') | (method=='plugin')) {
     method <- as.integer(2)
@@ -978,6 +992,33 @@ formatmsPriorsModel <- function(priorDelta, priorConstraints, constraints) {
   ans= list(prDelta=prDelta,prDeltap=prDeltap,parprDeltap=parprDeltap,prConstr=prConstr,prConstrp=prConstrp,parprConstrp=parprConstrp)
   return(ans)
 }
+
+
+#Assign a numerical code to the family of likelihoods, to pass on to C
+formatFamily= function(family, issurvival) {
+    
+    if (family=='auto') {
+        familyint= 0; familygreedy=1
+    } else if (family=='normal') {
+        familyint= familygreedy= ifelse(!issurvival,1,11)
+    } else if (family=='twopiecenormal') {
+        familyint= 2; familygreedy=1
+    } else if (family=='laplace') {
+        familyint= 3; familygreedy=1
+    } else if (family=='twopiecelaplace') {
+        familyint= 4; familygreedy=1
+    } else if (family %in% c('binomial','binomial logit')) {
+        familyint= familygreedy= 21
+    } else if (family %in% c('poisson','poisson log')) {
+        familyint= familygreedy= 22
+    } else stop("family not available")
+
+    ans= list(familyint= as.integer(familyint), familygreedy= as.integer(familygreedy))
+    return(ans)
+      
+}
+
+
 
 greedymodelSelectionR <- function(y, x, niter=100, marginalFunction, priorFunction, betaBinPrior, deltaini=rep(FALSE,ncol(x)), verbose=TRUE, ...) {
   #Greedy version of modelSelectionR where variables with prob>0.5 at current iteration are included deterministically (prob<.5 excluded)

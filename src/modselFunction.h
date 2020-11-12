@@ -4,7 +4,6 @@
 #include <RcppArmadillo.h>
 #include <map>
 #include <string>
-#include "modelSel.h"
 #include "cstat.h"
 using namespace std;
 
@@ -12,7 +11,7 @@ using namespace std;
 // TYPEDEF: Pointers to functions returning minus log-integrand (e.g. -log(likelihood) - log(prior)), its gradients and hessians
 //*************************************************************************************************************
 
-typedef void (*pt2updateUniv)(double *thnew, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+typedef void (*pt2updateUniv)(double *thnew, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);  //rule to update th[j] into thnew
 
 typedef void (*pt2fun)(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);  //objective function
 typedef void (*pt2funupdate)(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
@@ -20,6 +19,59 @@ typedef void (*pt2funupdate)(double *fnew, double *thjnew, int j, double *f, dou
 typedef void (*pt2gradUniv)(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
 typedef void (*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
 typedef void (*pt2hess)(double **H, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
+
+
+//*************************************************************************************
+// FUNCTIONS TO EVALUATE LOG-JOINT AND DERIVATIVES, GIVEN LOG-LIKELIHOOD AND LOG-PRIOR
+//*************************************************************************************
+
+void fjoint(pt2fun logl, pt2fun logprior, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjoint_gradhess(pt2gradhessUniv logl_gradhess, pt2gradhessUniv logprior_gradhess, double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjoint_grad(pt2gradUniv logl_grad, pt2gradUniv logprior_grad, double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+
+//*************************************************************************************
+// CLASS TO CREATE FUNCTIONS THAT EVALUTE THE MINUS LOG-JOINT (-loglikelihood -logprior) AND DERIVATIVES
+//*************************************************************************************
+
+//class logJoint {
+// 
+//public:
+// 
+//  //Constructor and destructor
+//  logJoint();
+//  ~logJoint();
+// 
+//  //typedef void (logJoint::*pt2fun)(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);  //objective function
+//  //typedef void (logJoint::*pt2gradhessUniv)(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
+//  //typedef void (logJoint::*pt2hess)(double **H, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
+// 
+//  //Functions that should be provided by the user
+//  pt2fun logl, logprior;
+//  pt2funupdate logl_update;
+//  pt2gradhessUniv logl_gradhess, logprior_gradhess;
+//  pt2hess logl_hess, logprior_hess;
+// 
+//  //Functions created by the class
+//  void fjoint(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);   //Evaluate log-joint, given loglikelihood and logprior, and initialize funargs
+//  void fjoint_update(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);   //Update log-joint and funargs due to changing th[j] into thjnew
+//  void fjoint_gradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);   //Minus log-joint gradient and hessian wrt th[j]
+//  void fjoint_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs); //Hessian matrix of the minus log-joint (- loglikelihood - logprior)
+// 
+////  void (logJoint::*pt2fjoint)(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs)(); // declare pointer to fjoint by saying what class it is a pointer to
+// 
+// 
+//  //Methods to be called by the user to access pointers to the log-joint function and derivatives
+//  pt2fun pt2logjoint();  //return pointer to fjoint
+////  pt2funupdate pt2logjoint_update(); //return pointer to fjoint_update
+////  pt2gradhessUniv pt2logjoint_gradhess(); //return pointer to fjoint_gradhess
+////  pt2hess pt2logjoint_hess(); //return pointer to fjoint_hess
+// 
+//private:
+// 
+//};
 
 
 //*************************************************************************************************************

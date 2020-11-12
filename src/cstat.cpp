@@ -4747,7 +4747,7 @@ double dmvnorm0(const double *y, int p, double **cholsinv, double det, bool tran
     return (logscale == 1) ? ans : exp(ans);
 }
 
-//same as dmvnorm for particular case mean=0
+//same as dmvnorm for particular case mean=0, and Cholesky decomp of Sinv given as a vector
 double dmvnorm0(const double *y, int p, double *cholsinv, double det, int logscale, bool logdet=false) {
   /* cholsinv stores Cholesky decomp of Sinv as a vector, following column order (1st column, 2nd column, etc).
 

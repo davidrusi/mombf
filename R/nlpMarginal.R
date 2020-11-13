@@ -27,6 +27,7 @@ nlpMarginal <- function(
   colsumsx <- as.double(colSums(x))
   #
   familyint= formatFamily(family, issurvival= length(uncens)>0)$familyint
+  if (familyint == 22) { sumlogyfact= as.double(sum(lgamma(y+1))) } else { sumlogyfact= as.double(0) } #Poisson regression
   # check prior and set defaults if necessary
   if (missing(priorCoef)) {
       defaultprior= defaultmom(outcometype=outcometype,family=family)
@@ -52,7 +53,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumlogyfact, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 

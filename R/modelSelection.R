@@ -336,7 +336,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
 
-  #Standardize (y,x) to mean 0 and variance 1
+  #Standardize (y,x) to mean 0 and variance 1 (for continuous or log-survival time outcomes only)
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
   if (!is.matrix(x)) x <- as.matrix(x)
   mx= colMeans(x); sx= sqrt(colMeans(x^2) - mx^2) * sqrt(n/(n-1))
@@ -373,6 +373,12 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       hasXtX= as.logical(FALSE)
   }
 
+  ffamily= formatFamily(family, issurvival= length(uncens)>0)
+  familyint= ffamily$familyint; familygreedy= ffamily$familygreedy
+  if (familyint == 22) { sumlogyfact= as.double(sum(lgamma(ystd+1))) } else { sumlogyfact= as.double(0) } #Poisson regression
+    
+  if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
+
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, n=n)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
   priorCoef= tmp$priorCoef; priorGroup= tmp$priorGroup
@@ -382,12 +388,6 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   prDelta=tmp$prDelta; prDeltap=tmp$prDeltap; parprDeltap=tmp$parprDeltap
   prConstr=tmp$prConstr; prConstrp= tmp$prConstrp; parprConstrp= tmp$parprConstrp
 
-  ffamily= formatFamily(family, issurvival= length(uncens)>0)
-  familyint= ffamily$familyint; familygreedy= ffamily$familygreedy
-
-    
-  if (!is.null(colnames(xstd))) { nn <- colnames(xstd) } else { nn <- paste('x',1:ncol(xstd),sep='') }
-
   #Run model selection
   if (!enumerate) {
     #Initialize
@@ -396,7 +396,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,xstd,colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -412,7 +412,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     postmean= postvar= NULL
@@ -429,7 +429,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)

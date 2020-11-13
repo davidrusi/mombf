@@ -766,7 +766,12 @@ double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, dou
   double ans, logdetH0, **mycholH0, **myH0inv, g0norm;
 
   if (returng0) {
-    for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+    if ((this->gradUniv) != NULL) {
+      for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+    } else { 
+      double h;
+      for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+    }
   }
 
   if (returnH0) this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
@@ -806,12 +811,17 @@ double modselFunction::ALA(double *th0, double *f0, std::map<string, double *> *
   int j;
   double ans, *g0, **H0;
 
-  if ((this->gradUniv)==NULL) Rf_error("To run ALA you need to specify gradUniv");
+  if (((this->gradUniv)==NULL) && ((this->gradhessUniv)==NULL)) Rf_error("To run ALA you need to specify gradUniv or gradhessUniv");
   if ((this->hess)==NULL) Rf_error("To run ALA you need to specify hess");
 
   g0= dvector(1,this->thlength); H0= dmatrix(1,this->thlength,1,this->thlength);
 
-  for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+  if ((this->gradUniv) != NULL) {
+    for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+  } else {
+    double h;
+    for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+  }
 
   this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
 
@@ -824,9 +834,6 @@ double modselFunction::ALA(double *th0, double *f0, std::map<string, double *> *
 
 double modselFunction::ALA(double *th0, std::map<string, double *> *funargs=NULL) {
   double ans, f0;
-
-  if ((this->gradUniv)==NULL) Rf_error("To run ALA you need to specify gradUniv");
-  if ((this->hess)==NULL) Rf_error("To run ALA you need to specify hess");
 
   if (funargs==NULL) {
     this->evalfun(&f0, th0);

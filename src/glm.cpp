@@ -23,7 +23,6 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
   //Create object of class modselFunction
   msfun= new modselFunction(sel, thlength, pars, NULL);
-  msfun->fun = fjoint; msfun->funupdate = fjoint_update; msfun->gradUniv = fjoint_grad; msfun->gradhessUniv = fjoint_gradhess; msfun->hess = fjoint_hess;
   msfun->ftol= 0.001; msfun->thtol= 0.001;
 
   //Allocate memory
@@ -57,16 +56,24 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
   //Initialize posterior mode and funargs
   for (i=0; i< thlength; i++) thini[i]= 0;
-  msfun->evalfun(&fini, thini, &funargs); //initialize funargs
 
   
   if (*((*pars).method) == 2) {
     // APPROXIMATE LAPLACE APPROXIMATION
 
-    ans= msfun->ALA(thini, &fini, g, H, cholH, Hinv, true, true, &funargs); //aprox marginal likelihood and return g, H, cholH and Hinv
+    msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
+
+    ans= msfun->ALA(thini, &funargs);
+
+    //fjoint0(&fini, thini, sel, &thlength, pars, &funargs);  //log-joint at th=0
+    //ans= msfun->ALA(thini, &fini, g, H, NULL, NULL, false, false, &funargs); //aprox marginal likelihood
 
   } else {
     // LAPLACE APPROXIMATION
+
+    msfun->fun = fjoint; msfun->funupdate = fjoint_update; msfun->gradUniv = fjoint_grad; msfun->gradhessUniv = fjoint_gradhess; msfun->hess = fjoint_hess;
+
+    msfun->evalfun(&fini, thini, &funargs); //initialize funargs
    
     if (!nonlocal || orthoapprox) { //if it's not a non-local prior, evaluate log-posterior gradient and hessian
      
@@ -545,5 +552,170 @@ void fjointh0_logreg_gzellgzell(double **hess, double *th, int *sel, int *thleng
 //*************************************************************************************
 // POISSON REGRESSION
 //*************************************************************************************
+
+
+//Function to evaluate the negative loglikelihood, and update funargs
+void neglogl_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+  int i, n= *((*pars).n), nvars= *thlength;
+  double *ypred, *linpred, *ytlinpred, *ytX= (*pars).ytX, sumypred=0, *sumlogyfact= (*pars).sumlogyfact;
+
+  ypred= (*funargs)["ypred"];
+  linpred= (*funargs)["linpred"];
+  ytlinpred= (*funargs)["ytlinpred"];
+  (*ytlinpred)= 0;
+
+  if (*thlength >0) {
+
+    for (i=0; i< nvars; i++) { (*ytlinpred) += ytX[sel[i]] * th[i]; }
+    Aselvecx((*pars).x, th, linpred, 0, n-1, sel, &nvars); //Returns linpred= x[,sel] %*% th
+    for (i=0; i< n; i++) {
+      ypred[i]= exp(linpred[i]);
+      sumypred += ypred[i];
+    }
+
+    (*f) = -(*ytlinpred) + sumypred + *sumlogyfact;
+
+  } else {
+
+    (*ytlinpred)= 0;
+    for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 1; }
+    neglogl0_poisson(f, th, sel, thlength, pars, funargs);
+
+  }
+
+}
+
+
+//Function to evaluate the negative loglikelihood at th=0
+void neglogl0_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+  (*f) = (*((*pars).n) + .0) + *((*pars).sumlogyfact);
+}
+
+
+//Update the negative loglikelihood due to changing th[j] into thjnew, and update funargs
+void negloglupdate_poisson(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  int i, n= *((*pars).n), idxj;
+  double *linpred, *ypred, *ytlinpred, *ytX= (*pars).ytX, *x= (*pars).x, sumypred=0, thdif, *sumlogyfact= (*pars).sumlogyfact;
+
+  linpred= (*funargs)["linpred"];
+  ypred= (*funargs)["ypred"];
+  ytlinpred= (*funargs)["ytlinpred"];
+
+  if (*thlength >0) {
+
+    //Update inner product of ytX and linear predictor
+    idxj= n * sel[j];
+    thdif= *thjnew - th[j];
+    (*ytlinpred) += ytX[sel[j]] * thdif; 
+
+    //Update linear predictor
+    for (i=0; i< n; i++) { 
+      linpred[i] += x[i + idxj] * thdif;
+      ypred[i]= exp(linpred[i]);
+      sumypred += ypred[i];
+    }
+
+    (*f) = -(*ytlinpred) + sumypred + *sumlogyfact;
+
+  } else {
+
+    (*ytlinpred)= 0;
+    for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 1; }
+    neglogl0_poisson(f, th, sel, thlength, pars, funargs);
+
+  }
+
+}
+
+
+//Obtain gradient and hessian wrt j
+void negloglgradhess_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, n= *((*pars).n), idxj;
+  double *ypred, *ytX= (*pars).ytX, *x= (*pars).x;
+
+  ypred= (*funargs)["ypred"];
+
+  idxj= *((*pars).n) * sel[j];
+
+  (*grad)= -ytX[sel[j]];
+  (*hess)= 0;
+  for (i=0; i<n; i++) {
+
+    (*grad) += ypred[i] * x[idxj + i];
+    (*hess) += ypred[i] * x[idxj + i] * x[idxj + i];
+
+  }
+
+}
+
+
+void negloglgrad_poisson(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, n= *((*pars).n), idxj;
+  double *ypred, *ytX= (*pars).ytX, *x= (*pars).x;
+
+  ypred= (*funargs)["ypred"];
+
+  idxj= *((*pars).n) * sel[j];
+
+  (*grad)= -ytX[sel[j]];
+  for (i=0; i<n; i++) { 
+    (*grad) += ypred[i] * x[idxj + i]; 
+  }
+
+}
+
+
+//Obtain gradient and hessian wrt j at th=0
+void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX;
+
+  (*grad)= -ytX[sel[j]] + colsumsx[sel[j]];
+  (*hess)= ((*pars).XtX)->at(sel[j],sel[j]);
+
+}
+
+//Obtain hessian
+void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, j, k, n= *((*pars).n), nvars= *thlength, idxj, idxk;
+  double *linpred, *ypred, *ytlinpred, *x= (*pars).x;
+
+  linpred= (*funargs)["linpred"];
+  ypred= (*funargs)["ypred"];
+  ytlinpred= (*funargs)["ytlinpred"];
+
+  for (j=1; j<=nvars; j++) {
+    idxj= *((*pars).n) * sel[j-1];
+
+    hess[j][j]= 0;
+    for (i=0; i<n; i++) { hess[j][j] += ypred[i] * x[idxj + i] * x[idxj + i]; }
+
+    for (k=1; k<j; k++) {
+      idxk= *((*pars).n) * sel[k-1];
+
+      hess[j][k]= 0;
+      for (i=0; i<n; i++) { hess[j][k] += ypred[i] * x[idxj + i] * x[idxk + i]; }
+      hess[k][j]= hess[j][k];
+    }
+
+  }
+
+}
+
+
+//Obtain hessian at th=0
+void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, j, nvars= *thlength;
+
+  for (i=1; i<=nvars; i++) {
+    hess[i][i]= ((*pars).XtX)->at(sel[i-1],sel[i-1]);
+    for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= ((*pars).XtX)->at(sel[i-1],sel[j-1]); }
+  }
+
+}
 
 

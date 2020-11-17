@@ -7,7 +7,7 @@
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
   priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
-  priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod='CDA',
+  priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod,
   B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
@@ -35,9 +35,10 @@ nlpMarginal <- function(
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   # format arguments for .Call
-  method= formatmsMethod(method=method, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups)
-  hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
-  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
+  method <- formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, hess=hess)
+  optimMethod <- method$optimMethod; hesstype <- method$hesstype; method <- method$method
+  #hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1)); optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
+    
   B <- as.integer(B)
   tmp= codeGroupsAndConstraints(p=p,groups=groups)
   ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups

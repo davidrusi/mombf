@@ -265,7 +265,7 @@ defaultmom= function(outcometype,family) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA', B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', hess='asymp', optimMethod, B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -359,9 +359,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }
   }
 
-  method <-  formatmsMethod(method=method, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=knownphi, outcometype=outcometype, family=family, hasgroups=hasgroups)
-  hess <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
-  optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
+  method <-  formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=knownphi, outcometype=outcometype, family=family, hasgroups=hasgroups, hess=hess)
+  optimMethod <- method$optimMethod; hesstype <- method$hesstype; method <- method$method
 
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
   sumy2 <- as.double(sum(ystd^2)); ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd); colsumsx <- as.double(colSums(xstd))
@@ -396,7 +395,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -412,7 +411,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     postmean= postvar= NULL
@@ -429,7 +428,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hess,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
@@ -784,12 +783,40 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
 #
 # 3. GLMs. Laplace approximation
 #
-# Output:
+# OUTPUT
+#
+#   method
 #   0 means Laplace approximation (note: for normal outcomes + normal priors this means the calculation is exact)
 #   1 means Monte Carlo (Importance Sampling)
 #   2 means ALA (approximate Laplace approximation)
 #   -1 only available for pMOM, it means to use exact calculation for small models (<=3 parameters) and ALA for larger models
-formatmsMethod= function(method, priorCoef, priorGroup, knownphi, outcometype, family, hasgroups) {
+#  
+#  optimMethod: 1 means Newton-Raphson type algorithm, 2 means Coordinate Descent Algorith, 0 means use the default. This argument is used in twopiecenormal models and GLMs, else it's ignored
+#
+#  hesstype: what type of hessian to use in twopiecelaplace models, where the observed hessian is not defined
+formatmsMethod= function(method, optimMethod, priorCoef, priorGroup, knownphi, outcometype, family, hasgroups, hess) {
+  hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
+
+  #Obtain code for the optimization method
+  if (missing(optimMethod)) optimMethod <- 'auto'
+  if (outcometype == 'glm') {
+    if (optimMethod=='auto') {
+        optimMethod <- as.integer(0)
+    } else if (optimMethod %in% c('Newton','LMA')) {
+        optimMethod <- as.integer(1)
+    } else if (optimMethod == 'CDA') {
+        optimMethod <- as.integer(2)
+    } else { stop("Invalid optimMethod. For this family, only 'auto', 'Newton', 'LMA' or 'CDA' are implemented") }
+  } else {
+    if (optimMethod %in% c('Newton','LMA')) {
+        optimMethod <- as.integer(1)
+    } else {
+        optimMethod <- as.integer(2)
+    }
+    optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
+  }
+
+  #Obtain code for the method to compute the integrated likelihood
   if (method=='Laplace') {
     method <- as.integer(0)
   } else if (method=='MC') {
@@ -826,18 +853,14 @@ formatmsMethod= function(method, priorCoef, priorGroup, knownphi, outcometype, f
       } else { stop("For survival outcomes, only family=='normal' currently implemented") }
     } else if (outcometype=='glm') {
         method <- as.integer(0)
-        #if ((priorCoef@priorDistr %in% c('pMOM','groupMOM','groupzellner')) & (priorGroup@priorDistr %in% c('groupMOM','zellner','groupzellner'))) {
-        #   method <- as.integer(2)
-        #} else {
-        #   method <- as.integer(0)
-        #}
     } else { stop("outcometype must be 'Continuous', 'Survival' or 'glm'") }
   } else if ((method=='ALA') | (method=='plugin')) {
     method <- as.integer(2)
   } else {
     stop("Invalid 'method'")
   }
-  return(method)
+  ans <- list(method=method, optimMethod=optimMethod, hesstype= hesstype)
+  return(ans)
 }
 
 #Routine to format modelSelection prior distribution parameters for marginal likelihood

@@ -22,7 +22,7 @@
 nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
-method='auto', hess='asymp', optimMethod='CDA', B=10^5, logscale=TRUE, XtX, ytX)
+method='auto', hess='asymp', optimMethod, B=10^5, logscale=TRUE, XtX, ytX)
 
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
@@ -84,7 +84,8 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
   diagonal adjustment is applied (see Rossell and Rubio for details).}
 \item{optimMethod}{Algorithm to maximize objective function when
-  method=='Laplace' or method=='MC'. optimMethod=='LMA' uses modified
+  method=='Laplace'. Leave unspecified or set optimMethod=='auto' for an
+  automatic choice. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{B}{Number of Monte Carlo samples to use (ignored unless
   \code{method=='MC'})}

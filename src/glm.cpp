@@ -10,7 +10,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
   std::map<string, double *> funargs;
   bool posdef, orthoapprox=false, nonlocal, momsingle, momgroup;
-  int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode);
+  int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod);
   double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *g, *h, **H, **Hinv, **cholH;
   modselFunction *msfun;
   pt2fun fjoint=NULL, fjoint0=NULL;
@@ -111,7 +111,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
     }
      
     //Obtain posterior mode and Laplace approx
-    if (*nsel >=15) {
+    if (((optimMethod==0) && (*nsel >=15)) || (optimMethod==2)) {
       msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
     } else {
       msfun->Newton(thopt, &fopt, thini, &funargs, 5);
@@ -362,13 +362,13 @@ void negloglupdate_logreg(double *fnew, double *thjnew, int j, double *f, double
       sumlog += log(1.0 + exp(linpred[i])); 
     }
 
-    (*f) = -(*ytlinpred) + sumlog;
+    (*fnew) = -(*ytlinpred) + sumlog;
 
   } else {
 
     (*ytlinpred)= 0;
     for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 0.5; }
-    neglogl0_logreg(f, th, sel, thlength, pars, funargs);
+    neglogl0_logreg(fnew, th, sel, thlength, pars, funargs);
 
   }
 
@@ -615,13 +615,13 @@ void negloglupdate_poisson(double *fnew, double *thjnew, int j, double *f, doubl
       sumypred += ypred[i];
     }
 
-    (*f) = -(*ytlinpred) + sumypred + *sumlogyfact;
+    (*fnew) = -(*ytlinpred) + sumypred + *sumlogyfact;
 
   } else {
 
     (*ytlinpred)= 0;
     for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 1; }
-    neglogl0_poisson(f, th, sel, thlength, pars, funargs);
+    neglogl0_poisson(fnew, th, sel, thlength, pars, funargs);
 
   }
 

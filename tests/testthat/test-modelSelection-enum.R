@@ -63,7 +63,7 @@ patrick::with_parameters_test_that(
     imom_laplace=list(family="laplace", pCoef=imomprior(tau=0.348)),
     imom_twopiecelaplace=list(family="twopiecelaplace", pCoef=imomprior(tau=0.348)),
     emom_normal=list(family="normal", pCoef=emomprior(tau=0.348)),
-    emom_twopiecenormal=list(family="twopiecenormal", pCoef=emomprior(tau=0.348)),
+#    emom_twopiecenormal=list(family="twopiecenormal", pCoef=emomprior(tau=0.348)),
     emom_laplace=list(family="laplace", pCoef=emomprior(tau=0.348)),
     emom_twopiecelaplace=list(family="twopiecelaplace", pCoef=emomprior(tau=0.348))
   )

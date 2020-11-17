@@ -26,7 +26,7 @@ priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints,
 priorVar=igprior(.01,.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
-initSearch='greedy', method='auto', hess='asymp', optimMethod='CDA',
+initSearch='greedy', method='auto', hess='asymp', optimMethod,
 B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
@@ -124,7 +124,8 @@ not performed for these variables}
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
   diagonal adjustment is applied (see Rossell and Rubio for details).}
 \item{optimMethod}{Algorithm to maximize objective function when
-  method=='Laplace' or method=='MC'. optimMethod=='LMA' uses modified
+  method=='Laplace'. Leave unspecified or set optimMethod=='auto' for an
+  automatic choice. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored
   if \code{method=='Laplace'}}

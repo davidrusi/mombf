@@ -45,7 +45,7 @@ void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, doub
   logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
   th[j]= thtmp;
 
-  (*f) += priordens;
+  (*fnew) += priordens;
 
 }
 

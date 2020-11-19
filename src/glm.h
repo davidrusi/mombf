@@ -19,6 +19,9 @@ using namespace std;
 //Function to evaluate the marginal likelihood
 double marginal_glm(int *sel, int *nsel, struct marginalPars *pars);
 
+//Function to initialize the parameter values
+void get_thini_glm(double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars);
+
 
 //*************************************************************************************
 //  Generic function returning a pointer to logprior, gradient and hessians for a given priorcode
@@ -109,6 +112,35 @@ void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int
 //Obtain hessian. It has type pt2hess (defined in modselFunction.h)
 void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+
+
+//AUXILIARY FUNCTIONS TO EVALUATE LOG-JOINT AND DERIVATIVES. THESE CAN BE COPY/PASTED WITH MINIMAL ADAPTATION, IF ONE WISHES TO IMPLEMENT OTHER LIKELIHOODS (SEE POISSON EXAMPLE BELOW)
+
+//Log joint under pMOM - gZellner prior
+void fjoint_poisson_pmomgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointu_poisson_pmomgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointg_poisson_pmomgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointgh_poisson_pmomgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointh_poisson_pmomgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+//Log joint under peMOM - gZellner prior
+void fjoint_poisson_pemomgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointu_poisson_pemomgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointg_poisson_pemomgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointgh_poisson_pemomgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointh_poisson_pemomgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+//Log joint under gZellner - gZellner prior
+void fjoint_poisson_gzellgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointu_poisson_gzellgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointg_poisson_gzellgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointgh_poisson_gzellgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointh_poisson_gzellgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+void fjoint0_poisson_gzellgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
+void fjointgh0_poisson_gzellgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void fjointh0_poisson_gzellgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 
 

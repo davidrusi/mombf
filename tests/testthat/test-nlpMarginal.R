@@ -40,12 +40,9 @@ patrick::with_parameters_test_that(
     expect_equal(ans_all, expected_all, tolerance=tolerance)
   },
   patrick::cases(
-    momprior=list(pCoef=momprior(tau=0.328, r=1), pSkew=momprior(tau=0.3, r=1), expected_max=-38.65772, expected_all=-44.07725),
-    imomprior=list(pCoef=imomprior(tau=0.328), pSkew=imomprior(tau=0.3), expected_max=-39.70232, expected_all=-46.28343),
-    emomprior=list(pCoef=emomprior(tau=0.328), pSkew=emomprior(tau=0.3), expected_max=-38.33761, expected_all=-44.78092)
-    #momprior=list(pCoef=momprior(tau=0.328, r=1), pSkew=momprior(tau=0.3, r=1), expected_max=-38.64731, expected_all=-44.05285),
-    #imomprior=list(pCoef=imomprior(tau=0.328), pSkew=imomprior(tau=0.3), expected_max=-39.69978, expected_all=-46.27032),
-    #emomprior=list(pCoef=emomprior(tau=0.328), pSkew=emomprior(tau=0.3), expected_max=-38.33845, expected_all=-44.76512)
+    momprior=list(pCoef=momprior(tau=0.328, r=1), pSkew=momprior(tau=0.3, r=1), expected_max=-38.64731, expected_all=-44.05285),
+    imomprior=list(pCoef=imomprior(tau=0.328), pSkew=imomprior(tau=0.3), expected_max=-39.69978, expected_all=-46.27032),
+    emomprior=list(pCoef=emomprior(tau=0.328), pSkew=emomprior(tau=0.3), expected_max=-38.33845, expected_all=-44.76512)
   )
 )
 

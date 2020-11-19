@@ -109,7 +109,11 @@ not performed for these variables}
   For \code{family=='twopiecelaplace'} setting alpha=a is equivalent
   to performing quantile regression for the quantile (1+a)/2.
   Ignored if \code{family} is 'normal' or 'laplace'.}
-\item{phi}{Residual variance. Typically this is unknown and therefore left missing. If specified argument priorVar is ignored}
+\item{phi}{Disperson parameter. For Gaussian models it is the error
+  variance, assumed to be known by \code{pimomMarginalK} and
+  \code{pmomMarginalK}. For GLMs it is ignored unless method=='ALA', in
+  which case if phi is missing a curvature adjustment to the hessian
+  is applied (recommended)}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
 \item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
 \item{method}{Method to compute marginal likelihood.

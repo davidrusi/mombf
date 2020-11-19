@@ -11,7 +11,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   std::map<string, double *> funargs;
   bool posdef, orthoapprox=false, nonlocal, momsingle, momgroup;
   int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod);
-  double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *g, *h, **H, **Hinv, **cholH;
+  double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, **H, **Hinv, **cholH;
   modselFunction *msfun;
   pt2fun fjoint=NULL, fjoint0=NULL;
   pt2funupdate fjoint_update=NULL; 
@@ -26,7 +26,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   msfun->ftol= 0.001; msfun->thtol= 0.001;
 
   //Allocate memory
-  g= dvector(1,thlength); h= dvector(1,thlength); H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
+  H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
   thopt= dvector(0, *nsel); thini= dvector(0, *nsel); 
   y= (*pars).y;
 
@@ -61,12 +61,25 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   if (*((*pars).method) == 2) {
     // APPROXIMATE LAPLACE APPROXIMATION
 
-    msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
+    if (*((*pars).knownphi) != 0) {  //no curvature adjustment
 
-    ans= msfun->ALA(thini, &funargs);
+      msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
 
-    //fjoint0(&fini, thini, sel, &thlength, pars, &funargs);  //log-joint at th=0
-    //ans= msfun->ALA(thini, &fini, g, H, NULL, NULL, false, false, &funargs); //aprox marginal likelihood
+      ans= msfun->ALA(thini, &funargs);
+
+    } else {  //curvature adjustment
+
+      double f0;
+
+      fjoint0(&f0, thini, sel, &thlength, pars, &funargs);  //log-joint at th=0
+
+      get_thini_glm(thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+
+      fjoint_hess(H, thini, sel, &thlength, pars, &funargs);
+
+      ans= msfun->ALA(thini, &f0, thini, H, NULL, NULL, false, false, &funargs); //returns -f0 + 0.5 * dim(th) * log(2 pi) - 0.5*log(det(H)) + 0.5 thini' H thini
+
+    }
 
   } else {
     // LAPLACE APPROXIMATION
@@ -74,8 +87,13 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
     msfun->fun = fjoint; msfun->funupdate = fjoint_update; msfun->gradUniv = fjoint_grad; msfun->gradhessUniv = fjoint_gradhess; msfun->hess = fjoint_hess;
 
     msfun->evalfun(&fini, thini, &funargs); //initialize funargs
-   
-    if (!nonlocal || orthoapprox) { //if it's not a non-local prior, evaluate log-posterior gradient and hessian
+
+    get_thini_glm(thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+
+/*   OLD CODE MOVED INTO get_thini_glm. It can be deleted after get_thini_glm is checked to work well
+g= dvector(1,thlength); h= dvector(1,thlength); 
+
+    if (!nonlocal || orthoapprox) { //if it's a local prior, evaluate log-posterior gradient and hessian
      
       fjoint_hess0(H, thini, sel, &thlength, pars, &funargs);
       for (i=0; i< thlength; i++) { fjoint_gradhess0(g+1+i, h+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
@@ -96,6 +114,8 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
      
     inv_posdef(H, thlength, Hinv, &posdef);   //initialize posterior mode with single Newton step
     Ax(Hinv,g,thini-1,1,thlength,1,thlength);
+free_dvector(g,1,thlength); free_dvector(h,1,thlength); 
+*/
      
     if (nonlocal && !orthoapprox) {   //if it's a non-local prior, avoid exact zeroes (0 prior density)
      
@@ -138,7 +158,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
   //Free memory and return output
   delete msfun;
-  free_dvector(g,1,thlength); free_dvector(h,1,thlength); free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength); free_dmatrix(cholH,1,thlength,1,thlength);
+  free_dmatrix(H,1,thlength,1,thlength); free_dmatrix(Hinv,1,thlength,1,thlength); free_dmatrix(cholH,1,thlength,1,thlength);
   free_dvector(thopt,0,*nsel); free_dvector(thini,0,*nsel);
 
   free_dvector(nvarinselgroups, 0, min_xy(*nsel, *((*pars).ngroups))); free_dvector(firstingroup, 0, min_xy(*nsel, *((*pars).ngroups))); free_dvector(selgroups,0,*nsel -1);
@@ -152,6 +172,48 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 }
 
 
+
+/* Initialize parameter value in GLMs to thini= H0^{-1} g0, where g0 and H0 are the gradient and hessian at 0 of the log-joint (for local priors) or the log-likelihood (for non-local priors)
+
+  OUPUT
+
+  - thini: initial parameter value
+  - H: hessian at 0
+  - Hinv: inverse of H
+
+*/
+void get_thini_glm(double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars) {
+  bool posdef;
+  int i;
+  double *g, *h;
+
+  g= dvector(1,*thlength); h= dvector(1,*thlength); 
+
+  if (!nonlocal || orthoapprox) { //if it's a local prior, evaluate log-posterior gradient and hessian
+     
+    fjoint_hess0(H, thini, sel, thlength, pars, funargs);
+    for (i=0; i< *thlength; i++) { fjoint_gradhess0(g+1+i, h+1+i, i, thini, sel, thlength, pars, funargs); g[i+1]= -g[i+1]; }
+     
+  } else { //if it's a non-local prior, evaluate log-likelihood gradient and hessian
+     
+    pt2fun logl=NULL, logl0=NULL;
+    pt2funupdate logl_update=NULL; 
+    pt2gradUniv logl_grad=NULL;
+    pt2gradhessUniv logl_gradhess=NULL, logl_gradhess0=NULL;
+    pt2hess logl_hess=NULL, logl_hess0=NULL;
+     
+    set_logl_glm(&logl, &logl_update, &logl_grad, &logl_gradhess, &logl_hess, &logl0, &logl_gradhess0, &logl_hess0, (*pars).family);
+    fjoint_hess0(H, thini, sel, thlength, pars, funargs);
+    for (i=0; i< *thlength; i++) { fjoint_gradhess0(g+1+i, h+1+i, i, thini, sel, thlength, pars, funargs); g[i+1]= -g[i+1]; }
+     
+  }
+     
+  inv_posdef(H, *thlength, Hinv, &posdef);   //initialize posterior mode with single Newton step
+  Ax(Hinv,g,thini-1,1,*thlength,1,*thlength);
+
+  free_dvector(g,1,*thlength); free_dvector(h,1,*thlength); 
+
+}
 
 //*************************************************************************************
 //  Generic function returning a pointer to logprior, gradient and hessians for a given priorcode
@@ -235,7 +297,6 @@ void set_logjoint_glm(pt2fun *fjoint, pt2funupdate *fjoint_update, pt2gradUniv *
 
   } else if (*family ==22) {  //Poisson regression
 
-/* Uncomment after adding Poisson log-likelihood and derivatives
     if ((*momsingle) && !(*momgroup) && !(*orthoapprox)) { //MOM prior on indiv coef, orthogonal approx not wanted
 
       (*fjoint)= &fjoint_poisson_pmomgzell; (*fjoint_update)= &fjointu_poisson_pmomgzell; 
@@ -257,7 +318,6 @@ void set_logjoint_glm(pt2fun *fjoint, pt2funupdate *fjoint_update, pt2gradUniv *
     } else {
       Rf_error("The specified method to obtain the integrated likelihood is not implemented in GLMs for this prior");
     }
-*/
 
   } else {
 
@@ -467,6 +527,8 @@ void negloglhess0_logreg(double **hess, double *th, int *sel, int *thlength, str
 
 
 
+
+//AUXILIARY FUNCTIONS TO EVALUATE LOG-JOINT AND DERIVATIVES. THESE CAN BE COPY/PASTED WITH MINIMAL ADAPTATION, IF ONE WISHES TO IMPLEMENT OTHER LIKELIHOODS (SEE POISSON EXAMPLE BELOW)
 
 //Log joint under pMOM - gZellner prior
 void fjoint_logreg_pmomgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
@@ -716,6 +778,89 @@ void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, st
     for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= ((*pars).XtX)->at(sel[i-1],sel[j-1]); }
   }
 
+}
+
+
+
+
+
+//AUXILIARY FUNCTIONS TO EVALUATE LOG-JOINT AND DERIVATIVES
+
+//Log joint under pMOM - gZellner prior
+void fjoint_poisson_pmomgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint(&neglogl_poisson, &pmomgzell_log, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointu_poisson_pmomgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint_update(&negloglupdate_poisson, &pmomgzell_log, fnew, thjnew, j, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointg_poisson_pmomgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_grad(&negloglgrad_poisson, &pmomgzell_grad, grad, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointgh_poisson_pmomgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_gradhess(&negloglgradhess_poisson, &pmomgzell_gradhess, grad, hess, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointh_poisson_pmomgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_hess(&negloglhess_poisson, &pmomgzell_hess, hess, th, sel, thlength, pars, funargs);
+}
+
+
+//Log joint under peMOM - gZellner prior
+void fjoint_poisson_pemomgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint(&neglogl_poisson, &pemomgzell_log, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointu_poisson_pemomgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint_update(&negloglupdate_poisson, &pemomgzell_log, fnew, thjnew, j, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointg_poisson_pemomgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_grad(&negloglgrad_poisson, &pemomgzell_grad, grad, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointgh_poisson_pemomgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_gradhess(&negloglgradhess_poisson, &pemomgzell_gradhess, grad, hess, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointh_poisson_pemomgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_hess(&negloglhess_poisson, &pemomgzell_hess, hess, th, sel, thlength, pars, funargs);
+}
+
+
+//Log joint under gZellner - gZellner prior
+void fjoint_poisson_gzellgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint(&neglogl_poisson, &gzellgzell_log, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointu_poisson_gzellgzell(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint_update(&negloglupdate_poisson, &gzellgzell_log, fnew, thjnew, j, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointg_poisson_gzellgzell(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_grad(&negloglgrad_poisson, &gzellgzell_grad, grad, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointgh_poisson_gzellgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_gradhess(&negloglgradhess_poisson, &gzellgzell_gradhess, grad, hess, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointh_poisson_gzellgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_hess(&negloglhess_poisson, &gzellgzell_hess, hess, th, sel, thlength, pars, funargs);
+}
+
+void fjoint0_poisson_gzellgzell(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+  fjoint(&neglogl0_poisson, &gzellgzell_log, f, th, sel, thlength, pars, funargs);
+}
+
+void fjointgh0_poisson_gzellgzell(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_gradhess(&negloglgradhess0_poisson, &gzellgzell_gradhess, grad, hess, j, th, sel, thlength, pars, funargs);
+}
+
+void fjointh0_poisson_gzellgzell(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  fjoint_hess(&negloglhess0_poisson, &gzellgzell_hess, hess, th, sel, thlength, pars, funargs);
 }
 
 

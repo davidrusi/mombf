@@ -511,6 +511,12 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   hasgroups <-  (length(groups) > length(unique(groups)))
   y <- as.double(y)
+  #Check that support of y is valid for the specified family
+  if (family %in% c('binomial','binomial logit')) {
+      if (any(!(y %in% c(0,1)))) stop("Invalid value for the response. For logistic regression it must be 0 or 1")
+  } else if (family %in% c('poisson','poisson logit')) {
+      if (any(y < 0) || any((y %% 1) != 0)) stop("Invalid value for the response. For Poisson regression it must be a natural number")
+  }
   ans <- list(
     x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
     groups=groups, hasgroups=hasgroups, constraints=constraints, outcometype=outcometype, uncens=uncens,
@@ -813,7 +819,6 @@ formatmsMethod= function(method, optimMethod, priorCoef, priorGroup, knownphi, o
     } else {
         optimMethod <- as.integer(2)
     }
-    optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
   }
 
   #Obtain code for the method to compute the integrated likelihood

@@ -22,7 +22,7 @@
 //Syntax calling from R, see nlpMarginal.R
 //.Call("nlpMarginalCI",   sel,       nsel,    familyint,           prior,          priorgr,       n,       p,       y,       uncens,       sumy2,       x,       colsumsx,       XtX,       ytX,       method,       hesstype,       optimMethod,       B,       alpha,       lambda,       tau,       taugroup,       taualpha,       fixatanhalpha,       r,       groups,       ngroups,       nvaringroup,       constraints,      invconstraints,        logscale)
 
-SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
+SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Shesstype, SEXP SoptimMethod, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
   int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit=0, priorcode;
   double *rans, *ytXuncens=NULL, emptydouble=0, *thinit;
   intptrvec constraints, invconstraints;
@@ -50,7 +50,7 @@ SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP Sp
   thinit= dvector(0, p);
   for (j=0; j<= p; j++) { thinit[j]= 0; }
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;
@@ -64,11 +64,10 @@ SEXP nlpMarginalCI(SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP Sp
 }
 
 double nlpMarginal(int *sel, int *nsel, struct marginalPars *pars) {
-  int knownphi=0;
   double ans;
   pt2margFun marginalFunction; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
-  marginalFunction = set_marginalFunction(pars, &knownphi);
+  marginalFunction = set_marginalFunction(pars);
   ans = marginalFunction(sel, nsel, pars);
   return(ans);
 }

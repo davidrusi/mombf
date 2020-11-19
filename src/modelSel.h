@@ -92,6 +92,7 @@ struct marginalPars {
   int *B;      //number of Monte Carlo samples
   double *alpha;    //prior for residual variance is IG(.5*alpha,.5*lambda)
   double *lambda;
+  int *knownphi; //should dispersion parameter be considered known, e.g. error var in Gaussian regression, or phi=1 in logistic/poisson regression
   double *phi;      //residual variance
   double *tau;      //dispersion parameter in prior for regression coefficients
   double *taugroup; //prior dispersion parameter on grouped coefficients, e.g. the block Zellner prior is prod_j N(delta_j; 0, (taugroup/ncol(X_j)) (X_j'X_j)^{-1})
@@ -154,7 +155,7 @@ void testfunction(double *x);
 //*************************************************************************************
 
 int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars);
-pt2margFun set_marginalFunction(struct marginalPars *pars, int *knownphi);
+pt2margFun set_marginalFunction(struct marginalPars *pars);
 pt2margFun set_priorFunction(int *prDelta, int *prConstr, int *family);
 pt2modavgPrior set_priorFunction_modavg(int *priorModel);
 
@@ -191,7 +192,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap,double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
+void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap,double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
 void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
 void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
@@ -201,9 +202,9 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // Model Selection Routines
 //*************************************************************************************
 
-void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars);
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
+void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars);
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
+void greedyVarSelC(int *postMode, double *postModeProb, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
 
 void update_postMode(int *postMode, int nselnew, int *selnew, int p, int family);
 bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndropgroups, intptrvec *constraints, int *nconstraints, intptrvec *invconstraints, int *ninvconstraints, int *groups, int *nvaringroup, int *sel, int *nsel);

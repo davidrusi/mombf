@@ -22,7 +22,7 @@
 nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
-method='auto', hess='asymp', optimMethod, B=10^5, logscale=TRUE, XtX, ytX)
+phi, method='auto', hess='asymp', optimMethod, B=10^5, logscale=TRUE, XtX, ytX)
 
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
@@ -75,10 +75,7 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or
   'laplace'.}
-\item{method}{Method to approximate the integral. method=='auto' uses
-  closed-form expressions whenever possible and Laplace approximations
-  otherwise. method=='Laplace' for Laplace approx.
-  method=='MC' for Monte Carlo}
+\item{method}{Method to approximate the integral. See \code{help(modelSelection)}.}
 \item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
   likelihood under Laplace or asymmetric Laplace errors. When
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a
@@ -94,8 +91,7 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   Useful when the function must be called a large number of times.}
 \item{ytX}{Optionally, specify the vector y'X.
   Useful when the function must be called a large number of times.}
-\item{phi}{Residual variance, assumed to be known by
-  \code{pimomMarginalK} and \code{pmomMarginalK}}
+\item{phi}{Disperson parameter. See \code{help(modelSelection)}}
 \item{alpha}{Prior for phi is inverse gamma \code{alpha/2},
   \code{lambda/2}}
 \item{lambda}{Prior for phi is inverse gamma \code{alpha/2},

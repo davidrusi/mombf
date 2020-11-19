@@ -312,7 +312,7 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   return ans;
 }
 
-pt2margFun set_marginalFunction(struct marginalPars *pars, int *knownphi) {
+pt2margFun set_marginalFunction(struct marginalPars *pars) {
   /*Returns pointer to function to compute the marginal density of the data for a given model indicator
 
    - priorcode: prior code returned by mspriorCode
@@ -326,19 +326,19 @@ pt2margFun set_marginalFunction(struct marginalPars *pars, int *knownphi) {
   Note: if phi known, when actually calling the returned pt2margFun, phi must be set in the parameter of type struct marginalPars *
   */
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
-  int priorcode= *((*pars).priorcode), family= *((*pars).family);
+  int priorcode= *((*pars).priorcode), family= *((*pars).family), knownphi= *((*pars).knownphi);
   pt2margFun ans=NULL;
   if ((family)==1) {  //Normal errors
     if (priorcode==0) {
-      if (*knownphi==1) { ans= pmomMarginalKC; } else { ans= pmomMarginalUC; }
+      if (knownphi==1) { ans= pmomMarginalKC; } else { ans= pmomMarginalUC; }
     } else if (priorcode==1) {
-      if (*knownphi==1) { ans= pimomMarginalKC; } else { ans= pimomMarginalUC; }
+      if (knownphi==1) { ans= pimomMarginalKC; } else { ans= pimomMarginalUC; }
     } else if (priorcode==2) {
-      if (*knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
+      if (knownphi==1) { ans= pemomMarginalKC; } else { ans= pemomMarginalUC; }
     } else if (priorcode==3) {
-      if (*knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
+      if (knownphi==1) { ans= zellnerMarginalKC; } else { ans= zellnerMarginalUC; }
     } else if (priorcode==4) {
-      if (*knownphi==1) { ans= normalidMarginalKC; } else { ans= normalidMarginalUC; }
+      if (knownphi==1) { ans= normalidMarginalKC; } else { ans= normalidMarginalUC; }
     } else if (priorcode==10) {
       ans= pmomgmomMarg;
     } else if (priorcode==13) {
@@ -923,7 +923,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 // GENERAL MARGINAL DENSITY CALCULATION ROUTINES
 //********************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints=NULL, int *ninvconstraints=NULL, crossprodmat *XtXuncens=NULL, double *ytXuncens=NULL) {
+void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *hesstype,int *optimMethod,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints=NULL, int *ninvconstraints=NULL, crossprodmat *XtXuncens=NULL, double *ytXuncens=NULL) {
   (*pars).family= family;
   (*pars).n= n;
   (*pars).nuncens= nuncens;
@@ -947,6 +947,7 @@ void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncen
   (*pars).B= B;
   (*pars).alpha= alpha;
   (*pars).lambda= lambda;
+  (*pars).knownphi= knownphi;
   (*pars).phi= phi;
   (*pars).tau= tau;
   (*pars).taugroup= taugroup;
@@ -1076,12 +1077,12 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
   } else { nuncens= INTEGER(Sn)[0]; }
 
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;
 
-  modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(Sknownphi), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sverbose), &pars);
+  modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sverbose), &pars);
 
   delete XtX;
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1093,14 +1094,14 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
 
 
-void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *knownphi, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars) {
+void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars) {
 
-  int i, j, *sel, nsel, nselplus1, niter10, nbvars, nbfamilies=4, postModeidx, *family= ((*pars).family);
+  int i, j, *sel, nsel, nselplus1, niter10, nbvars, nbfamilies=4, postModeidx, *family= (*pars).family;
   double *mfamily, *pfamily;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
 
-  marginalFunction= set_marginalFunction(pars, knownphi);
+  marginalFunction= set_marginalFunction(pars);
   priorFunction= set_priorFunction(prDelta, prConstr, family);
 
   mfamily= dvector(0,nbfamilies-1); pfamily= dvector(0,nbfamilies-1);
@@ -1222,12 +1223,12 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
     for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;
 
-  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(Sknownphi), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), &constraints, &invconstraints, INTEGER(Sverbose), &pars);
+  modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), &constraints, &invconstraints, INTEGER(Sverbose), &pars);
 
   free_dvector(thinit, 0,mycols2+1);   free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1239,7 +1240,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
 
 
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *knownphi, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
 
   bool copylast, validmodel, nonbinary=false;
   int i, j, jgroup, jgroup2, k, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, *nconstraints= (*pars).nconstraints, *ninvconstraints= (*pars).ninvconstraints, *family= (*pars).family;
@@ -1250,7 +1251,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
   modselIntegrals *integrals;
 
-  marginalFunction= set_marginalFunction(pars, knownphi);
+  marginalFunction= set_marginalFunction(pars);
   priorFunction= set_priorFunction(prDelta, prConstr, family);
 
   addgroups= ivector(0,1); dropgroups= ivector(0,1); newJ= dvector(0,2); ppnew= dvector(0,3); modelidx= ivector(0,3);
@@ -1542,12 +1543,12 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
     for (j=0; j< INTEGER(Sp)[0]; j++) { for (i=0, ytXuncens[j]=0, idxj=j*n; i< nuncens; i++) { ytXuncens[j] += pty[i] * ptx[i + idxj]; } }
   } else { nuncens= INTEGER(Sn)[0]; }
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Shesstype), INTEGER(SoptimMethod), &usethinit, thinit, INTEGER(SB), REAL(Salpha), REAL(Slambda), INTEGER(Sknownphi), REAL(Sphi), REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(SprDeltap), REAL(SparprDeltap), REAL(SprConstrp), REAL(SparprConstrp), &logscale, &offset, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), &ngroupsconstr, INTEGER(Snvaringroup), nconstraints, ninvconstraints, XtXuncens, ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;
 
-  greedyVarSelC(postMode,postModeProb,INTEGER(Sknownphi),INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),&constraints,&invconstraints,INTEGER(Sverbose),&pars);
+  greedyVarSelC(postMode,postModeProb,INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),&constraints,&invconstraints,INTEGER(Sverbose),&pars);
 
   free_dvector(thinit, 0,mycols+1); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
@@ -1557,13 +1558,13 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
 
 }
 
-void greedyVarSelC(int *postMode, double *postModeProb, int *knownphi, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
+void greedyVarSelC(int *postMode, double *postModeProb, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
 
   int i, j, k, l, jgroup, *sel, *selnew, *selaux, nsel, nselnew, nchanges, ngroups, *nvaringroup, *firstingroup, *nconstraints= (*pars).nconstraints, *family= (*pars).family;
   double newJ;
   pt2margFun marginalFunction=NULL, priorFunction=NULL; //same as double (*marginalFunction)(int *, int *, struct marginalPars *);
 
-  marginalFunction= set_marginalFunction(pars, knownphi);
+  marginalFunction= set_marginalFunction(pars);
   priorFunction= set_priorFunction(prDelta, prConstr, family);
   sel= ivector(0,*(*pars).p); selnew= ivector(0,*(*pars).p);
 
@@ -6476,14 +6477,14 @@ double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B) {
 
 SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
   struct marginalPars pars;
-  int SoptimMethod= 1, emptyint=1, usethinit=0;
+  int SoptimMethod= 1, emptyint=1, usethinit=0, knownphi=1;
   double *rans, emptydouble=0, offset=0, *taualpha=NULL;
   crossprodmat *XtX;
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,&emptyint,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,&emptydouble,&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,&usethinit,&emptydouble,INTEGER(SB),&emptydouble,&emptydouble,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  set_marginalPars(&pars,&emptyint,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,&emptydouble,&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,&usethinit,&emptydouble,INTEGER(SB),&emptydouble,&emptydouble,&knownphi,REAL(Sphi),REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
@@ -6555,7 +6556,7 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 
 
 SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int SoptimMethod= 1, emptyint=1, usethinit=0;
+  int SoptimMethod= 1, emptyint=1, usethinit=0, knownphi=0;
   double *rans, emptydouble=0, offset=0, *taualpha=NULL;
   struct marginalPars pars;
   crossprodmat *XtX;
@@ -6563,7 +6564,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
 
-  set_marginalPars(&pars,&emptyint,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,REAL(Sx),&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,&usethinit,&emptydouble,INTEGER(SB),REAL(Salpha),REAL(Slambda),&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  set_marginalPars(&pars,&emptyint,INTEGER(Sn),INTEGER(Sn),INTEGER(Sp),REAL(Sy),&emptyint,REAL(Ssumy2),&emptydouble,REAL(Sx),&emptydouble,XtX,REAL(SytX),INTEGER(Smethod),&emptyint,&SoptimMethod,&usethinit,&emptydouble,INTEGER(SB),REAL(Salpha),REAL(Slambda),&knownphi,&emptydouble,REAL(Stau),&emptydouble,taualpha,taualpha,INTEGER(Sr),NULL,NULL,NULL,NULL,INTEGER(Slogscale),&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pmomMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
@@ -6877,14 +6878,14 @@ void imomIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, doub
 // - B: number of Monte Carlo samples. Ignored unless method==1.
 // - logscale: if set to 1 result is returned in log scale
 SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
-  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), SoptimMethod=1, *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, emptyint=1, usethinit=0;
+  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), SoptimMethod=1, *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, emptyint=1, usethinit=0, knownphi=1;
   double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *ytX=REAL(SytX), *phi=REAL(Sphi), *tau=REAL(Stau), *rans, emptydouble=0, offset=0, *taualpha=NULL;
   struct marginalPars pars;
   crossprodmat *XtX;
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,&emptyint,n,n,p,y,&emptyint,sumy2,&emptydouble,&emptydouble,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,&emptydouble,&emptydouble,phi,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  set_marginalPars(&pars,&emptyint,n,n,p,y,&emptyint,sumy2,&emptydouble,&emptydouble,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,&emptydouble,&emptydouble,&knownphi,phi,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalKC(sel, nsel, &pars);
@@ -7155,14 +7156,14 @@ double f2int_imom(double phi) {
 
 
 SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
-  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, SoptimMethod=1, emptyint=1, usethinit=0;
+  int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, SoptimMethod=1, emptyint=1, usethinit=0, knownphi=0;
   double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *x=REAL(Sx), *ytX=REAL(SytX), *tau=REAL(Stau), *alpha=REAL(Salpha), *lambda=REAL(Slambda), *rans, emptydouble=0, offset=0, *taualpha=NULL;
   struct marginalPars pars;
   crossprodmat *XtX;
   SEXP ans;
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],INTEGER(Sp)[0],true);
-  set_marginalPars(&pars,&emptyint,n,n,p,y,&emptyint,sumy2,&emptydouble,x,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,alpha,lambda,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
+  set_marginalPars(&pars,&emptyint,n,n,p,y,&emptyint,sumy2,&emptydouble,x,&emptydouble,XtX,ytX,method,&emptyint,&SoptimMethod,&usethinit,&emptydouble,B,alpha,lambda,&knownphi,&emptydouble,tau,&emptydouble,taualpha,taualpha,&r,NULL,NULL,NULL,NULL,logscale,&offset,NULL,NULL,INTEGER(Sngroups),NULL,INTEGER(Snvaringroup));
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalUC(sel, nsel, &pars);

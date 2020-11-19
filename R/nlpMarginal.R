@@ -7,7 +7,7 @@
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
   priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
-  priorSkew=momprior(tau=0.348), method='auto', hess='asymp', optimMethod,
+  priorSkew=momprior(tau=0.348), phi, method='auto', hess='asymp', optimMethod,
   B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
@@ -34,6 +34,9 @@ nlpMarginal <- function(
       priorCoef= defaultprior$priorCoef; priorVar= defaultprior$priorVar
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
+
+  if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
+
   # format arguments for .Call
   method <- formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, hess=hess)
   optimMethod <- method$optimMethod; hesstype <- method$hesstype; method <- method$method
@@ -54,7 +57,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumlogyfact, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumlogyfact, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 

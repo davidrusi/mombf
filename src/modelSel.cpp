@@ -439,7 +439,7 @@ pt2margFun set_marginalFunction(struct marginalPars *pars) {
     } else if (priorcode==3) {
       Rf_error("Zellner prior with family='auto' not currently implemented");
     }
-  } else if ((family)>=21 & (family)<=22) {  //Logistic or Poisson regression
+  } else if ((family>=21) && (family<=22)) {  //Logistic or Poisson regression
     if ((priorcode == 3) || (priorcode==43)) {
       Rprintf("Zellner prior not implemented for GLMs. Using group Zellner instead\n");
       *((*pars).priorcode)= 63;

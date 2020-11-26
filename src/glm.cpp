@@ -10,7 +10,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
   std::map<string, double *> funargs;
   bool posdef, orthoapprox=false, nonlocal, momsingle, momgroup;
-  int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod);
+  int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod), family= *((*pars).family);
   double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, **H, **Hinv, **cholH;
   modselFunction *msfun;
   pt2fun fjoint=NULL, fjoint0=NULL;
@@ -61,25 +61,46 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   if (*((*pars).method) == 2) {
     // APPROXIMATE LAPLACE APPROXIMATION
 
-    if (*((*pars).knownphi) != 0) {  //no curvature adjustment
+    msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
 
-      msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
+    double adjfactor=1, ybar= *((*pars).sumy) / ((double) n);
 
-      ans= msfun->ALA(thini, &funargs);
+    if ((family == 21) || (family == 22)) {
+      if (*((*pars).adjoverdisp) == 1) {  //estimate over-dispersion from intercept-only model
 
-    } else {  //curvature adjustment
+        adjfactor= *((*pars).sumy2) / ((double) n)  - pow(ybar, 2);
+        if (family == 21) { 
+          adjfactor /= ybar * (1 - ybar);
+        } else if (family == 22) {
+          adjfactor /= ybar;
+        }
 
-      double f0;
+      } else if (*((*pars).adjoverdisp) == 2) { //estimate over-dispersion from residuals
 
-      fjoint0(&f0, thini, sel, &thlength, pars, &funargs);  //log-joint at th=0
+        Rf_error("This over-dispersion adjustment method is not implemented yet\n");
+        double ss=0;
 
-      get_thini_glm(thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+        if (family==21) {
+          get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_logreg, negloglhess00_logreg, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+        } else if (family==22) {
+          get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_poisson, negloglhess00_poisson, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+        }
+        
+        Aselvecx((*pars).x, thopt, ypred, 0, n-1, sel, &thlength); //Returns ypred=x[,sel] %*% thini
 
-      fjoint_hess(H, thini, sel, &thlength, pars, &funargs);
-
-      ans= msfun->ALA(thini, &f0, thini, H, NULL, NULL, false, false, &funargs); //returns -f0 + 0.5 * dim(th) * log(2 pi) - 0.5*log(det(H)) + 0.5 thini' H thini
-
+        if (family == 21) { 
+          for (i=0; i<n; i++) { ss += pow( ((*pars).y)[i] - 1.0/(1.0 + exp(-ypred[i])), 2); } 
+          adjfactor= 4; //1/0.25
+        } else if (family == 22) {
+          for (i=0; i<n; i++) { ss += pow( ((*pars).y)[i] - exp(ypred[i]), 2); } 
+          adjfactor= 1;
+        }
+        adjfactor *= ss / ((double) n);
+      }
     }
+
+    ans= msfun->ALA(thini, adjfactor, &funargs);
+
 
   } else {
     // LAPLACE APPROXIMATION
@@ -88,35 +109,8 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
     msfun->evalfun(&fini, thini, &funargs); //initialize funargs
 
-    get_thini_glm(thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
-
-/*   OLD CODE MOVED INTO get_thini_glm. It can be deleted after get_thini_glm is checked to work well
-g= dvector(1,thlength); h= dvector(1,thlength); 
-
-    if (!nonlocal || orthoapprox) { //if it's a local prior, evaluate log-posterior gradient and hessian
-     
-      fjoint_hess0(H, thini, sel, &thlength, pars, &funargs);
-      for (i=0; i< thlength; i++) { fjoint_gradhess0(g+1+i, h+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
-     
-    } else { //if it's a non-local prior, evaluate log-likelihood gradient and hessian
-     
-      pt2fun logl=NULL, logl0=NULL;
-      pt2funupdate logl_update=NULL; 
-      pt2gradUniv logl_grad=NULL;
-      pt2gradhessUniv logl_gradhess=NULL, logl_gradhess0=NULL;
-      pt2hess logl_hess=NULL, logl_hess0=NULL;
-     
-      set_logl_glm(&logl, &logl_update, &logl_grad, &logl_gradhess, &logl_hess, &logl0, &logl_gradhess0, &logl_hess0, (*pars).family);
-      fjoint_hess0(H, thini, sel, &thlength, pars, &funargs);
-      for (i=0; i< thlength; i++) { fjoint_gradhess0(g+1+i, h+1+i, i, thini, sel, &thlength, pars, &funargs); g[i+1]= -g[i+1]; }
-     
-    }
-     
-    inv_posdef(H, thlength, Hinv, &posdef);   //initialize posterior mode with single Newton step
-    Ax(Hinv,g,thini-1,1,thlength,1,thlength);
-free_dvector(g,1,thlength); free_dvector(h,1,thlength); 
-*/
-     
+    get_thini_glm(thini, thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+   
     if (nonlocal && !orthoapprox) {   //if it's a non-local prior, avoid exact zeroes (0 prior density)
      
       for (i=0; i< *nsel; i++) {
@@ -175,14 +169,16 @@ free_dvector(g,1,thlength); free_dvector(h,1,thlength);
 
 /* Initialize parameter value in GLMs to thini= H0^{-1} g0, where g0 and H0 are the gradient and hessian at 0 of the log-joint (for local priors) or the log-likelihood (for non-local priors)
 
+  - thini: initial parameter value
+
   OUPUT
 
-  - thini: initial parameter value
+  - thhat: thini - Hinv g. You can set thhat=thini, then both get updated on output
   - H: hessian at 0
   - Hinv: inverse of H
 
 */
-void get_thini_glm(double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars) {
+void get_thini_glm(double *thhat, double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars) {
   bool posdef;
   int i;
   double *g, *h;
@@ -209,7 +205,7 @@ void get_thini_glm(double *thini, double **H, double **Hinv, pt2gradhessUniv fjo
   }
      
   inv_posdef(H, *thlength, Hinv, &posdef);   //initialize posterior mode with single Newton step
-  Ax(Hinv,g,thini-1,1,*thlength,1,*thlength);
+  Ax(Hinv,g,thhat-1,1,*thlength,1,*thlength);
 
   free_dvector(g,1,*thlength); free_dvector(h,1,*thlength); 
 
@@ -393,12 +389,6 @@ void neglogl_logreg(double *f, double *th, int *sel, int *thlength, struct margi
 }
 
 
-//Function to evaluate the negative loglikelihood at th=0
-void neglogl0_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
-  (*f) = (*((*pars).n) + .0) * log(2.0);
-}
-
-
 //Update the negative loglikelihood due to changing th[j] into thjnew, and update funargs
 void negloglupdate_logreg(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
   int i, n= *((*pars).n), idxj;
@@ -474,16 +464,6 @@ void negloglgrad_logreg(double *grad, int j, double *th, int *sel, int *thlength
 }
 
 
-//Obtain gradient and hessian wrt j at th=0
-void negloglgradhess0_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
-
-  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX;
-
-  (*grad)= -ytX[sel[j]] + 0.5 * colsumsx[sel[j]];
-  (*hess)= 0.25 * ((*pars).XtX)->at(sel[j],sel[j]);
-
-}
-
 //Obtain hessian
 void negloglhess_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
@@ -513,8 +493,61 @@ void negloglhess_logreg(double **hess, double *th, int *sel, int *thlength, stru
 }
 
 
-//Obtain hessian at th=0
+/* EVALUATE LOG-LIKELIHOOD AND DERIVATIVES FOR BETA= MLE AT THE INTERCEPT-ONLY MODEL */
+
+//Function to evaluate the negative loglikelihood
+void neglogl0_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+
+  double meany= (*((*pars).sumy)) / (*((*pars).n) + .0);
+
+  (*f) = - (*((*pars).n) + .0) * (meany * log(meany/(1-meany)) + log(1-meany));
+
+}
+
+
+//Obtain gradient and hessian wrt j
+void negloglgradhess0_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX, meany= (*((*pars).sumy)) / (*((*pars).n) + .0);
+
+  (*grad)= -ytX[sel[j]] + meany * colsumsx[sel[j]];
+
+  (*hess)= meany * (1-meany) * ((*pars).XtX)->at(sel[j],sel[j]);
+
+}
+
+//Obtain hessian
 void negloglhess0_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, j, nvars= *thlength; 
+  double meany= (*((*pars).sumy)) / (*((*pars).n) + .0), vary= meany * (1-meany);
+
+  for (i=1; i<=nvars; i++) {
+    hess[i][i]= vary * ((*pars).XtX)->at(sel[i-1],sel[i-1]);
+    for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= vary * ((*pars).XtX)->at(sel[i-1],sel[j-1]); }
+  }
+
+}
+
+
+/* LOG-LIKELIHOOD AND DERIVATIVES AT BETA=0 */
+void neglogl00_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+
+  (*f) = (*((*pars).n) + .0) * log(2.0);
+}
+
+
+void negloglgradhess00_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX;
+
+  (*grad)= -ytX[sel[j]] + 0.5 * colsumsx[sel[j]];
+  (*hess)= 0.25 * ((*pars).XtX)->at(sel[j],sel[j]);
+
+}
+
+
+void negloglhess00_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, nvars= *thlength;
 
@@ -524,7 +557,6 @@ void negloglhess0_logreg(double **hess, double *th, int *sel, int *thlength, str
   }
 
 }
-
 
 
 
@@ -648,11 +680,6 @@ void neglogl_poisson(double *f, double *th, int *sel, int *thlength, struct marg
 }
 
 
-//Function to evaluate the negative loglikelihood at th=0
-void neglogl0_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
-  (*f) = (*((*pars).n) + .0) + *((*pars).sumlogyfact);
-}
-
 
 //Update the negative loglikelihood due to changing th[j] into thjnew, and update funargs
 void negloglupdate_poisson(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
@@ -729,16 +756,6 @@ void negloglgrad_poisson(double *grad, int j, double *th, int *sel, int *thlengt
 }
 
 
-//Obtain gradient and hessian wrt j at th=0
-void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
-
-  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX;
-
-  (*grad)= -ytX[sel[j]] + colsumsx[sel[j]];
-  (*hess)= ((*pars).XtX)->at(sel[j],sel[j]);
-
-}
-
 //Obtain hessian
 void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
@@ -768,8 +785,55 @@ void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, str
 }
 
 
-//Obtain hessian at th=0
+
+/* EVALUATE LOG-LIKELIHOOD AND DERIVATIVES FOR BETA= MLE AT THE INTERCEPT-ONLY MODEL */
+//Function to evaluate the negative loglikelihood
+void neglogl0_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+  double meany= (*((*pars).sumy)) / (*((*pars).n) + .0);
+  (*f)= - (*((*pars).sumy)) * (log(meany) - 1) + *((*pars).sumlogyfact);
+}
+
+
+//Obtain gradient and hessian wrt j
+void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX, meany= (*((*pars).sumy)) / (*((*pars).n) + .0);
+
+  (*grad)= -ytX[sel[j]] + meany * colsumsx[sel[j]];
+  (*hess)= meany * ((*pars).XtX)->at(sel[j],sel[j]);
+
+}
+
+//Obtain hessian
 void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  int i, j, nvars= *thlength;
+  double meany= (*((*pars).sumy)) / (*((*pars).n) + .0);
+
+  for (i=1; i<=nvars; i++) {
+    hess[i][i]= meany * ((*pars).XtX)->at(sel[i-1],sel[i-1]);
+    for (j=1; j<i; j++) { hess[i][j]= hess[j][i]= meany * ((*pars).XtX)->at(sel[i-1],sel[j-1]); }
+  }
+
+}
+
+
+/* LOG-LIKELIHOOD GRADIENT AND HESSIANS AT th=0 (USED BY ALA) */
+void neglogl00_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs) { 
+  (*f) = (*((*pars).n) + .0) + *((*pars).sumlogyfact);
+}
+
+
+void negloglgradhess00_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+
+  double *colsumsx= (*pars).colsumsx, *ytX= (*pars).ytX;
+
+  (*grad)= -ytX[sel[j]] + colsumsx[sel[j]];
+  (*hess)= ((*pars).XtX)->at(sel[j],sel[j]);
+
+}
+
+void negloglhess00_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, nvars= *thlength;
 
@@ -779,7 +843,6 @@ void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, st
   }
 
 }
-
 
 
 

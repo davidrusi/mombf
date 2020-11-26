@@ -759,7 +759,7 @@ If returnH==true, then H is computed and returned, and its Cholesky decomp cholH
  */
 
 
-double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0= NULL, double **H0inv=NULL, bool returng0= false, bool returnH0=false, std::map<string, double *> *funargs= NULL) { 
+double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0= NULL, double **H0inv=NULL, bool returng0= false, bool returnH0=false, double adjfactor=1, std::map<string, double *> *funargs= NULL) { 
 
   bool posdef;
   int j;
@@ -799,7 +799,7 @@ double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, dou
 
   g0norm= quadratic_xtAx(g0, myH0inv, 1, this->thlength);
 
-  ans= - (*f0) + 0.5 * ((this->thlength) * LOG_M_2PI - logdetH0 + g0norm);
+  ans= - (*f0) + 0.5 * ((this->thlength) * (LOG_M_2PI - log(adjfactor)) - logdetH0 + g0norm / adjfactor);
 
   if (cholH0== NULL) free_dmatrix(mycholH0, 1,this->thlength,1,this->thlength);
   if (H0inv== NULL) free_dmatrix(myH0inv, 1,this->thlength,1,this->thlength);
@@ -807,7 +807,7 @@ double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, dou
 }
 
 
-double modselFunction::ALA(double *th0, double *f0, std::map<string, double *> *funargs=NULL) {
+double modselFunction::ALA(double *th0, double *f0, double adjfactor=1, std::map<string, double *> *funargs=NULL) {
   int j;
   double ans, *g0, **H0;
 
@@ -825,22 +825,22 @@ double modselFunction::ALA(double *th0, double *f0, std::map<string, double *> *
 
   this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
 
-  ans= this->ALA(th0, f0, g0, H0);
+  ans= this->ALA(th0, f0, g0, H0, NULL, NULL, false, false, adjfactor);
 
   free_dvector(g0, 1,this->thlength); free_dmatrix(H0, 1,this->thlength,1,this->thlength);
   return ans;
 }
 
 
-double modselFunction::ALA(double *th0, std::map<string, double *> *funargs=NULL) {
+double modselFunction::ALA(double *th0, double adjfactor=1, std::map<string, double *> *funargs=NULL) {
   double ans, f0;
 
   if (funargs==NULL) {
     this->evalfun(&f0, th0);
-    ans= this->ALA(th0, &f0);
+    ans= this->ALA(th0, &f0, adjfactor);
   } else {
     this->evalfun(&f0, th0, funargs);
-    ans= this->ALA(th0, &f0, funargs);
+    ans= this->ALA(th0, &f0, adjfactor, funargs);
   }
 
   return ans;

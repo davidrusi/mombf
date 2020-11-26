@@ -158,9 +158,9 @@ public:
   double laplaceapprox(double *thopt, std::map<string, double *> *funargs);
 
   //APPROXIMATE LAPLACE APPROXIMATION TO int exp(-fun(th)) dth
-  double ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0, double **H0inv, bool returng0, bool returnH0, std::map<string, double *> *funargs); 
-  double ALA(double *th0, double *f0, std::map<string, double *> *funargs);
-  double ALA(double *th0, std::map<string, double *> *funargs);
+  double ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0, double **H0inv, bool returng0, bool returnH0, double adjfactor, std::map<string, double *> *funargs); 
+  double ALA(double *th0, double *f0, double adjfactor, std::map<string, double *> *funargs);
+  double ALA(double *th0, double adjfactor, std::map<string, double *> *funargs);
 
 private:
 

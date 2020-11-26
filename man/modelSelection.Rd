@@ -26,8 +26,9 @@ priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints,
 priorVar=igprior(.01,.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
-initSearch='greedy', method='auto', hess='asymp', optimMethod,
-B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
+initSearch='greedy', method='auto', adj.overdisp='intercept',
+hess='asymp', optimMethod, B=10^5,
+XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
@@ -109,13 +110,16 @@ not performed for these variables}
   For \code{family=='twopiecelaplace'} setting alpha=a is equivalent
   to performing quantile regression for the quantile (1+a)/2.
   Ignored if \code{family} is 'normal' or 'laplace'.}
-\item{phi}{Disperson parameter. For Gaussian models it is the error
-  variance, assumed to be known by \code{pimomMarginalK} and
-  \code{pmomMarginalK}. For GLMs it is ignored unless method=='ALA', in
-  which case if phi is missing a curvature adjustment to the hessian
-  is applied (recommended)}
-\item{deltaini}{Logical vector of length \code{ncol(x)} indicating which coefficients should be initialized to be non-zero. Defaults to all variables being excluded from the model}
-\item{initSearch}{Algorithm to refine \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the non-zero elements in a SCAD fit with cross-validated regularization parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
+\item{phi}{The error variance in Gaussian models, typically this is
+  unknown and is left missing}
+\item{deltaini}{Logical vector of length \code{ncol(x)} indicating which
+  coefficients should be initialized to be non-zero.
+  Defaults to all variables being excluded from the model}
+\item{initSearch}{Algorithm to refine
+  \code{deltaini}. \code{initSearch=='greedy'} uses a greedy Gibbs
+  sampling search. \code{initSearch=='SCAD'} sets \code{deltaini} to the
+  non-zero elements in a SCAD fit with cross-validated regularization
+  parameter. \code{initSearch=='none'} leaves \code{deltaini} unmodified}
 \item{method}{Method to compute marginal likelihood.
   \code{method=='Laplace'} for Laplace approx, \code{method=='ALA'}
   for approximate Laplace approximation.
@@ -123,6 +127,13 @@ not performed for these variables}
   for Hybrid Laplace-IS (only available for piMOM prior). See Details.}
   \code{method=='auto'} attempts to use exact calculations when
   possible, otherwise ALA if available, otherwise Laplace approx.
+\item{adj.overdisp}{Only used when method=='ALA'. Over-dispersion
+  adjustment in models with fixed dispersion parameter, as in logistic
+  and Poisson regression. adj.overdisp='none' for no adjustment (not
+  recommended, particularly for Poisson
+  models). adj.overdisp='intercept' to estimate over-dispersion from the
+  intercept-only model, and adj.overdisp='residuals' from the Pearson
+  residuals of each model}
 \item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
   likelihood under Laplace or asymmetric Laplace errors. When
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a

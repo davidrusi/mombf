@@ -7,8 +7,8 @@
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
   priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
-  priorSkew=momprior(tau=0.348), phi, method='auto', hess='asymp', optimMethod,
-  B=10^5, logscale=TRUE, XtX, ytX
+  priorSkew=momprior(tau=0.348), phi, method='auto', adj.overdisp='intercept', hess='asymp',
+  optimMethod, B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
   # format input data
@@ -23,7 +23,7 @@ nlpMarginal <- function(
   p= ncol(x); n= length(y)
   if (missing(XtX)) { XtX <- t(x) %*% x } else { XtX <- as.matrix(XtX) }
   if (missing(ytX)) { ytX <- as.vector(matrix(y,nrow=1) %*% x) } else { ytX <- as.vector(ytX) }
-  sumy2 <- as.double(sum(y^2))
+  sumy2 <- as.double(sum(y^2)); sumy <- as.double(sum(y))
   colsumsx <- as.double(colSums(x))
   #
   familyint= formatFamily(family, issurvival= length(uncens)>0)$familyint
@@ -38,8 +38,8 @@ nlpMarginal <- function(
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
 
   # format arguments for .Call
-  method <- formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, hess=hess)
-  optimMethod <- method$optimMethod; hesstype <- method$hesstype; method <- method$method
+  method <- formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, adj.overdisp=adj.overdisp, hess=hess)
+  optimMethod <- method$optimMethod; adj.overdisp <- method$adj.overdisp; hesstype <- method$hesstype; method <- method$method
   #hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1)); optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
     
   B <- as.integer(B)
@@ -57,7 +57,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumlogyfact, x, colsumsx, XtX, ytX, method, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 

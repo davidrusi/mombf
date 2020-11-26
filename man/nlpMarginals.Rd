@@ -22,7 +22,8 @@
 nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
-phi, method='auto', hess='asymp', optimMethod, B=10^5, logscale=TRUE, XtX, ytX)
+phi, method='auto', adj.overdisp='intercept', hess='asymp', optimMethod,
+  B=10^5, logscale=TRUE, XtX, ytX)
 
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
@@ -75,7 +76,10 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or
   'laplace'.}
-\item{method}{Method to approximate the integral. See \code{help(modelSelection)}.}
+\item{method}{Method to approximate the integral. See
+  \code{help(modelSelection)}.}
+\item{adj.overdisp}{Only used for method=='ALA'. Over-dispersion adjustment for models with fixed
+  dispersion parameter such as logistic and Poisson regression}
 \item{hess}{Method to estimat the hessian in the Laplace approximation to the integrated
   likelihood under Laplace or asymmetric Laplace errors. When
   hess=='asymp' the asymptotic hessian is used, hess=='asympDiagAdj' a

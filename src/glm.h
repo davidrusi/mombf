@@ -20,7 +20,7 @@ using namespace std;
 double marginal_glm(int *sel, int *nsel, struct marginalPars *pars);
 
 //Function to initialize the parameter values
-void get_thini_glm(double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars);
+void get_thini_glm(double *thhat, double *thini, double **H, double **Hinv, pt2gradhessUniv fjoint_gradhess0, pt2hess fjoint_hess0, int *sel, int *thlength, bool nonlocal, bool orthoapprox, std::map<string, double *> *funargs, struct marginalPars *pars);
 
 
 //*************************************************************************************
@@ -43,20 +43,27 @@ void set_logl_glm(pt2fun *logl, pt2funupdate *logl_update, pt2gradUniv *logl_gra
 //Function to evaluate the negative loglikelihood, and initialize funargs. It has type pt2fun (defined in modselFunction.h)
 void neglogl_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
 
-//Evaluate the negative loglikelihood at th=0. Do not initialize funargs
-void neglogl0_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
-
 //Update the negative loglikelihood due to changing th[j] into thjnew, and update funargs. It has type pt2funupdate (defined in modselFunction.h)
 void negloglupdate_logreg(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
 //Gradient and hessian wrt j. It has type pt2gradhessUniv (defined in modselFunction.h)
 void negloglgradhess_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void negloglgrad_logreg(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
-void negloglgradhess0_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 //Obtain hessian. It has type pt2hess (defined in modselFunction.h)
 void negloglhess_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+
+//LOG-LIKELIHOOD GRADIENT AND HESSIANS AT INTERCEPT-ONLY MODEL (USED BY ALA)
+void neglogl0_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void negloglgradhess0_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void negloglhess0_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+//LOG-LIKELIHOOD GRADIENT AND HESSIANS AT th=0 (USED BY ALA)
+void neglogl00_logreg(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void negloglgradhess00_logreg(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void negloglhess00_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
 
 
 //AUXILIARY FUNCTIONS TO EVALUATE LOG-JOINT AND DERIVATIVES. THESE CAN BE COPY/PASTED WITH MINIMAL ADAPTATION, IF ONE WISHES TO IMPLEMENT OTHER LIKELIHOODS (SEE POISSON EXAMPLE BELOW)
@@ -98,20 +105,26 @@ void fjointh0_logreg_gzellgzell(double **hess, double *th, int *sel, int *thleng
 //Function to evaluate the negative loglikelihood, and initialize funargs. It has type pt2fun (defined in modselFunction.h)
 void neglogl_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
 
-//Evaluate the negative loglikelihood at th=0. Do not initialize funargs
-void neglogl0_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
-
 //Update the negative loglikelihood due to changing th[j] into thjnew, and update funargs. It has type pt2funupdate (defined in modselFunction.h)
 void negloglupdate_poisson(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
 
 //Gradient and hessian wrt j. It has type pt2gradhessUniv (defined in modselFunction.h)
 void negloglgradhess_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void negloglgrad_poisson(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *, std::map<string, double*> *funargs);
-void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 //Obtain hessian. It has type pt2hess (defined in modselFunction.h)
 void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+
+//LOG-LIKELIHOOD GRADIENT AND HESSIANS AT INTERCEPT-ONLY MODEL (USED BY ALA)
+void neglogl0_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void negloglgradhess0_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 void negloglhess0_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+
+//LOG-LIKELIHOOD GRADIENT AND HESSIANS AT th=0 (USED BY ALA)
+void neglogl00_poisson(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars,  std::map<string, double *> *funargs);
+void negloglgradhess00_poisson(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void negloglhess00_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
 
 
 

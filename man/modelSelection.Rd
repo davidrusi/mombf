@@ -19,7 +19,7 @@
 \usage{
 modelSelection(y, x, data, smoothterms, nknots=9,
 groups=1:ncol(x), constraints, center=TRUE, scale=TRUE,
-enumerate, includevars=rep(FALSE,ncol(x)),
+enumerate, includevars=rep(FALSE,ncol(x)), models,
 maxvars, niter=5000, thinning=1,
 burnin=round(niter/10), family='normal', priorCoef,
 priorGroup, priorDelta=modelbbprior(1,1),
@@ -69,6 +69,9 @@ maxenum=10, verbose=TRUE)
 \item{includevars}{Logical vector of length ncol(x) indicating variables
 that should always be included in the model, i.e. variable selection is
 not performed for these variables}
+\item{models}{Optional logical matrix indicating the models to be
+  enumerated with rows equal to the number of desired models and columns
+to the number of variables in \code{x}. }
 \item{maxvars}{When \code{enumerate==TRUE} only models with up to maxvars variables
   enumerated (defaults to all variables). In \code{modelsearchBlockDiag} a sequence of models
   is defined from 1 up to \code{maxvars}}

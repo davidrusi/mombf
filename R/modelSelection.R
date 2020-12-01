@@ -265,7 +265,7 @@ defaultmom= function(outcometype,family) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', adj.overdisp='intercept', hess='asymp', optimMethod, B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), models, maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', adj.overdisp='intercept', hess='asymp', optimMethod, B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -335,7 +335,9 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }
   tmp= codeGroupsAndConstraints(p=p,groups=groups,constraints=constraints)
   ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
-  if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
+  if (missing(models)) {
+    if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
+  } else { enumerate= TRUE }
 
   #Standardize (y,x) to mean 0 and variance 1 (for continuous or log-survival time outcomes only)
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
@@ -424,7 +426,12 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nincludevars= sum(includevars)
     nvars= ifelse(familyint==0,ncol(xstd)+2-nincludevars,ncol(xstd)-nincludevars)
     if (familyint==0) { includeenum= c(includevars[groups+1],FALSE,FALSE) } else { includeenum= includevars[groups+1] }
-    models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
+    if (missing(models)) {
+      models= listmodels(vars2list=1:ngroups, includevars=includeenum, constraints=sapply(constraints,function(z) z+1), nvaringroup=nvaringroup, maxvars=maxvars) #listmodels expects group indexes 1,2,...
+    } else {
+      if (!is.logical(models)) stop("models must be a logical matrix")
+      if (ncol(models) != ncol(xstd)) stop(paste("models has",ncol(models),"but x has",ncol(xstd),"columns"))
+    }
     if (familyint==0) models= rbind(cbind(models,FALSE,FALSE),cbind(models,FALSE,TRUE),cbind(models,TRUE,FALSE),cbind(models,TRUE,TRUE))
     nmodels= as.integer(nrow(models))
     models= as.integer(models)

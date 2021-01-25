@@ -3,6 +3,7 @@ CHANGES IN VERSION 3.0.2
 
 CHANGES IN VERSION 3.0.1
 - Added logistic and Poisson regression to modelSelection
+- Added ALA for GLMs
 
 CHANGES IN VERSION 2.3.2
 - Added method='ALA' to modelSelection for AFT survival models

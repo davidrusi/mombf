@@ -206,7 +206,7 @@ if (!is.null(object$models)) {
   if (method=='norm') {
     modelpp <- unique(data.frame(object$postSample==1, logpp=object$postProb))
     modelpp <- data.frame(modelid= apply(modelpp[,1:(ncol(modelpp)-1)], 1, function(z) paste(which(z),collapse=',')), logpp=modelpp$logpp)
-    modelpp$logpp <- modelpp$logpp - modelpp$logpp[1]
+    modelpp$logpp <- modelpp$logpp - max(modelpp$logpp[1])
     modelpp$pp <- exp(modelpp$logpp)/sum(exp(modelpp$logpp))
   } else if (method=='exact') {
     modelpp <- apply(object$postSample==1, 1, function(z) paste(which(z),collapse=','))

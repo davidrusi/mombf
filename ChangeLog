@@ -1,6 +1,8 @@
 CHANGES IN VERSION 3.0.2
 - Fixed numerical overflow issue in postProb
 
+CHANGES IN VERSION 3.0.1
+- Added logistic and Poisson regression to modelSelection
 
 CHANGES IN VERSION 2.3.2
 - Added method='ALA' to modelSelection for AFT survival models

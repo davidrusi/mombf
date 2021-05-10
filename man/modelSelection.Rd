@@ -27,7 +27,7 @@ priorConstraints,
 priorVar=igprior(.01,.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', adj.overdisp='intercept',
-hess='asymp', optimMethod, B=10^5,
+hess='asymp', optimMethod, optim_maxit, B=10^5,
 XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
@@ -145,6 +145,7 @@ to the number of variables in \code{x}. }
   method=='Laplace'. Leave unspecified or set optimMethod=='auto' for an
   automatic choice. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
+\item{optim_maxit}{Maximum number of iterations when method=='Laplace'}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored
   if \code{method=='Laplace'}}
 \item{XtXprecomp}{Set to \code{TRUE} to pre-compute the Gram matrix x'x

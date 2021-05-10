@@ -9,7 +9,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
    */
 
   std::map<string, double *> funargs;
-  bool posdef, orthoapprox=false, nonlocal, momsingle, momgroup;
+  bool orthoapprox=false, nonlocal, momsingle, momgroup;
   int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod), family= *((*pars).family);
   double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, **H, **Hinv, **cholH;
   modselFunction *msfun;
@@ -24,6 +24,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   //Create object of class modselFunction
   msfun= new modselFunction(sel, thlength, pars, NULL);
   msfun->ftol= 0.001; msfun->thtol= 0.001;
+  if (*((*pars).optim_maxit) > 0) msfun->maxiter= *((*pars).optim_maxit);
 
   //Allocate memory
   H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
@@ -89,10 +90,10 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
         Aselvecx((*pars).x, thopt, ypred, 0, n-1, sel, &thlength); //Returns ypred=x[,sel] %*% thini
 
         if (family == 21) { 
-          for (i=0; i<n; i++) { ss += pow( ((*pars).y)[i] - 1.0/(1.0 + exp(-ypred[i])), 2); } 
+          for (i=0; i<n; i++) { ss += pow( y[i] - 1.0/(1.0 + exp(-ypred[i])), 2); } 
           adjfactor= 4; //1/0.25
         } else if (family == 22) {
-          for (i=0; i<n; i++) { ss += pow( ((*pars).y)[i] - exp(ypred[i]), 2); } 
+          for (i=0; i<n; i++) { ss += pow( y[i] - exp(ypred[i]), 2); } 
           adjfactor= 1;
         }
         adjfactor *= ss / ((double) n);
@@ -130,16 +131,20 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
     } else {
       msfun->Newton(thopt, &fopt, thini, &funargs, 5);
     }
-     
-    ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
+
+    //Deprecated: Laplace approx equivalent to ALA, upon convergence. Use ALA in case convergence failed, as then ALA is more accurate than Laplace
+    //ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
+
+    double *g;
+    g= dvector(1, thlength);
+    ans= msfun->ALA(thopt, &fopt, g, H, cholH, Hinv, true, true, 1, &funargs); //ALA (also returns g, H, cholH and Hinv)
+    free_dvector(g, 1, thlength);
 
   }
 
   //For MOM priors, add log-penalty to log-marginal likelihood
   if ((momsingle | momgroup) & orthoapprox) {
     double pen;
-
-    inv_posdef(H, thlength, Hinv, &posdef, cholH);
 
     if (momgroup) {
       pen = gmompenalty_approx(momsingle, momgroup, thopt, Hinv, Sinv, exp(thopt[*sel]), thlength, *nsel, nselgroupsint, nvarinselgroups, firstingroup, cholSini);
@@ -468,11 +473,11 @@ void negloglgrad_logreg(double *grad, int j, double *th, int *sel, int *thlength
 void negloglhess_logreg(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, k, n= *((*pars).n), nvars= *thlength, idxj, idxk;
-  double *linpred, *ypred, *ytlinpred, *x= (*pars).x;
+  double *ypred, *x= (*pars).x;
 
-  linpred= (*funargs)["linpred"];
+  //linpred= (*funargs)["linpred"];
   ypred= (*funargs)["ypred"];
-  ytlinpred= (*funargs)["ytlinpred"];
+  //ytlinpred= (*funargs)["ytlinpred"];
 
   for (j=1; j<=nvars; j++) {
     idxj= *((*pars).n) * sel[j-1];
@@ -760,11 +765,11 @@ void negloglgrad_poisson(double *grad, int j, double *th, int *sel, int *thlengt
 void negloglhess_poisson(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
 
   int i, j, k, n= *((*pars).n), nvars= *thlength, idxj, idxk;
-  double *linpred, *ypred, *ytlinpred, *x= (*pars).x;
+  double *ypred, *x= (*pars).x;
 
-  linpred= (*funargs)["linpred"];
+  //linpred= (*funargs)["linpred"];
   ypred= (*funargs)["ypred"];
-  ytlinpred= (*funargs)["ytlinpred"];
+  //ytlinpred= (*funargs)["ytlinpred"];
 
   for (j=1; j<=nvars; j++) {
     idxj= *((*pars).n) * sel[j-1];

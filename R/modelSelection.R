@@ -265,7 +265,7 @@ defaultmom= function(outcometype,family) {
 
 
 #### General model selection routines
-modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), models, maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', adj.overdisp='intercept', hess='asymp', optimMethod, B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
+modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), constraints, center=TRUE, scale=TRUE, enumerate, includevars=rep(FALSE,ncol(x)), models, maxvars, niter=5000, thinning=1, burnin=round(niter/10), family='normal', priorCoef, priorGroup, priorDelta=modelbbprior(1,1), priorConstraints, priorVar=igprior(.01,.01), priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)), initSearch='greedy', method='auto', adj.overdisp='intercept', hess='asymp', optimMethod, optim_maxit, B=10^5, XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE) {
 # Input
 # - y: either formula with the regression equation or vector with response variable. If a formula arguments x, groups & constraints are ignored
 # - x: design matrix with all potential predictors
@@ -295,6 +295,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
 # - adj.overdisp: for method=='ALA' it indicates the over-dispersion adjustment to be made in models where the dispersion parameter is fixed, as in logistic and Poisson regression. adj.overdisp='none' for no adjustment (not recommended, particularly for Poisson models). adj.overdisp='intercept' to estimate over-dispersion from the intercept-only model. ad.overdisp='residuals' from the Pearson residuals of each model (slightly higher computational cost)
 # - hess: only used for asymmetric Laplace errors. When hess=='asymp' the asymptotic hessian is used to compute the Laplace approximation to the marginal likelihood, when hess=='asympDiagAdj' a diagonal adjustment to the asymptotic Hessian is used
 # - optimMethod: method to maximize objective function when method=='Laplace' or method=='MC'. Only used for family=='twopiecenormal'. optimMethod=='LMA' uses modified Newton-Raphson algorithm, 'CDA' coordinate descent algorithm
+# - optim_maxit: maximum number of iterations in optimization method
 # - B: number of samples to use in Importance Sampling scheme. Ignored if method=='Laplace'.
 # - verbose: set verbose==TRUE to print iteration progress
 # Output: list
@@ -362,8 +363,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     if (!is.logical(deltaini)) { stop('deltaini must be of type logical') } else { ndeltaini <- as.integer(sum(deltaini | includevars)); deltaini <- as.integer(which(deltaini | includevars)-1) }
   }
 
-  method <-  formatmsMethod(method=method, optimMethod=optimMethod, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=knownphi, outcometype=outcometype, family=family, hasgroups=hasgroups, adj.overdisp=adj.overdisp, hess=hess)
-  optimMethod <- method$optimMethod; adj.overdisp <- method$adj.overdisp; hesstype <- method$hesstype; method <- method$method
+  method <-  formatmsMethod(method=method, optimMethod=optimMethod, optim_maxit=optim_maxit, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=knownphi, outcometype=outcometype, family=family, hasgroups=hasgroups, adj.overdisp=adj.overdisp, hess=hess)
+  optimMethod <- method$optimMethod; optim_maxit <- method$optim_maxit; adj.overdisp <- method$adj.overdisp; hesstype <- method$hesstype; method <- method$method
 
   niter <- as.integer(niter); burnin <- as.integer(burnin); thinning <- as.integer(thinning); B <- as.integer(B)
   sumy2 <- as.double(sum(ystd^2)); sumy <- as.double(sum(ystd)); ytX <- as.vector(matrix(ystd,nrow=1) %*% xstd); colsumsx <- as.double(colSums(xstd))
@@ -398,7 +399,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -414,7 +415,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     postmean= postvar= NULL
@@ -436,7 +437,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)
@@ -807,14 +808,17 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
 #  
 #  optimMethod: 1 means Newton-Raphson type algorithm, 2 means Coordinate Descent Algorith, 0 means use the default. This argument is used in twopiecenormal models and GLMs, else it's ignored
 #
+#  optim_maxit: maximum number of iterations for optimization method. If not specified on input, a -1 is returned (so the C code uses a default maxit)
+#
 #  hesstype: what type of hessian to use in twopiecelaplace models, where the observed hessian is not defined
 #
 #  adj.overdisp
 #  0: no over-dispersion adjustment
 #  1: estimate over-dispersion from intercept-only model
 #  2: estimate over-dispersion from Pearson residuals under each model
-formatmsMethod= function(method, optimMethod, priorCoef, priorGroup, knownphi, outcometype, family, hasgroups, adj.overdisp, hess) {
+formatmsMethod= function(method, optimMethod, optim_maxit=optim_maxit, priorCoef, priorGroup, knownphi, outcometype, family, hasgroups, adj.overdisp, hess) {
   hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1))
+  if (missing(optim_maxit)) { optim_maxit= as.integer(-1); } else { optim_maxit= as.integer(optim_maxit) }
 
   #Obtain code for the optimization method
   if (missing(optimMethod)) optimMethod <- 'auto'
@@ -879,7 +883,7 @@ formatmsMethod= function(method, optimMethod, priorCoef, priorGroup, knownphi, o
   }
 
   adj.overdisp <- as.integer(ifelse(adj.overdisp=='none',0,ifelse(adj.overdisp=='intercept',1,2)))
-  ans <- list(method=method, optimMethod=optimMethod, adj.overdisp=adj.overdisp, hesstype= hesstype)
+  ans <- list(method=method, optimMethod=optimMethod, optim_maxit=optim_maxit, adj.overdisp=adj.overdisp, hesstype= hesstype)
   return(ans)
 }
 

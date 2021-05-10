@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.0.3
+- Added optim_maxit option to modelSelection and nlpMarginal 
+
 CHANGES IN VERSION 3.0.2
 - Fixed numerical overflow issue in postProb
 

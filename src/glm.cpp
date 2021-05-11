@@ -9,7 +9,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
    */
 
   std::map<string, double *> funargs;
-  bool orthoapprox=false, nonlocal, momsingle, momgroup;
+  bool orthoapprox=false, nonlocal, momsingle, momgroup, converged;
   int i, nselgroupsint, cholSsize, thlength= *nsel, n= *((*pars).n), priorcode= *((*pars).priorcode), optimMethod= *((*pars).optimMethod), family= *((*pars).family);
   double ans, *linpred, *ytlinpred, *ypred, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, **H, **Hinv, **cholH;
   modselFunction *msfun;
@@ -127,12 +127,12 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
      
     //Obtain posterior mode and Laplace approx
     if (((optimMethod==0) && (*nsel >=15)) || (optimMethod==2)) {
-      msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+      msfun->cdaNewton(thopt, &fopt, &converged, thini, &funargs, 10);
     } else {
-      msfun->Newton(thopt, &fopt, thini, &funargs, 5);
+      msfun->Newton(thopt, &fopt, &converged, thini, &funargs, 10);
     }
 
-    //Deprecated: Laplace approx equivalent to ALA, upon convergence. Use ALA in case convergence failed, as then ALA is more accurate than Laplace
+    //Deprecated: Laplace approx equivalent to ALA, upon convergence. Use ALA in case convergence failed (then ALA is often more accurate than Laplace)
     //ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
 
     double *g;

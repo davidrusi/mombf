@@ -268,8 +268,9 @@ void modselFunction::evalfunupdate(double *fnew, double *thjnew, int j, double *
 // Output
 // - thopt: final parameter value
 // - fopt: value of objective function (fun) at thopt
+// - converged: true if convergence criteria satisfied, false otherwise
 
-void modselFunction::cda(double *thopt, double *fopt, double *thini) {
+void modselFunction::cda(double *thopt, double *fopt, bool *converged, double *thini) {
 
   int j, iter=0;
   double therr=1, ferr=1, thnew, fnew;
@@ -277,6 +278,7 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
   if ((this->fun)==NULL) Rf_error("To run CDA you need to specify evalfun");
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
+  (*converged)= false;
   this->evalfun(fopt, thini);
   for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
 
@@ -291,18 +293,21 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini) {
     (*fopt)= fnew;
     iter++;
   }
+
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
 }
 
 
 
 //Same but does not evaluate objective function (stopping depends only on change in thopt)
-void modselFunction::cda(double *thopt, double *thini) {
+void modselFunction::cda(double *thopt, bool *converged, double *thini) {
 
   int j, iter=0;
   double therr=1, thnew;
 
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
+  (*converged)= false;
   for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
   while ((iter< this->maxiter) & (therr > this->thtol)) {
     for (j=0, therr=0; j< (this->thlength); j++) {
@@ -312,16 +317,19 @@ void modselFunction::cda(double *thopt, double *thini) {
     }
     iter++;
   }
+
+  if (therr < this->thtol) (*converged)= true;
 }
 
 
-void modselFunction::cda(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs) {
+void modselFunction::cda(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs) {
   int j, iter=0;
   double therr=1, ferr=1, thnew, fnew;
 
   if ((this->fun)==NULL) Rf_error("To run CDA you need to specify evalfun");
   if ((this->updateUniv)==NULL) Rf_error("To run CDA you need to specify updateUniv");
 
+  (*converged)= false;
   this->evalfun(fopt, thini, funargs);
   for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
 
@@ -336,18 +344,21 @@ void modselFunction::cda(double *thopt, double *fopt, double *thini, std::map<st
     (*fopt)= fnew;
     iter++;
   }
+
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
 }
 
 
 //BLOCK CDA JOINTLY UPDATING ALL PARAMETERS
 //In contrast to cda here th[j] is updated without updating first th[0], ..., th[j-1].
 //Hence even if CDA were guaranteed to converge blockcda may not, as it cannot be interpreted as a sequence of univariate optimizations
-void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
+void modselFunction::blockcda(double *thopt, double *fopt, bool *converged, double *thini) {
 
   int j, iter=0;
   double *thnew, fnew, therr=1, ferr=1;
 
   if ((this->fun)==NULL) Rf_error("To run blockcda you need to specify evalfun");
+  (*converged)= false;
   thnew= dvector(0,this->thlength);
 
   this->evalfun(fopt,thini);
@@ -370,6 +381,8 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
   }
 
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
+
   free_dvector(thnew,0,this->thlength);
 
 }
@@ -380,7 +393,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, double *thini) {
 
 //CDA with approx updates given by Newton's method (uses gradhess and funupdate)
 // Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
-void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
+void modselFunction::cdaNewton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
 
   bool found;
   int j, iter=0, nsteps;
@@ -390,12 +403,13 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
   if ((this->funupdate)==NULL) Rf_error("To run cdaNewton you need to specify funupdate");
   if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
 
+  (*converged)= false;
   this->evalfun(fopt,thini,funargs); //eval fun at thini, initialize funargs
   for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
   while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
 
-    for (j=0, therr=ferr=0; j< this->thlength; j++) {
+    for (j=0, ferr=therr=0; j< this->thlength; j++) {
 
       gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
       if (H>0) { delta= g/H; } else { delta= g/max_xy(-H,.001); }  //if H<0 then target is -def, fix to ensure step is in the direction of -gradient
@@ -413,6 +427,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
 	  therr= max_xy(therr, fabs(delta));
 	  thopt[j]= thjnew;
 	} else {
+          ferr= therr= 1;
 	  delta /= 2.0;
 	  nsteps++;
 	  thjcur= thopt[j]; thopt[j]= thjnew;
@@ -427,13 +442,14 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, std::
 
   } //end while iter
 
-  //Rprintf("nparam= %d, niter=%d\n",this->thlength, iter); //debug
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
+
 }
 
 
 //CDA with approx updates given by Newton's method (uses gradhess but not funupdate)
 // Each th[j] is updated to th[j] - 0.5^k g[j]/H[j]; where k in {1,...,maxsteps} is the smallest value improving the objective function
-void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps=1) {
+void modselFunction::cdaNewton(double *thopt, double *fopt, bool *converged, double *thini, int maxsteps=1) {
 
   bool found;
   int j, iter=0, nsteps;
@@ -442,6 +458,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
   if ((this->fun)==NULL) Rf_error("To run cdaNewton you need to specify evalfun");
   if ((this->gradhessUniv)==NULL) Rf_error("To run cdaNewton you need to specify either gradhessUniv");
 
+  (*converged)= false;
   this->evalfun(fopt,thini);
   for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
@@ -465,6 +482,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
 	  (*fopt)= fnew;
 	  therr= max_xy(therr, fabs(delta));
 	} else {
+          ferr= therr= 1;
 	  thopt[j]= thcur;
 	  delta /= 2.0;
 	  nsteps++;
@@ -477,6 +495,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
 
   } //end while iter
 
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
 
 }
 
@@ -485,7 +504,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, double *thini, int m
 //BLOCK CDA WITH NEWTON METHOD UPDATES (USES gradhess)
 //Each parameter is updated to th[j] - 0.5^k grad[j]/hess[j] as in cdaNewton, but here grad[j] and hess[j] are evaluated at the current th prior to updating any th
 //In contrast, in cdaNewton grad[j] and hess[j] are evaluated after updating th[0], ..., th[j-1]
-void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=1) {
+void modselFunction::blockcdaNewton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps=1) {
 
   bool found;
   int j, iter=0, nsteps;
@@ -495,6 +514,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
   if ((this->gradhessUniv)==NULL) Rf_error("To run blockcdaNewton you need to specify either gradhessUniv");
   delta= dvector(0,this->thlength); g= dvector(0,this->thlength); H= dvector(0,this->thlength);
 
+  (*converged)= false;
   this->evalfun(fopt,thini,funargs);
   for (j=0; j< this->thlength; j++) { thopt[j]= thini[j]; }
 
@@ -527,6 +547,8 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 
   } //end while iter
 
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
+
   free_dvector(delta, 0,this->thlength); free_dvector(g, 0,this->thlength); free_dvector(H, 0,this->thlength);
 
 }
@@ -539,16 +561,17 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, double *thini, 
 Newton-Raphson optimization (modifying hessian to be +def when needed)
 
 */
-void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
+void modselFunction::Newton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
 
-  bool posdef;
-  int j, iter=0;
+  bool posdef, found;
+  int j, iter=0, nsteps;
   double *thnew, therr=1, ferr=1, fnew, *delta, *g, **H, **Hinv;
 
   if ((this->fun)==NULL) Rf_error("To run Newton you need to specify fun");
   if ((this->hess)==NULL) Rf_error("To run Newton you need to specify hess");
   if ((this->gradUniv)==NULL) Rf_error("To run Newton you need to specify gradUniv");
 
+  (*converged)= false;
   thnew= dvector(0,this->thlength -1); delta= dvector(1,this->thlength); g= dvector(1,this->thlength);
   H= dmatrix(1,this->thlength,1,this->thlength); Hinv= dmatrix(1,this->thlength,1,this->thlength);
   
@@ -559,7 +582,7 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
 
     this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
     inv_posdef(H, this->thlength, Hinv, &posdef);
-    if (!posdef) {
+    if (!posdef) { //if not positive definite, make +def by adding smallest eigenvalue to diagonal
       int i;
       double lmin=0, *vals;
       vals= dvector(1,this->thlength);
@@ -573,25 +596,35 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
     for (j=0; j< this->thlength; j++) { this->gradUniv(g+1+j, j, thopt, this->sel, &(this->thlength), this->pars, funargs); }
     Ax(Hinv,g,delta,1,this->thlength,1,this->thlength);
 
-    for (j=0; j< this->thlength; j++) { thnew[j]= thopt[j] - delta[j+1]; }
-    
-    this->evalfun(&fnew, thnew, funargs); //call evalfun and initialize funargs
+    nsteps= 1; found= false;
+    while (!found & (nsteps<=maxsteps)) {
 
-    if (fnew < *fopt) {
-      
-      for (j=0, therr=0; j< this->thlength; j++) { therr= max_xy(therr, fabs(thopt[j]-thnew[j])); thopt[j]= thnew[j]; }
-      ferr= *fopt - fnew;
-      (*fopt)= fnew;
 
-    } else {
-
-      ferr= 0; //causes exit
+      for (j=0; j< this->thlength; j++) { thnew[j]= thopt[j] - delta[j+1]; }
+       
+      this->evalfun(&fnew, thnew, funargs); //call evalfun and initialize funargs
+       
+      if (fnew < *fopt) {
+        
+        found= true;
+        for (j=0, therr=0; j< this->thlength; j++) { therr= max_xy(therr, fabs(thopt[j]-thnew[j])); thopt[j]= thnew[j]; }
+        ferr= *fopt - fnew;
+        (*fopt)= fnew;
+       
+      } else {
+       
+	for (j=0; j< this->thlength; j++) { delta[j+1] /= 2.0; }
+	nsteps++;
+       
+      }
+       
+      iter++;
 
     }
 
-    iter++;
-
   }
+
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
 
   free_dvector(thnew, 0,this->thlength -1); free_dvector(delta,1,this->thlength); free_dvector(g,1,this->thlength);
   free_dmatrix(H, 1,this->thlength,1,this->thlength); free_dmatrix(Hinv, 1,this->thlength,1,this->thlength);
@@ -607,7 +640,7 @@ void modselFunction::Newton(double *thopt, double *fopt, double *thini, std::map
 // - thj: optimal value of th[j], for all other parameters evaluated at thini
 // - fopt: value of objective function at thj
 
-void modselFunction::Newtonuniv(double *thj, int j, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
+void modselFunction::Newtonuniv(double *thj, int j, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps=5) {
 
   bool found;
   int i, iter=0, nsteps;
@@ -619,6 +652,7 @@ void modselFunction::Newtonuniv(double *thj, int j, double *fopt, double *thini,
 
   thopt= dvector(0, this->thlength);
 
+  (*converged)= false;
   this->evalfun(fopt,thini,funargs); //eval fun at thini, initialize funargs
   for (i=0; i< this->thlength; i++) { thopt[i]= thini[i]; }
 
@@ -654,6 +688,8 @@ void modselFunction::Newtonuniv(double *thj, int j, double *fopt, double *thini,
   } //end while iter
 
   (*thj)= thopt[j];
+
+  if ((ferr < this->ftol) | (therr < this->thtol)) (*converged)= true;
 
   free_dvector(thopt, 0, this->thlength);
 }

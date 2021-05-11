@@ -3845,7 +3845,7 @@ double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode
    */
 
   std::map<string, double *> funargs;
-  bool momsingle, momgroup;
+  bool momsingle, momgroup, converged;
   int i, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1;
   double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, *y, *pnormres, *g, **H, **Hinv, **cholH, logdispersion, *delta;
   modselFunction *msfun;
@@ -3909,7 +3909,7 @@ double SurvMargALA(int *sel, int *nsel, struct marginalPars *pars, int priorcode
     msfun->evalfun(&fini, thini, &funargs); 
     //optimize error log-variance parameter
     msfun->fun= &fgzellgzellSurv;
-    msfun->Newtonuniv(&logdispersion, *nsel, &fini, thini, &funargs, 5); //fini returns f at optimal log dispersion
+    msfun->Newtonuniv(&logdispersion, *nsel, &fini, &converged, thini, &funargs, 5); //fini returns f at optimal log dispersion
     thini[*nsel]= ((*pars).thinit)[*((*pars).p)]= logdispersion;
     (*((*pars).usethinit))= 2;
   } 
@@ -3960,7 +3960,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
    */
 
   std::map<string, double *> funargs;
-  bool posdef, orthoapprox=false;
+  bool posdef, orthoapprox=false, converged;
   int i, nselgroupsint, cholSsize, *uncens, thlength= *nsel +1;
   double ans, nuncens, sumy2obs=0, *residuals, nselgroups, *nvarinselgroups, *firstingroup, *selgroups, *ldetSinv, *cholSini, *cholSinv, *Sinv, *thini, *thopt, fini, fopt, *y, *pnormres, *g, **H, **Hinv, **cholH;
   modselFunction *msfun;
@@ -4060,9 +4060,9 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   }
    
   if (*nsel >=15) {
-    msfun->cdaNewton(thopt, &fopt, thini, &funargs, 5);
+    msfun->cdaNewton(thopt, &fopt, &converged, thini, &funargs, 5);
   } else {
-    msfun->Newton(thopt, &fopt, thini, &funargs, 5);
+    msfun->Newton(thopt, &fopt, &converged, thini, &funargs, 5);
   }
    
   ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)

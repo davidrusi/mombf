@@ -142,15 +142,15 @@ public:
   void evalfun(double *f, double *th, std::map<string, double *> *funargs); //Evaluate fun at th (and optionally return the value of funargs)
   void evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs); //Eval fun at thjnew by updating its value f at th[j]
 
-  void cda(double *thopt, double *fopt, double *thini);  //Coordinate Descent Algorithm (uses updateUniv)
-  void cda(double *thopt, double *thini);  //same but does not evaluate objective function (stopping depends only on change in thopt)
-  void cda(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs);
-  void blockcda(double *thopt, double *fopt, double *thini);  //Block CDA jointly updating all parameters (uses updateUniv)
-  void cdaNewton(double *thopt, double *fopt, double *thini, int maxsteps); //CDA with approx updates given by Newton's method (uses gradhess)
-  void cdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);
-  void blockcdaNewton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
-  void Newton(double *thopt, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps);  //Newton-Raphson optimization (modifying hessian to be +def when needed)
-  void Newtonuniv(double *thj, int j, double *fopt, double *thini, std::map<string, double *> *funargs, int maxsteps); //univariate Newton-Raphson on th[j]
+  void cda(double *thopt, double *fopt, bool *converged, double *thini);  //Coordinate Descent Algorithm (uses updateUniv)
+  void cda(double *thopt, bool *converged, double *thini);  //same but does not evaluate objective function (stopping depends only on change in thopt)
+  void cda(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs);
+  void blockcda(double *thopt, double *fopt, bool *converged, double *thini);  //Block CDA jointly updating all parameters (uses updateUniv)
+  void cdaNewton(double *thopt, double *fopt, bool *converged, double *thini, int maxsteps); //CDA with approx updates given by Newton's method (uses gradhess)
+  void cdaNewton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps);
+  void blockcdaNewton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps); //Block CDA with Newton method updates (uses gradhess)
+  void Newton(double *thopt, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps);  //Newton-Raphson optimization (modifying hessian to be +def when needed)
+  void Newtonuniv(double *thj, int j, double *fopt, bool *converged, double *thini, std::map<string, double *> *funargs, int maxsteps); //univariate Newton-Raphson on th[j]
 
   //LAPLACE APPROXIMATION TO int exp(-fun(th)) dth
   double laplaceapprox(double *thopt, double *fopt, double **H, double **cholH, bool returnH, std::map<string, double *> *funargs); 

@@ -1,4 +1,6 @@
 CHANGES IN VERSION 3.0.3
+- Added step size decrease in Newton-Raphson optimization (modselfunction.cpp)
+- Increased default max step size decreases for GLMs from 5 to 10
 - Added optim_maxit option to modelSelection and nlpMarginal 
 
 CHANGES IN VERSION 3.0.2

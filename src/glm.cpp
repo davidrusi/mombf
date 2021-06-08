@@ -19,7 +19,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   pt2gradhessUniv fjoint_gradhess=NULL, fjoint_gradhess0=NULL;
   pt2hess fjoint_hess=NULL, fjoint_hess0=NULL;
 
-  set_logjoint_glm(&fjoint, &fjoint_update, &fjoint_grad, &fjoint_gradhess, &fjoint_hess, &fjoint0, &fjoint_gradhess0, &fjoint_hess0, &orthoapprox, &nonlocal, &momsingle, &momgroup, (*pars).family, &priorcode, (*pars).method);
+  set_logjoint_glm(&fjoint, &fjoint_update, &fjoint_grad, &fjoint_gradhess, &fjoint_hess, &fjoint0, &fjoint_gradhess0, &fjoint_hess0, &orthoapprox, &nonlocal, &momsingle, &momgroup, &family, &priorcode, (*pars).method);
 
   //Create object of class modselFunction
   msfun= new modselFunction(sel, thlength, pars, NULL);
@@ -135,10 +135,18 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
     //Deprecated: Laplace approx equivalent to ALA, upon convergence. Use ALA in case convergence failed (then ALA is often more accurate than Laplace)
     //ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
 
-    double *g;
-    g= dvector(1, thlength);
-    ans= msfun->ALA(thopt, &fopt, g, H, cholH, Hinv, true, true, 1, &funargs); //ALA (also returns g, H, cholH and Hinv)
-    free_dvector(g, 1, thlength);
+    if (priorcode != 100) {
+
+      double *g;
+      g= dvector(1, thlength);
+      ans= msfun->ALA(thopt, &fopt, g, H, cholH, Hinv, true, true, 1, &funargs); //ALA (also returns g, H, cholH and Hinv)
+      free_dvector(g, 1, thlength);
+
+    } else {
+
+      ans= msfun->BIC(&fopt, (*pars).n);
+
+    }
 
   }
 
@@ -216,18 +224,18 @@ void get_thini_glm(double *thhat, double *thini, double **H, double **Hinv, pt2g
 
 }
 
-//*************************************************************************************
-//  Generic function returning a pointer to logprior, gradient and hessians for a given priorcode
-//*************************************************************************************
 
+//*************************************************************************************
+//  Generic function returning a pointer to log-joint (or log-likelihood for BIC), gradient and hessians for a given priorcode
+//*************************************************************************************
 
 /*Given a likelihood family and a priorcode (as returned by mspriorCode) and whether an ALA approximation is desired for non-local priors (orthoapprox)
 
   Return 
   - fjoint, fjoint_update, fjoint_gradhess, fjoint_hess: pointers to functions evaluating the negative log-joint density, updating its value, gradient and hessian
+  - nonlocal: boolean indicating whether the prior has any non-local component (either in single coefficients or in grouped coefficients0
   - momsingle: boolean variable indicating whether a pMOM or groupMOM prior was set single coefficients 
   - momgroup: boolean variable indicating whether a groupMOM prior was set on groups of coefficients
-  - family: family of likelihoods, e.g. family==21 for logistic regression, family==22 for Poisson regression
   - orthoapprox: set to true if non-local contribution to the integrated likelihood is to be approximated via ALA, hence the prior must be set to the underlying Normal prior
 
   Priorcodes
@@ -247,82 +255,92 @@ void get_thini_glm(double *thhat, double *thini, double **H, double **Hinv, pt2g
   //  53: group MOM + group Zellner
   //  63: group Zellner + group Zellner
   //  73: normalid + group Zellner
-
+  // 100: BIC (rather than computing the integrated likelihood, return -0.5 BIC)
 
 */
 void set_logjoint_glm(pt2fun *fjoint, pt2funupdate *fjoint_update, pt2gradUniv *fjoint_grad, pt2gradhessUniv *fjoint_gradhess, pt2hess *fjoint_hess, pt2fun *fjoint0, pt2gradhessUniv *fjoint_gradhess0, pt2hess *fjoint_hess0, bool *orthoapprox, bool *nonlocal, bool *momsingle, bool *momgroup, int *family, int *priorcode, int *method) {
 
-  //Record if pMOM or groupMOM on single coef was set
-  (*momsingle)= ((*priorcode==0) || (*priorcode==5) || (*priorcode==10) || (*priorcode==13) || (*priorcode==50) || (*priorcode==53)); 
-  //Record if groupMOM on groups of coef was set
-  (*momgroup)= ((*priorcode==10) || (*priorcode)==50); 
 
-  //Record if the prior has any non-local component
-  (*nonlocal)= (*priorcode == 0) || (*priorcode == 1) || (*priorcode == 2) || (*priorcode == 5) || (*priorcode == 10) || (*priorcode == 13) || (*priorcode == 32) || (*priorcode == 33) || (*priorcode == 50) || (*priorcode == 53);
+  if (*priorcode == 100) {  // If no prior was specified (e.g. BIC), return pointers to log-likelihood and derivatives
 
-  //Record if orthogonal approx to posterior expected MOM penalty should be used
-  if (*momsingle || *momgroup) {
-    if ((*method ==2) || (*method == -1))  { //For MOM priors approx the mean of products via the product of means
-      (*orthoapprox)= true; 
-    } else if (*method ==0) { //If Laplace approx requested, do not approx the mean of product
-      (*orthoapprox)= false;
-    } else {
-      Rf_error("For GLMs and MOM priors only method='auto', 'Laplace' and 'ALA' implemented\n");
+    set_logl_glm(fjoint, fjoint_update, fjoint_grad, fjoint_gradhess, fjoint_hess, fjoint0, fjoint_gradhess0, fjoint_hess0, family);
+    (*momsingle)= (*momgroup)= (*orthoapprox)= (*nonlocal)= false;
+
+  } else {  //If a prior was specified, return pointers to log-joint and derivatives
+
+    //Record if pMOM or groupMOM on single coef was set
+    (*momsingle)= ((*priorcode==0) || (*priorcode==5) || (*priorcode==10) || (*priorcode==13) || (*priorcode==50) || (*priorcode==53)); 
+    //Record if groupMOM on groups of coef was set
+    (*momgroup)= ((*priorcode==10) || (*priorcode)==50); 
+     
+    //Record if the prior has any non-local component
+    (*nonlocal)= (*priorcode == 0) || (*priorcode == 1) || (*priorcode == 2) || (*priorcode == 5) || (*priorcode == 10) || (*priorcode == 13) || (*priorcode == 32) || (*priorcode == 33) || (*priorcode == 50) || (*priorcode == 53);
+     
+    //Record if orthogonal approx to posterior expected MOM penalty should be used
+    if (*momsingle || *momgroup) {
+      if ((*method ==2) || (*method == -1))  { //For MOM priors approx the mean of products via the product of means
+        (*orthoapprox)= true; 
+      } else if (*method ==0) { //If Laplace approx requested, do not approx the mean of product
+        (*orthoapprox)= false;
+      } else {
+        Rf_error("For GLMs and MOM priors only method='auto', 'Laplace' and 'ALA' implemented\n");
+      }
     }
-  }
-
-
-  if (*family ==21) {  //logistic regression
-
-    if ((*momsingle) && !(*momgroup) && !(*orthoapprox)) { //MOM prior on indiv coef, orthogonal approx not wanted
-
-      (*fjoint)= &fjoint_logreg_pmomgzell; (*fjoint_update)= &fjointu_logreg_pmomgzell; 
-      (*fjoint_grad)= &fjointg_logreg_pmomgzell; (*fjoint_gradhess)= &fjointgh_logreg_pmomgzell; (*fjoint_hess)= &fjointh_logreg_pmomgzell;
-      (*fjoint0)= &neglogl0_logreg; (*fjoint_gradhess0)= &negloglgradhess0_logreg; (*fjoint_hess0)= &negloglhess0_logreg;
-
-    } else   if ((*priorcode == 1) || (*priorcode == 33)) { //eMOM-eMOM or eMOM-gZellner priors
-
-      (*fjoint)= &fjoint_logreg_pemomgzell; (*fjoint_update)= &fjointu_logreg_pemomgzell; 
-      (*fjoint_grad)= &fjointg_logreg_pemomgzell; (*fjoint_gradhess)= &fjointgh_logreg_pemomgzell; (*fjoint_hess)= &fjointh_logreg_pemomgzell;
-      (*fjoint0)= &neglogl0_logreg; (*fjoint_gradhess0)= &negloglgradhess0_logreg; (*fjoint_hess0)= &negloglhess0_logreg;
-
-    } else   if ((*priorcode == 9) || (*priorcode== 63) || ( (*momsingle || *momgroup) && *orthoapprox)) { //Zellner or MOM priors with orthogonal approx
-
-      (*fjoint)= &fjoint_logreg_gzellgzell; (*fjoint_update)= &fjointu_logreg_gzellgzell; 
-      (*fjoint_grad)= &fjointg_logreg_gzellgzell; (*fjoint_gradhess)= &fjointgh_logreg_gzellgzell; (*fjoint_hess)= &fjointh_logreg_gzellgzell;
-      (*fjoint0)= &fjoint0_logreg_gzellgzell; (*fjoint_gradhess0)= &fjointgh0_logreg_gzellgzell; (*fjoint_hess0)= &fjointh0_logreg_gzellgzell;
-
+     
+     
+    if (*family ==21) {  //logistic regression
+     
+      if ((*momsingle) && !(*momgroup) && !(*orthoapprox)) { //MOM prior on indiv coef, orthogonal approx not wanted
+     
+        (*fjoint)= &fjoint_logreg_pmomgzell; (*fjoint_update)= &fjointu_logreg_pmomgzell; 
+        (*fjoint_grad)= &fjointg_logreg_pmomgzell; (*fjoint_gradhess)= &fjointgh_logreg_pmomgzell; (*fjoint_hess)= &fjointh_logreg_pmomgzell;
+        (*fjoint0)= &neglogl0_logreg; (*fjoint_gradhess0)= &negloglgradhess0_logreg; (*fjoint_hess0)= &negloglhess0_logreg;
+     
+      } else   if ((*priorcode == 1) || (*priorcode == 33)) { //eMOM-eMOM or eMOM-gZellner priors
+     
+        (*fjoint)= &fjoint_logreg_pemomgzell; (*fjoint_update)= &fjointu_logreg_pemomgzell; 
+        (*fjoint_grad)= &fjointg_logreg_pemomgzell; (*fjoint_gradhess)= &fjointgh_logreg_pemomgzell; (*fjoint_hess)= &fjointh_logreg_pemomgzell;
+        (*fjoint0)= &neglogl0_logreg; (*fjoint_gradhess0)= &negloglgradhess0_logreg; (*fjoint_hess0)= &negloglhess0_logreg;
+     
+      } else   if ((*priorcode == 9) || (*priorcode== 63) || ( (*momsingle || *momgroup) && *orthoapprox)) { //Zellner or MOM priors with orthogonal approx
+     
+        (*fjoint)= &fjoint_logreg_gzellgzell; (*fjoint_update)= &fjointu_logreg_gzellgzell; 
+        (*fjoint_grad)= &fjointg_logreg_gzellgzell; (*fjoint_gradhess)= &fjointgh_logreg_gzellgzell; (*fjoint_hess)= &fjointh_logreg_gzellgzell;
+        (*fjoint0)= &fjoint0_logreg_gzellgzell; (*fjoint_gradhess0)= &fjointgh0_logreg_gzellgzell; (*fjoint_hess0)= &fjointh0_logreg_gzellgzell;
+     
+      } else {
+        Rf_error("The specified method to obtain the integrated likelihood is not implemented in GLMs for this prior");
+      }
+     
+    } else if (*family ==22) {  //Poisson regression
+     
+      if ((*momsingle) && !(*momgroup) && !(*orthoapprox)) { //MOM prior on indiv coef, orthogonal approx not wanted
+     
+        (*fjoint)= &fjoint_poisson_pmomgzell; (*fjoint_update)= &fjointu_poisson_pmomgzell; 
+        (*fjoint_grad)= &fjointg_poisson_pmomgzell; (*fjoint_gradhess)= &fjointgh_poisson_pmomgzell; (*fjoint_hess)= &fjointh_poisson_pmomgzell;
+        (*fjoint0)= &neglogl0_poisson; (*fjoint_gradhess0)= &negloglgradhess0_poisson; (*fjoint_hess0)= &negloglhess0_poisson;
+     
+      } else   if ((*priorcode == 1) || (*priorcode == 33)) { //eMOM-eMOM or eMOM-gZellner priors
+     
+        (*fjoint)= &fjoint_poisson_pemomgzell; (*fjoint_update)= &fjointu_poisson_pemomgzell; 
+        (*fjoint_grad)= &fjointg_poisson_pemomgzell; (*fjoint_gradhess)= &fjointgh_poisson_pemomgzell; (*fjoint_hess)= &fjointh_poisson_pemomgzell;
+        (*fjoint0)= &neglogl0_poisson; (*fjoint_gradhess0)= &negloglgradhess0_poisson; (*fjoint_hess0)= &negloglhess0_poisson;
+     
+      } else   if ((*priorcode == 9) || (*priorcode== 63) || ( (*momsingle || *momgroup) && *orthoapprox)) { //Zellner or MOM priors with orthogonal approx
+     
+        (*fjoint)= &fjoint_poisson_gzellgzell; (*fjoint_update)= &fjointu_poisson_gzellgzell; 
+        (*fjoint_grad)= &fjointg_poisson_gzellgzell; (*fjoint_gradhess)= &fjointgh_poisson_gzellgzell; (*fjoint_hess)= &fjointh_poisson_gzellgzell;
+        (*fjoint0)= &fjoint0_poisson_gzellgzell; (*fjoint_gradhess0)= &fjointgh0_poisson_gzellgzell; (*fjoint_hess0)= &fjointh0_poisson_gzellgzell;
+     
+      } else {
+        Rf_error("The specified method to obtain the integrated likelihood is not implemented in GLMs for this prior");
+      }
+     
     } else {
-      Rf_error("The specified method to obtain the integrated likelihood is not implemented in GLMs for this prior");
+     
+      Rf_error("This likelihood family is not implemented");
+     
     }
-
-  } else if (*family ==22) {  //Poisson regression
-
-    if ((*momsingle) && !(*momgroup) && !(*orthoapprox)) { //MOM prior on indiv coef, orthogonal approx not wanted
-
-      (*fjoint)= &fjoint_poisson_pmomgzell; (*fjoint_update)= &fjointu_poisson_pmomgzell; 
-      (*fjoint_grad)= &fjointg_poisson_pmomgzell; (*fjoint_gradhess)= &fjointgh_poisson_pmomgzell; (*fjoint_hess)= &fjointh_poisson_pmomgzell;
-      (*fjoint0)= &neglogl0_poisson; (*fjoint_gradhess0)= &negloglgradhess0_poisson; (*fjoint_hess0)= &negloglhess0_poisson;
-
-    } else   if ((*priorcode == 1) || (*priorcode == 33)) { //eMOM-eMOM or eMOM-gZellner priors
-
-      (*fjoint)= &fjoint_poisson_pemomgzell; (*fjoint_update)= &fjointu_poisson_pemomgzell; 
-      (*fjoint_grad)= &fjointg_poisson_pemomgzell; (*fjoint_gradhess)= &fjointgh_poisson_pemomgzell; (*fjoint_hess)= &fjointh_poisson_pemomgzell;
-      (*fjoint0)= &neglogl0_poisson; (*fjoint_gradhess0)= &negloglgradhess0_poisson; (*fjoint_hess0)= &negloglhess0_poisson;
-
-    } else   if ((*priorcode == 9) || (*priorcode== 63) || ( (*momsingle || *momgroup) && *orthoapprox)) { //Zellner or MOM priors with orthogonal approx
-
-      (*fjoint)= &fjoint_poisson_gzellgzell; (*fjoint_update)= &fjointu_poisson_gzellgzell; 
-      (*fjoint_grad)= &fjointg_poisson_gzellgzell; (*fjoint_gradhess)= &fjointgh_poisson_gzellgzell; (*fjoint_hess)= &fjointh_poisson_gzellgzell;
-      (*fjoint0)= &fjoint0_poisson_gzellgzell; (*fjoint_gradhess0)= &fjointgh0_poisson_gzellgzell; (*fjoint_hess0)= &fjointh0_poisson_gzellgzell;
-
-    } else {
-      Rf_error("The specified method to obtain the integrated likelihood is not implemented in GLMs for this prior");
-    }
-
-  } else {
-
-    Rf_error("This likelihood family is not implemented");
 
   }
 
@@ -341,9 +359,9 @@ void set_logl_glm(pt2fun *logl, pt2funupdate *logl_update, pt2gradUniv *logl_gra
   } else if (*family ==22) {  //Poisson regression
 
       //Uncomment after adding Poisson log-likelihood and derivatives
-      //(*logl)= &neglogl_poisson; (*logl_update)= &negloglupdate_poisson; 
-      //(*logl_grad)= &negloglgrad_poisson; (*logl_gradhess)= &negloglgradhess_poisson; (*logl_hess)= &negloglhess_poisson;
-      //(*logl0)= &neglogl0_poisson; (*logl_gradhess0)= &negloglgradhess0_poisson; (*logl_hess0)= &negloglhess0_poisson;
+      (*logl)= &neglogl_poisson; (*logl_update)= &negloglupdate_poisson; 
+      (*logl_grad)= &negloglgrad_poisson; (*logl_gradhess)= &negloglgradhess_poisson; (*logl_hess)= &negloglhess_poisson;
+      (*logl0)= &neglogl0_poisson; (*logl_gradhess0)= &negloglgradhess0_poisson; (*logl_hess0)= &negloglhess0_poisson;
 
   } else {
 
@@ -387,7 +405,9 @@ void neglogl_logreg(double *f, double *th, int *sel, int *thlength, struct margi
 
     (*ytlinpred)= 0;
     for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 0.5; }
-    neglogl0_logreg(f, th, sel, thlength, pars, funargs);
+
+    (*f) = - n * log(.5);
+    //neglogl0_logreg(f, th, sel, thlength, pars, funargs);
 
   }
 
@@ -423,7 +443,9 @@ void negloglupdate_logreg(double *fnew, double *thjnew, int j, double *f, double
 
     (*ytlinpred)= 0;
     for (i=0; i< n; i++) { linpred[i]= 0; ypred[i]= 0.5; }
-    neglogl0_logreg(fnew, th, sel, thlength, pars, funargs);
+
+    (*f) = - n * log(.5);
+    //neglogl0_logreg(fnew, th, sel, thlength, pars, funargs);
 
   }
 

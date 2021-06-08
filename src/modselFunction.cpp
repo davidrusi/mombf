@@ -770,6 +770,16 @@ double modselFunction::laplaceapprox(double *thopt, std::map<string, double *> *
 
 
 
+double modselFunction::BIC(double *fopt, int *n) {
+  double ans;
+
+  ans= - (*fopt) - 0.5 * (this->thlength) * log(*n);
+
+  return ans;
+}
+
+
+
 /* APPROXIMATE LAPLACE APPROXIMATION */
 
 

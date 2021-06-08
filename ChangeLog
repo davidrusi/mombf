@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.0.4
+- Added bicprior() to modelSelection
+
 CHANGES IN VERSION 3.0.3
 - Added step size decrease in Newton-Raphson optimization (modselfunction.cpp)
 - Increased default max step size decreases for GLMs from 5 to 10

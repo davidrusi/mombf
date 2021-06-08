@@ -107,6 +107,7 @@ void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double
 // - cdaNewton, blockcdaNewton: Newton-based CDA using gradhess
 // - Newton: Newton-Raphson (modifying Hessian to be +def whenever needed)
 // - laplaceapprox: Laplace approximation to the integrated likelihood
+// - BIC: BIC approximation to the integrated log-likelihood, i.e. - 0.5 BIC
 
 
 
@@ -156,6 +157,9 @@ public:
   double laplaceapprox(double *thopt, double *fopt, double **H, double **cholH, bool returnH, std::map<string, double *> *funargs); 
   double laplaceapprox(double *thopt, double *fopt, std::map<string, double *> *funargs);
   double laplaceapprox(double *thopt, std::map<string, double *> *funargs);
+
+  //BIC APPROXIMATION TO int exp(-fun(th)) dth
+  double BIC(double *fopt, int *n);
 
   //APPROXIMATE LAPLACE APPROXIMATION TO int exp(-fun(th)) dth
   double ALA(double *th0, double *f0, double *g0, double **H0, double **cholH0, double **H0inv, bool returng0, bool returnH0, double adjfactor, std::map<string, double *> *funargs); 

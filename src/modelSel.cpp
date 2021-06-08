@@ -256,57 +256,62 @@ int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars) {
   //  53: group MOM + group Zellner
   //  63: group Zellner + group Zellner
   //  73: normalid + group Zellner
+  // 100: BIC (no prior, tells marginal likelihood routines to return -0.5 BIC, the BIC approx to the marginal likelihood)
   bool hasgroups= (*((*pars).ngroups)) < (*((*pars).p));
   int ans;
-  if (!hasgroups) {
-    if (*prCoef==0) {        //pMOM on all coef
-      ans= 0;
-    } else if (*prCoef==1) { //piMOM on all coef
-      ans= 1;
-    } else if (*prCoef==2) { //peMOM on all coef
-      ans= 2;
-    } else if (*prCoef==3) { //Zellner on all coef
-      ans= 3;
-    } else if (*prCoef==4) { //normalid on all coef
-      ans= 4;
-    } else if (*prCoef==10) {
-      ans= 5;                //group pMOM 
-    } else if (*prCoef==13) { //block Zellner on all coef
-      ans= 9;
-    } else {
-      Rf_error("Prior specified by priorCoef not currently implemented\n");
-    }
+  if (*prCoef==100) {
+    ans= 100;  //BIC
   } else {
-    if ((*prCoef==0) & (*prGroup==0)) {        //pMOM on all coef
-      ans= 0;
-    } else if ((*prCoef==1) & (*prGroup==1)) { //piMOM on all coef
-      ans= 1;
-    } else if ((*prCoef==2) & (*prGroup==2)) { //peMOM on all coef
-      ans= 2;
-    } else if ((*prCoef==3) & (*prGroup==3)) { //Zellner on all coef
-      ans= 3;
-    } else if ((*prCoef==4) & (*prGroup==4)) { //normalid on all coef
-      ans= 4;
-    } else if ((*prCoef==0) & (*prGroup==10)) { //pMOM + group MOM
-      ans= 10;
-    } else if ((*prCoef==0) & (*prGroup==13)) { //pMOM + group Zellner
-      ans= 13;
-    } else if ((*prCoef==2) & (*prGroup==12)) { //peMOM + group eMOM
-      ans= 32;
-    } else if ((*prCoef==2) & (*prGroup==13)) { //peMOM + group Zellner
-      ans= 33;
-    } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
-      ans= 43;
-    } else if ((*prCoef==10) & (*prGroup==10)) { //group pMOM + group pMOM
-      ans= 50;
-    } else if ((*prCoef==10) & (*prGroup==13)) { //group pMOM + group Zellner
-      ans= 53;
-    } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
-      ans= 63;
-    } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
-      ans= 73;
+    if (!hasgroups) {
+      if (*prCoef==0) {        //pMOM on all coef
+        ans= 0;
+      } else if (*prCoef==1) { //piMOM on all coef
+        ans= 1;
+      } else if (*prCoef==2) { //peMOM on all coef
+        ans= 2;
+      } else if (*prCoef==3) { //Zellner on all coef
+        ans= 3;
+      } else if (*prCoef==4) { //normalid on all coef
+        ans= 4;
+      } else if (*prCoef==10) {
+        ans= 5;                //group pMOM 
+      } else if (*prCoef==13) { //block Zellner on all coef
+        ans= 9;
+      } else {
+        Rf_error("Prior specified by priorCoef not currently implemented\n");
+      }
     } else {
-      Rf_error("Prior specified by priorCoef and priorGroup not currently implemented\n");
+      if ((*prCoef==0) & (*prGroup==0)) {        //pMOM on all coef
+        ans= 0;
+      } else if ((*prCoef==1) & (*prGroup==1)) { //piMOM on all coef
+        ans= 1;
+      } else if ((*prCoef==2) & (*prGroup==2)) { //peMOM on all coef
+        ans= 2;
+      } else if ((*prCoef==3) & (*prGroup==3)) { //Zellner on all coef
+        ans= 3;
+      } else if ((*prCoef==4) & (*prGroup==4)) { //normalid on all coef
+        ans= 4;
+      } else if ((*prCoef==0) & (*prGroup==10)) { //pMOM + group MOM
+        ans= 10;
+      } else if ((*prCoef==0) & (*prGroup==13)) { //pMOM + group Zellner
+        ans= 13;
+      } else if ((*prCoef==2) & (*prGroup==12)) { //peMOM + group eMOM
+        ans= 32;
+      } else if ((*prCoef==2) & (*prGroup==13)) { //peMOM + group Zellner
+        ans= 33;
+      } else if ((*prCoef==3) & (*prGroup==13)) { //Zellner + group Zellner
+        ans= 43;
+      } else if ((*prCoef==10) & (*prGroup==10)) { //group pMOM + group pMOM
+        ans= 50;
+      } else if ((*prCoef==10) & (*prGroup==13)) { //group pMOM + group Zellner
+        ans= 53;
+      } else if ((*prCoef==13) & (*prGroup==13)) { //group Zellner + group Zellner
+        ans= 63;
+      } else if ((*prCoef==4) & (*prGroup==13)) { //normalid + group Zellner
+        ans= 73;
+      } else {
+        Rf_error("Prior specified by priorCoef and priorGroup not currently implemented\n");
+      }
     }
   }
   return ans;

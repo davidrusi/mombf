@@ -205,11 +205,10 @@ getmodelid= function(object) {
   } else {
     modelid= apply(object$postSample==1, 1, function(z) paste(which(z),collapse=','))
     if (object$family=='auto') {
-      modelid <- as.character(modelpp[,'modelid'])
-      twopiece <- laplace <- logical(nrow(modelpp))
+      twopiece <- laplace <- logical(length(modelid))
       twopiece[grep(as.character(object$p+1),modelid)] <- TRUE
       laplace[grep(as.character(object$p+2),modelid)] <- TRUE
-      family <- character(nrow(modelpp))
+      family <- character(length(modelid))
       family[(!twopiece) & (!laplace)] <- 'normal'
       family[twopiece & (!laplace)] <- 'twopiecenormal'
       family[(!twopiece) & laplace] <- 'laplace'

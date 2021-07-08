@@ -90,7 +90,7 @@ theta <- matrix(c(1,1,0),ncol=1)
 y <- x %*% theta + rnorm(100)
 
 #Default MOM prior on parameters
-priorCoef <- momprior(tau=0.348)
+priorCoef <- momprior(taustd=1)
 
 #Beta-Binomial prior for model space
 priorDelta <- modelbbprior(1,1)
@@ -108,6 +108,31 @@ coef(fit1)
 ypred= predict(fit1)
 head(ypred)
 cor(y, ypred[,1])
+@
+\normalsize
+
+
+
+We can repeat the exercise for binary outcomes, using logistic regression. We just set the argument \texttt{family='binomial'}. The top model is still the correct one.
+
+\footnotesize
+<<quickstart2>>
+ybin= y>0
+priorCoef <- momprior(taustd=1)
+
+fit2 <- modelSelection(ybin ~ x[,1]+x[,2]+x[,3], priorCoef=priorCoef, priorDelta=priorDelta, family='binomial')
+postProb(fit2)
+@
+\normalsize
+
+
+Let's go back to the linear regression. We can add non-linear effects, modeled via cubic splines, with the argument \texttt{smooth} (the default number of knots is 9, resulting in 5 columns in the design matrix, this can be changed by \texttt{nknots}).
+The output below shows that the top model continues to (correctly) include only the linear effects, and has very large posterior probability. The second top model includes 5 extra columns corresponding to the spline basis for the effect of x2.
+
+\footnotesize
+<<quickstart2>>
+fit3 <- modelSelection(y ~ x[,1]+x[,2]+x[,3], smooth= ~ x[,1]+x[,2]+x[,3], priorCoef=priorCoef, priorDelta=priorDelta)
+head(postProb(fit3))
 @
 \normalsize
 
@@ -489,12 +514,15 @@ at very little cost, further the estimator is readily applicable to non-conjugat
 
 
 
-\section{Variable selection for linear models}
+\section{Variable selection for generalized additive models}
 \label{sec:varsellm}
 
-The main function for model selection is \texttt{modelSelection}, which returns model posterior probabilities under linear regression models
-allowing for Normal, asymmetric Normal, Laplace and asymmetric Laplace residuals.
-A second interesting function is \texttt{nlpMarginal}, which computes the integrated likelihood for a given model under the same settings.
+The main function for model selection is \texttt{modelSelection}, which returns model posterior probabilities under linear regression
+allowing for Normal, asymmetric Normal, Laplace and asymmetric Laplace residuals, as well as some generalized linear models such as logistic and Poisson regression (by setting \texttt{family=='binomial'} and \texttt{family=='poisson'}, respectively).
+In fact, it is also possible to specify non-linear effects by the argument \texttt{smooth} to \texttt{modelSelection}, so generalized additive models are also implemented. 
+If one wishes to go further and consider non-additive models, it is possible to add non-linear interaction terms to the design matrix, and specify group constraints on those parameters via the argument \texttt{groups}.
+
+A second interesting function is \texttt{nlpMarginal}, which computes the integrated likelihood for a given model under the same settings as \texttt{modelSelection}.
 We illustrate their use with a simple simulated dataset.
 Let us generate 100 observations for the response variable and 3 covariates,
 where the true regression coefficient for the third covariate is 0.
@@ -883,119 +911,6 @@ paste('X',which(th!=0),sep=''), pos=3)
 
 
 
-\section{Bayes factors for generalized linear models}
-\label{sec:bfglm}
-
-At the moment \texttt{mombf} provides some limited functionality for generalized linear models.
-\texttt{pmomLM} implements probit models following the framework in \cite{rossell:2013b},
-see also \cite{nikooienejad:2016} for an alternative framework that bypasses the need to sample $\theta$
-to improve the mixing of the Markov Chain.
-
-As an illustration we simulate $n=50$ observations from a probit regression model
-with $p=2$ correlated predictors and $\theta=(\log(2),0)$.
-The predictors are stored in the matrix \texttt{x}, the success
-probabilities in the vector \texttt{p} and the observed responses in the vector \texttt{y}.
-For reproducibility purposes we set the random number generator seed.
-
-\footnotesize
-<<six>>=
-set.seed(4*2*2008)
-n <- 50; theta <- c(log(2),0)
-x <- matrix(NA,nrow=n,ncol=2)
-x[,1] <- rnorm(n,0,1); x[,2] <- rnorm(n,.5*x[,1],1)
-p <- pnorm(x %*% matrix(theta,ncol=1))
-y <- rbinom(n,1,p)
-@
-\normalsize
-
-
-\footnotesize
-<<pmomLM>>=
-th <- pmomLM(y=y,x=x,xadj=rep(1,n),niter=10000)
-head(th$postModel)
-table(apply(th$postModel,1,paste,collapse=','))
-@
-\normalsize
-
-An alternative to \texttt{pmomLM}, which considers all possible models under product NLPs,
-is to compute Bayes factors between pairs of models under additive NLPs
-using functions \texttt{momknown} and \texttt{imomknown}.
-
-Before computing Bayes factors, we fit a probit regression model with the function \texttt{glm}.
-The maximum likelihood estimates are stored in \texttt{thetahat} and
-the asymptotic covariance matrix in \texttt{V}.
-These functions take as primary arguments a vector of regression coefficients
-and their covariance matrix, and hence they
-can be used in any setting where one has a statistic that
-is asymptotically sufficient and normally distributed.
-The resulting Bayes factors are approximate.
-The functions also allow for the presence of a dispersion parameter \texttt{sigma},
-{\it i.e.} the covariance of the regression coefficients is \texttt{sigma\^{}2*V},
-but they assume that \texttt{sigma} is known.
-The probit regression model that we simulated has no over-dispersion and hence
-it corresponds to \texttt{sigma=1}.
-We first compare the full model with the model resulting from excluding the second covariate (the first term corresponds to the intercept),
-setting $g=0.5$ for illustration.
-
-\footnotesize
-<<seven>>=
-glm1 <- glm(y~x[,1]+x[,2],family=binomial(link = "probit"))
-thetahat <- coef(glm1)
-V <- summary(glm1)$cov.scaled
-g <- .5
-bfmom.1 <- momknown(thetahat[2],V[2,2],n=n,g=g,sigma=1)
-bfimom.1 <- imomknown(thetahat[2],V[2,2],n=n,nuisance.theta=2,g=g,sigma=1)
-bfmom.1
-bfimom.1
-@
-\normalsize
-
-Both priors result in evidence for including the first covariate.
-We now check whether the second covariate can be dropped.
-
-\footnotesize
-<<nine>>=
-bfmom.2 <- momknown(thetahat[3],V[3,3],n=n,g=g,sigma=1)
-bfimom.2 <- imomknown(thetahat[3],V[3,3],n=n,nuisance.theta=2,g=g,sigma=1)
-bfmom.2
-bfimom.2
-@
-\normalsize
-
-Both Mom and iMom BF provide strong evidence in favor of the simpler model, {\it i.e.} excluding \texttt{x[,2]}.
-To compare the full model with the model that has no covariates
-({\it i.e.} only the constant term remains) we use the same
-routines, passing a vector as the first argument and a matrix as the second argument.
-
-\footnotesize
-<<ten>>=
-bfmom.0 <- momknown(thetahat[2:3],V[2:3,2:3],n=n,g=g,sigma=1)
-bfimom.0 <- imomknown(thetahat[2:3],V[2:3,2:3],n=n,nuisance.theta=2,g=g,sigma=1)
-bfmom.0
-bfimom.0
-@
-\normalsize
-
-Based on the resulting BF being close to 1, it is not clear whether the full
-model is preferable to the model with no covariates.
-
-The BF can be used to easily compute posterior probabilities for each
-of the four considered models: no covariates, only \texttt{x[,1]}, only \texttt{x[,2]}
-and both \texttt{x[,1]} and \texttt{x[,2]}.
-We assume equal probabilities {\it a priori}.
-
-\footnotesize
-<<eleven>>=
-prior.prob <- rep(1/4,4)
-bf <- c(bfmom.0,bfmom.1,bfmom.2,1)
-pos.prob <- prior.prob*bf/sum(prior.prob*bf)
-pos.prob
-@
-\normalsize
-
-The model with the highest posterior probability is the one including only \texttt{x[,1]},
-{\it i.e.} the correct model,
-and the model with the lowest posterior probability is that including only \texttt{x[,2]}.
 
 
 \section{Model selection for mixtures}

@@ -2227,7 +2227,7 @@ void dgzellgzell(double *ans, double *th, double *nvaringroup, double *ngroups, 
 void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *tau, double *taugroup, bool orthoapprox) {
   bool posdef;
   int i, j, l, k, firstingroup, groupsize, idxini, Sidxini;
-  double ct, sqrtct, tauinv, sqrttauinv, neglogtau;
+  double ct, sqrtct, tauinv=1, sqrttauinv=1, neglogtau= 0;
   if (orthoapprox) {
     tauinv= 1.0/(*tau);
     sqrttauinv= sqrt(tauinv);
@@ -2277,7 +2277,7 @@ void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, 
 void gzell_Sinv_byprior(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, int *n, double *tau, double *taugroup, int *priorcode) {
   bool posdef, idcov, groupmom, groupzell;
   int i, j, l, k, firstingroup, groupsize, idxini, Sidxini;
-  double ct, sqrtct, ct1, tauinv, sqrttauinv, neglogtau;
+  double ct, sqrtct, ct1=1, tauinv=1, sqrttauinv=1, neglogtau=0;
 
   idcov= ((*priorcode==0) || (*priorcode == 10) || (*priorcode == 13));  //is the covariance for individual coef tau * 1
   groupmom= ((*priorcode== 10) || (*priorcode==50));                     //was a group MOM prior set on groups

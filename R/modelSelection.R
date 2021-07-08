@@ -198,6 +198,35 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
 }
 
 
+getmodelid= function(object) {
+  if (class(object) != 'msfit') stop("Function modelid requires an argument of type msfit")
+  if (!is.null(object$models)) {
+    ans= object$models[,c('modelid','family')]
+  } else {
+    modelid= apply(object$postSample==1, 1, function(z) paste(which(z),collapse=','))
+    if (object$family=='auto') {
+      modelid <- as.character(modelpp[,'modelid'])
+      twopiece <- laplace <- logical(nrow(modelpp))
+      twopiece[grep(as.character(object$p+1),modelid)] <- TRUE
+      laplace[grep(as.character(object$p+2),modelid)] <- TRUE
+      family <- character(nrow(modelpp))
+      family[(!twopiece) & (!laplace)] <- 'normal'
+      family[twopiece & (!laplace)] <- 'twopiecenormal'
+      family[(!twopiece) & laplace] <- 'laplace'
+      family[twopiece & laplace] <- 'twopiecelaplace'
+      modelid <- sub(paste(',',object$p+1,sep=''),'',modelid)
+      modelid <- sub(as.character(object$p+1),'',modelid)  #for null model
+      modelid <- sub(paste(',',object$p+2,sep=''),'',modelid)
+      modelid <- sub(as.character(object$p+2),'',modelid)  #for null model
+    } else {
+      family= object$family
+    }
+    ans= data.frame(modelid=modelid, family=family)
+  }
+  return(ans)
+}
+
+
 
 setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
 if (!is.null(object$models)) {

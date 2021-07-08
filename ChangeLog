@@ -1,5 +1,9 @@
+CHANGES IN VERSION 3.0.5
+- Added getBIC and getEBIC methods
+
 CHANGES IN VERSION 3.0.4
 - Added bicprior() to modelSelection
+- Fixed memory error in pmomLM Rd examples file
 
 CHANGES IN VERSION 3.0.3
 - Added step size decrease in Newton-Raphson optimization (modselfunction.cpp)

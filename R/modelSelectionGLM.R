@@ -24,6 +24,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     x <- tmp$x; y <- tmp$y; formula <- tmp$formula;
     splineDegree <- tmp$splineDegree
     if (!is.null(tmp$groups)) groups <- tmp$groups
+    isgroup <- tmp$isgroup
     if (!is.null(tmp$constraints)) constraints <- tmp$constraints
     outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
     typeofvar <- tmp$typeofvar
@@ -80,7 +81,7 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
       if (any(sel)>0) {
         fit1= glm(y ~ -1 + xstd[,sel], data=data, family=familyglm)
       } else { fit1= glm(y ~ -1, data=data, family=familyglm) }
-      pm= postmomentsGLM(fit1, priorCoef=priorCoef, priorGroup=priorGroup)
+      pm= postmomentsGLM(fit1, priorCoef=priorCoef, priorGroup=priorGroup, isgroup=isgroup)
       postmean[i,sel]= pm$m
       postvar[i,sel]= diag(pm$S)
       bicmodel[i]= BIC(fit1)

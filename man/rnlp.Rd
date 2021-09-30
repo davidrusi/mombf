@@ -22,7 +22,7 @@ where d(theta) is the non-local penalty term.
 }
 \usage{
 rnlp(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup,
-priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
+priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
 }
 \arguments{
   \item{y}{Vector with observed responses. When \code{class(y)=='Surv'}
@@ -50,6 +50,9 @@ priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
   \item{priorVar}{Prior on residual variance. Ignored if \code{msfit}
     supplied. Must be object of class \code{msPriorSpec}, e.g. created
     with \code{igprior}}
+  \item{isgroup}{Logical vector where \code{TRUE} indicates that the
+    variable is part of a group, e.g. one of several dummy indicators
+    for a discrete covariate}
   \item{niter}{Number of MCMC iterations}
   \item{burnin}{Number of burn-in MCMC iterations. Defaults to \code{.1*niter}. Set to 0 for no burn-in}
   \item{thinning}{MCMC thinning factor, i.e. only one out of each \code{thinning} iterations are reported. Defaults to no thinning}

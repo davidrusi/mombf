@@ -339,7 +339,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   splineDegree <- tmp$splineDegree
   if (!is.null(tmp$groups)) groups <- tmp$groups
   if (length(groups) != ncol(x)) stop(paste("groups has the wrong length. It should have length",ncol(x)))
-  hasgroups <- tmp$hasgroups
+  hasgroups <- tmp$hasgroups; isgroups <- tmp$isgroups
   if (!is.null(tmp$constraints)) constraints <- tmp$constraints
   outcometype <- tmp$outcometype; uncens <- tmp$uncens; ordery <- tmp$ordery
   typeofvar <- tmp$typeofvar
@@ -547,6 +547,8 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')
   hasgroups <-  (length(groups) > length(unique(groups)))
+  ningroup <- table(groups)
+  isgroup <- (groups %in% as.numeric(names(ningroup)[ningroup>1]))
   y <- as.double(y)
   #Check that support of y is valid for the specified family
   if (family %in% c('binomial','binomial logit')) {
@@ -556,7 +558,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   }
   ans <- list(
     x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
-    groups=groups, hasgroups=hasgroups, constraints=constraints, outcometype=outcometype, uncens=uncens,
+    groups=groups, hasgroups=hasgroups, isgroup=isgroup, constraints=constraints, outcometype=outcometype, uncens=uncens,
     ordery=ordery, typeofvar=typeofvar
   )
   return(ans)

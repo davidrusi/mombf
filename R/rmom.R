@@ -71,26 +71,26 @@ unstdcoef <- function(bstd, p, msfit, coefnames) {
 
 
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='msfit',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
     warning("If msfit is specified arguments y and x are ignored")
     rnlp(msfit=msfit,niter=10^3, burnin=round(niter/10), thinning=1, pp='norm')
 }
 )
 
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
     rnlp(y=y,x=x,family='Continuous')
 }
 )
 
 
-setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing',outcometype='character',family='character'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='missing',outcometype='character',family='character'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if ((outcometype== 'Continuous') && (family== 'normal')) {  ##Linear model
-    ans <- rnlpLM(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning)
+    ans <- rnlpLM(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,isgroup=isgroup,niter=niter,burnin=burnin,thinning=thinning)
   } else if (outcometype=='glm') { #GLM
-    ans <- rnlpGLM(y=y,x=x,family=family,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,niter=niter,burnin=burnin,thinning=thinning)
+    ans <- rnlpGLM(y=y,x=x,family=family,priorCoef=priorCoef,priorGroup=priorGroup,priorVar=priorVar,isgroup=isgroup,niter=niter,burnin=burnin,thinning=thinning)
   } else if ((outcometype=='Survival') && (family=='Cox')) {  #Cox model
-    ans <- rnlpCox(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,niter=niter,burnin=burnin,thinning=thinning)
+    ans <- rnlpCox(y=y,x=x,priorCoef=priorCoef,priorGroup=priorGroup,isgroup=isgroup,niter=niter,burnin=burnin,thinning=thinning)
   } else {
     stop(paste("outcometype",outcometype,"and family=",family,"not implemented",sep=""))
   }
@@ -100,7 +100,7 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 
 
-rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1) {
     if (missing(priorGroup)) priorGroup= priorCoef
     tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x); n <- length(y)
@@ -146,7 +146,7 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, niter=10^3, burnin=rou
 
 
 
-setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
+setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit='missing',outcometype='missing',family='missing'), function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') {
   if (missing(priorGroup)) priorGroup= priorCoef
   p <- ncol(V)
   tau <- as.double(priorCoef@priorPars['tau'])
@@ -176,17 +176,21 @@ glmfamilycode <- function(family) {
     #Convert string indicating GLM family to object of class family, as required by function glm
     if (length(grep("binomial",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
+        if (is.na(link)) link= 'logit'
         ans= binomial(link=link)
     } else if (length(grep("gamma",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
         ans= Gamma(link=link)
+        if (is.na(link)) link='inverse'
     } else if (length(grep("inverse.gaussian",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
+        if (is.na(link)) link="1/mu^2"
         ans= inverse.gaussian(link=link)
     } else if (family=='normal') {
         ans= gaussian()
     } else if (length(grep("poisson",family))>0) {
         link= strsplit(family,split=" ")[[1]][2]
+        if (is.na(link)) link="log"
         ans= poisson(link=link)
     } else { stop(paste("family",family,"not recognized",sep=" ")) }
     return(ans)
@@ -194,7 +198,7 @@ glmfamilycode <- function(family) {
 
 
 
-rnlpGLM <- function(y, x, family, priorCoef, priorGroup, priorVar, niter=10^3, burnin=round(niter/10), thinning=1) {
+rnlpGLM <- function(y, x, family, priorCoef, priorGroup, priorVar, isgroup=rep(FALSE,ncol(x)), niter=10^3, burnin=round(niter/10), thinning=1) {
 #Approximate posterior sampling for GLMs
     p <- ncol(x)
     if (p==0) {
@@ -202,14 +206,14 @@ rnlpGLM <- function(y, x, family, priorCoef, priorGroup, priorVar, niter=10^3, b
     } else {
       fam= glmfamilycode(family)
       fit= glm(y ~ -1 + ., data=data.frame(x), family=fam)
-      pm= postmomentsGLM(fit=fit, priorCoef=priorCoef, priorGroup=priorGroup)
+      pm= postmomentsGLM(fit=fit, priorCoef=priorCoef, priorGroup=priorGroup, isgroup=isgroup)
       ans= rnlp(m=pm$m, V=pm$S, priorCoef=priorCoef, priorGroup=priorGroup, niter=niter, burnin=burnin, thinning=thinning)
     }
     return(ans)
 }
 
 
-postmomentsGLM <- function(fit, priorCoef, priorGroup) {
+postmomentsGLM <- function(fit, priorCoef, priorGroup, isgroup) {
 # Extract approximate posterior mean and covariance from GLM fit
 # Input
 #  - fit: object returned by glm
@@ -218,37 +222,47 @@ postmomentsGLM <- function(fit, priorCoef, priorGroup) {
 # Output: list with two elements, m containing the posterior mean and S the posterior covariance
   if (priorCoef@priorDistr != priorGroup@priorDistr) stop("priorGroup != priorCoef not currently implemented")
   tau <- as.double(priorCoef@priorPars['tau'])
+  taugroup <- as.double(priorGroup@priorPars['tau'])
   thhat <- matrix(coef(fit),ncol=1)
-  if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
-      Vinv <- (t(fit$R) %*% fit$R)
-      S <- solve(Vinv + diag(nrow(thhat))/tau)
-      m <- S %*% Vinv %*% thhat
-  } else if (priorCoef@priorDistr == 'zellner') {
+  if (priorCoef@priorDistr == 'zellner') {
       Vinv <- (t(fit$R) %*% fit$R)
       S <- solve((t(fit$R) %*% fit$R)) / (1+1/tau)
       m <- S %*% Vinv %*% thhat
   } else if (priorCoef@priorDistr == 'bic') {
       S <- vcov(fit)
       m <-  thhat
-  } else stop("This kind of prior is not implemented")
+  } else {
+      #if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
+      Vinv <- (t(fit$R) %*% fit$R)
+      d <- rep(1,nrow(thhat)); d[!isgroup] <- d[!isgroup]/tau; d[isgroup] <- d[isgroup] / taugroup
+      D <- diag(nrow(thhat)); diag(D) <- d
+      S <- solve(Vinv + D)
+      #S <- solve(Vinv + diag(nrow(thhat))/tau)
+      m <- S %*% Vinv %*% thhat
+  }
   return(list(m=as.vector(m), S=S))
 }
 
-rnlpCox <- function(y, x, priorCoef, priorGroup, niter=10^3, burnin=round(niter/10), thinning=1) {
+rnlpCox <- function(y, x, priorCoef, priorGroup, isgroup=isgroup, niter=10^3, burnin=round(niter/10), thinning=1) {
     tau <- as.double(priorCoef@priorPars['tau'])
+    taugroup <- as.double(priorGroup@priorPars['tau'])
     p <- ncol(x)
     if (p==0) {
       ans <- matrix(double(0),nrow=(niter-burnin)/thinning,ncol=0)
     } else {
       fit <- coxph(y ~ ., data=data.frame(x))
       thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
-      if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
-        Sinv <- Vinv + diag(p)/tau
-      } else if (priorCoef@priorDistr == 'zellner') {
+      if (priorCoef@priorDistr == 'zellner') {
         Sinv <- Vinv * (1+1/tau)
       } else if (priorCoef@priorDistr == 'bic') {
         Sinv <- Vinv
-      } else stop("This kind of prior is not implemented")
+      } else {
+        #if (priorCoef@priorDistr %in% c('pMOM','peMOM','piMOM')) {
+        d <- rep(1,p); d[!isgroup] <- d[!isgroup]/tau; d[isgroup] <- d[isgroup] / taugroup
+        D <- diag(p); diag(D) <- d
+        Sinv <- Vinv + D
+        #Sinv <- Vinv + diag(p)/tau
+      }
       S <- solve(Sinv)
       m <- S %*% Vinv %*% thhat
       ans <- rnlp(m=as.vector(m), V=S, priorCoef=priorCoef, priorGroup=priorGroup, niter=niter, burnin=burnin, thinning=thinning)

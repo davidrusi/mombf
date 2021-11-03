@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.0.7
+- Fixed bug in predict.msfit where covariates in newdata were not scaled appropriately
+
 CHANGES IN VERSION 3.0.6
 - Added posterior sampling under Normal approximation for GLMs, in the
 presence of groups

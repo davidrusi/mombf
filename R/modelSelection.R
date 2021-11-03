@@ -176,6 +176,7 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     if (!missing(newdata)) {
         f= object$call$formula
         if ('formula' %in% class(f)) {
+            if (missing(data)) stop("You must specify the argument 'data'")
             alldata= rbind(data,newdata)
             alldata[,as.character(f)[2]]= 0  #ensure there's no NAs in the response, so createDesign doesn't drop those rows from newdata
             nn= rownames(alldata)[(nrow(data)+1):(nrow(data)+nrow(newdata))]
@@ -186,8 +187,8 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
             }
             newdata= des$x[nn,,drop=FALSE]
         }
-        ct= (sx==0)
-        newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
+        #ct= (sx==0)
+        #newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
     } else {
         newdata= t(t(object$xstd) * sx + mx)
     }

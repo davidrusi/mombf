@@ -1039,10 +1039,10 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int i, j, idxj, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, *ninvconstraints, ngroupsconstr=0, *isgroup, usethinit=0, priorcode;
+  int i, j, idxj, logscale=1, *postMode, mycols, mycols2, nuncens, *nconstraints, *ninvconstraints, ngroupsconstr=0, *isgroup, usethinit= INTEGER(Susethinit)[0], priorcode;
   double offset=0, *postModeProb, *postProb, *ytXuncens=NULL, *thinit=NULL;
   intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -1054,7 +1054,12 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
   //Allocate memory to thinit, to safeguard against cases where subroutines use it, despite usethinit==0
   thinit= dvector(0, mycols2+1);
-  for (j=0; j<= mycols2+1; j++) { thinit[j]= 0; }
+  if (usethinit != 3) {
+    for (j=0; j<= mycols2+1; j++) { thinit[j]= 0; }
+  } else {
+    for (j=0; j<= INTEGER(Sp)[0]; j++) { thinit[j]= REAL(Sthinit)[j]; }
+  }
+
 
   SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mycols));
   postMode= INTEGER(VECTOR_ELT(ans,0));
@@ -1178,10 +1183,10 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
-SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int i, j, idxj, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=1, priorcode;
+  int i, j, idxj, logscale=1, mcmc2save, *postSample, *postMode, mycols, mycols2, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=INTEGER(Susethinit)[0], priorcode;
   double offset=0, *margpp, *postModeProb, *postProb, *ytXuncens=NULL, *thinit;
   intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -1191,8 +1196,13 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
   PROTECT(ans= Rf_allocVector(VECSXP, 5));
   mcmc2save= floor((INTEGER(Sniter)[0] - INTEGER(Sburnin)[0] +.0)/(INTEGER(Sthinning)[0] +.0));
   if (INTEGER(Sfamily)[0] !=0) { mycols= mycols2= INTEGER(Sp)[0]; } else { mycols= 2 + INTEGER(Sp)[0]; mycols2= mycols+2; }
+
   thinit= dvector(0, mycols2+1);
-  for (j=0; j<= mycols2+1; j++) { thinit[j]= 0; }
+  if (usethinit != 3) {
+    for (j=0; j<= mycols2+1; j++) { thinit[j]= 0; }
+  } else {
+    for (j=0; j<= INTEGER(Sp)[0]; j++) { thinit[j]= REAL(Sthinit)[j]; }
+  }
 
   SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mcmc2save * mycols));
   postSample= INTEGER(VECTOR_ELT(ans,0));
@@ -1510,10 +1520,10 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
-SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
-  int i, j, idxj, logscale=1, mycols, *postMode, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=1, priorcode;
+  int i, j, idxj, logscale=1, mycols, *postMode, *nconstraints, *ninvconstraints, nuncens, ngroupsconstr=0, *isgroup, usethinit=INTEGER(Susethinit)[0], priorcode;
   double offset=0, *postModeProb, *ytXuncens=NULL, *thinit;
   intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -1521,8 +1531,14 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
   SEXP ans;
 
   mycols= INTEGER(Sp)[0];
+
   thinit= dvector(0,mycols+1);
-  for (j=0; j<= mycols+1; j++) { thinit[j]= 0; }
+  if (usethinit != 3) {
+    for (j=0; j<= mycols+1; j++) { thinit[j]= 0; }
+  } else {
+    for (j=0; j<= INTEGER(Sp)[0]; j++) { thinit[j]= REAL(Sthinit)[j]; }
+  }
+
 
   PROTECT(ans= Rf_allocVector(VECSXP, 2));
   SET_VECTOR_ELT(ans, 0, Rf_allocVector(INTSXP, mycols));
@@ -4016,7 +4032,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
   msfun->fun= &fgzellgzellSurv; msfun->funupdate= &fgzellgzellSurvupdate; msfun->gradhessUniv= &fgzellgzell_AFTgradhess; msfun->hess= &fgzellgzellhess_AFT; //Zell
   msfun->gradUniv= &fgzellgzell_AFTgrad;
   msfun->ftol= 0.001; msfun->thtol= 0.001;
-  if (*((*pars).optim_maxit) > 0) msfun->maxiter= *((*pars).optim_maxit);
+  if (*((*pars).optim_maxit) >= 0) msfun->maxiter= *((*pars).optim_maxit);
    
   for (i=0; i< thlength; i++) thini[i]= 0;
   msfun->evalfun(&fini, thini, &funargs); //call evalfun for its side effect of initializing funargs

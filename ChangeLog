@@ -1,3 +1,8 @@
+CHANGES IN VERSION 3.1.0
+- Fixed modelSelection to work with GLMs with bicprior() and group constraints
+- Added initpar option to modelSelection with 'MLE', 'MLE-aisgd', 'L1',
+'L2-aisgd' to improve ALA accuracy and increase speed of Laplace approx
+
 CHANGES IN VERSION 3.0.7
 - Fixed bug in predict.msfit where covariates in newdata were not scaled appropriately
 

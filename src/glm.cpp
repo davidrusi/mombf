@@ -24,7 +24,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   //Create object of class modselFunction
   msfun= new modselFunction(sel, thlength, pars, NULL);
   msfun->ftol= 0.001; msfun->thtol= 0.001;
-  if (*((*pars).optim_maxit) > 0) msfun->maxiter= *((*pars).optim_maxit);
+  if (*((*pars).optim_maxit) >= 0) msfun->maxiter= *((*pars).optim_maxit);
 
   //Allocate memory
   H= dmatrix(1,thlength,1,thlength); Hinv= dmatrix(1,thlength,1,thlength); cholH= dmatrix(1,thlength,1,thlength);
@@ -47,7 +47,7 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   cholSinv= dvector(0, cholSsize); Sinv= dvector(0, cholSsize);
      
   funargs["cholSini"]= cholSini; //cholSini[j] is the index in cholSinv at which Sinv_j starts
-  gzell_Sinv_byprior(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).n, (*pars).tau, (*pars).taugroup, &priorcode);
+  if (priorcode != 100) gzell_Sinv_byprior(Sinv, cholSinv, ldetSinv, &nselgroupsint, nvarinselgroups, sel, cholSini, (*pars).XtX, (*pars).n, (*pars).tau, (*pars).taugroup, &priorcode); //priorcode==100 is the BIC, no prior hessians to compute
   funargs["ldetSinv"]= ldetSinv; funargs["cholSinv"]= cholSinv; funargs["Sinv"]= Sinv;
 
 
@@ -56,11 +56,15 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
   funargs["linpred"]= linpred; funargs["ypred"]= ypred; funargs["ytlinpred"]= ytlinpred;
 
   //Initialize posterior mode and funargs
-  for (i=0; i< thlength; i++) thini[i]= 0;
+  if (*((*pars).usethinit) == 3) {
+    for (i=0; i< thlength; i++) thini[i]= ((*pars).thinit)[sel[i]];
+  } else {
+    for (i=0; i< thlength; i++) thini[i]= 0;
+  }
 
   
   if (*((*pars).method) == 2) {
-    // APPROXIMATE LAPLACE APPROXIMATION
+    // APPROXIMATE LAPLACE APPROXIMATION AT theta=0
 
     msfun->fun= fjoint0; msfun->gradhessUniv= fjoint_gradhess0; msfun->hess= fjoint_hess0;
 
@@ -81,10 +85,12 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
         Rf_error("This over-dispersion adjustment method is not implemented yet\n");
         double ss=0;
 
-        if (family==21) {
-          get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_logreg, negloglhess00_logreg, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
-        } else if (family==22) {
-          get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_poisson, negloglhess00_poisson, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+        if (*((*pars).usethinit) != 3) {
+          if (family==21) {
+            get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_logreg, negloglhess00_logreg, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+          } else if (family==22) {
+            get_thini_glm(thopt, thini, H, Hinv, negloglgradhess00_poisson, negloglhess00_poisson, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+          }
         }
         
         Aselvecx((*pars).x, thopt, ypred, 0, n-1, sel, &thlength); //Returns ypred=x[,sel] %*% thini
@@ -104,13 +110,13 @@ double marginal_glm(int *sel, int *nsel, struct marginalPars *pars) {
 
 
   } else {
-    // LAPLACE APPROXIMATION
+    // LAPLACE APPROXIMATION or APPROXIMATE LAPLACE APPROX AT theta != 0
 
     msfun->fun = fjoint; msfun->funupdate = fjoint_update; msfun->gradUniv = fjoint_grad; msfun->gradhessUniv = fjoint_gradhess; msfun->hess = fjoint_hess;
 
     msfun->evalfun(&fini, thini, &funargs); //initialize funargs
 
-    get_thini_glm(thini, thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
+    if (*((*pars).usethinit) != 3) get_thini_glm(thini, thini, H, Hinv, fjoint_gradhess0, fjoint_hess0, sel, &thlength, nonlocal, orthoapprox, &funargs, pars);
    
     if (nonlocal && !orthoapprox) {   //if it's a non-local prior, avoid exact zeroes (0 prior density)
      

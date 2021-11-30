@@ -8,7 +8,7 @@ nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
   priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
   priorSkew=momprior(tau=0.348), phi, method='auto', adj.overdisp='intercept', hess='asymp',
-  optimMethod, optim_maxit, B=10^5, logscale=TRUE, XtX, ytX
+  optimMethod, optim_maxit, initpar='none', B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
   # format input data
@@ -38,7 +38,10 @@ nlpMarginal <- function(
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
 
   # format arguments for .Call
-  method <- formatmsMethod(method=method, optimMethod=optimMethod, optim_maxit=optim_maxit, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, adj.overdisp=adj.overdisp, hess=hess)
+  thinit= getthinit(y=y, x=x, family=family, initpar=initpar, enumerate=TRUE)
+  usethinit= thinit$usethinit; thinit= thinit$thinit
+
+  method <- formatmsMethod(method=method, usethinit=usethinit, optimMethod=optimMethod, optim_maxit=optim_maxit, priorCoef=priorCoef, priorGroup=priorGroup, knownphi=0, outcometype=outcometype, family=family, hasgroups=hasgroups, adj.overdisp=adj.overdisp, hess=hess)
   optimMethod <- method$optimMethod; optim_maxit <- method$optim_maxit; adj.overdisp <- method$adj.overdisp; hesstype <- method$hesstype; method <- method$method
   #hesstype <- as.integer(ifelse(hess=='asympDiagAdj',2,1)); optimMethod <- as.integer(ifelse(optimMethod=='CDA',2,1))
     
@@ -57,7 +60,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 

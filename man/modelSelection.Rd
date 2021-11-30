@@ -27,7 +27,7 @@ priorConstraints,
 priorVar=igprior(.01,.01),
 priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', adj.overdisp='intercept',
-hess='asymp', optimMethod, optim_maxit, B=10^5,
+hess='asymp', optimMethod, optim_maxit, initpar='none', B=10^5,
 XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
@@ -146,6 +146,13 @@ to the number of variables in \code{x}. }
   automatic choice. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{optim_maxit}{Maximum number of iterations when method=='Laplace'}
+\item{initpar}{Initial regression parameter values when finding the
+  posterior mode to approximate the integrated likelihood. 'none', 'MLE',
+  'MLE-aisgd', 'L1', 'L2-aisgd', or a numeric vector with initial
+  values. If p<n/2 MLE is used, else L1 (regularization parameter set
+  via BIC). 'auto': if n>10,000 or p>200, then MLE-aisgd or L2-aisgd are
+  used. aisgd stands for averaged intrinsic stochastic gradient descent
+  (see function sgd in package sgd)}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored
   if \code{method=='Laplace'}}
 \item{XtXprecomp}{Set to \code{TRUE} to pre-compute the Gram matrix x'x

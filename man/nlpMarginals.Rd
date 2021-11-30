@@ -23,7 +23,7 @@ nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
 phi, method='auto', adj.overdisp='intercept', hess='asymp', optimMethod,
-optim_maxit, B=10^5, logscale=TRUE, XtX, ytX)
+optim_maxit, initpar='none', B=10^5, logscale=TRUE, XtX, ytX)
 
 pimomMarginalK(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logscale=TRUE, XtX, ytX)
 pimomMarginalU(sel, y, x, alpha=0.001, lambda=0.001, tau=1,
@@ -89,6 +89,9 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   automatic choice. optimMethod=='LMA' uses modified
   Newton-Raphson algorithm, 'CDA' coordinate descent algorithm}
 \item{optim_maxit}{Maximum number of iterations when method=='Laplace'}
+\item{initpar}{Initial regression parameter values when finding the
+  posterior mode to approximate the integrated likelihood. See
+  help(modelSelection)}
 \item{B}{Number of Monte Carlo samples to use (ignored unless
   \code{method=='MC'})}
 \item{logscale}{If \code{logscale==TRUE} the log marginal density is returned.}

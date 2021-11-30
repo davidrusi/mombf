@@ -5,7 +5,8 @@
 # - initpar: method to initialize the parameters. It can be 'MLE', 'L1', 'MLE-aisgd', 'L2-aisgd'. If missing, it uses MLE when p <= n/2 and L1 when p > n/2. If p>200 or n>10,000 then ai-sgd is used (averaged intrinsic stochatic gradient descent)
 initParameters <- function(y, x, family, initpar) {
     n= length(y); p= ncol(x)
-    if (missing(initpar)) {
+    if (!(initpar %in% c('none','auto','MLE','MLE-aisgd','L1','L2-aisgd'))) stop("initpar must be 'none', 'auto', 'MLE', 'MLE-aisgd', 'L1' or 'L2-aisgd'")
+    if (initpar =='auto') {
         large= (n > 10000) || (p > 200)
         if ((p<=n/2) && (!large)) {
             initpar= 'MLE'
@@ -76,7 +77,7 @@ initParameters <- function(y, x, family, initpar) {
 
 
 #Wrapper to initParameters, returning 0 when initpar=='none'
-getthinit = function(y, x, family, initpar) {
+getthinit = function(y, x, family, initpar, enumerate) {
   if ((!missing(initpar)) && is.numeric(initpar)) {
       thinit= as.double(initpar)
       if (length(thinit) != ncol(x)) stop(paste("x has",ncol(x),"columns but initpar has",length(thinit),"elements"))

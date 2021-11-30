@@ -3,7 +3,9 @@
 ###
 
 import(methods, mvtnorm, mgcv, ncvreg, stats)
+importFrom(glmnet, glmnet)
 importFrom(mclust,Mclust,mclustBIC,priorControl)
+importFrom(sgd, sgd)
 importFrom(survival, Surv, coxph)
 importFrom("utils", "combn")
 importFrom(Rcpp, evalCpp)

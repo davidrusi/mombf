@@ -356,6 +356,8 @@ pt2margFun set_marginalFunction(struct marginalPars *pars) {
       ans= zellgzellMarg;
     } else if (priorcode==73) {
       ans= normidgzellMarg;
+    } else if (priorcode=100) {
+      ans= bic_lm;
     } else {
       Rf_error("The prior in (priorCoef,priorGroup) not currently implemented for linear regression");
     }
@@ -3327,6 +3329,42 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
   if (*(*pars).logscale !=1) { ans= exp(ans); }
   return ans;
 }
+
+
+
+//BIC for the Gaussian linear model
+double bic_lm (int *sel, int *nsel, struct marginalPars *pars) {
+  int n= *((*pars).n);
+  double *m, phi, ans=0.0, *ypred, sumy2= *(*pars).sumy2;
+
+  if (*nsel ==0) {
+
+    phi= sumy2 / ((double) n) - pow(*((*pars).sumy), 2.0);
+    ans= -0.5* ((double) n) - 0.5 * ((double) n) * log(2 * M_PI * phi);
+
+  } else {
+
+    m= dvector(1,*nsel); ypred= dvector(0, n-1);
+
+    leastsquares(m, &phi, ypred, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, (*pars).n, (*pars).p, sel, nsel);
+
+    ans= -0.5* ((double) n) - 0.5 * ((double) n) * log(2 * M_PI * phi);
+
+    //for (i=0; i< *nsel; i++) ytXm += m[i] * ytX[sel[i]]; //t(y) %*% X %*% m;
+    //mXtXm= quadratic_xtAselx(m, (*pars).XtX, (*pars).p, nsel, sel); // t(m) %*% XtX %*% m
+    //ans= - 0.5 * ((double) n) * log(2 * M_PI * phi) - 0.5 * (sumy2 - 2 * ytXm + mXtXm) / phi;
+
+    free_dvector(m, 1, *nsel); free_dvector(ypred, 0, n-1);
+
+  }
+  if (*(*pars).logscale !=1) { ans= exp(ans); }
+
+  free_dvector(m, 1, *nsel); free_dvector(ypred, 0, n-1);
+
+  return ans;
+}
+
+
 
 //*************************************************************************************
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS

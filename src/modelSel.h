@@ -354,6 +354,10 @@ double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars);
 // normalid on individual coef, group Zellner on groups
 double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
 
+// BIC criterion for Gaussian linear model
+double bic_lm (int *sel, int *nsel, struct marginalPars *pars);
+
+
 //*************************************************************************************
 // MARGINAL LIKELIHOOD FOR ACCELERATED FAILURE TIME MODELS
 //*************************************************************************************

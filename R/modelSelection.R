@@ -461,6 +461,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     postmean= postvar= NULL
+    modelid= apply(postSample[,1:ncol(xstd),drop=FALSE]==1, 1, function(z) paste(which(z),collapse=','))
 
   } else {
 

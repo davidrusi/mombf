@@ -3,12 +3,13 @@
 ###
 
 import(methods, mvtnorm, mgcv, ncvreg, stats)
-importFrom(glmnet, glmnet)
+importFrom(glmnet, glmnet, cv.glmnet)
 importFrom(mclust,Mclust,mclustBIC,priorControl)
 importFrom(sgd, sgd)
 importFrom(survival, Surv, coxph)
 importFrom("utils", "combn")
 importFrom(Rcpp, evalCpp)
+importFrom(pracma, pinv)
 
 useDynLib(mombf, .registration=TRUE)
 
@@ -51,5 +52,6 @@ export(zbfknown, zbfunknown, zellnerbf)
 S3method(zellnerbf,lm)
 export(zellnerprior,groupzellnerprior)
 export(normalidprior)
+export(cil)
 
 #exportClasses("msPriorSpec")

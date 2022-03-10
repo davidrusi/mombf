@@ -26,3 +26,8 @@ setClass("msPriorSpec",
 
 ##=============================================================================
 setClass("msfit", representation("list"), prototype = prototype(elementType = "list"), contains="list")
+
+##=============================================================================
+setClass('cilfit', representation('list'),
+   prototype = prototype(elementType = 'list'),
+   contains = 'list')

@@ -2,6 +2,7 @@
 \alias{postProb}
 \alias{postProb-methods}
 \alias{postProb,msfit-method}
+\alias{postProb,cilfit-method}
 \alias{postProb,mixturebf-method}
 
 \title{

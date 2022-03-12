@@ -736,19 +736,15 @@ cil <- function(y, D, X, I = NULL, R = 1e4, th.search = 'EB',
 # Adapt relevant methods for objects of class "cilfit"
 ################################################################################
 # postProb()
-setMethod('postProb', signature(object = 'cilfit'), function(object) {
-  return(object[['model.postprobs']])
-})
-# setMethod('postProb', signature(object = 'cilfit'),
-#   function(object, margpp = FALSE) {
-#     if (margpp == FALSE) {
-#       ans <- object[['model.postprobs']]  # Model posterior probabilities
-#     } else {
-#       ans <- object[['marg.postprobs']]  # Marginal inclusion posterior probabilities
-#     }
-#     return(ans)
-#   }
-# )
+setMethod('postProb', signature(object = 'cilfit'),
+  function(object, nmax, method = 'norm') {
+    ans <- object[['model.postprobs']]
+    if (missing(nmax)) {
+      nmax <- nrow(ans)
+    }
+    return(ans[1:nmax, ])
+  }
+)
 
 # coef()
 setMethod('coef', signature(object = 'cilfit'), function(object) {

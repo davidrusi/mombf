@@ -145,6 +145,7 @@ Object of class \code{cilfit}, which extends a list with elements
 }
 \seealso{
   \code{\link{postProb}} to obtain posterior model probabilities.
+  
   \code{coef} for inference on the treatment parameters.
   %\code{postProb} to obtain posterior model probabilities.
   %\code{coef.cilfit} for Bayesian model averaging estimates for the

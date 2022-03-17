@@ -1,7 +1,7 @@
 ################################################################################
 # List of functions
 ################################################################################
-# * inside
+# * inside
 # * lasso.bic
 # * binary.id
 # * compact.id
@@ -11,10 +11,10 @@
 # * Gf.EB.cil
 # * Of.EP.cil
 # * Gf.EP.cil
-# * check.parameter.format
+# * check.parameter.format
 # * model.pprobs.cil
 # * bma.cil.teff
-# * check.input.format
+# * check.input.format
 # * cil.teff
 ################################################################################
 # List of methods
@@ -264,7 +264,7 @@ Gf.EP.cil <- function(x, betad, nt, pj1, th.prior = 'unif', rho.min = 0,
 check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
   lpen, eps, bvs.fit0, th.EP, D) {
 ################################################################################
-  # Error messages accounted for
+  # Error messages accounted for
   err1 <- 'if informed, argument "rho.min" must be a scalar in the interval (0, 1/2).'
   err2 <- 'if informed, argument "rho.max" must be a scalar in the interval (1/2, 1).'
   err3 <- 'if informed, argument "th.range" must be numeric and have at least two distinct values.'
@@ -275,7 +275,7 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
   err8 <- 'if informed, parameter "bvs.fit0" must be of class "msfit".'
   err9 <- 'if informed, parameter "th.EP" must be a numeric vector of length equal to the number of columns in "D" plus 1.'
 
-  # Parameter: "rho.min"
+  # Parameter: "rho.min"
   if (! is.null(rho.min) | length(rho.min) > 1) {
     if (! is.numeric(rho.min) | length(rho.min) > 1) {
       stop(err1)
@@ -320,14 +320,14 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
     }
   }
 
-  # Parameter: "lpen"
+  # Parameter: "lpen"
   if (length(lpen) != 1) {
     stop(err6)
   } else if (! lpen %in% c('lambda.min', 'lambda.1se')) {
     stop(err6)
   }
 
-  # Parameter: "eps"
+  # Parameter: "eps"
   if (! is.null(eps) | length(eps) > 1) {
     if (! is.numeric(eps) | length(eps) > 1) {
       stop(err7)
@@ -336,7 +336,7 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
     }
   }
 
-  # Object: "bvs.fit0"
+  # Object: "bvs.fit0"
   if (! is.null(bvs.fit0)) {
     if (class(bvs.fit0) != 'msfit') {
       stop(err8)
@@ -669,14 +669,14 @@ check.input.format <- function(y, D, X, I, R) {
     }
   }
 
-  # Parameter "R"
+  # Parameter "R"
   if (! is.numeric(R) | length(R) != 1) {
     stop(err5)
   } else if (R < 1) {
     stop(err5)
   }
 
-  # Numeric objects
+  # Numeric objects
   if (! is.numeric(y)) { stop('"y" must be numeric.') }
   if (! is.numeric(D)) { stop('"D" must be numeric.') }
   if (! is.numeric(X)) { stop('"X" must be numeric.') }
@@ -684,7 +684,7 @@ check.input.format <- function(y, D, X, I, R) {
     stop('if informed, "I" must be numeric.')
   }
   
-  # NA warnings
+  # NA warnings
   if (any(is.na(y))) { stop('"y" cannot contain NAs.') }
   if (any(is.na(D))) { stop('"D" cannot contain NAs.') }
   if (any(is.na(X))) { stop('"X" cannot contain NAs.') }
@@ -733,7 +733,7 @@ cil <- function(y, D, X, I = NULL, R = 1e4, th.search = 'EB',
 }
 
 ################################################################################
-# Adapt relevant methods for objects of class "cilfit"
+# Adapt relevant methods for objects of class "cilfit"
 ################################################################################
 # postProb()
 setMethod('postProb', signature(object = 'cilfit'),

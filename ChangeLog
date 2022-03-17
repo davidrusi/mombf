@@ -1,3 +1,7 @@
+CHANGES IN version 3.1.2
+- Added cil
+- Fixed gcc warnings for comparison of pointer addition to NULL
+
 CHANGES IN VERSION 3.1.1
 - Added bicprior to linear models
 

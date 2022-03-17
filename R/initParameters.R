@@ -151,7 +151,7 @@ logL_logreg= function(beta, ytX, Xbeta, n, X, logscale=TRUE) {
 
 #Negative Poisson regression log-likelihood
 logL_poisreg= function(beta, ytX, Xbeta, n, X, sumlfactorialy, logscale=TRUE) {
-    if (missing(sumlfactorialy)) sumlfactorialy= sum(lfactorial(y))
+    #if (missing(sumlfactorialy)) sumlfactorialy= sum(lfactorial(y))
     if (any(beta != 0)) {
         if (missing(Xbeta)) Xbeta= as.vector(X %*% matrix(beta,ncol=1))
         ans= sum(ytX * beta) + sum(exp(Xbeta)) - sumlfactorialy

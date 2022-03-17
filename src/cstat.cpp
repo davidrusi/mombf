@@ -1783,11 +1783,10 @@ void free_charvector(char *v,
                   int nl,
                   int nh)
 {
-    //assert(v != NULL);
 
-    if ((v+nl) != NULL) {
+    //if ((v+nl) != NULL) {
         free((char  *) (v+nl));
-    }
+    //}
 }
 
 /* Free int vector allocated with ivector() */
@@ -1795,11 +1794,10 @@ void free_ivector(int *v,
                   int nl,
                   int nh)
 {
-    //assert(v != NULL);
 
-    if ((v+nl) != NULL) {
+    //if ((v+nl) != NULL) {
         free((char  *) (v+nl));
-    }
+    //}
     nv -= (nh-nl+1);
 }
 
@@ -1809,21 +1807,20 @@ void free_vector(float *v,
                  int nl,
                  int nh)
 {
-    //assert(v != NULL);
 
-    if ((v+nl) != NULL) {
+    //if ((v+nl) != NULL) {
         free((char  *) (v+nl));
-    }
+    //}
     nv -= (nh-nl+1);
 }
 
 
 /* Free double vector allocated with dvector() */
 void free_dvector(double *v, int nl, int nh) {
-    //assert(v != NULL);
-    if ((v+nl) != NULL) {
+
+    //if ((v+nl) != NULL) {
         free((char  *) (v+nl));
-    }
+    //}
     nv -= (nh-nl+1);
 }
 
@@ -1834,16 +1831,14 @@ void free_imatrix(int **m, int nrl, int nrh, int ncl, int nch) {
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
-    //assert(m != NULL);
-
     for (i = nrh; i >= nrl; i--) {
-        if ((m[i]+ncl) != NULL) {
+        //if ((m[i]+ncl) != NULL) {
             free((char *) (m[i]+ncl));
-        }
+        //}
     }
-    if ((m+nrl) != NULL) {
+    //if ((m+nrl) != NULL) {
         free((char *) (m+nrl));
-    }
+    //}
     nv -= ncol * nrow;
 }
 
@@ -1854,15 +1849,14 @@ void free_dmatrix(double **m, int nrl, int nrh, int ncl, int nch) {
     size_t nrow = nrh-nrl+1;
     size_t ncol = nch-ncl+1;
 
-    //assert(m != NULL);
     for (i = nrh; i >= nrl; i--) {
-        if ((m[i]+ncl) != NULL) {
+        //if ((m[i]+ncl) != NULL) {
             free((char *) (m[i]+ncl));
-        }
+        //}
     }
-    if ((m+nrl) != NULL) {
+    //if ((m+nrl) != NULL) {
         free((char *) (m+nrl));
-    }
+    //}
     nv -= ncol * nrow;
 }
 
@@ -1880,7 +1874,9 @@ void free_darray3(double ***a, int ini1, int fi1, int ini2, int fi2, int ini3, i
   for (i= fi1; i>=ini1; i--) {
     free_dmatrix(a[i],ini2,fi2,ini3,fi3);
   }
-  if ((a+ini1) != NULL) { free((char*) (a+ini1)); }
+  //if ((a+ini1) != NULL) { 
+    free((char*) (a+ini1)); 
+  //}
 }
 
 //OLD VERSION OF free_darray3.

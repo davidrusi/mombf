@@ -161,27 +161,14 @@ alpha <- 1
 d <- X \%*\% beta_d + rnorm(100)
 y <- d * alpha + X \%*\% beta_y + rnorm(100)
 
-# Specify prior parameters
-priorCoef <- momprior(tau = 0.348)
-priorDelta <- modelbinomprior(p = 0.5)
-
-# Regular Model selection
-fit1 <- modelSelection(y = y, x = cbind(d, X), center = FALSE, scale = FALSE,
-  priorCoef = priorCoef, priorDelta = priorDelta)
-
 # Confounder Importance Learning
-fit2 <- cil(y = y, D = d, X = X, th.search = 'EP')
-fit3 <- cil(y = y, D = d, X = X, th.search = 'EB',
-  bvs.fit0 = fit2[['init.msfit']], th.EP = fit2[['theta.EP']])
+fit1 <- cil(y = y, D = d, X = X, th.search = 'EP')
 
 # Posterior model probabilities (comparison)
 postProb(fit1, nmax = 5)
-postProb(fit2, nmax = 5)
-postProb(fit3, nmax = 5)
 
 # Treatment effects
-coef(fit2)
-coef(fit3)
+coef(fit1)
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

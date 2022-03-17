@@ -2,11 +2,12 @@
 \alias{cil}
 %\alias{modelsearchBlockDiag}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{ Treatment effect estimation for linear models via Confounder Importance Learning using non-local priors. }
+\title{Treatment effect estimation for linear models via Confounder Importance
+  Learning using non-local priors.}
 \description{
   Treatment effect estimation for linear models in the presence of
   multiple treatments and a potentially high-dimensional number of controls,
-  i.e. p>>n can be handled.
+  i.e. \eqn{p \gg n} can be handled.
 
   Confounder Importance Learning (CIL) proposes an estimation framework where
   the importance of the relationship between treatments and controls is
@@ -15,9 +16,9 @@
   non-local priors to obtain BMA estimates and posterior model probabilities.
 
   \code{cil} is built on \code{modelSelection} and produces objects of type
-  \code{cilfit}. See \code{coef} and \code{postProb} to obtain treatment effect
+  \code{cilfit}. Use \code{coef} and \code{postProb} to obtain treatment effect
   point estimates and posterior model probabilities, respectively, on this
-  type of objects.
+  object class.
 }
 \usage{
 cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
@@ -34,29 +35,30 @@ cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
 \item{X}{matrix of controls with numeric columns, continuous or discrete. If only
   one treatment is provided, supply this object in the same format used for \code{y}}
 \item{I}{matrix with the desired interaction terms between \code{D} and
-  \code{X}. If not informed, i.e. supplied as the default 'NULL', this term will
-  not be included into the response model}
+  \code{X}. If not informed, i.e. supplied as the default \code{NULL}, this term
+  will not be included into the response model}
 \item{R}{integer scalar indicating the number of Gibbs sampling iterations to be
-  run by \code{modelSelection} on each stage of CIL (see argument 'niter'
+  run by \code{modelSelection} on each stage of CIL (see argument \code{niter}
   therein)}
 \item{th.search}{method to estimate theta values in the marginal prior inclusion
-  probabilities of the CIL model. Options are: 'EB' (Empirical Bayes, based on
-  maximum marginal likelihood) and 'EP' (Expectation propagation approximation)}
+  probabilities of the CIL model. Options are: \code{EB} (Empirical Bayes, based
+  on maximum marginal likelihood) and \code{EP} (Expectation propagation
+  approximation)}
 \item{mod1}{method to estimate the feature parameters corresponding to the
   influence of the controls on the treatments. Supported values for this
-  argument are 'ginv' (generalised pseudo-inverse), 'lasso' (see argument
-  \code{lpen}), 'lasso_bic' (default), and 'ridge'}
+  argument are 'ginv' (generalised pseudo-inverse), \code{lasso} (see
+  argument \code{lpen}), \code{lasso_bic} (default), and \code{ridge})}
 \item{th.prior}{prior associated to the thetas for the Empirical Bayes
-  estimation. Currently only 'unif' (Uniform prior) is supported, effectively
-  making the EB approach the maximisation of the marginal likelihood}
+  estimation. Currently only \code{unif} (Uniform prior) is supported,
+  effectively making the EB approach the maximisation of the marginal likelihood}
 \item{beta.prior}{prior on the response model parameters, for both treatments
   and covariates, used to compute posterior model probabilities and BMA
-  estimates of the CIL model. Options are: 'nlp' (pMOM non-local prior, by
-  default, see also \code{tau} argument) and 'zup' (Zellner's prior with tau = n,
-  equivalent to the Unit Information prior)}
-\item{rho.min}{value of rho in (0, 1/2) employed in the prior probability model
-  of CIL. If left uninformed, i.e. supplied as the default 'NULL', it will be
-  set to 1/p^2, where p is the dimension of the response model.}
+  estimates of the CIL model. Options are: \code{nlp} (pMOM non-local prior, by
+  default, see also \code{tau} argument) and \code{zup} (Zellner's prior with
+  \eqn{\tau = n}, equivalent to the Unit Information prior)}
+\item{rho.min}{value of \eqn{\rho} in (0, 1/2) employed in the prior probability
+  model of CIL. If left uninformed, i.e. supplied as the default \code{NULL},
+  it will be set to \eqn{1/p^2}, where p is the dimension of the response model.}
 \item{rho.max}{this argument is deprecated and should not be informed.}
 \item{th.range}{sequence of values to be considered in the grid when searching
   for points to initialise the search for the optimal theta parameters. If left
@@ -68,25 +70,25 @@ cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
   quantities required to find the optimal values for theta. By default, this
   argument is equal to \code{Inf} (i.e. all visited models by the Gibbs sampler
   are considered), but it might be computationally desirable to restrict this
-  number when the dimensionality of \code{D} and/or \code{X}??is very large}
+  number when the dimensionality of \code{D} and/or \code{X} is very large}
 \item{lpen}{penalty type supplied to \code{glmnet} if \code{mod1} is set to
-  'lasso'. Default is 'lambda.1se' (see documentation corresponding to
+  \code{lasso}. Default is \code{lambda.1se} (see documentation corresponding to
   \code{glmnet} for options on how to set this parameter)}
 \item{eps}{small scalar used to avoid round-offs to absolute zeroes or ones in
   marginal prior inclusion probabilities.}
-\item{bvs.fit0}{object returned by \code{modelSelection} under theta = 0, used
-  as a model exploration tool to compute EB approximation on the thetas. This
-  argument is only supposed to be used in case of a second computation the model
-  on the same data where \code{th.search} has ben changed to 'EB', in order to
-  avoid repeating the computation of the initial \code{modelSelection} fit
-  To use this argument, supply the object residing int the slot 'init.msfit'
-  of a 'cilfit'-class object.}
+\item{bvs.fit0}{object returned by \code{modelSelection} under \eqn{\theta = 0},
+  used as a model exploration tool to compute EB approximation on the thetas.
+  This argument is only supposed to be used in case of a second computation the
+  model on the same data where \code{th.search} has ben changed to \code{EB},
+  in order to avoid repeating the computation of the initial
+  \code{modelSelection} fit. To use this argument, supply the object residing
+  in the slot \code{init.msfit} of a \code{cilfit}-class object.}
 \item{th.EP}{Optimal theta values under the EP approximation, obtained in a
   previous CIL run. This argument is only supposed to be used in case of
   a second computation the model on the same data where \code{th.search}
-  has ben changed to 'EB', in order to save the cost of the EP search
+  has ben changed to \code{EB}, in order to save the cost of the EP search
   to initialise the optimisation algorithm. To use this argument, supply the
-  object residing int the slot 'th.hat' of a 'cilfit'-class object.}
+  object residing int the slot \code{th.hat} of a \code{cilfit}-class object.}
 }
 \details{
   We estimate treatment effects for the features present in the treatment
@@ -100,8 +102,8 @@ cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
   through establishing prior inclusion probabilities on the response model
   for \code{y} according to said role. This is regulated through a hyper-
   parameter theta that is set according to the method supplied to
-  \code{th.search}. While the 'EB' option obtains a more precise estimate
-  a priori, the 'EP' alternative achieves a reasonable approximation at a
+  \code{th.search}. While the \code{EB} option obtains a more precise estimate
+  a priori, the \code{EP} alternative achieves a reasonable approximation at a
   fraction of the computational cost.
 
   See references for further details on implementation and computation.
@@ -117,7 +119,7 @@ Object of class \code{cilfit}, which extends a list with elements
   at each MCMC run on the model search Gibbs sampler
 }
 \item{model.postprobs}{\code{matrix} returning the posterior model probabilities
-  computed in the CIL model}.
+  computed in the CIL model}
 \item{marg.postprobs}{\code{numeric} vector containing the estimated marginal
   posterior inclusion probabilities of the featured treatments and controls}
 \item{theta.hat}{Values used for the hyper-parameter theta, estimated according
@@ -128,24 +130,26 @@ Object of class \code{cilfit}, which extends a list with elements
 \item{msfit}{Object returned by \code{modelSelection} (of class \code{msfit})
   of the final model estimated by CIL.}
 \item{theta.EP}{Estimated values of theta using the EP algorithm. It coincides
-  with \code{theta.hat} if the argument \code{th.search} is set to 'EB'}
+  with \code{theta.hat} if the argument \code{th.search} is set to \code{EB}}
 \item{init.msfit}{Initial \code{msfit} object used to estimate the inital model
   where all elements in theta are set to zero (used in the optimisation process
   of this hyper-parameter)}
 }
 \references{
-  Torrens i Dinares M., Papaspiliopoulos O., Rossell D. Confounder importance
-  learning for treatment effect inference. https:\/\/arxiv.org\/abs\/2110.00314,
-  2021, 1-48.
+  Torrens i Dinares M., Papaspiliopoulos O., Rossell D. Confounder
+  importance learning for treatment effect inference.
+  https://arxiv.org/abs/2110.00314, 2021, 1--48.
 }
-\author{ Miquel Torrens }
+\author{
+  Miquel Torrens
+}
 \seealso{
-  %\code{\link{cilfit-class}} for details on the output.
-  \code{cilfit-class} for details on the output.
-  %\code{\link{postProb}} to obtain posterior model probabilities.
-  \code{postProb} to obtain posterior model probabilities.
-  \code{coef.cilfit} for Bayesian model averaging estimates for the
-    treatment parameters.
+  \code{\link{postProb}} to obtain posterior model probabilities.
+  
+  \code{coef} for inference on the treatment parameters.
+  %\code{postProb} to obtain posterior model probabilities.
+  %\code{coef.cilfit} for Bayesian model averaging estimates for the
+  %treatment parameters.
 }
 \examples{
 # Simulate data
@@ -165,17 +169,17 @@ priorDelta <- modelbinomprior(p = 0.5)
 fit1 <- modelSelection(y = y, x = cbind(d, X), center = FALSE, scale = FALSE,
   priorCoef = priorCoef, priorDelta = priorDelta)
 
-#??Confounder Importance Learning
+# Confounder Importance Learning
 fit2 <- cil(y = y, D = d, X = X, th.search = 'EP')
 fit3 <- cil(y = y, D = d, X = X, th.search = 'EB',
   bvs.fit0 = fit2[['init.msfit']], th.EP = fit2[['theta.EP']])
 
 # Posterior model probabilities (comparison)
-head(postProb(fit1))
-head(postProb(fit2))
-head(postProb(fit3))
+postProb(fit1, nmax = 5)
+postProb(fit2, nmax = 5)
+postProb(fit3, nmax = 5)
 
-#??Treatment effects
+# Treatment effects
 coef(fit2)
 coef(fit3)
 }

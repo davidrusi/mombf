@@ -736,22 +736,29 @@ cil <- function(y, D, X, I = NULL, R = 1e4, th.search = 'EB',
 # Adapt relevant methods for objects of class "cilfit"
 ################################################################################
 # postProb()
-setMethod('postProb', signature(object = 'cilfit'), function(object) {
-  return(object[['model.postprobs']])
-})
-# setMethod('postProb', signature(object = 'cilfit'),
-#   function(object, margpp = FALSE) {
-#     if (margpp == FALSE) {
-#       ans <- object[['model.postprobs']]  # Model posterior probabilities
-#     } else {
-#       ans <- object[['marg.postprobs']]  # Marginal inclusion posterior probabilities
-#     }
-#     return(ans)
-#   }
-# )
+setMethod('postProb', signature(object = 'cilfit'),
+  function(object, nmax, method = 'norm') {
+    ans <- object[['model.postprobs']]
+    if (missing(nmax)) {
+      nmax <- nrow(ans)
+    }
+    return(ans[1:nmax, ])
+  }
+)
 
 # coef()
 setMethod('coef', signature(object = 'cilfit'), function(object) {
-  return(object[['cil.teff']])
+  qls <- c(0.025, 0.975)
+  pes <- as.matrix(object[['cil.teff']], ncol = 1)
+  if (length(object[['cil.teff']]) == 1) {
+    cis <- quantile(object[['cil.teff.postdist']], probs = qls)
+  } else {
+    cis <- apply(object[['cil.teff.postdist']], 2, quantile, probs = qls)
+  }
+  mpp <- as.matrix(object[['marg.postprobs']][1:length(pes)], ncol = 1)
+  out <- cbind(pes, t(as.matrix(cis, nrow = 1, ncol = 2)), mpp)
+  colnames(out) <- c('estimate', '2.5%', '97.5%', 'margpp')
+  rownames(out) <- paste('treat', 1:nrow(out), sep = '')
+  return(out)
 })
 # END OF SCRIPT

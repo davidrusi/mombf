@@ -338,7 +338,7 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
 
   # Object: "bvs.fit0"
   if (! is.null(bvs.fit0)) {
-    if (!inherits(bvs.fit0), 'msfit') {
+    if (!inherits(bvs.fit0, 'msfit')) {
       stop(err8)
     }
   }

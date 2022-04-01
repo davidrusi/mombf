@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.1.3
+- Fixed NOTE from comparing class() to string in cil.R
+
 CHANGES IN version 3.1.2
 - Added cil
 - Fixed gcc warnings for comparison of pointer addition to NULL

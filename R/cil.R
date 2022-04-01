@@ -338,7 +338,7 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
 
   # Object: "bvs.fit0"
   if (! is.null(bvs.fit0)) {
-    if (class(bvs.fit0) != 'msfit') {
+    if (!inherits(bvs.fit0), 'msfit') {
       stop(err8)
     }
   }
@@ -555,7 +555,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
       lower = lws, upper = ups, betad = betad, G0 = G0,
       ws = ws, th.prior = th.prior, rho.min = rho.min, rho.max = rho.max,
       V = s * Rm), silent = TRUE)
-    if (class(opt.EB) == 'try-error') {
+    if (inherits(opt.EB, 'try-error')) {
       opt.EB <- try(nlminb(th.EP, objective = Of.EB.cil,
         gradient = Gf.EB.cil, lower = lws, upper = ups, betad = betad,
         G0 = G0, ws = ws, th.prior = th.prior, rho.min = rho.min,

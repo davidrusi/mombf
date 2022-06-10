@@ -102,8 +102,8 @@ setMethod("rnlp", signature(y='ANY',x='matrix',m='missing',V='missing',msfit='mi
 
 rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1) {
     if (missing(priorGroup)) priorGroup= priorCoef
-    tau <- as.double(priorCoef@priorPars['tau'])
     p <- ncol(x); n <- length(y)
+    tau <- as.double(formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorCoef, priorVar=priorVar, priorSkew=momprior(tau=0.348), n=n)$tau)
     if (nrow(x) != n) stop('Dimensions of y and x do not match')
     if (priorVar@priorDistr=='invgamma') {
         a_phi <- as.double(priorVar@priorPars['alpha'])
@@ -135,8 +135,8 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, b
            S <- solve(t(x) %*% x + diag(p)/tau)
         } else {
            S <- solve((1+1/tau) * t(x) %*% x)
-           m <- as.vector(S %*% t(x) %*% matrix(y,ncol=1))
         }
+        m <- as.vector(S %*% t(x) %*% matrix(y,ncol=1))
         ssr <- sum(y * (y - (x %*% m)))
         phi <- 1 / rgamma((niter - burnin)/thinning, 0.5*(n+a_phi), 0.5*(ssr + b_phi))
         beta <- matrix(rnorm(ncol(x)*(niter-burnin)/thinning),ncol=ncol(x)) %*% t(chol(S)) * phi

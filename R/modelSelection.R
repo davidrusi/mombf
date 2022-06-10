@@ -24,15 +24,16 @@ hasPostSampling <- function(object) {
   hassamples[2,] =    c('Continuous','normal',  'peMOM',  'peMOM')
   hassamples[3,] =    c('Continuous','normal',  'piMOM',  'piMOM')
   hassamples[4,] =    c('Continuous','normal','zellner','zellner')
-  hassamples[5,] =    c('glm','binomial','bic','bic')
-  hassamples[6,] =    c('glm','binomial logit','bic','bic')
-  hassamples[7,] =    c('glm','binomial probit','bic','bic')
-  hassamples[8,] =    c('glm','gamma inverse','bic','bic')
-  hassamples[9,] =    c('glm','inverse.gaussian 1/mu^2','bic','bic')
-  hassamples[10,] =    c('glm','poisson','bic','bic')
-  hassamples[11,] =    c('glm','poisson log','bic','bic')
-  hassamples[12,]=    c('Survival','Cox','bic','bic')
-  #hassamples[13,]=    c('Survival','normal','bic','bic') #to be added
+  hassamples[5,] =    c('Continuous','normal','normalid','normalid')
+  hassamples[6,] =    c('glm','binomial','bic','bic')
+  hassamples[7,] =    c('glm','binomial logit','bic','bic')
+  hassamples[8,] =    c('glm','binomial probit','bic','bic')
+  hassamples[9,] =    c('glm','gamma inverse','bic','bic')
+  hassamples[10,]=    c('glm','inverse.gaussian 1/mu^2','bic','bic')
+  hassamples[11,]=    c('glm','poisson','bic','bic')
+  hassamples[12,]=    c('glm','poisson log','bic','bic')
+  hassamples[13,]=    c('Survival','Cox','bic','bic')
+  #hassamples[14,]=    c('Survival','normal','bic','bic') #to be added
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
   outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr

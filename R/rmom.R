@@ -125,14 +125,18 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, b
         ans <- matrix(ans,ncol=p+1)
         if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
       }
-    } else if (priorCoef@priorDistr %in% c('zellner','bic')) {
+    } else if (priorCoef@priorDistr %in% c('zellner','bic','normalid')) {
       if (priorCoef@priorDistr == 'bic') tau= Inf
       if (p==0) {
         ans <- matrix(1/rgamma((niter-burnin)/thinning, .5*(a_phi+n), .5*(b_phi+sum(y^2))), ncol=1)
         colnames(ans) <- 'phi'
       } else {
-        S <- solve((1+1/tau) * t(x) %*% x)
-        m <- as.vector(S %*% t(x) %*% matrix(y,ncol=1))
+        if (priorCoef@priorDistr == 'normalid') {
+           S <- solve(t(x) %*% x + diag(p)/tau)
+        } else {
+           S <- solve((1+1/tau) * t(x) %*% x)
+           m <- as.vector(S %*% t(x) %*% matrix(y,ncol=1))
+        }
         ssr <- sum(y * (y - (x %*% m)))
         phi <- 1 / rgamma((niter - burnin)/thinning, 0.5*(n+a_phi), 0.5*(ssr + b_phi))
         beta <- matrix(rnorm(ncol(x)*(niter-burnin)/thinning),ncol=ncol(x)) %*% t(chol(S)) * phi
@@ -140,6 +144,8 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, b
         ans <- cbind(beta, phi)
         if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
       }
+    } else if (priorCoef@priorDistr %in% c('normalid')) {
+        
     } else stop("This kind of prior is not implemented")
     return(ans)
 }

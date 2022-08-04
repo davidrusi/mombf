@@ -40,9 +40,9 @@ tensorbspline <- function(x, degree, knots, maineffects) {
     des= vector('list',p)
     for (j in 1:p) {
         if (is.list(knots)) {
-            des[[j]]= mombf:::bspline(x[,j], degree=degree[j], knots=knots[[j]])
+            des[[j]]= bspline(x[,j], degree=degree[j], knots=knots[[j]])
         } else {
-            des[[j]]= mombf:::bspline(x[,j], degree=degree[j], knots=knots)
+            des[[j]]= bspline(x[,j], degree=degree[j], knots=knots)
         }
         des[[j]]= des[[j]][,apply(des[[j]],2,'sd')>0]
         colnames(des[[j]])= paste('x',j,'.',1:ncol(des[[j]]),sep='')

@@ -500,6 +500,8 @@ pimomMarginalUR <- function(y, x, alpha=0.001, lambda=0.001, tau=1, method='Lapl
 ### margpemom.R
 ###
 
+lbesselK <- function(x, nu) log(besselK(x,nu=nu,expon.scaled=TRUE)) - x
+
 femomNeg <- function(th, m, S, phi, tau, logscale=TRUE) .5*mahalanobis(th, center=m, cov=S, inverted=TRUE)/phi + tau*phi*sum(1/th^2)
 fpemomNeg <- function(th, m, S, phi, tau) S %*% matrix(th-m, ncol=1)/phi - 2*tau*phi*sum(1/th^3)
 fppemomNeg <- function(th, m, S, phi, tau) S/phi + 6*tau*phi*diag(1/th^4,nrow=length(th))

@@ -3,20 +3,16 @@
 \alias{momunknown}
 \alias{imomknown}
 \alias{imomunknown}
-\alias{zbfknown}
-\alias{zbfunknown}
 
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{ Bayes factors for moment, inverse moment and Zellner-Siow g-prior. }
+\title{ Bayes factors for moment and inverse moment priors}
 \description{
   \code{momknown} and \code{momunknown} compute moment Bayes
   factors for linear models when \code{sigma^2} is known and unknown,
   respectively. The functions can also be used to compute approximate
   Bayes factors for generalized linear models and other settings.
   \code{imomknown}, \code{imomunknown} compute inverse
-  moment Bayes factors. \code{zbfknown},
-  \code{zbfunknown} compute Bayes factors based on the
-  Zellner-Siow g-prior.
+  moment Bayes factors.
 }
 \usage{
 momknown(theta1hat, V1, n, g = 1, theta0, sigma, logbf = FALSE)
@@ -26,9 +22,6 @@ imomknown(theta1hat, V1, n, nuisance.theta, g = 1, nu = 1, theta0,
 sigma, method='adapt', B=10^5)
 imomunknown(theta1hat, V1, n, nuisance.theta, g = 1, nu = 1, theta0,
 ssr, method='adapt', nquant = 100, B = 10^5)
-zbfknown(theta1hat, V1, n, g = 1, theta0, sigma, logbf = FALSE)
-zbfunknown(theta1hat, V1, n, nuisance.theta, g = 1, theta0, ssr, logbf =
-FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -74,7 +67,6 @@ with the null model where \code{theta==theta0}. Large values favor the
 alternative model; small values favor the null.
 \code{imomknown} and \code{imomunknown} return
 inverse moment Bayes factors.
-\code{zbfknown} and \code{zbfunknown} return Bayes factors based on the Zellner-Siow g-prior.
 }
 \references{ See http://rosselldavid.googlepages.com for technical
   reports.

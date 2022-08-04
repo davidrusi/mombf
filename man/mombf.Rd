@@ -3,16 +3,12 @@
 \alias{mombf.lm}
 \alias{imombf}
 \alias{imombf.lm}
-\alias{zellnerbf}
-\alias{zellnerbf.lm}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{ Moment and inverse moment Bayes factors for linear models. }
 \description{
   \code{mombf} computes moment Bayes factors to test whether a subset of
   regression coefficients are equal to some user-specified value.
   \code{imombf} computes inverse moment Bayes factors.
-  \code{zellnerbf} computes Bayes factors based on the Zellner-Siow
-  prior (used to build the moment prior).
 }
 \usage{
 mombf(lm1, coef, g, prior.mode, baseDensity='normal', nu=3, theta0,
@@ -60,7 +56,6 @@ nquant=100, B = 10^5)
   \code{imomunknown}, but they have a simpler interface.
   See \code{dmom} and \code{dimom} for details on the moment and inverse
   moment priors.
-  The Zellner-Siow g-prior is given by dmvnorm(theta,theta0,n*g*V1).
 }
 \value{
 \code{mombf} returns the moment Bayes factor to compare the model where
@@ -69,7 +64,6 @@ with the null model where \code{theta==theta0}. Large values favor the
 alternative model; small values favor the null.
 \code{imombf} returns
 inverse moment Bayes factors.
-\code{zellnerbf} returns Bayes factors based on the Zellner-Siow g-prior.
 }
 \references{ See http://rosselldavid.googlepages.com for technical
   reports.
@@ -77,11 +71,9 @@ For details on the quantile integration, see Johnson, V.E. A Technique for Estim
 Using Mixtures of Conditional Densities. Journal of the American Statistical Association, Vol. 87, No. 419. (Sep., 1992), pp. 852-860.
 }
 \author{ David Rossell }
-\seealso{ \code{\link{momunknown}},
-  \code{\link{imomunknown}} and \code{\link{zbfunknown}} for another interface to compute Bayes
-factors. \code{\link{momknown}}, \code{\link{imomknown}} and \code{\link{zbfknown}}
-to compute Bayes factors assuming that the dispersion parameter
-is known, and for approximate Bayes factors for GLMs  }
+\seealso{\code{\link{nlpMarginal}} for a better interface to
+  integrated likelihoods and \code{\link{modelSelection}} to also
+  search over the model space}
 \examples{
 ##compute Bayes factor for Hald's data
 data(hald)
@@ -95,7 +87,6 @@ gimom <- priorp2g(priorp=priorp,q=q,prior='iMom')
 
 mombf(lm1,coef=2,g=gmom) #moment BF
 imombf(lm1,coef=2,g=gimom,B=10^5) #inverse moment BF
-zellnerbf(lm1,coef=2,g=1) #BF based on Zellner's g-prior
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

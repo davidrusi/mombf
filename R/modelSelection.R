@@ -211,7 +211,7 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
 
 
 getmodelid= function(object) {
-  if (class(object) != 'msfit') stop("Function modelid requires an argument of type msfit")
+  if (!inherits(object, 'msfit')) stop("Function modelid requires an argument of type msfit")
   if (!is.null(object$models)) {
     ans= object$models[,c('modelid','family')]
   } else {

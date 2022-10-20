@@ -1,3 +1,7 @@
+CHANGES IN VERSION 3.1.5
+- Fixed bug where margpp==0 for variables with includevars==TRUE
+- Added arguments center, scale, includevars and verbose to cil
+
 CHANGES IN VERSION 3.1.4
 - Removed pmomLM, pmomPM, emomLM, emomPM, zellnerLM, zellnerPM, pplProbit
 

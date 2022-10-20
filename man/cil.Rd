@@ -21,10 +21,11 @@
   object class.
 }
 \usage{
-cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
+cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
   th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL, rho.max = NULL,
   th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se',
-  eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL)
+  eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale =
+  TRUE, includevars, verbose = TRUE)
 }
 \arguments{
 \item{y}{one-column matrix containing the observed responses. The response must
@@ -37,9 +38,11 @@ cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
 \item{I}{matrix with the desired interaction terms between \code{D} and
   \code{X}. If not informed, i.e. supplied as the default \code{NULL}, this term
   will not be included into the response model}
-\item{R}{integer scalar indicating the number of Gibbs sampling iterations to be
+\item{R}{Number of MCMC iterations to be
   run by \code{modelSelection} on each stage of CIL (see argument \code{niter}
   therein)}
+\item{Rinit}{MCMC iterations to estimate marginal posterior
+  inclusion probabilities under a uniform model prior, needed for EP}
 \item{th.search}{method to estimate theta values in the marginal prior inclusion
   probabilities of the CIL model. Options are: \code{EB} (Empirical Bayes, based
   on maximum marginal likelihood) and \code{EP} (Expectation propagation
@@ -88,7 +91,16 @@ cil(y, D, X, I = NULL, R = 1e4, th.search = 'EB', mod1 = 'lasso_bic',
   a second computation the model on the same data where \code{th.search}
   has ben changed to \code{EB}, in order to save the cost of the EP search
   to initialise the optimisation algorithm. To use this argument, supply the
-  object residing int the slot \code{th.hat} of a \code{cilfit}-class object.}
+  object residing int the slot \code{th.hat} of a \code{cilfit}-class
+  object.}
+\item{center}{If \code{TRUE}, \code{y} and \code{x} are centered to have
+  zero mean. Dummy variables corresponding to factors are NOT centered}
+\item{scale}{If \code{TRUE}, \code{y} and columns in \code{x} are
+  scaled to have variance=1. Dummy variables corresponding to factors are NOT scaled}
+\item{includevars}{Logical vector of length ncol(x) indicating variables
+that should always be included in the model, i.e. variable selection is
+not performed for these variables}
+\item{verbose}{Set \code{verbose==TRUE} to print iteration progress}
 }
 \details{
   We estimate treatment effects for the features present in the treatment

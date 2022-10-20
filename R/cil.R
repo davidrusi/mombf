@@ -355,7 +355,8 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
 model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL, rho.max = NULL,
   th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se', eps = 1e-10,
-  R = 1e5, bvs.fit0 = NULL, th.EP = NULL) {
+  R = 1e4, Rinit= 500, bvs.fit0 = NULL, th.EP = NULL, center = center, scale = scale,
+  includevars = includevars, verbose = TRUE) {
 ################################################################################
   # Make sure parameter inputs are in the correct format
   check.parameter.format(rho.min = rho.min, rho.max = rho.max, tau = tau,
@@ -420,7 +421,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
         betad[, i] <- as.matrix(ginv(t(A) %*% A) %*% t(A) %*% b)[-exc]
       } else if (mod1 %in% c('bvs', 'bma', 'bms')) {
         m1.fit <- ms(b, A, priorCoef = cp, priorVar = igp, priorDelta = bbp,
-          niter = 1e4, verbose = FALSE, center = FALSE, scale = FALSE)
+          niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
         post.th <- colMeans(rnlp(msfit = m1.fit, priorCoef = cp, niter = 1e4))
         betad[, i] <- unname(post.th[2:(length(post.th) - 1)])[-exc]
       } else if (mod1 == 'lasso') {
@@ -453,7 +454,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # Initial fit: th0 = 0; th1 = 0 (UNIFORM MODEL PRIOR)
   if (is.null(bvs.fit0)) {
     bvs.fit0 <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = ufp,
-      niter = R, verbose = FALSE, center = FALSE, scale = FALSE)
+      niter = Rinit, verbose = verbose, center = center, scale = scale, includevars = includevars)
   }
   # Posterior model probabilities
   pprobs <- postProb(bvs.fit0)[, c(1, 3)]
@@ -528,7 +529,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
     auxprpr[which(auxprpr == 0)] <- eps
     auxmp <- modelbinomprior(p = auxprpr)#mombf::modelbinomprior(p = auxprpr)
     update.fit <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = auxmp,
-      niter = round(R / 2), verbose = FALSE, center = FALSE, scale = FALSE)
+      niter = round(R / 2), verbose = verbose, center = center, scale = scale, includevars = includevars)
 
     # Append model set
     upprobs <- postProb(update.fit)[, c(1, 3)]
@@ -587,7 +588,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
 
   # New model search
   new.fit <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = nbp,
-    niter = R, verbose = FALSE, center = FALSE, scale = FALSE)
+    niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
 
   # Posterior model probabilities
   pprobs <- postProb(new.fit)#mombf::postProb(new.fit)[, c(1, 3)]
@@ -697,20 +698,21 @@ check.input.format <- function(y, D, X, I, R) {
 }
 
 ################################################################################
-cil <- function(y, D, X, I = NULL, R = 1e4, th.search = 'EB',
+cil <- function(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB',
   mod1 = 'lasso_bic', th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
   rho.max = NULL, th.range = NULL, tau = 0.348, max.mod = Inf,
-  lpen = 'lambda.1se', eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL) {
+  lpen = 'lambda.1se', eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale = TRUE, includevars, verbose=TRUE) {
 ################################################################################
   # Assert inputs are in the correct format
   check.input.format(y, D, X, I, R)
 
+  if (verbose) cat("Estimating hyper-parameters\n")
   # Posterior model probabilities
-  pprobs <- model.pprobs.cil(y, D, X, I, R = R, th.search = th.search,
+  pprobs <- model.pprobs.cil(y, D, X, I, R = R, Rinit = Rinit, th.search = th.search,
     mod1 = mod1, th.prior = th.prior, beta.prior = beta.prior,
     rho.min = rho.min, rho.max = rho.max, th.range = th.range, tau = tau,
     max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0,
-    th.EP = th.EP)
+    th.EP = th.EP, center = center, scale = scale, includevars = includevars, verbose = verbose)
 
   # BMA computation
   teff <- bma.cil(pprobs[['msfit']], nt = ncol(cbind(D, I)))

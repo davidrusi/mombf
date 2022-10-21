@@ -43,7 +43,6 @@ inside <- function(x, ab, include.ab = TRUE) {
 # LASSO estimation with BIC
 lasso.bic <- function(y, x, intercept = TRUE, standardize = TRUE,
   family = 'gaussian') {
-# (c) David Rossell
 ################################################################################
   #require(glmnet)
   fit <- glmnet(x = x, y = y, family = family, alpha = 1,
@@ -91,7 +90,7 @@ compact.id <- function(x) {
 
 ################################################################################
 # Prior inclusion probability function (conditional on coefficient size)
-pinc.mt <- function(x, th, rho.min = 0, rho.max = 1, squared = FALSE) {
+pinc.mt <- function(x, th, rho.min = 0, rho.max = 1, squared = FALSE, includeX) {
 ################################################################################
   #  If there are interactions (CAREFUL: main effects + ORDERED interactions)
   th <- as.numeric(th)
@@ -113,14 +112,16 @@ pinc.mt <- function(x, th, rho.min = 0, rho.max = 1, squared = FALSE) {
   # Limit upper and lower bounds
   probs <- rho.min + (rho.max - rho.min) * probs
 
+  # Force inclusion of variables indicated by includeX
+  probs[includeX] <- 1
+    
   # End
   return(probs)
 }
 
 ################################################################################
 grid.opt.mt <- function(G0, betad, pj1, method = 'EB', ws = NA, th.grid,
-  th.prior = 'unif', rho.min = 0, rho.max = 1, V = diag(2),
-  ret.plotly = FALSE) {
+  th.prior, rho.min = 0, rho.max = 1, ret.plotly = FALSE, includeX) {
 ################################################################################
   opt.th <- th.grid
   if (th.prior == 'tunif') {
@@ -135,11 +136,11 @@ grid.opt.mt <- function(G0, betad, pj1, method = 'EB', ws = NA, th.grid,
     # Evaluate -log of objective function
     opt.th[, ncol(opt.th) + 1] <- exp(-apply(opt.th, 1, Of.EB.cil,
       betad = betad, G0 = G0, ws = ws, th.prior = th.prior,
-      rho.min = rho.min, rho.max = rho.max, V = V))
+      rho.min = rho.min, rho.max = rho.max, includeX = includeX))
   } else if (method == 'EP') {
     opt.th[, ncol(opt.th) + 1] <- exp(-apply(opt.th, 1, Of.EP.cil,
       betad = betad, pj1 = pj1, th.prior = th.prior,
-      rho.min = rho.min, rho.max = rho.max, V = V))
+      rho.min = rho.min, rho.max = rho.max, includeX = includeX))
   } else {
     stop('supported theta search methods are "EB" and "EP".')
   }
@@ -154,11 +155,10 @@ grid.opt.mt <- function(G0, betad, pj1, method = 'EB', ws = NA, th.grid,
 }#; grid.opt.mt <- compiler::cmpfun(grid.opt.mt)
 
 ################################################################################
-Of.EB.cil <- function(x, betad, G0, ws, th.prior = 'unif', rho.min = 0,
-  rho.max = 1, V = diag(2)) {
+Of.EB.cil <- function(x, betad, G0, ws, th.prior, rho.min = 0, rho.max = 1, includeX) {
 ################################################################################
   # log p(y | theta)
-  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max)
+  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
   p1 <- c(rep(1/2, nchar(G0[1]) - length(p1)), p1)
   sc <- sum(sapply(G0, function(m) {
     gm <- as.numeric(unlist(strsplit(m, '')))
@@ -175,11 +175,10 @@ Of.EB.cil <- function(x, betad, G0, ws, th.prior = 'unif', rho.min = 0,
 }
 
 ################################################################################
-Gf.EB.cil <- function(x, betad, G0, ws, th.prior = 'unif', rho.min = 0,
-  rho.max = 1, V = diag(2)) {
+Gf.EB.cil <- function(x, betad, G0, ws, rho.min = 0, rho.max = 1, includeX) {
 ################################################################################
   # Compute (unnormalised) model inclusion probabilities
-  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max)
+  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
   sD <- nchar(G0[1]) - length(p1)
   p1 <- c(rep(1/2, sD), p1)
   sc <- sapply(G0, function(m) {
@@ -216,12 +215,21 @@ Gf.EB.cil <- function(x, betad, G0, ws, th.prior = 'unif', rho.min = 0,
 }
 
 ################################################################################
-Of.EP.cil <- function(x, betad, pj1, th.prior = 'unif', rho.min = 0,
-  rho.max = 1, V = diag(2)) {
+# OBJECTIVE FUNCTION FOR EP METHOD
+# - x: theta hyper-parameter value
+# - betad: measures of association between treatment d and controls
+# - pj1: marginal posterior inclusion probabilities in outcome model under uniform model prior
+# - th.prior: prior on theta, currently not used
+# - rho.min, rho.max: the prior inclusion prob given by any theta is restricted to [rho.min, rho.max], to avoid prior inclusion prob=0 or 1
+# - includeX: variables whose inclusion is forced into the model
+Of.EP.cil <- function(x, betad, pj1, th.prior, rho.min = 0, rho.max = 1, includeX) {
 ################################################################################
   # log p(y | theta)
-  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max)
-  p1 <- c(rep(1/2, length(pj1) - length(p1)), p1)
+  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
+  #David: the line below seems wrong: the EP objective fun is a sum involving control prob in p1, excluding the treatment
+  #p1 <- c(rep(1/2, length(pj1) - length(p1)), p1)
+  #David: the corrected line is below (make pj1 shorter, rather than make p1 longer)
+  sD <- length(pj1) - length(p1); pj1 <- pj1[-(1:sD)]
   fj <- pj1 * p1 + (1 - pj1) * (1 - p1)
   pt1 <- sum(log(fj))
 
@@ -233,11 +241,10 @@ Of.EP.cil <- function(x, betad, pj1, th.prior = 'unif', rho.min = 0,
 }
 
 ################################################################################
-Gf.EP.cil <- function(x, betad, nt, pj1, th.prior = 'unif', rho.min = 0,
-  rho.max = 1, V = diag(2)) {
+Gf.EP.cil <- function(x, betad, nt, pj1, th.prior, rho.min = 0, rho.max = 1, includeX) {
 ################################################################################
   # grad log p(y | theta)
-  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max)
+  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX= includeX)
   sD <- length(pj1) - length(p1)
   p1 <- c(rep(1/2, sD), p1)
   fj <- pj1 * p1 + (1 - pj1) * (1 - p1)
@@ -261,12 +268,12 @@ Gf.EP.cil <- function(x, betad, nt, pj1, th.prior = 'unif', rho.min = 0,
 }
 
 ################################################################################
-check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
+check.parameter.format <- function(rho.min, th.range, tau, max.mod,
   lpen, eps, bvs.fit0, th.EP, D) {
 ################################################################################
   # Error messages accounted for
   err1 <- 'if informed, argument "rho.min" must be a scalar in the interval (0, 1/2).'
-  err2 <- 'if informed, argument "rho.max" must be a scalar in the interval (1/2, 1).'
+  #err2 <- 'if informed, argument "rho.max" must be a scalar in the interval (1/2, 1).'
   err3 <- 'if informed, argument "th.range" must be numeric and have at least two distinct values.'
   err4 <- 'if informed, argument "tau" must be a positive scalar.'
   err5 <- 'parameter "max.mod" must be a positive integer scalar.'
@@ -285,13 +292,13 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
   }
 
   # Parameter: "rho.max"
-  if (! is.null(rho.max) | length(rho.max) > 1) {
-    if (! is.numeric(rho.max) | length(rho.max) > 1) {
-      stop(err2)
-    } else if (! inside(rho.max, c(0, 1/2), include.ab = FALSE)) {
-      stop(err2)
-    }
-  }
+  #if (! is.null(rho.max) | length(rho.max) > 1) {
+  #  if (! is.numeric(rho.max) | length(rho.max) > 1) {
+  #    stop(err2)
+  #  } else if (! inside(rho.max, c(0, 1/2), include.ab = FALSE)) {
+  #    stop(err2)
+  #  }
+  #}
 
   # Parameter: "th.range"
   if (! is.null(th.range)) {
@@ -353,13 +360,13 @@ check.parameter.format <- function(rho.min, rho.max, th.range, tau, max.mod,
 
 ################################################################################
 model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
-  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL, rho.max = NULL,
+  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
   th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se', eps = 1e-10,
   R = 1e4, Rinit= 500, bvs.fit0 = NULL, th.EP = NULL, center = center, scale = scale,
   includevars = includevars, verbose = TRUE) {
 ################################################################################
   # Make sure parameter inputs are in the correct format
-  check.parameter.format(rho.min = rho.min, rho.max = rho.max, tau = tau,
+  check.parameter.format(rho.min = rho.min, tau = tau,
     th.range = th.range, max.mod = max.mod, lpen = lpen, eps = eps,
     bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
 
@@ -381,15 +388,15 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   p <- ncol(X)
   Z <- cbind(D, I, X)
   Di <- cbind(D, I)
+  ncolI <-  ifelse(is.null(I),0,ncol(I))
+  includeX <-  includevars[-1:-(ncol(D)+ncolI)]
 
   # Other fixed parameters
   if (is.null(rho.min)) {
     rho.min <- 1 / (ncol(Z)^2 + 1)
   }
-  if (TRUE) {
-  #if (is.null(rho.max)) {
-    rho.max <- 1 - rho.min
-  }
+
+  rho.max <- 1 - rho.min
 
   # Coefficient prior
   if (beta.prior == 'nlp') {
@@ -477,8 +484,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # Set limits for optimisation (in principle: unbounded)
   lws <- rep(-Inf, ncol(D) + 1)
   ups <- rep(+Inf, ncol(D) + 1)
-  s <- 1
-  Rm <- diag(2)
+  #s <- 1
 
   # Range for grid search
   if (is.null(th.range)) {
@@ -503,14 +509,13 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
     ths <- vector(ncol(D) + 1, mode = 'list')
     for (i in 1:length(ths)) { ths[[i]] <- th.range }
     EP.is <- grid.opt.mt(G0, betad, pj1, th.grid = expand.grid(ths),
-      method = 'EP', th.prior = th.prior, rho.min = rho.min, rho.max = rho.max,
-      V = s * Rm)
+      method = 'EP', th.prior = th.prior, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
 
     # Load gradient functions and optimise
     st <- unlist(EP.is[[1]])
     opt.EP <- nlminb(st, objective = Of.EP.cil, gradient = Gf.EP.cil, 
       lower = lws, upper = ups, pj1 = pj1, betad = betad, 
-      th.prior = th.prior, rho.min = rho.min, rho.max = rho.max, V = s * Rm)
+      th.prior = th.prior, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
 
     # Set values if there is convergence
     if (opt.EP[['convergence']] %in% 0:1) {
@@ -523,7 +528,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # Empirical Bayes search (starting at EP solution)
   if (th.search == 'EB') {
     # Model search at EP optimum
-    auxprpr <- pinc.mt(betad, th = th.EP, rho.min = rho.min, rho.max = rho.max)
+    auxprpr <- pinc.mt(betad, th = th.EP, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
     auxprpr <- c(rep(1/2, ncol(betad)), auxprpr)
     auxprpr[which(auxprpr == 1)] <- 1 - eps
     auxprpr[which(auxprpr == 0)] <- eps
@@ -554,13 +559,12 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
     # Optimise starting at the EP optimum
     opt.EB <- try(nlminb(th.EP, objective = Of.EB.cil, gradient = Gf.EB.cil,
       lower = lws, upper = ups, betad = betad, G0 = G0,
-      ws = ws, th.prior = th.prior, rho.min = rho.min, rho.max = rho.max,
-      V = s * Rm), silent = TRUE)
+      ws = ws, th.prior = th.prior, rho.min = rho.min, rho.max = rho.max, includeX = includeX), silent = TRUE)
     if (inherits(opt.EB, 'try-error')) {
       opt.EB <- try(nlminb(th.EP, objective = Of.EB.cil,
         gradient = Gf.EB.cil, lower = lws, upper = ups, betad = betad,
         G0 = G0, ws = ws, th.prior = th.prior, rho.min = rho.min,
-        rho.max = rho.max, V = s * Rm))
+        rho.max = rho.max, includeX = includeX))
     }
 
     # Optimal values
@@ -579,7 +583,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # MODEL SEARCH (under fixed theta hat) #######################################
   # Prior probabilities under theta
   pg1cth <- c(rep(1/2, ncol(betad)),
-              pinc.mt(betad, th = th.hat, rho.min = rho.min, rho.max = rho.max))
+              pinc.mt(betad, th = th.hat, rho.min = rho.min, rho.max = rho.max, includeX = includeX))
   pg1cth[which(pg1cth == 1)] <- 1 - eps
   pg1cth[which(pg1cth == 0)] <- eps
 
@@ -631,13 +635,16 @@ bma.cil <- function(msfit, nt = 1, ret.mcmc = TRUE) {
 }
 
 ################################################################################
-check.input.format <- function(y, D, X, I, R) {
+check.input.format <- function(y, D, X, I, R, includevars) {
 ################################################################################
   # Format errors that can be encountered
   err1 <- 'argument "y" must be of class "matrix" and contain one column.'
-  err2 <- 'argument "D" must be of class "matrix" with at least one column and the same number of rows as "y".'
-  err3 <- 'argument "X" must be of class "matrix" with at least one column and the same number of rows as "y".'
-  err4 <- 'if argument "I" is informed, it must be of class "matrix" with at least one column and the same number of rows as "y".'
+  err2 <- 'argument "D" must have at least one column and the same number of rows as "y".'
+  #err2 <- 'argument "D" must be of class "matrix" with at least one column and the same number of rows as "y".'
+  err3 <- 'argument "X" must have at least one column and the same number of rows as "y".'
+  #err3 <- 'argument "X" must be of class "matrix" with at least one column and the same number of rows as "y".'
+  err4 <- 'argument "I" must have at least one column and the same number of rows as "y".'
+  #err4 <- 'if argument "I" is informed, it must be of class "matrix" with at least one column and the same number of rows as "y".'
   err5 <- 'parameter "R" must be a single positive integer.'
 
   # Object "y"
@@ -648,28 +655,38 @@ check.input.format <- function(y, D, X, I, R) {
   }
 
   # Object "D"
-  if (! 'matrix' %in% class(D)) {
-    stop(err2)
-  } else if (nrow(D) != nrow(y) | ncol(D) == 0) {
-    stop(err2)
-  }
+  if (nrow(D) != nrow(y) | ncol(D) == 0) stop(err2)
+  #if (! 'matrix' %in% class(D)) {
+  #  stop(err2)
+  #} else if (nrow(D) != nrow(y) | ncol(D) == 0) {
+  #  stop(err2)
+  #}
 
   # Object "X"
-  if (! 'matrix' %in% class(X)) {
-    stop(err3)
-  } else if (nrow(X) != nrow(y) | ncol(X) == 0) {
-    stop(err3)
-  }
+  if (nrow(X) != nrow(y) | ncol(X) == 0) stop(err3)
+  #if (! 'matrix' %in% class(X)) {
+  #  stop(err3)
+  #} else if (nrow(X) != nrow(y) | ncol(X) == 0) {
+  #  stop(err3)
+  #}
 
   # Object "I"
   if (! is.null(I)) {
-    if (! 'matrix' %in% class(I)) {
-      stop(err4)
-    } else if (nrow(I) != nrow(y) | ncol(I) == 0) {
-      stop(err4)
-    }
+    if (nrow(I) != nrow(y) | ncol(I) == 0) stop(err4)
+    #if (! 'matrix' %in% class(I)) {
+    #  stop(err4)
+    #} else if (nrow(I) != nrow(y) | ncol(I) == 0) {
+    #  stop(err4)
+    #}
+    ncolI= ncol(I)
+  } else {
+      ncolI= 0
   }
 
+  # Object includevars
+  nvars= ncol(D) + ncol(X) + ncol(I)
+  if (length(includevars) != nvars) stop(paste("includevars has",length(includevars),"elements but ncol(D)+ncol(X)+ncol(I) is ",nvars))
+    
   # Parameter "R"
   if (! is.numeric(R) | length(R) != 1) {
     stop(err5)
@@ -678,12 +695,12 @@ check.input.format <- function(y, D, X, I, R) {
   }
 
   # Numeric objects
-  if (! is.numeric(y)) { stop('"y" must be numeric.') }
-  if (! is.numeric(D)) { stop('"D" must be numeric.') }
-  if (! is.numeric(X)) { stop('"X" must be numeric.') }
-  if (! is.null(I) & ! is.numeric(I)) {
-    stop('if informed, "I" must be numeric.')
-  }
+  #if (! is.numeric(y)) { stop('"y" must be numeric.') }
+  #if (! is.numeric(D)) { stop('"D" must be numeric.') }
+  #if (! is.numeric(X)) { stop('"X" must be numeric.') }
+  #if (! is.null(I) & ! is.numeric(I)) {
+  #  stop('if informed, "I" must be numeric.')
+  #}
   
   # NA warnings
   if (any(is.na(y))) { stop('"y" cannot contain NAs.') }
@@ -700,17 +717,17 @@ check.input.format <- function(y, D, X, I, R) {
 ################################################################################
 cil <- function(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB',
   mod1 = 'lasso_bic', th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
-  rho.max = NULL, th.range = NULL, tau = 0.348, max.mod = Inf,
+  th.range = NULL, tau = 0.348, max.mod = Inf,
   lpen = 'lambda.1se', eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale = TRUE, includevars, verbose=TRUE) {
 ################################################################################
   # Assert inputs are in the correct format
-  check.input.format(y, D, X, I, R)
+  check.input.format(y, D, X, I, R, includevars)
 
   if (verbose) cat("Estimating hyper-parameters\n")
   # Posterior model probabilities
   pprobs <- model.pprobs.cil(y, D, X, I, R = R, Rinit = Rinit, th.search = th.search,
     mod1 = mod1, th.prior = th.prior, beta.prior = beta.prior,
-    rho.min = rho.min, rho.max = rho.max, th.range = th.range, tau = tau,
+    rho.min = rho.min, th.range = th.range, tau = tau,
     max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0,
     th.EP = th.EP, center = center, scale = scale, includevars = includevars, verbose = verbose)
 

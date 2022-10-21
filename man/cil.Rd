@@ -22,7 +22,7 @@
 }
 \usage{
 cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
-  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL, rho.max = NULL,
+  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
   th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se',
   eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale =
   TRUE, includevars, verbose = TRUE)
@@ -62,7 +62,6 @@ cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic
 \item{rho.min}{value of \eqn{\rho} in (0, 1/2) employed in the prior probability
   model of CIL. If left uninformed, i.e. supplied as the default \code{NULL},
   it will be set to \eqn{1/p^2}, where p is the dimension of the response model.}
-\item{rho.max}{this argument is deprecated and should not be informed.}
 \item{th.range}{sequence of values to be considered in the grid when searching
   for points to initialise the search for the optimal theta parameters. If left
   uninformed, the function will determine a computationally suitable grid

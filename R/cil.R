@@ -39,35 +39,58 @@ inside <- function(x, ab, include.ab = TRUE) {
     (x >= ab[1] && x <= ab[2]), (x > ab[1] && x < ab[2]))
 }
 
+
+
+biclm <- function(y, pred, x, beta) {
+  if (missing(pred)) pred <- x %*% beta
+  n <- ifelse(is.vector(y), length(y), nrow(y))
+  npar <- sum(beta != 0)
+  ans <- n * log(colSums((y - pred)^2) / length(y)) + n * (log(2 * pi) + 1) + log(n) * npar
+  return(ans)
+}
+
+
+biclogreg <- function(y, pred, x, beta) {
+  if (missing(pred)) pred <- x %*% beta
+  n <- ifelse(is.vector(y), length(y), nrow(y))
+  npar <- sum(beta != 0)
+  ans <- - 2 * sum(dbern(y, size=1, prob=expit(-pred), log=TRUE)) + n * log(npar)
+  return(ans)
+}
+
 ################################################################################
 # LASSO estimation with BIC
-lasso.bic <- function(y, x, intercept = TRUE, standardize = TRUE,
-  family = 'gaussian') {
+lasso.bic <- function(y, x, intercept = TRUE, standardize = TRUE, family = 'gaussian') {
 ################################################################################
-  #require(glmnet)
-  fit <- glmnet(x = x, y = y, family = family, alpha = 1,
-    intercept = intercept, standardize = standardize)
+  if (!is.matrix(x)) x <- as.matrix(x)
+  fit <- glmnet(x = x, y = y, family = family, alpha = 1, intercept = intercept, standardize = standardize)
   if (intercept == TRUE) {
-    pred <- cbind(1, x) %*% rbind(fit[['a0']], fit[['beta']])
+    ct <-  which(apply(x, 2, 'sd') == 0)
+    if (length(ct)==0) x <- cbind(1,x)
+    beta <- as.matrix(rbind(fit[['a0']], fit[['beta']]))
+    x <- cbind(1,x)
   } else {
-    pred <- x %*% fit[['beta']]
+    beta <- as.matrix(fit[['beta']])
   }
   
-  transf <- function(x, family) {  
-    if (family == 'binomial') { x <- exp(pred) / (1 + exp(pred)) }
-    return(x)
-  }
-  pred <- transf(pred, family = family)
-
   n <- length(y)
-  p <- colSums(fit[['beta']] != 0) + ifelse(intercept == TRUE, 1, 0)
-  bic <- n * log(colSums((y - pred)^2) / length(y)) +
-         n * (log(2 * pi) + 1) + log(n) * p
+  p <- colSums(beta != 0)
+
+  if (family == 'gaussian') {
+    bic <-  sapply(1:ncol(beta), function(i) biclm(y, x=x, beta=beta[,i]))
+  } else if (family == 'binomial') {
+    bic <- sapply(1:ncol(pred), function(i) biclogreg(y=y, x=x, beta=beta[,i]))
+  } else {
+     stop(paste("family=",family,"not implemented"))
+  }
   sel <- which.min(bic)
-  beta <- c(fit[['a0']][sel], fit[['beta']][, sel])
-  ypred <- pred[, sel]
-  ans <- list(coef = beta, ypred = ypred, lambda.opt = fit[['lambda']][sel],
-    lambda = data.frame(lambda = fit[['lambda']], bic = bic, nvars = p))
+  ypred <- x %*% beta[, sel, drop=FALSE]
+  if (intercept) {
+    beta <- beta[-1,sel] #if intercept was added by glmnet, exclude it from the estimated coef
+  } else {
+    beta <- beta[,sel]
+  }
+  ans <- list(coef = beta, ypred = ypred, lambda.opt = fit[['lambda']][sel], lambda = data.frame(lambda = fit[['lambda']], bic = bic, nvars = p))
   return(ans)
 }
 
@@ -268,14 +291,14 @@ Gf.EP.cil <- function(x, betad, nt, pj1, th.prior, rho.min = 0, rho.max = 1, inc
 }
 
 ################################################################################
-check.parameter.format <- function(rho.min, th.range, tau, max.mod,
+check.parameter.format <- function(rho.min, th.range, max.mod,
   lpen, eps, bvs.fit0, th.EP, D) {
 ################################################################################
   # Error messages accounted for
   err1 <- 'if informed, argument "rho.min" must be a scalar in the interval (0, 1/2).'
   #err2 <- 'if informed, argument "rho.max" must be a scalar in the interval (1/2, 1).'
   err3 <- 'if informed, argument "th.range" must be numeric and have at least two distinct values.'
-  err4 <- 'if informed, argument "tau" must be a positive scalar.'
+  #err4 <- 'if informed, argument "tau" must be a positive scalar.'
   err5 <- 'parameter "max.mod" must be a positive integer scalar.'
   err6 <- 'parameter "lpen" must be set to "lambda.min" or "lambda.1se" (see documentation for "glmnet").'
   err7 <- 'argument "eps" must be a scalar in the interval (0, 1/2).'
@@ -310,13 +333,13 @@ check.parameter.format <- function(rho.min, th.range, tau, max.mod,
   }
 
   # Parameter: "tau"
-  if (! is.null(tau) | length(tau) > 1) {
-    if (! is.numeric(tau) | length(tau) > 1) {
-      stop(err4)
-    } else if (sign(tau) != 1) {
-      stop(err4)
-    }
-  }
+  #if (! is.null(tau) | length(tau) > 1) {
+  #  if (! is.numeric(tau) | length(tau) > 1) {
+  #    stop(err4)
+  #  } else if (sign(tau) != 1) {
+  #    stop(err4)
+  #  }
+  #}
 
   # Parameter: "max.mod"
   if (! is.null(max.mod) | length(max.mod) > 1) {
@@ -359,23 +382,20 @@ check.parameter.format <- function(rho.min, th.range, tau, max.mod,
 }
 
 ################################################################################
-model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
-  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
-  th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se', eps = 1e-10,
+model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = rep('normal',ncol(D)),
+  mod1, th.search = 'EB', th.prior = 'unif', priorCoef, rho.min = NULL,
+  th.range = NULL, max.mod = Inf, lpen = 'lambda.1se', eps = 1e-10,
   R = 1e4, Rinit= 500, bvs.fit0 = NULL, th.EP = NULL, center = center, scale = scale,
   includevars = includevars, verbose = TRUE) {
 ################################################################################
   # Make sure parameter inputs are in the correct format
-  check.parameter.format(rho.min = rho.min, tau = tau,
-    th.range = th.range, max.mod = max.mod, lpen = lpen, eps = eps,
-    bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
+  check.parameter.format(rho.min = rho.min, th.range = th.range, max.mod = max.mod,
+                         lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
 
   # Renaming (DEPENDENCIES: mombf, pracma, glmnet, hdm)
   ms <- modelSelection#mombf::modelSelection
   igp <- igprior(0.01, 0.01)#mombf::igprior(0.01, 0.01)
   bbp <- modelbbprior(1, 1)#mombf::modelbbprior(1, 1)
-  nlp <- momprior(tau = tau)#mombf::momprior(tau = tau)
-  zup <- zellnerprior(tau = nrow(X))#mombf::zellnerprior(tau = nrow(X))
   ufp <- modelunifprior()#mombf::modelunifprior()
   mlik <- nlpMarginal#mombf::nlpMarginal
   ginv <- pinv#pracma::pinv
@@ -386,9 +406,16 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
 
   # Pre-computations
   p <- ncol(X)
-  Z <- cbind(D, I, X)
-  Di <- cbind(D, I)
-  ncolI <-  ifelse(is.null(I),0,ncol(I))
+  if (!is.null(I)) {
+    Z <- cbind(D, I, X)
+    Di <- cbind(D, I)
+    ncolI <- ncol(I)
+  } else {
+    Z <- cbind(D, X)
+    Di <- D
+    ncolI <- 0
+  }
+
   includeX <-  includevars[-1:-(ncol(D)+ncolI)]
 
   # Other fixed parameters
@@ -398,20 +425,18 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
 
   rho.max <- 1 - rho.min
 
-  # Coefficient prior
-  if (beta.prior == 'nlp') {
-    cp <- nlp
-  } else if (beta.prior == 'zup') {
-    cp <- zup
-  } else {
-    stop('arg. "beta.prior" currently supports: "nlp" (MOM) and "zup" (UIP)')
-  }
-
   # MODULE 1: Estimate coefficients on exposure model
   betad <- matrix(NA, nrow = ncol(X), ncol = ncol(Di))
   for (i in 1:ncol(Di)) {
     # Define matrices
-    A <- X
+    if (is.data.frame(X)) {
+      f <- as.formula(paste('~', paste(names(X), collapse=' + ')))
+      A <- createDesign(formula=f, data=X)$x
+    } else if (is.matrix(X)) {
+      A <- X
+    } else {
+      stop("X must be a matrix or a data.frame")
+    }
     b <- Di[, i]
     exc <- 2 * p  # phantom column: not exclude anything
     if (length(unique(Di[, i])) <= 3 &  # This controls sum-to-zero constraint
@@ -419,32 +444,33 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
       b[which(b == -1)] <- 0
     }
 
-    # Exposure family (support for Binomial and Gaussian ONLY)
-    type.exp <- ifelse(length(unique(b)) == 2, 'binomial', 'gaussian')
-    intcpt <- !any(apply(X, 2, var) == 0)
+    # Exposure family
+    ntreatvals <- length(unique(b))
+    intcpt <- !any(apply(A, 2, var) == 0)
+    if (familyD=='normal') familyD.glmnet= 'gaussian'
 
-    if (length(table(b)) > 1 & min(table(b)) > 1) {
+    if (ntreatvals > 1) {
+    #if (ntreatvals > 1 & min(table(b)) > 1) {  #David: this line seemed incorrect, for continuous b we had min(table(d))==1 and hence betad wasn't initialized
       if (mod1 == 'ginv') {
+        if (familyD != 'normal') stop("The generalized inverse method cannot be applied when familyD != 'normal'")
         betad[, i] <- as.matrix(ginv(t(A) %*% A) %*% t(A) %*% b)[-exc]
       } else if (mod1 %in% c('bvs', 'bma', 'bms')) {
-        m1.fit <- ms(b, A, priorCoef = cp, priorVar = igp, priorDelta = bbp,
+        m1.fit <- ms(b, A, family=family.exp, priorCoef = priorCoef, priorVar = igp, priorDelta = bbp,
           niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
-        post.th <- colMeans(rnlp(msfit = m1.fit, priorCoef = cp, niter = 1e4))
+        post.th <- colMeans(rnlp(msfit = m1.fit, priorCoef = priorCoef, niter = 1e4))
         betad[, i] <- unname(post.th[2:(length(post.th) - 1)])[-exc]
       } else if (mod1 == 'lasso') {
-        m1.fit <- cv.glmnet(A, b, intercept = intcpt)
-        #m1.fit <- glmnet::cv.glmnet(A, b, intercept = intcpt)
+        m1.fit <- cv.glmnet(x=A, y=b, intercept = intcpt, family = familyD.glmnet)
         betad[, i] <- unname(coef(m1.fit, s = m1.fit[[lpen]])[-1, 1])[-exc]
       # } else if (mod1 == 'lasso_dml') {
       #   m1.fit <- hdm::rlasso(b ~ A, post = TRUE, intercept = intcpt)
       #   betad[, i] <- unname(m1.fit[['coefficients']])[-exc]
       } else if (mod1 == 'lasso_bic') {
-        m1.fit <- lasso.bic(b, A, intercept = TRUE, family = type.exp)
+        m1.fit <- lasso.bic(b, A, intercept = TRUE, family = familyD.glmnet)
         if (intcpt == FALSE) { m1.fit[['coef']][2] <- m1.fit[['coef']][1] }
         betad[, i] <- unname(m1.fit[['coef']][-1][-exc])
       } else if (mod1 == 'ridge') {
-        m1.fit <- cv.glmnet(A, b, alpha = 0, intercept = intcpt)
-        #m1.fit <- glmnet::cv.glmnet(A, b, alpha = 0, intercept = intcpt)
+        m1.fit <- cv.glmnet(A, b, alpha = 0, intercept = intcpt, family = familyD.glmnet)
         betad[, i] <- unname(
           coef(m1.fit, s = m1.fit[['lambda.min']])[-1, ])[-exc]
       } else {
@@ -460,8 +486,13 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # THETA SEARCH ###############################################################
   # Initial fit: th0 = 0; th1 = 0 (UNIFORM MODEL PRIOR)
   if (is.null(bvs.fit0)) {
-    bvs.fit0 <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = ufp,
-      niter = Rinit, verbose = verbose, center = center, scale = scale, includevars = includevars)
+    if (is.data.frame(Z)) {
+      f <- as.formula(paste('y ~', paste(names(Z), collapse=' + ')))
+      data <- cbind(y, Z)
+      bvs.fit0 <- ms(f, data=data, priorCoef = priorCoef, priorVar = igp, priorDelta = ufp, niter = Rinit, verbose = verbose, center = center, scale = scale, includevars = includevars)
+    } else {
+        bvs.fit0 <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = ufp, niter = Rinit, verbose = verbose, center = center, scale = scale, includevars = includevars)
+    }
   }
   # Posterior model probabilities
   pprobs <- postProb(bvs.fit0)[, c(1, 3)]
@@ -469,7 +500,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   # Marginal inclusion probabilities
   pj1 <- bvs.fit0[['margpp']]
   pj1[which(is.nan(pj1))] <- 0  # Potential problems in mombf with undefined
-  pj1[which(pj1 == 1)] <- 1 - eps  # In case there are extreme values
+  pj1[which(pj1 == 1 & !includevars)] <- 1 - eps  # In case there are extreme values
   pj1[which(pj1 == 0)] <- eps
 
   # Set of visited models
@@ -533,7 +564,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
     auxprpr[which(auxprpr == 1)] <- 1 - eps
     auxprpr[which(auxprpr == 0)] <- eps
     auxmp <- modelbinomprior(p = auxprpr)#mombf::modelbinomprior(p = auxprpr)
-    update.fit <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = auxmp,
+    update.fit <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = auxmp,
       niter = round(R / 2), verbose = verbose, center = center, scale = scale, includevars = includevars)
 
     # Append model set
@@ -545,7 +576,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
     # Pre-compute marginal likelihoods
     ws <- unname(unlist(sapply(G0, function(m) {
       js <- which(unlist(strsplit(m, '')) == 1)
-      return(mlik(js, y, Z, priorCoef = cp, logscale = FALSE))
+      return(mlik(js, y, Z, priorCoef = priorCoef, logscale = FALSE))
     })))
 
     # Numerical problems with MLs that are too small
@@ -591,7 +622,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, mod1 = 'ginv', th.search = 'EB',
   nbp <- modelbinomprior(p = pg1cth)#mombf::modelbinomprior(p = pg1cth)
 
   # New model search
-  new.fit <- ms(y, Z, priorCoef = cp, priorVar = igp, priorDelta = nbp,
+  new.fit <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = nbp,
     niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
 
   # Posterior model probabilities
@@ -635,7 +666,7 @@ bma.cil <- function(msfit, nt = 1, ret.mcmc = TRUE) {
 }
 
 ################################################################################
-check.input.format <- function(y, D, X, I, R, includevars) {
+check.input.format <- function(y, D, X, I, R) {
 ################################################################################
   # Format errors that can be encountered
   err1 <- 'argument "y" must be of class "matrix" and contain one column.'
@@ -682,11 +713,7 @@ check.input.format <- function(y, D, X, I, R, includevars) {
   } else {
       ncolI= 0
   }
-
-  # Object includevars
-  nvars= ncol(D) + ncol(X) + ncol(I)
-  if (length(includevars) != nvars) stop(paste("includevars has",length(includevars),"elements but ncol(D)+ncol(X)+ncol(I) is ",nvars))
-    
+  
   # Parameter "R"
   if (! is.numeric(R) | length(R) != 1) {
     stop(err5)
@@ -716,18 +743,17 @@ check.input.format <- function(y, D, X, I, R, includevars) {
 
 ################################################################################
 cil <- function(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB',
-  mod1 = 'lasso_bic', th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
-  th.range = NULL, tau = 0.348, max.mod = Inf,
+  mod1 = 'lasso_bic', th.prior = 'unif', priorCoef, rho.min = NULL, th.range = NULL, max.mod = Inf,
   lpen = 'lambda.1se', eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale = TRUE, includevars, verbose=TRUE) {
 ################################################################################
   # Assert inputs are in the correct format
-  check.input.format(y, D, X, I, R, includevars)
+  check.input.format(y, D, X, I, R)
 
   if (verbose) cat("Estimating hyper-parameters\n")
   # Posterior model probabilities
   pprobs <- model.pprobs.cil(y, D, X, I, R = R, Rinit = Rinit, th.search = th.search,
-    mod1 = mod1, th.prior = th.prior, beta.prior = beta.prior,
-    rho.min = rho.min, th.range = th.range, tau = tau,
+    mod1 = mod1, th.prior = th.prior, priorCoef = priorCoef,
+    rho.min = rho.min, th.range = th.range,
     max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0,
     th.EP = th.EP, center = center, scale = scale, includevars = includevars, verbose = verbose)
 

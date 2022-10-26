@@ -21,8 +21,9 @@
   object class.
 }
 \usage{
-cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
-  th.prior = 'unif', beta.prior = 'nlp', rho.min = NULL,
+cil(y, D, X, I = NULL, family = 'normal', familyD =
+  rep('normal',ncol(D)), R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
+  th.prior = 'unif', priorCoef, rho.min = NULL,
   th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se',
   eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale =
   TRUE, includevars, verbose = TRUE)
@@ -38,6 +39,10 @@ cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic
 \item{I}{matrix with the desired interaction terms between \code{D} and
   \code{X}. If not informed, i.e. supplied as the default \code{NULL}, this term
   will not be included into the response model}
+\item{family}{Distribution of the outcome, e.g. 'normal', 'binomial' or
+  'poisson'. See \code{help}(modelSelection) for a full list of options}
+\item{familyD}{Distribution of the treatment(s). Only 'normal' or
+  'binomial' currently allowed}
 \item{R}{Number of MCMC iterations to be
   run by \code{modelSelection} on each stage of CIL (see argument \code{niter}
   therein)}
@@ -54,11 +59,7 @@ cil(y, D, X, I = NULL, R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic
 \item{th.prior}{prior associated to the thetas for the Empirical Bayes
   estimation. Currently only \code{unif} (Uniform prior) is supported,
   effectively making the EB approach the maximisation of the marginal likelihood}
-\item{beta.prior}{prior on the response model parameters, for both treatments
-  and covariates, used to compute posterior model probabilities and BMA
-  estimates of the CIL model. Options are: \code{nlp} (pMOM non-local prior, by
-  default, see also \code{tau} argument) and \code{zup} (Zellner's prior with
-  \eqn{\tau = n}, equivalent to the Unit Information prior)}
+\item{priorCoef}{Prior on the response model parameters, see \code{modelSelection}}
 \item{rho.min}{value of \eqn{\rho} in (0, 1/2) employed in the prior probability
   model of CIL. If left uninformed, i.e. supplied as the default \code{NULL},
   it will be set to \eqn{1/p^2}, where p is the dimension of the response model.}

@@ -1064,7 +1064,7 @@ formatmsPriorsModel <- function(priorDelta, priorConstraints, constraints) {
     if ('p' %in% names(priorDelta@priorPars)) {
       prDelta <- as.integer(1)
       prDeltap <- as.double(priorDelta@priorPars[['p']])
-      if (any(prDeltap<=0) | any(prDeltap>=1)) stop("p must be between 0 and 1 for priorDelta@priorDistr=='binomial'")
+      if (any(prDeltap<=0) | any(prDeltap>1)) stop("For the binomial model prior the inclusion probabilities p must lie in (0,1]")
       if ((length(prDeltap) != 1) & (length(prDeltap) != n_unconstrained)) stop("p in priorDelta must be a scalar or have length=number of unconstrained variables")
       parprDeltap <- as.double(length(prDeltap))
     } else {

@@ -21,10 +21,10 @@
   object class.
 }
 \usage{
-cil(y, D, X, I = NULL, family = 'normal', familyD =
-  rep('normal',ncol(D)), R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
+cil(y, D, X, I = NULL, family = 'normal', familyD = 'normal',
+  R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
   th.prior = 'unif', priorCoef, rho.min = NULL,
-  th.range = NULL, tau = 0.348, max.mod = Inf, lpen = 'lambda.1se',
+  th.range = NULL, max.mod = 2^20, lpen = 'lambda.1se',
   eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale =
   TRUE, includevars, verbose = TRUE)
 }
@@ -67,13 +67,11 @@ cil(y, D, X, I = NULL, family = 'normal', familyD =
   for points to initialise the search for the optimal theta parameters. If left
   uninformed, the function will determine a computationally suitable grid
   depending on the number of parameters to be estimated}
-\item{tau}{scalar hyper-parameter supplied to the non-local prior (see argument
-  \code{beta.prior}). Set to 0.348 by default}
-\item{max.mod}{maximum number of models considered when computing the marginal
-  quantities required to find the optimal values for theta. By default, this
-  argument is equal to \code{Inf} (i.e. all visited models by the Gibbs sampler
-  are considered), but it might be computationally desirable to restrict this
-  number when the dimensionality of \code{D} and/or \code{X} is very large}
+\item{max.mod}{Maximum number of models considered when computing the marginal
+  likelihood required by empirical Bayes.
+  If set to \code{Inf} all visited models by the enumeration/MCMC
+  are considered, but it might be computationally desirable to restrict this
+  number when the dimension of \code{D} and/or \code{X} is large}
 \item{lpen}{penalty type supplied to \code{glmnet} if \code{mod1} is set to
   \code{lasso}. Default is \code{lambda.1se} (see documentation corresponding to
   \code{glmnet} for options on how to set this parameter)}
@@ -122,18 +120,16 @@ not performed for these variables}
 }
 \value{
 Object of class \code{cilfit}, which extends a list with elements
-\item{cil.teff}{\code{numeric} vector containing the BMA point estimates
+\item{cil.teff}{\code{numeric} vector containing the BMA estimates
   for the treatment effects featured in \code{D}}
-\item{cil.teff.postdist}{\code{numeric} vector featuring
-  quantiles of the posterior distribution for each of the
-  treatment effects, obtained via Gibbs sampling}
-\item{cil.bma.mcmc}{\code{numeric} vector containing the BMA point estimate
-  at each MCMC run on the model search Gibbs sampler
-}
 \item{model.postprobs}{\code{matrix} returning the posterior model probabilities
   computed in the CIL model}
-\item{marg.postprobs}{\code{numeric} vector containing the estimated marginal
+\item{margpp}{\code{numeric} vector containing the estimated marginal
   posterior inclusion probabilities of the featured treatments and controls}
+\item{margprior}{Marginal prior inclusion probabilities, as estimated by
+  CIL}
+\item{margpp.unif}{Marginal posterior inclusion probabilities that would
+  be obtained under a uniform model prior}
 \item{theta.hat}{Values used for the hyper-parameter theta, estimated according
   to the argument \code{th.search} specified}
 \item{treat.coefs}{Estimated weights of the effect of the control variables
@@ -176,11 +172,15 @@ y <- d * alpha + X \%*\% beta_y + rnorm(100)
 # Confounder Importance Learning
 fit1 <- cil(y = y, D = d, X = X, th.search = 'EP')
 
-# Posterior model probabilities (comparison)
-postProb(fit1, nmax = 5)
-
 # Treatment effects
 coef(fit1)
+
+# CIL-estimated prior inclusion probabilities
+fit1$margprior
+
+# Corresponding posterior inclusion probabilities
+fit1$margpp
+
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

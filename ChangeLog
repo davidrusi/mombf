@@ -1,8 +1,11 @@
 CHANGES IN VERSION 3.1.5
-- Fixed incorrect BIC formula in lasso.bic for logistic regression
-- cil now allows data.frame
+- cil now returns marginal posterior inclusion probabilities under the uniform model space prior
+- cil now returns BMA estimates, intervals and margpp in a single element object$cil.teff (before they were stored separately)
+- cil now extracts BMA inference using coef function from msfit objects and allows for any priorCoef allowed by modelSelection
+- Fixed incorrect BIC formula in CIL's lasso.bic for logistic regression
+- cil now allows data frames as inputs
 - Fixed bug where margpp==0 for variables with includevars==TRUE
-- Adjusted cil so it has the same arguments as modelSelection. Added arguments priorCoef, center, scale, includevars and verbose. Removed arguments beta.prior and tau
+- Adjusted cil so it has the same arguments as modelSelection. Added arguments priorCoef, center, scale, includevars and verbose. Removed arguments beta.prior and tau. Set the defaults of center and scale as in modelSelection (TRUE for all non-factor variables)
 
 CHANGES IN VERSION 3.1.4
 - Removed pmomLM, pmomPM, emomLM, emomPM, zellnerLM, zellnerPM, pplProbit

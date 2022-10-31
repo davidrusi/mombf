@@ -1,4 +1,5 @@
 CHANGES IN VERSION 3.1.5
+-
 - cil now returns marginal posterior inclusion probabilities under the uniform model space prior
 - cil now returns BMA estimates, intervals and margpp in a single element object$cil.teff (before they were stored separately)
 - cil now extracts BMA inference using coef function from msfit objects and allows for any priorCoef allowed by modelSelection

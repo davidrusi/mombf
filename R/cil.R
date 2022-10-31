@@ -384,16 +384,24 @@ check.parameter.format <- function(rho.min, th.range, max.mod, lpen, eps, bvs.fi
 # - Di: exposure (or treatment) variables
 # - A: controls
 # - familyD: type of outcome for each column in Di, e.g. c('normal','binomial')
+# - typeofvar: does each column in A correspond to a 'numeric' or 'factor'. The latter are not standardized to zero mean, unit variance
 # - addintcpt: should an intercept be added to A? (TRUE/FALSE)
 # - mod1: method to estimate the regression model
 # - priorCoef, Rinit: only used if mod1=='bvs', 'bma' or 'bms'. Then it's the prior on the coefficients and number of MCMC iterations used by modelSelection to estimate the coefficients
-# - lpen: only used if mod1=='lasso'. It's an option when choosing lambda in LASSO with cross-validation
-exposureCoef <- function(Di, A, familyD, addintcpt, mod1, priorCoef, Rinit, lpen) {
-  p <- ncol(A)
+# - lpen: only used if mod1=='lasso'. It's an option when choosing lambda in LASSO with cross-validation, 'lambda.min' or 'lambda.1se'
+exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), addintcpt, mod1, priorCoef, Rinit, lpen) {
+  n <- nrow(A); p <- ncol(A)
   if (length(familyD)==1) familyD <- rep(familyD, ncol(Di))
   familyD.glmnet <- familyD
   familyD.glmnet[familyD.glmnet == 'normal'] <- 'gaussian'
 
+  #Scale design matrix
+  mx <- colMeans(A); sx <- sqrt(colMeans(A^2) - mx^2) * sqrt(n/(n-1))
+  isct <- (sx==0)
+  mx[typeofvar=='factor'] <- 0; sx[typeofvar=='factor'] <- 1
+  A[,!isct]= t((t(A[,!isct]) - mx[!isct])/sx[!isct])
+
+  #Obtain coefficients for each exposure (treatment) variable
   betad <- matrix(NA, nrow = ncol(A), ncol = ncol(Di))
   for (i in 1:ncol(Di)) {
     # Define matrices
@@ -479,9 +487,12 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
 
   if (is.data.frame(X)) {
     f <- as.formula(paste('~', paste(names(X), collapse=' + ')))
-    A <- createDesign(formula=f, data=X)$x
+    A <- createDesign(formula=f, data=X)
+    typeofvar <- A$typeofvar
+    A <- A$x
   } else if (is.matrix(X)) {
-    A <- X
+      A <- X
+      typeofvar <- rep('numeric',ncol(A))
   } else {
     stop("X must be a matrix or a data.frame")
   }
@@ -490,7 +501,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   includeX <-  includevars[(ncol(D)+ncolI+1):length(includevars)]
   if (length(includevars) != ncol(D) + ncolI + ncol(A)) stop(paste("includevars has length",length(includevars),"but there are",ncol(D)+ncolI+ncol(A),"columns in (D,I,X). Note: if X is a data.frame, an intercept was automatically added"))
 
-  isct <- apply(A, 2, var) == 0
+  isct <- (apply(A, 2, 'sd') == 0)
   if (sum(isct) > 1) stop("There are >1 constant columns (e.g. intercepts) in X. Try removing the intercept")
   addintcpt <- sum(isct)==0
   includeX[isct] <- TRUE #always add the intercept (so it doesn't affect EB/EP estimates)
@@ -501,7 +512,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
 
   # Estimate coefficients on exposure model
   if (verbose) cat("ESTIMATING ASSOCIATION BETWEEN TREATMENTS AND CONTROLS\n\n")
-  betad <- exposureCoef(Di=Di, A=A, familyD=familyD, addintcpt=addintcpt, mod1=mod1, priorCoef=priorCoef, Rinit=Rinit, lpen=lpen)
+  betad <- exposureCoef(Di=Di, A=A, familyD=familyD, typeofvar=typeofvar, addintcpt=addintcpt, mod1=mod1, priorCoef=priorCoef, Rinit=Rinit, lpen=lpen)
     
   # THETA SEARCH ###############################################################
   # Initial fit: th0 = 0; th1 = 0 (UNIFORM MODEL PRIOR)

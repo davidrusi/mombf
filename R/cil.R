@@ -164,8 +164,10 @@ grid.opt.mt <- function(G0, betad, pj1, method = 'EB', ws = NA, th.grid,
     stop('supported theta search methods are "EB" and "EP".')
   }
 
-  # Optimal values
-  th.opt <- as.numeric(opt.th[which.max(fval),])
+  # Optimal values. If there are multiple modes, choose the one with smallest L2 norm
+  th.opt <- opt.th[fval == max(fval),,drop=FALSE]
+  th.opt <- as.numeric(th.opt[which.min(th.opt[,1]^2 + th.opt[,2]^2),])
+  #th.opt <- as.numeric(opt.th[which.max(fval),])
   names(th.opt) <- paste('th', 1:length(th.opt) - 1, sep = '')
 
   # Output
@@ -173,7 +175,7 @@ grid.opt.mt <- function(G0, betad, pj1, method = 'EB', ws = NA, th.grid,
 }#; grid.opt.mt <- compiler::cmpfun(grid.opt.mt)
 
 ################################################################################
-# OBJECTIVE FUNCTION FOR EP METHOD
+# OBJECTIVE FUNCTIONS FOR EB METHOD
 # - x: theta hyper-parameter value
 # - betad: measures of association between treatment d and controls
 # - G0: model identifiers. Each element is a character string where 1's indicate inclusion and 0's exclusion
@@ -204,12 +206,14 @@ Of.EB.cil <- function(x, betad, G0, ws, th.prior, rho.min = 0, rho.max = 1, incl
 }
 
 ################################################################################
-Gf.EB.cil <- function(x, betad, G0, ws, rho.min = 0, rho.max = 1, includeX) {
+Gf.EB.cil <- function(x, betad, G0, ws, th.prior, rho.min = 0, rho.max = 1, includeX, Dvars) {
 ################################################################################
   # Compute (unnormalised) model inclusion probabilities
-  p1 <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
-  sD <- nchar(G0[1]) - length(p1)
-  p1 <- c(rep(1/2, sD), p1)
+  p1 <- rep(NA, nchar(G0)[1])
+  p1[-Dvars] <- pinc.mt(betad, th = x, rho.min = rho.min, rho.max = rho.max, includeX = includeX)
+  p1[Dvars] <- 1/2
+  #sD <- nchar(G0[1]) - length(p1)
+  #p1 <- c(rep(1/2, sD), p1)
   sc <- sapply(G0, function(m) {
     gm <- as.numeric(unlist(strsplit(m, '')))
     wg <- ws[which(G0 == m)]
@@ -226,14 +230,16 @@ Gf.EB.cil <- function(x, betad, G0, ws, rho.min = 0, rho.max = 1, includeX) {
 
   # grad log p(y | theta)
   gs <- rep(NA, length(x))
-  gs[1] <- sum((mpprobs - p1)[-(1:sD)])
+  gs[1] <- sum((mpprobs - p1)[-Dvars])
+  #gs[1] <- sum((mpprobs - p1)[-(1:sD)])
   for (k in 2:length(gs)) {
     aux0 <- (ncol(betad) / (length(x) - 1) - 1)
     idxs <- c(k - 1)
     if (aux0 > 0) { idxs <- c(idxs, (length(x) - 1) + aux0 * (k - 2) + 1:aux0) }
     aux1 <- mpprobs - p1
     aux2 <- rowSums(abs(as.matrix(betad[, idxs])))
-    gs[k] <- sum(aux1[-(1:sD)] * aux2)
+    gs[k] <- sum(aux1[-Dvars] * aux2)
+    #gs[k] <- sum(aux1[-(1:sD)] * aux2)
   }
 
   # grad log p(theta)
@@ -262,7 +268,7 @@ Of.EP.cil <- function(x, betad, pj1, th.prior, rho.min = 0, rho.max = 1, include
   fj <- pj1 * p1 + (1 - pj1) * (1 - p1)
   pt1 <- sum(log(fj))
 
-  # log p(theta)
+    # log p(theta)
   pt2 <- 0
 
   # - log p(theta | y) \propto -(log p(y | theta) + log p(theta))
@@ -427,7 +433,8 @@ exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), add
         #betad[, i] <- unname(post.th[2:(length(post.th) - 1)])[-exc]
       } else if (mod1 == 'lasso') {
         m1.fit <- cv.glmnet(x=A, y=b, intercept = addintcpt, family = familyD.glmnet[i])
-        betad[, i] <- unname(coef(m1.fit, s = m1.fit[[lpen]]))[-exc]
+        m1.coef <- as.numeric(coef(m1.fit, s = m1.fit[[lpen]])[-exc])
+        if (nrow(betad) == length(m1.coef)) betad[,i] <- m1.coef else betad[,i] <- m1.coef[-1]
         #betad[, i] <- unname(coef(m1.fit, s = m1.fit[[lpen]])[-1, 1])[-exc]
       } else if (mod1 == 'lasso_bic') {
         m1.fit <- lasso.bic(y=b, x=A, intercept = addintcpt, family = familyD.glmnet[i])
@@ -453,6 +460,28 @@ exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), add
 
 
 ################################################################################
+#Set range of values to consider for hyper-parameter theta in the EB/EP optimization
+setThetaRange <- function(ncolD) {
+  if (ncolD == 1) {
+    th.range <- seq(-40, 40, 1)
+  } else if (ncolD == 2) {
+    th.range <- seq(-40, 40, 2)
+  } else if (ncolD <= 4) {
+    th.range <- seq(-10, 10, 2)
+  } else if (ncolD <= 7) {
+    th.range <- seq(-7.5, 7.5, 2.5)
+  } else if (ncolD <= 14) {
+    th.range <- seq(-2, 2, 2)
+    #th.range <- seq(-5, 5, 2.5)
+  } else {
+    th.range <- c(-2, 2)
+  }
+  return(th.range)
+}
+################################################################################
+
+
+################################################################################
 model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal',
   mod1, th.search = 'EB', th.prior = 'unif', priorCoef, rho.min = NULL,
   th.range = NULL, max.mod = 2^20, lpen = 'lambda.1se', eps = 1e-10,
@@ -460,8 +489,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   includevars = includevars, verbose = TRUE) {
 ################################################################################
   # Make sure parameter inputs are in the correct format
-  check.parameter.format(rho.min = rho.min, th.range = th.range, max.mod = max.mod,
-                         lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
+  check.parameter.format(rho.min = rho.min, th.range = th.range, max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
 
   # Renaming (DEPENDENCIES: mombf, pracma, glmnet, hdm)
   ms <- modelSelection#mombf::modelSelection
@@ -507,7 +535,8 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   includeX[isct] <- TRUE #always add the intercept (so it doesn't affect EB/EP estimates)
    
   # Other fixed parameters
-  if (is.null(rho.min)) rho.min <- 1 / (ncol(Z)^2 + 1)
+  if (is.null(rho.min)) rho.min <- 1 / (ncol(Z) + 1)
+  #if (is.null(rho.min)) rho.min <- 1 / (ncol(Z)^2 + 1)
   rho.max <- 1 - rho.min
 
   # Estimate coefficients on exposure model
@@ -555,22 +584,7 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   ups <- rep(+Inf, ncol(D) + 1)
 
   # Range for grid search
-  if (is.null(th.range)) {
-    if (ncol(D) == 1) {
-      th.range <- seq(-40, 40, 1)
-    } else if (ncol(D) == 2) {
-      th.range <- seq(-40, 40, 2)
-    } else if (ncol(D) <= 4) {
-      th.range <- seq(-10, 10, 2)
-    } else if (ncol(D) <= 7) {
-      th.range <- seq(-7.5, 7.5, 2.5)
-    } else if (ncol(D) <= 14) {
-      th.range <- seq(-2, 2, 2)
-      #th.range <- seq(-5, 5, 2.5)
-    } else {
-      th.range <- c(-2, 2)
-    }
-  }
+  if (is.null(th.range)) th.range <- setThetaRange(ncol(D))
 
   if (is.null(th.EP)) {
     # EP approximation (to set starting point)
@@ -600,8 +614,12 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
     auxprpr[which(auxprpr == 1)] <- 1 - eps
     auxprpr[which(auxprpr == 0)] <- eps
     auxmp <- modelbinomprior(p = auxprpr)#mombf::modelbinomprior(p = auxprpr)
-    update.fit <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = auxmp,
-      niter = round(R / 2), verbose = verbose, center = center, scale = scale, includevars = includevars)
+
+    if (is.data.frame(Z)) {
+      update.fit <- ms(f, data=data, priorCoef=priorCoef, priorVar=igp, priorDelta=auxmp, niter=round(R/2), verbose=verbose, center=center, scale=scale, includevars=includevars)
+    } else {
+      update.fit <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = auxmp, niter = round(R/2), verbose = verbose, center = center, scale = scale, includevars = includevars)
+    }
 
     # Append model set
     upprobs <- postProb(update.fit)[, c(1, 3)]
@@ -612,16 +630,12 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
     # Pre-compute marginal likelihoods
     ws <- unname(unlist(sapply(G0, function(m) {
       js <- which(unlist(strsplit(m, '')) == 1)
-      return(mlik(js, y, Z, priorCoef = priorCoef, logscale = FALSE))
+      return(mlik(js, y, update.fit$xstd, priorCoef = priorCoef, logscale = TRUE)) #David: line below seemed wrong, ws was exponentiated later
+      #return(mlik(js, y, Z, priorCoef = priorCoef, logscale = FALSE))
     })))
 
-    # Numerical problems with MLs that are too small
-    if (all(ws < -650)) {  # We start having problems at exp(-750)
-      ct <- abs(max(ws) + 650)  # Constant
-      ws <- exp(ws + ct)  # Multiply by constant (NO EFFECT ON ARG MAX)
-    } else {
-      ws <- exp(ws)
-    }
+    # Avoid numerical problems with MLs that are too small
+    ws <- exp(ws - max(ws)) # Multiply by constant exp(-max(ws)) (NO EFFECT ON ARG MAX)
 
     # Optimise starting at the EP optimum
     opt.EB <- try(nlminb(th.EP, objective = Of.EB.cil, gradient = Gf.EB.cil,
@@ -638,13 +652,13 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
     if (opt.EB[['convergence']] %in% 0:1) {
       th.hat <- opt.EB[['par']]
     } else {
-      stop('theta search under "EB" did not converge.')
+      stop('theta search under th.search=="EB" did not converge.')
     }
   } else if (th.search == 'EP') {
     # Optimal values
     th.hat <- th.EP
   } else {
-    stop('theta search method unsupported -- choose amongst "EB" and "EP".')
+    stop('th.search method unsupported -- choose amongst "EB" and "EP".')
   }
 
   # MODEL SEARCH (under fixed theta hat) #######################################
@@ -662,20 +676,21 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   if (verbose) cat("\n FINAL FIT UNDER ESTIMATED ASYMMETRIC BERNOULLI PRIOR \n\n")
   if (is.data.frame(Z)) {
     new.fit <- ms(f, data=data, priorCoef = priorCoef, priorVar = igp, priorDelta = nbp, niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
+    treatidx <- Dvars
   } else {
     new.fit <- ms(y, Z, priorCoef = priorCoef, priorVar = igp, priorDelta = nbp, niter = R, verbose = verbose, center = center, scale = scale, includevars = includevars)
+    treatidx <- Dvars + ifelse(all(apply(Z,2,'sd') > 0), 1, 0) #if Z has no intercept, coef(new.fit) will add one automatically
   }
- 
 
-  # Posterior model probabilities
+  # BMA inference and Posterior model probabilities
+  beta <- coef(new.fit)
+  teff <- beta[treatidx,]
   pprobs <- postProb(new.fit)#mombf::postProb(new.fit)[, c(1, 3)]
   mpprobs <- new.fit[['margpp']]
 
-  beta <- coef(new.fit)[Dvars,]
-
   # Finish
-  return(list(pprob.y = pprobs, mpprob.y = mpprobs, th.hat = th.hat, priorprobs = pg1cth, margpp.unif = pj1,
-              msfit = new.fit, beta = beta, init.msfit = bvs.fit0, th.EP = th.EP, mod1.coef = betad))
+  return(list(teff = teff, beta = beta, pprob.y = pprobs, mpprob.y = mpprobs, th.hat = th.hat, priorprobs = pg1cth, 
+              msfit = new.fit, init.msfit = bvs.fit0, th.EP = th.EP, mod1.coef = betad, Dvars=Dvars, includeX=includeX, rho.min=rho.min, rho.max=rho.max))
 }#; model.pprobs.cil <- compiler::cmpfun(model.pprobs.cil)
 
 
@@ -751,18 +766,21 @@ cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal', R = 1e
   #teff <- bma.cil(pprobs[['msfit']], nt = ncol(cbind(D, I)))
 
   # Output object
-  out <- list(cil.teff = pprobs$beta,  # BMA estimates, 95\% CIs and marginal posterior prob for treatment variables
+  out <- list(cil.teff = pprobs[['teff']],  # BMA estimates, 95\% CIs and marginal posterior prob for treatment variables
+              coef = pprobs[['beta']], # BMA estimates, 95\% CI's and marginal posterior probs for all variables
 #cil.teff = teff[['bma.e.cil']],  # BMA Point estimates
 #              cil.teff.postdist = teff[['bma.d.cil']],  # BMA Distribution
 #              cil.bma.mcmc = teff[['mcmc.cil']],  # BMA MCMC runs
               model.postprobs = pprobs[['pprob.y']],  # Model post. probs.
               margpp = pprobs[['mpprob.y']],  # Marginal post. probs under CIL prior
               margprior = pprobs[['priorprobs']], # CIL-estimated marginal prior inclusion probabilities
-              margpp.unif = pprobs[['margpp.unif']], # Marginal post probs under uniform prior on models
+              margprior.limits = c(pprobs[['rho.min']], pprobs[['rho.max']]), # (lower, upper) limits on margprior
               theta.hat = pprobs[['th.hat']],  # Estimated theta hat
               treat.coefs = pprobs[['mod1.coef']],  # Coefs. treatment models
+              treat.varindex = pprobs[['Dvars']], # Indexes of columns in full design matrix corresponding to treatments
               msfit = pprobs[['msfit']],  # Model selection fit of the model
               theta.EP = pprobs[['th.EP']],  # Estimated theta for EP method
+              includeX = pprobs[['includeX']], # Covariates forced to be included in the outcome model
               init.msfit = pprobs[['init.msfit']])  # Initial model sel. fit
 
   # Exit
@@ -807,6 +825,34 @@ cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal', R = 1e
 ################################################################################
 # Adapt relevant methods for objects of class "cilfit"
 ################################################################################
+
+# plot()
+setMethod("plotprior", signature(object='cilfit'), function(object, xlab, ylab, ylim=c(0,1), ...) {
+  if (missing(xlab)) xlab <- 'Treatment regression coefficients'
+  if (missing(ylab)) ylab <- 'Posterior inclusion probability under uniform model prior'
+  ntreat <- ncol(object$treat.coefs)
+  treat.varindex <- object$treat.varindex
+  bmean <- colMeans(object$treat.coefs)
+  b <- t(matrix(bmean, nrow=ntreat, ncol=200))
+  for (i in 1:ntreat) {
+    devAskNewPage(ask = TRUE)
+    pp.unifprior <- object$init.msfit$margpp[-treat.varindex]
+    pp.unifprior <- pp.unifprior[!object$includeX]
+    treat.coef <- object$treat.coef[!object$includeX,i]
+    isct <- (apply(object$init.msfit$xstd[,,drop=FALSE], 2, 'sd') == 0)[-treat.varindex]
+    isct <- isct[!object$includeX]
+    pp.unifprior <- pp.unifprior[!isct]
+    treat.coef <- treat.coef[!isct]
+    plot(treat.coef, pp.unifprior, xlab=xlab, ylab=ylab, ylim=ylim, ...)
+    b[,i] <- matrix(seq(min(treat.coef), max(treat.coef), length=200), ncol=1)
+    priorprobfit <- pinc.mt(b, th=object$theta.hat, rho.min=object$margprior.limits[1], rho.max=object$margprior.limits[2], includeX=rep(FALSE,length(b)))
+    lines(b, priorprobfit)
+    b[,i] <- bmean[i]
+  }
+  devAskNewPage(ask = FALSE)
+}
+)
+
 
 # show()
 setMethod("show", signature(object='cilfit'), function(object) {

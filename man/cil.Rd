@@ -119,9 +119,10 @@ not performed for these variables}
   See references for further details on implementation and computation.
 }
 \value{
-Object of class \code{cilfit}, which extends a list with elements
-\item{cil.teff}{\code{numeric} vector containing the BMA estimates
-  for the treatment effects featured in \code{D}}
+  Object of class \code{cilfit}, which extends a list with elements
+\item{cil.teff}{BMA estimates, 0.95 intervals and posterior inclusion
+  probabilities for treatment effects in \code{D}}
+\item{coef}{BMA inference for treatment effects and all other covariates}
 \item{model.postprobs}{\code{matrix} returning the posterior model probabilities
   computed in the CIL model}
 \item{margpp}{\code{numeric} vector containing the estimated marginal
@@ -172,14 +173,15 @@ y <- d * alpha + X \%*\% beta_y + rnorm(100)
 # Confounder Importance Learning
 fit1 <- cil(y = y, D = d, X = X, th.search = 'EP')
 
-# Treatment effects
+# BMA for treatment effects
 coef(fit1)
 
-# CIL-estimated prior inclusion probabilities
-fit1$margprior
+# BMA for all covariates
+head(fit1$coef)
 
-# Corresponding posterior inclusion probabilities
-fit1$margpp
+# Estimated prior inclusion prob
+# vs. treatment regression coefficients
+plotprior(fit1)
 
 }
 

@@ -1,13 +1,15 @@
 CHANGES IN VERSION 3.1.5
+- Adjusted cil so it has the same arguments as modelSelection. Added arguments priorCoef, center, scale, includevars and verbose. Removed arguments beta.prior and tau. Set the defaults of center and scale as in modelSelection (TRUE for all non-factor variables)
+- Added GLM functionality to cil via arguments family, familyD which can now also be 'binomial' and 'poisson'
 - Added plotprior method to cilfit
-- cil internal parameter rho.min now set to less conservative 1/p (fixed prior mean=1 on number of covariates)
+- cil internal parameter rho.min now set to 1/p rather than 1/p^2
 - cil now returns BMA inference for all parameters in object$beta
 - cil now returns BMA estimates, intervals and margpp in a single element object$cil.teff (before they were stored separately)
 - cil now extracts BMA inference using coef function from msfit objects and allows for any priorCoef allowed by modelSelection
 - Fixed incorrect BIC formula in CIL's lasso.bic for logistic regression
 - cil now allows data frames as inputs
-- Fixed bug where margpp==0 for variables with includevars==TRUE
-- Adjusted cil so it has the same arguments as modelSelection. Added arguments priorCoef, center, scale, includevars and verbose. Removed arguments beta.prior and tau. Set the defaults of center and scale as in modelSelection (TRUE for all non-factor variables)
+- Fixed bug in modelSelection where margpp==0 for variables with includevars==TRUE
+
 
 CHANGES IN VERSION 3.1.4
 - Removed pmomLM, pmomPM, emomLM, emomPM, zellnerLM, zellnerPM, pplProbit

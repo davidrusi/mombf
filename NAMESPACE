@@ -11,6 +11,9 @@ importFrom("utils", "combn")
 importFrom(Rcpp, evalCpp)
 importFrom(pracma, pinv)
 
+importFrom("graphics", "lines")
+importFrom("grDevices", "devAskNewPage")
+
 useDynLib(mombf, .registration=TRUE)
 
 export(bbPrior)
@@ -44,6 +47,7 @@ export(postProb,postSamples)
 export(postModeOrtho, postModeBlockDiag)
 S3method(predict,msfit)
 export(priorp2g)
+export(plotprior)
 export(qimom, qmom)
 export(ralapl, rnlp, rpostNIW)
 export(unifPrior)

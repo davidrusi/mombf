@@ -1,4 +1,12 @@
-CHANGES IN VERSION 3.1.5
+CHANGES IN VERSION 3.3.1
+- Added info on varnames and top model to the output of bestAIC, bestBIC, bestEBIC, bestIC
+
+CHANGES IN VERSION 3.3.0
+- Fixed a bug in the calculation of BIC (it was off by log(n), and failed for
+the null model with no covariates)
+- Added bestAIC, bestBIC, bestEBIC, bestIC functions
+
+CHANGES IN VERSION 3.2.0
 - Adjusted cil so it has the same arguments as modelSelection. Added arguments priorCoef, center, scale, includevars and verbose. Removed arguments beta.prior and tau. Set the defaults of center and scale as in modelSelection (TRUE for all non-factor variables)
 - Added GLM functionality to cil via arguments family, familyD which can now also be 'binomial' and 'poisson'
 - Added plotprior method to cilfit

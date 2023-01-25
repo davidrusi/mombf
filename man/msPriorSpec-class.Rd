@@ -3,7 +3,10 @@
 \docType{class}
 \alias{msPriorSpec}
 \alias{msPriorSpec-class}
+\alias{aic}
+\alias{bic}
 \alias{bicprior}
+\alias{ic}
 \alias{emomprior}
 \alias{imomprior}
 \alias{momprior}
@@ -27,7 +30,10 @@ This class can be used to specify the prior on non-zero regression coefficients,
 the model indicator or the nuisance parameters.
 }
 \usage{
+aic()
+bic()
 bicprior()
+ic(penalty)
 
 momprior(taustd=1, tau, tau.adj=10^6, r=1)
 imomprior(tau, tau.adj=10^6)
@@ -48,6 +54,7 @@ modelcomplexprior(c=1)
 igprior(alpha=.01, lambda=.01)
 }
 \arguments{
+  \item{penalty}{Penalty on model dimension, i.e. for the AIC penalty=2}
   \item{tau}{Prior dispersion parameter for covariates undergoing selection}
   \item{taustd}{Prior dispersion parameter for covariates undergoing selection.
     It is calibrated so that `taustd=1` equals the unit information prior.}

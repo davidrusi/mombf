@@ -26,10 +26,13 @@ Model with best AIC, BIC, EBIC or other general information criteria (getIC)
   \item{penalty}{General information penalty. For example, since the AIC
     penalty is 2, bestIC(...,penalty=2) is the same as bestAIC(...)}
 }
-\value{
-  data.frame with the requested information criterion for all models
+\value{A list with 2 entries.
+  
+  "models": data frame with the information criterion for all models
   (when enumeration is feasible) or those visited by an MCMC model
-  search in modelSelection (when enumeration is not feasible)  
+  search in modelSelection (when enumeration is not feasible)
+
+  "varnames": the names of the variables
 }
 \details{
   For details on the information criteria see help(getBIC).

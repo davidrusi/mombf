@@ -101,7 +101,7 @@ struct marginalPars {
   double *lambda;
   int *knownphi; //should dispersion parameter be considered known, e.g. error var in Gaussian regression, or phi=1 in logistic/poisson regression
   double *phi;      //residual variance
-  double *tau;      //dispersion parameter in prior for regression coefficients
+  double *tau;      //dispersion parameter in prior for regression coefficients. Also used to store the penalty parameter when using an info criteria rather than a prior
   double *taugroup; //prior dispersion parameter on grouped coefficients, e.g. the block Zellner prior is prod_j N(delta_j; 0, (taugroup/ncol(X_j)) (X_j'X_j)^{-1})
   double *taualpha; //dispersion parameter in prior for asymmetry parameter in two-piece Normal or two-piece Laplace residuals
   double *fixatanhalpha; //fixed value for asymmetry parameter (usedful for quantile regression at fixed quantile levels)

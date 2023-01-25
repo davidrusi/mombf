@@ -38,8 +38,9 @@
 \maketitle
 
 The \texttt{mombf} package implements Bayesian model selection (BMS) and model averaging (BMA)
-for regression (linear, asymmetric linear, median and quantile regression, accelerated failure times) and mixture models.
-This is the main package implementing {\it non-local priors} (NLP)
+for linear and generalized linear models. It also implements model search with information criteria like the AIC, BIC, EBIC, or other general information criteria.
+Other implemented models in the Bayesian framework include regression (linear, asymmetric linear, median and quantile regression, accelerated failure times) and mixture models.
+This is also the main package implementing {\it non-local priors} (NLP)
 but some other priors are also implemented, e.g. Zellner's prior in regression, Normal-IWishart priors for mixtures.
 NLPs are briefly reviewed here, see \cite{johnson:2010,johnson:2012} for their model selection properties
 and \cite{rossell:2017} for parameter estimation and posterior sampling.
@@ -75,9 +76,9 @@ they are designed to be minimally scalable to large sample sizes $n$ and high di
 \label{sec:quickstart}
 
 
-The main BMS function is \texttt{modelSelection}. BMA is also available for some models, mainly linear regression and Normal mixtures.
-Details are in subsequent sections, here we illustrate quickly how to get posterior model probabilities,
-marginal posterior inclusion probabilities,
+The main BMS functions are \texttt{modelSelection} and \texttt{bestBIC} and its companions (\texttt{bestEBIC} etc.). 
+BMA is also available for some models, mainly linear regression and Normal mixtures.
+Details are in subsequent sections, here we illustrate quickly how to get information criteria for all models (or those obtained in an MCMC model exploration, there are too many models to enumerate), posterior model probabilities, marginal posterior inclusion probabilities,
 BMA point estimates and posterior intervals for the regression coefficients and predicted outcomes.
 
 
@@ -88,6 +89,11 @@ set.seed(1234)
 x <- matrix(rnorm(100*3),nrow=100,ncol=3)
 theta <- matrix(c(1,1,0),ncol=1)
 y <- x %*% theta + rnorm(100)
+
+#BIC for all models
+b= bestBIC(y ~ x[,1]+x[,2]+x[,3]) #recall: lower BIC is better
+b
+b[which.min(b$bic),]
 
 #Default MOM prior on parameters
 priorCoef <- momprior(taustd=1)

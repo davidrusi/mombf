@@ -8,10 +8,10 @@ modelSelectionGLM= function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
     # - models: logical matrix with ncol(x) columns selecting variables for each included model
     # Output: object of class msfit, as returned by modelSelection in mombf
 
-    if (missing(priorCoef)) priorCoef= bicprior()
-    if (missing(priorGroup)) priorGroup= bicprior()
+    if (missing(priorCoef)) priorCoef= bic()
+    if (missing(priorGroup)) priorGroup= bic()
     if (missing(priorVar)) priorVar= igprior(0,0)
-    if ((priorCoef@priorDistr != 'bic') | (priorGroup@priorDistr != 'bic')) stop("Only priorCoef=bicprior() and priorGroup=bicprior() currently implemented")
+    if ((priorCoef@priorDistr != 'bic') | (priorGroup@priorDistr != 'bic')) stop("Only priorCoef=bic() and priorGroup=bic() currently implemented")
 
     enumerate= TRUE #currently only full enumeration is supported
     family= paste(familyglm$family,familyglm$link)

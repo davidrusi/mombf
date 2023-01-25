@@ -43,12 +43,20 @@ if (!isGeneric("demom")) {
 }
 
 
+if (!isGeneric("getAIC")) {
+  setGeneric("getAIC", function(object) standardGeneric("getAIC"))
+}
+
 if (!isGeneric("getBIC")) {
   setGeneric("getBIC", function(object) standardGeneric("getBIC"))
 }
 
 if (!isGeneric("getEBIC")) {
   setGeneric("getEBIC", function(object) standardGeneric("getEBIC"))
+}
+
+if (!isGeneric("getIC")) {
+  setGeneric("getIC", function(object) standardGeneric("getIC"))
 }
 
 

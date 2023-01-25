@@ -3335,21 +3335,26 @@ double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars) {
 //BIC for the Gaussian linear model
 double bic_lm (int *sel, int *nsel, struct marginalPars *pars) {
   int n= *((*pars).n);
-  double ndouble, *m, phi, ans=0.0, *ypred, sumy2= *(*pars).sumy2;
+  double ans=0.0, ndouble= (double) n, *m, penalty, phi, sumy2= *(*pars).sumy2, *ypred;
+
+  if (*((*pars).tau) >= 0) {
+    penalty= *((*pars).tau); //if tau>=0, it stores the information criteria's penalty on dimension
+  } else {
+    penalty= log(ndouble);   //if tau<0, use the BIC penalty
+  }
 
   if (*nsel ==0) {
 
-    phi= sumy2 / ((double) n) - pow(*((*pars).sumy), 2.0);
-    ans= -0.5 * (((double) n) + ((double) n) * log(2 * M_PI * phi));
+    phi= sumy2 / ((double) n);
+    ans= -0.5 * (((double) n) + ((double) n) * log(2 * M_PI * phi)) + penalty;  //Model dimension is 1 (variance parameter)
 
   } else {
 
     m= dvector(1,*nsel); ypred= dvector(0, n-1);
-    ndouble= (double) n;
 
     leastsquares(m, &phi, ypred, (*pars).y, (*pars).x, (*pars).XtX, (*pars).ytX, (*pars).n, (*pars).p, sel, nsel);
 
-    ans= -0.5* (ndouble + ndouble * log(2 * M_PI * phi) + ((double) *nsel) * log(ndouble));
+    ans= -0.5* (ndouble + ndouble * log(2 * M_PI * phi) + ((double) *nsel + 1) * penalty); //Model dim is nsel + 1 (variance parameter)
 
     free_dvector(m, 1, *nsel); free_dvector(ypred, 0, n-1);
 

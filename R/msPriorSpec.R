@@ -176,9 +176,22 @@ msPriorSpec <- function(priorType=c("coefficients",
 }
 
 
-bicprior <- function() {
+bic <- function() {
     new("msPriorSpec", priorType="coefficients", priorDistr="bic", priorPars=c(tau=-1))
 }
+
+bicprior <- function() {
+    bic()
+}
+
+aic <- function() {
+    ic(2)
+}
+
+ic <- function(penalty) {
+    new("msPriorSpec", priorType="coefficients", priorDistr="bic", priorPars=c(tau=penalty))
+}
+
 
 igprior <- function(alpha=.01, lambda=.01) {
     new("msPriorSpec",priorType='nuisancePars',priorDistr='invgamma',priorPars=c(alpha=alpha,lambda=lambda))

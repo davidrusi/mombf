@@ -1,22 +1,31 @@
 \name{getBIC}
+\alias{getAIC}
+\alias{getAIC-methods}
+\alias{getAIC,msfit-method}
 \alias{getBIC}
 \alias{getBIC-methods}
 \alias{getBIC,msfit-method}
 \alias{getEBIC}
 \alias{getEBIC-methods}
 \alias{getEBIC,msfit-method}
+\alias{getIC}
+\alias{getIC-methods}
+\alias{getIC,msfit-method}
 
 \title{
-Obtain BIC and EBIC
+Obtain AIC, BIC, EBIC or other general information criteria (getIC)
 }
 \description{
-  Obtain Bayesian Information Criterion and Extended Bayesian
-  Information Criterion
+  Extract information criteria from an msfit object.
 }
 \usage{
+  getAIC(object)
+
   getBIC(object)
 
   getEBIC(object)
+
+  getIC(object)
 }
 \arguments{
   \item{object}{Object of class msfit returned by \code{modelSelection}}
@@ -30,10 +39,28 @@ Obtain BIC and EBIC
 
   - 2 L_k + p_k log(n)
 
-  and the EBIC is
+  the AIC is
+  
+  - 2 L_k + p_k 2
+  
+  the EBIC is
 
   - 2 L_k + p_k log(n) + 2 log(p choose p_k)
 
+  and a general information criterion with a given model size penalty
+
+  - 2 L_k + p_k penalty
+
+
+  For getBIC() to work, object must be the result returned by
+  modelSelection setting priorCoef=bic() and priorDelta=modelunifprior()
+
+  For getEBIC() it is priorCoef=bic() and priorDelta=modelbbprior()
+
+  For getAIC() it is priorCoef=aic() and priorDelta=modelunifprior()
+
+  For getIC() it is priorCoef=ic() and priorDelta=modelunifprior()
+  
   Function modelSelection returns the log posterior probability of a
   model, postProb = log(m_k) + log(prior k), where m_k is the marginal
   likelihood of the model and prior k its prior probability.

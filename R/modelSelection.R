@@ -955,7 +955,8 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
   if (priorCoef@priorDistr=='bic') {
       
     prior <- priorgr <- as.integer(100)
-    tau <- taugroup <- alpha <- lambda <- taualpha <- fixatanhalpha <- as.double(-1)
+    tau <- as.double(priorCoef@priorPars['tau'])
+    taugroup <- alpha <- lambda <- taualpha <- fixatanhalpha <- as.double(-1)
       
   } else {
   

@@ -26,13 +26,9 @@ Model with best AIC, BIC, EBIC or other general information criteria (getIC)
   \item{penalty}{General information penalty. For example, since the AIC
     penalty is 2, bestIC(...,penalty=2) is the same as bestAIC(...)}
 }
-\value{A list with 2 entries.
-  
-  "models": data frame with the information criterion for all models
-  (when enumeration is feasible) or those visited by an MCMC model
-  search in modelSelection (when enumeration is not feasible)
-
-  "varnames": the names of the variables
+\value{Object of class \code{icfit}. Use (coef, summary,
+  confint, predict) to get inference for the top model,
+  and \code{help(icfit-class)} for more details on the returned object.
 }
 \details{
   For details on the information criteria see help(getBIC).
@@ -71,12 +67,21 @@ y <- x \%*\% theta + rnorm(100)
 ybin <- y>0
 
 #BIC for all models (the intercept is also selected in/out)
-bestBIC(y ~ x[,1] + x[,2])
+fit= bestBIC(y ~ x[,1] + x[,2])
+fit
 
 #Same, but setting the BIC's log(n) penalty manually
 #change the penalty for other General Info Criteria
-n= nrow(x)
-bestIC(y ~ x[,1] + x[,2], penalty=log(n))
+#n= nrow(x)
+#fit= bestIC(y ~ x[,1] + x[,2], penalty=log(n))
+
+summary(fit) #usual GLM summary
+
+coef(fit) #MLE under top model
+
+confint(fit) #conf int under top model
+
+
 
 }
 \keyword{ models }

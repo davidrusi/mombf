@@ -1,5 +1,6 @@
 CHANGES IN VERSION 3.3.1
 - Added info on varnames and top model to the output of bestAIC, bestBIC, bestEBIC, bestIC
+- Added methods for icfit objects: coef, confint, show, summary
 
 CHANGES IN VERSION 3.3.0
 - Fixed a bug in the calculation of BIC (it was off by log(n), and failed for

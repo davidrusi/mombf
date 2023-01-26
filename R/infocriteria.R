@@ -1,3 +1,31 @@
+### Methods for icfit objects
+
+setMethod("show", signature(object='icfit'), function(object) {
+  cat("icfit object\n\n")
+  cat("Model with best",object$criterion,":",object$topmodel,"\n\n")
+  cat("Use summary(), coef() and predict() to get inference for the top model\n")
+  cat("Use coef(object$msfit) and predict(object$msfit) to get BMA estimates and predictions\n")
+}
+)
+
+confint.icfit <- function(object, ...) {
+    confint(object$topmodel.fit)
+}
+
+coef.icfit <- function(object,...) {
+    coef(object$topmodel.fit)
+}
+
+
+predict.icfit <- function(object, ...) {
+    predict(object$topmodel.fit, ...)
+}
+
+summary.icfit <- function(object, ...) {
+    summary(object$topmodel.fit, ...)
+}
+
+
 ## FIND THE MODEL ATTAINING THE BEST VALUE OF AN INFORMATION CRITERION
 
 checkargs_IC= function(...) {
@@ -8,40 +36,61 @@ checkargs_IC= function(...) {
 
 
 topmodelnames= function(ans) {
-    topvarids= strsplit(ans$models$modelid[1], ',')[[1]]
-    ans$varnames[as.numeric(topvarids)]
+    topvarids= as.numeric(strsplit(ans$models$modelid[1], ',')[[1]])
+    ans= list(topvarids= topvarids, varnames= ans$varnames[topvarids])
+    return(ans)
 }
+
+family2glm= function(family) {
+    if (family=="normal") {
+        ans= gaussian()
+    } else if (family=="binomial") {
+        ans= binomial()
+    } else if (family=="poisson") {
+        ans= poisson()
+    } else stop("Only the Normal, Binomial and Poisson families are currently implemented")
+    return(ans)
+}
+
+
+#Extract info criteria from an msfit and return icfit object
+extractmsIC= function(ms, getICfun) {
+    ans= vector("list",5)
+    names(ans)= c('topmodel','topmodel.fit','models','varnames','msfit')
+    ans$models= getICfun(ms)
+    ans$varnames= colnames(ms$xstd)
+    tm= topmodelnames(ans)
+    ans$topmodel= tm$varnames
+    ans$msfit= ms
+    data= data.frame(y=ms$ystd, ms$xstd[,tm$topvarids])
+    names(data)[-1]= colnames(ms$xstd)[tm$topvarids]
+    f= formula(y ~ -1 + .)
+    ans$topmodel.fit= glm(f , data=data, family=family2glm(ms$family))
+    new("icfit",ans)
+}
+
 
 bestBIC= function(...) {
     checkargs_IC(...)
     ms= modelSelection(..., priorCoef=bic(), priorDelta=modelunifprior(), center=FALSE, scale=FALSE)
-    ans= vector("list",3)
-    names(ans)= c('topmodel','models','varnames')
-    ans$models= getBIC(ms)
-    ans$varnames= colnames(ms$xstd)
-    ans$topmodel= topmodelnames(ans)
+    ans= extractmsIC(ms, getBIC)
+    ans$criterion= 'BIC'
     return(ans)
 }
 
 bestAIC= function(...) {
     checkargs_IC(...)
     ms= modelSelection(..., priorCoef=aic(), priorDelta=modelunifprior(), center=FALSE, scale=FALSE)
-    ans= vector("list",3)
-    names(ans)= c('topmodel','models','varnames')
-    ans$models= getAIC(ms)
-    ans$varnames= colnames(ms$xstd)
-    ans$topmodel= topmodelnames(ans)
+    ans= extractmsIC(ms, getAIC)
+    ans$criterion= 'AIC'
     return(ans)
 }
 
 bestEBIC= function(...) {
     checkargs_IC(...)
     ms= modelSelection(..., priorCoef=bic(), priorDelta=modelbbprior(), center=FALSE, scale=FALSE)
-    ans= vector("list",3)
-    names(ans)= c('topmodel','models','varnames')
-    ans$models= getEBIC(ms)
-    ans$varnames= colnames(ms$xstd)
-    ans$topmodel= topmodelnames(ans)
+    ans= extractmsIC(ms, getEBIC)
+    ans$criterion= 'EBIC'
     return(ans)
 }
 
@@ -49,11 +98,8 @@ bestIC= function(..., penalty) {
     if (missing(penalty)) stop("penalty must be specified. Alternatively consider using bestBIC(), bestEBIC() or bestAIC()")
     checkargs_IC(...)
     ms= modelSelection(..., priorCoef=ic(penalty), priorDelta=modelunifprior(), center=FALSE, scale=FALSE)
-    ans= vector("list",3)
-    names(ans)= c('topmodel','models','varnames')
-    ans$models= getIC(ms)
-    ans$varnames= colnames(ms$xstd)
-    ans$topmodel= topmodelnames(ans)
+    ans= extractmsIC(ms, getIC)
+    ans$criterion= paste('GIC (penalty=',penalty,')',collapse='')
     return(ans)
 }
 

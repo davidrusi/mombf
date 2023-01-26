@@ -6,6 +6,9 @@
 
 
 ##=============================================================================
+setClass("icfit", representation("list"), prototype = prototype(elementType = "list"), contains="list")
+
+##=============================================================================
 setClass("mixturebf",
          representation(postprob="data.frame",
                         p='numeric',

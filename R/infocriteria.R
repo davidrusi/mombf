@@ -58,12 +58,16 @@ extractmsIC= function(ms, getICfun) {
     ans= vector("list",5)
     names(ans)= c('topmodel','topmodel.fit','models','varnames','msfit')
     ans$models= getICfun(ms)
-    ans$varnames= colnames(ms$xstd)
+    if (!is.null(colnames(ms$xstd))) {
+        ans$varnames= colnames(ms$xstd)
+    } else {
+        ans$varnames= paste('x[,',1:ncol(ms$xstd),']',sep='')
+    }
     tm= topmodelnames(ans)
     ans$topmodel= tm$varnames
     ans$msfit= ms
     data= data.frame(y=ms$ystd, ms$xstd[,tm$topvarids])
-    names(data)[-1]= colnames(ms$xstd)[tm$topvarids]
+    names(data)[-1]= ans$varnames[tm$topvarids]
     f= formula(y ~ -1 + .)
     ans$topmodel.fit= glm(f , data=data, family=family2glm(ms$family))
     new("icfit",ans)

@@ -239,6 +239,7 @@ getmodelid= function(object) {
 
 
 
+
 setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
 if (!is.null(object$models)) {
     ans= object$models
@@ -280,6 +281,52 @@ if (!is.null(object$models)) {
 return(ans)
 }
 )
+
+
+#Convert text model identifier (e.g. "1,3,4") into logical identifier (e.g. c(TRUE,FALSE,TRUE,TRUE))
+modelid2logical= function(modelid, nvars) {
+  modelid= strsplit(modelid, split=',')
+  ans= matrix(FALSE, nrow=length(modelid), ncol=nvars)
+  for (i in 1:nrow(ans)) {
+      sel= as.numeric(modelid[[i]])
+      ans[i, sel[sel<=nvars]]= TRUE
+  }
+  return(ans)
+}
+
+
+#Obtain posterior probability for subsets of variables indicated in varsubset (the remaining parameters are passed on to postProb)
+# varsubset can take one of the following 4 formats
+# - A logical vector indicating which variables are in the subset and length equal to the number of variables, e.g. c(TRUE, FALSE, TRUE, TRUE)
+# - A logical matrix where each row indicates a subset, as in the previous entry
+# - A numeric vector indicating the indices of the variables in the subset, e.g. c(1,3,4)
+# - A list where each entry is a numeric vector as in the previous entry
+setMethod("postProbSubset", signature(object='msfit'), function(object, varsubset, nmax, method='norm') {
+    if (!is.list(varsubset) & !is.matrix(varsubset)) {
+      if (is.logical(varsubset)) varsubset= matrix(varsubset, nrow=1) else varsubset= list(varsubset)
+    }
+    if (is.matrix(varsubset)) nsubsets= nrow(varsubset) else if (is.list(varsubset)) nsubsets= length(varsubset) else stop("varsubset has the wrong format")
+    modelpp= postProb(object, nmax=nmax, method=method)
+    modelid= modelid2logical(modelpp$modelid, nvars= ncol(object$xstd))
+    colnames(modelid)= colnames(object$xstd)
+    ans= double(nsubsets)
+    if (is.matrix(varsubset)) {
+      for (i in 1:nsubsets) {
+          nselvars= rowSums(modelid[,varsubset[i,],drop=FALSE]) #number of variables in the subset selected by each model
+          selmodel= (nselvars== sum(varsubset[i,]))  #models selecting all variables in the subset
+          ans[i]= sum(modelpp$pp[selmodel])
+      }
+    } else {
+      for (i in 1:nsubsets) {
+          nselvars= rowSums(modelid[,varsubset[[i]],drop=FALSE])    #number of variables in the subset selected by each model
+          selmodel= (nselvars== length(varsubset[[i]]))  #models selecting all variables in the subset
+          ans[i]= sum(modelpp$pp[selmodel])
+      }
+    }
+    return(ans)
+}
+)
+
 
 
 defaultmom= function(outcometype,family) {

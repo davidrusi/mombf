@@ -72,6 +72,10 @@ if (!isGeneric("postProb")) {
   setGeneric("postProb", function(object, nmax, method='norm') standardGeneric("postProb"))
 }
 
+if (!isGeneric("postProbSubset")) {
+  setGeneric("postProbSubset", function(object, varsubset, nmax, method='norm') standardGeneric("postProbSubset"))
+}
+
 
 if (!isGeneric("postSamples")) {
     setGeneric("postSamples", function(object) standardGeneric("postSamples"))

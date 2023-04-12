@@ -8,6 +8,11 @@
 ##=============================================================================
 setClass("icfit", representation("list"), prototype = prototype(elementType = "list"), contains="list")
 
+
+##=============================================================================
+setClass("localtest", representation("list"), prototype = prototype(elementType = "list"), contains="list")
+
+
 ##=============================================================================
 setClass("mixturebf",
          representation(postprob="data.frame",
@@ -29,6 +34,8 @@ setClass("msPriorSpec",
 
 ##=============================================================================
 setClass("msfit", representation("list"), prototype = prototype(elementType = "list"), contains="list")
+
+
 
 ##=============================================================================
 setClass('cilfit', representation('list'),

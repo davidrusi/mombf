@@ -68,6 +68,10 @@ if (!isGeneric("plotprior")) {
   setGeneric("plotprior", function(object, xlab, ylab, ylim=c(0,1), ...) standardGeneric("plotprior"))
 }
 
+if (!isGeneric("logjoint")) {
+  setGeneric("logjoint", function(object, return_models=TRUE) standardGeneric("logjoint"))
+}
+
 if (!isGeneric("postProb")) {
   setGeneric("postProb", function(object, nmax, method='norm') standardGeneric("postProb"))
 }

@@ -239,6 +239,21 @@ getmodelid= function(object) {
 
 
 
+setMethod("logjoint", signature(object='msfit'), function(object, return_models=TRUE) {
+  if (object$enumerate) {
+      if (return_models) {
+        ans= data.frame(object$models, object$postProb)
+      } else {
+        ans= object$postProb
+      }
+  } else {
+    ans= unique(data.frame(object$postSample==1, logpp=object$postProb))
+    if (!return_models) ans= ans[,ncol(ans)]
+  }
+return(ans)
+}
+)
+
 
 setMethod("postProb", signature(object='msfit'), function(object, nmax, method='norm') {
 if (!is.null(object$models)) {

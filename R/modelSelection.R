@@ -201,6 +201,7 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
         }
         #ct= (sx==0)
         #newdata[,!ct]= t((t(newdata[,!ct]) - mx[!ct])/sx[!ct])
+        if (is.null(colnames(newdata))) colnames(newdata)= paste('x',1:ncol(newdata),sep='')
     } else {
         newdata= t(t(object$xstd) * sx + mx)
     }

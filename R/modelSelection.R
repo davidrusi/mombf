@@ -207,6 +207,7 @@ predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     }
     sel= colnames(th) %in% colnames(newdata)
     ypred= th[,sel] %*% t(newdata)
+    if ("intercept" %in% colnames(th)[!sel]) ypred= ypred + th[,'intercept']
     ans= cbind(mean=colMeans(ypred), t(apply(ypred,2,quantile,probs=c((1-level)/2,1-(1-level)/2))))
     return(ans)
 }

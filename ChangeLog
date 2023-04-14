@@ -1,3 +1,8 @@
+CHANGES IN VERSION 3.4.0
+- Added localnulltest and localtest class
+- Fixed bug in predict.msfit that could occur when colnames(object$xstd) was
+null
+
 CHANGES IN VERSION 3.3.1
 - Added info on varnames and top model to the output of bestAIC, bestBIC, bestEBIC, bestIC
 - Added methods for icfit objects: coef, confint, show, summary

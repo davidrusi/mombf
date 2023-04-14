@@ -182,6 +182,7 @@ setMethod("coefOneModel", signature(y='ANY',x='matrix',m='missing',V='missing',o
 
 predict.msfit <- function(object, newdata, data, level=0.95, ...) {
     hasPostSampling(object)
+    if (is.null(colnames(object$xstd))) colnames(object$xstd)= paste('x',1:ncol(object$xstd),sep='')
     th= rnlp(msfit=object,niter=10^4)
     mx= object$stdconstants[-1,'shift']; sx= object$stdconstants[-1,'scale']
     if (!missing(newdata)) {

@@ -1,6 +1,6 @@
 # mombf
 
-[![Build Status](https://travis-ci.org/davidrusi/mombf.svg?branch=master)](https://travis-ci.org/davidrusi/mombf)
+[![Build Status](https://travis-ci.com/davidrusi/mombf.svg?branch=master)](https://travis-ci.com/davidrusi/mombf)
 <a href="https://cran.r-project.org/web/checks/check_results_mombf.html"><img border="0" src="http://www.r-pkg.org/badges/version/mombf" alt="CRAN version"></a>
 
 Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.

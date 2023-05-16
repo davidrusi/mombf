@@ -640,6 +640,8 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   } else if (family %in% c('poisson','poisson logit')) {
       if (any(y < 0) || any((y %% 1) != 0)) stop("Invalid value for the response. For Poisson regression it must be a natural number")
   }
+  if (any(is.na(y)) | any(is.infinite(y))) stop("y contains NAs or infinite values")
+  if (any(is.na(x)) | any(is.infinite(x))) stop("x contains NAs or infinite values")
   ans <- list(
     x=x, y=y, formula=formula, is_formula=is_formula, splineDegree=splineDegree,
     groups=groups, hasgroups=hasgroups, isgroup=isgroup, constraints=constraints, outcometype=outcometype, uncens=uncens,

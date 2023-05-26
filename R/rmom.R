@@ -144,9 +144,10 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, b
         ans <- cbind(beta, phi)
         if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
       }
-    } else if (priorCoef@priorDistr %in% c('normalid')) {
-        
-    } else stop("This kind of prior is not implemented")
+    } else {
+        priorCoef <- zellnerprior(); priorGroup= groupzellnerprior()
+        ans <- rnlpLM(y=y, x=x, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, isgroup=isgroup, niter=niter, burnin=burnin, thinning=thinning)
+    }    
     return(ans)
 }
 

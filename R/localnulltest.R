@@ -278,7 +278,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     modelid= modelid2logical(pp$modelid, nvars=ncol(ms$xstd))
     regionnames= unique(des$vargroups[-1:-des$ncolw0])
     firstvaringroup= match(regionnames, des$vargroups)
-    regionid= modelid[,firstvaringroup]
+    regionid= modelid[,firstvaringroup,drop=FALSE]
     colnames(regionid)= des$vargroups[firstvaringroup]
     regionidtext= apply(regionid, 1, function(z) paste(which(z), collapse=','))
     ppregion= aggregate(pp$pp ~ regionidtext, FUN=sum)

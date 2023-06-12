@@ -1,4 +1,5 @@
 CHANGES IN VERSION 3.4.0
+- Added localnulltest
 - Added approximate posterior sampling method in LM when prior not
 specifically implemented  
 - Added check in modelSelection to detect NAs and infinite values in y or x

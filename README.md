@@ -1,19 +1,12 @@
 # mombf
 
-[![Build Status](https://travis-ci.com/davidrusi/mombf.svg?branch=master)](https://travis-ci.com/davidrusi/mombf)
-<a href="https://cran.r-project.org/web/checks/check_results_mombf.html"><img border="0" src="http://www.r-pkg.org/badges/version/mombf" alt="CRAN version"></a>
-
-Bayesian model selection and averaging for regression and mixtures for non-local and selected local priors.
+Model Selection with Bayesian Methods and Information Criteria
 
 ## Installation
 
 ``` r
 # Install mombf from CRAN
 install.packages("mombf")
-
-# Or the development version
-# from R-forge
-install.packages("mombf", repos = "http://R-Forge.R-project.org")
 
 # from GitHub:
 # install.packages("devtools")
@@ -22,9 +15,11 @@ devtools::install_github("davidrusi/mombf")
 
 ## Quick start
 
-The main Bayesian model selection (BMS) function is `modelSelection`. Bayesian model averaging (BMA)
-is also available for some models,
-mainly linear regression and Normal mixtures.
+The main Bayesian model selection (BMS) function is `modelSelection`. For information criteria
+consider `bestBIC`, `bestEBIC`, `bestAIC`, `bestIC`. 
+Bayesian model averaging (BMA) is also available for some models,
+mainly linear and generalized linear models.
+Local variable selection is implemented in `localnulltest` and `localnulltest_fda`.
 Details are in [`mombf`'s vignette](https://CRAN.R-project.org/package=mombf/vignettes/mombf.pdf),
 here we illustrate quickly how to get posterior model probabilities,
 marginal posterior inclusion probabilities, BMA point estimates and posterior

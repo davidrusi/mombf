@@ -4094,12 +4094,14 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
       if (!orthoapprox) {
         msfun->fun= &fpmomgzellSurv;
         msfun->funupdate= &fpmomgzellSurvupdate;
+        msfun->gradUniv= &fpmomgzell_AFTgrad;
         msfun->gradhessUniv= &fpmomgzell_AFTgradhess;
         msfun->hess= &fpmomgzellhess_AFT;
       }
     } else if (priorcode==33) {
       msfun->fun= &fpemomgzellSurv;
       msfun->funupdate= &fpemomgzellSurvupdate;
+      msfun->gradUniv= &fpemomgzell_AFTgrad;
       msfun->gradhessUniv= &fpemomgzell_AFTgradhess;
       msfun->hess= &fpemomgzellhess_AFT;
     } else {
@@ -4122,6 +4124,7 @@ double SurvMarg(int *sel, int *nsel, struct marginalPars *pars, int priorcode) {
     msfun->cdaNewton(thopt, &fopt, &converged, thini, &funargs, 5);
   } else {
     msfun->Newton(thopt, &fopt, &converged, thini, &funargs, 5);
+    if (!converged) msfun->cdaNewton(thopt, &fopt, &converged, thini, &funargs, 5);
   }
    
   ans= msfun->laplaceapprox(thopt, &fopt, H, cholH, true, &funargs); //Laplace approx (also returns H and cholH)
@@ -4263,6 +4266,17 @@ void fpmomgzell_AFTgradhess(double *grad, double *hess, int j, double *th, int *
   (*grad) -= priorgrad; (*hess) -= priorhess;
 }
 
+void fpmomgzell_AFTgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  double priorgrad, priorhess;
+
+  anegloglnormalAFTgrad(grad, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+
+  pmomgzellig_gradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
+
+  (*grad) -= priorgrad;
+}
+
+
 void fpemomgzell_AFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
   double priorgrad, priorhess;
 
@@ -4272,6 +4286,16 @@ void fpemomgzell_AFTgradhess(double *grad, double *hess, int j, double *th, int 
   pemomgzellig_gradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
 
   (*grad) -= priorgrad; (*hess) -= priorhess;
+}
+
+void fpemomgzell_AFTgrad(double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+  double priorgrad, priorhess;
+
+  anegloglnormalAFTgrad(grad, j, th, sel, thlength, pars, funargs); //contribution from the log-likelihood
+
+  pemomgzellig_gradhess(&priorgrad, &priorhess, j, th, sel, thlength, pars, funargs); //contribution from the log-prior
+
+  (*grad) -= priorgrad;
 }
 
 void fgzellgzell_AFTgradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {

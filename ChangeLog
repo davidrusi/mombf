@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.4.2
+- Fixed bug in Laplace approximation to AFT marginal likelihood under pMOM prior
+
 CHANGES IN VERSION 3.4.1
 - Fixed minor bug in localnulltest_fda
 

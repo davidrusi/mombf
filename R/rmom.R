@@ -6,6 +6,8 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
   if ((msfit$family=='Continuous') & (msfit$family != 'normal')) stop("Posterior sampling only implemented for Normal residuals")
   y= msfit$ystd; x= msfit$xstd
   outcometype= msfit$outcometype; family= msfit$family
+  isgroup= rep(FALSE, length(msfit$groups))
+  isgroup[which(table(msfit$groups)>1)]= TRUE
   #Draw model
   pp <- postProb(msfit,method=pp)
   modelid <- strsplit(as.character(pp$modelid), split=',')
@@ -21,7 +23,7 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
     for (i in 1:length(modelid)) {
       b <- min(50, ceiling((burnin/niter) * ndraws[i]))
       colsel <- as.numeric(modelid[[i]])
-      ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, niter=b+idx[i+1]-idx[i], burnin=b)
+      ans[(idx[i]+1):idx[i+1],c(colsel,ncol(ans))] <- rnlp(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, isgroup=isgroup[colsel], niter=b+idx[i+1]-idx[i], burnin=b)
     }
     if (is.null(colnames(x))) nn <- c(paste('beta',1:ncol(x),sep=''),'phi') else nn <- c(colnames(x),'phi')
     colnames(ans)= nn
@@ -31,7 +33,7 @@ setMethod("rnlp", signature(y='missing',x='missing',m='missing',V='missing',msfi
       b <- min(50, ceiling((burnin/niter) * ndraws[i]))
       colsel <- as.numeric(modelid[[i]])
       if (length(colsel)>0) {
-        ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, niter=b+idx[i+1]-idx[i], burnin=b)
+        ans[(idx[i]+1):idx[i+1],colsel] <- rnlp(y=y, x=x[,colsel,drop=FALSE], outcometype=outcometype, family=family, priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, isgroup=isgroup[colsel], niter=b+idx[i+1]-idx[i], burnin=b)
       }
     }
     if (is.null(colnames(x))) nn <- paste('beta',1:ncol(x),sep='') else nn <- colnames(x)
@@ -59,9 +61,11 @@ unstdcoef <- function(bstd, p, msfit, coefnames) {
   b= bstd[,1:p]
   b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
   if (any(ct)) {
+      #b[,ct]= my + sy*b[,ct] #adjust intercept, if already present
       b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
       bstd[,1:p]= b
   } else {
+      #intercept= my #add intercept, if not already present
       intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
       bstd= cbind(intercept,b,bstd[,-1:-p]); colnames(bstd)= c('intercept',coefnames)
   }

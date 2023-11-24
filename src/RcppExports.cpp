@@ -6,6 +6,25 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
+// modelSelectionGGMC
+arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars);
+RcppExport SEXP _mombf_modelSelectionGGMC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type y(ySEXP);
+    Rcpp::traits::input_parameter< List >::type prCoef(prCoefSEXP);
+    Rcpp::traits::input_parameter< List >::type prModel(prModelSEXP);
+    Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
+    rcpp_result_gen = Rcpp::wrap(modelSelectionGGMC(y, prCoef, prModel, samplerPars));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpparma_outerproduct
 arma::mat rcpparma_outerproduct(const arma::colvec& x);
 RcppExport SEXP _mombf_rcpparma_outerproduct(SEXP xSEXP) {
@@ -40,41 +59,38 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP bsplineCI(SEXP, SEXP, SEXP);
-RcppExport SEXP eprod_I(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP greedyVarSelCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP mnormCI(SEXP, SEXP, SEXP);
-RcppExport SEXP modelSelectionEnumCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP modelSelectionGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP nlpMarginalCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP normalmixGibbsCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pimomMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pimomMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pmomLM_I(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pmomMarginalKI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pmomMarginalUI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP rnlpCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP rnlpPostCI_lm(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP rnorm_truncMultCI(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP rtmvnormCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP rtmvnormProdCI(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP testfunctionCI(SEXP);
+RcppExport SEXP bsplineCI(void *, void *, void *);
+RcppExport SEXP eprod_I(void *, void *, void *, void *, void *);
+RcppExport SEXP greedyVarSelCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP modelSelectionEnumCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP modelSelectionGibbsCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP nlpMarginalCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP normalmixGibbsCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP pimomMarginalKI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP pimomMarginalUI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP pmomMarginalKI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP pmomMarginalUI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP rnlpCI(void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP rnlpPostCI_lm(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP rnorm_truncMultCI(void *, void *, void *, void *, void *);
+RcppExport SEXP rtmvnormCI(void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP rtmvnormProdCI(void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP testfunctionCI(void *);
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 4},
     {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
     {"_mombf_rcpparma_innerproduct", (DL_FUNC) &_mombf_rcpparma_innerproduct, 1},
     {"_mombf_rcpparma_bothproducts", (DL_FUNC) &_mombf_rcpparma_bothproducts, 1},
     {"bsplineCI",             (DL_FUNC) &bsplineCI,              3},
     {"eprod_I",               (DL_FUNC) &eprod_I,                5},
     {"greedyVarSelCI",        (DL_FUNC) &greedyVarSelCI,        48},
-    {"mnormCI",               (DL_FUNC) &mnormCI,                3},
     {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  46},
     {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 52},
     {"nlpMarginalCI",         (DL_FUNC) &nlpMarginalCI,         38},
     {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
     {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       15},
     {"pimomMarginalUI",       (DL_FUNC) &pimomMarginalUI,       17},
-    {"pmomLM_I",              (DL_FUNC) &pmomLM_I,              36},
     {"pmomMarginalKI",        (DL_FUNC) &pmomMarginalKI,        16},
     {"pmomMarginalUI",        (DL_FUNC) &pmomMarginalUI,        18},
     {"rnlpCI",                (DL_FUNC) &rnlpCI,                 9},

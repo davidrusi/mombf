@@ -120,7 +120,7 @@ valid_msPriorSpec <- function(object) {
                }
            },
            nuisancePars = {
-               valid_nuisance_prior_distrs <- "invgamma"
+               valid_nuisance_prior_distrs <- c("gamma","invgamma")
                found <- object@priorDistr %in% valid_nuisance_prior_distrs
                if (!found) {
                  msg <- c(msg,
@@ -190,6 +190,15 @@ aic <- function() {
 
 ic <- function(penalty) {
     new("msPriorSpec", priorType="coefficients", priorDistr="bic", priorPars=c(tau=penalty))
+}
+
+
+exponentialprior <- function(lambda=1) {
+    gammaprior(alpha=1, lambda=lambda)
+}
+
+gammaprior <- function(alpha=.01, lambda=.01) {
+    new("msPriorSpec", priorType='nuisancePars', priorDistr='gamma', priorPars=c(alpha=alpha,lambda=lambda))
 }
 
 

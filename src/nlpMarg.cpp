@@ -10,7 +10,7 @@
 //Include other headers
 #include "cstat.h"
 #include "crossprodmat.h"
-#include "modelSel.h"
+#include "modelSel_regression.h"
 #include "modselIntegrals.h"
 #include "modselFunction.h"
 #include "Polynomial.h"

@@ -9,7 +9,7 @@
 #include "crossprodmat.h"
 #include "covariancemat.h"
 #include "cstat.h"
-#include "modelSel.h"
+#include "modelSel_regression.h"
 #include "modselFunction.h"
 using namespace std;
 

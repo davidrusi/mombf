@@ -11,7 +11,7 @@
 #include <R_ext/Rdynload.h>
 
 #include <Rdefines.h>
-#include "modelSel.h"
+#include "modelSel_regression.h"
 #include "mixtures.h"
 #include "cstat.h"
 

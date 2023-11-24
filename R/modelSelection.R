@@ -1027,7 +1027,8 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
       
   } else {
   
-  
+    if (missing(priorGroup)) priorGroup= priorCoef
+    if (missing(priorSkew)) priorSkew= priorCoef
     has_taustd <- "taustd" %in% names(priorCoef@priorPars)
     has_taugroupstd <- "taustd" %in% names(priorGroup@priorPars)
     if (has_taustd) {

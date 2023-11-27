@@ -4,6 +4,7 @@
 
 import(methods, mvtnorm, mgcv, ncvreg, stats)
 importFrom(dplyr, tibble)
+importFrom(glasso, glassopath)
 importFrom(glmnet, glmnet, cv.glmnet)
 importFrom(intervals, Intervals, interval_overlap)
 importFrom(mclust,Mclust,mclustBIC,priorControl)

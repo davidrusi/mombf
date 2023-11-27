@@ -17,7 +17,7 @@ using namespace std;
 
 arma::sp_mat rowSumsC(NumericMatrix x, List prCoef, List prModel, List samplerPars);
 
-arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars);
+arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 
 
 

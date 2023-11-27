@@ -11,6 +11,7 @@
 //
 // [[Rcpp::depends(RcppArmadillo)]]
 
+using namespace Rcpp;
 using namespace std;
 
 
@@ -52,6 +53,30 @@ using namespace std;
 */
 
 
+
+//CLASS crossprodmat using goodies from Rcpp
+class crossprodmatRcpp {
+
+public:
+
+  crossprodmatRcpp(NumericMatrix mymat, bool dense); //if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
+
+  ~crossprodmatRcpp();
+
+  double at(int i, int j);  //Access XtX(i,j). Careful: row & column indexes start at 0
+
+private:
+
+  NumericMatrix x;
+  bool dense; //if true then matrix is stored in XtXd, else in XtXs
+  arma::mat XtXd;
+  arma::sp_mat XtXs;  //equivalent to SpMat<double> XtXs
+  arma::SpMat<short> XtXcomputed; //bool entries indicating if XtX has been computed
+
+};
+
+
+//CLASS crossprodmat using basic C++
 class crossprodmat {
 
 public:
@@ -69,7 +94,7 @@ public:
 
 private:
 
-  double *x;
+  double *x;           //X stored as a vector
   int nrowx;
   int ncolx;
   int *userows; //optional slot indicating the indexes of the rows in x to be used when computing XtX. That is XtX= t(x[userows,]) %*% x[userows,]

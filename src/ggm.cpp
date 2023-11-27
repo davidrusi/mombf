@@ -68,6 +68,12 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
   int niter= ggm->niter(), p= ggm->ncol();
   int npars= p*(p+1)/2;
 
+  crossprodmatRcpp S(y, false);
+  double s11= S.at(0,0);
+  double s12= S.at(0,1);
+  Rprintf("s11=%f, s12=%f\n", s11, s12);
+
+  //Test output
   arma::sp_mat ans(niter, npars);
   ans(1,2)= 1;
 

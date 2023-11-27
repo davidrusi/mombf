@@ -4,6 +4,62 @@ using namespace std;
 using namespace arma;
 
 
+
+
+/***************************************************************************************************/
+/* CLASS crossprodmat Rcpp goodies                                                                 */
+/***************************************************************************************************/
+
+//if dense==true, mymat is pointer to pre-computed XtX; if dense==false, mymat is pointer to x
+crossprodmatRcpp::crossprodmatRcpp(NumericMatrix mymat, bool dense) {
+
+  if (dense) {
+    this->XtXd = arma::mat(mymat.begin(), mymat.nrow(), mymat.ncol(), false);
+    //this->XtXd= mymat;
+    this->dense= true;
+  } else {
+    this->x= mymat;
+    this->dense= false;
+    (this->XtXs)= arma::sp_mat(mymat.ncol(), mymat.ncol());
+    (this->XtXcomputed)= arma::SpMat<short>(mymat.ncol(), mymat.ncol());
+  }
+
+}
+
+//Class destructor
+crossprodmatRcpp::~crossprodmatRcpp() { }
+
+
+//Access XtX(i,j)
+double crossprodmatRcpp::at(int i, int j) { 
+
+//adapt code below
+  if (dense) {
+
+    return XtXd.at(i,j);
+
+  } else {
+
+    if (XtXcomputed.at(i,j) == 0) {  //if this entry has not been already computed
+
+      NumericVector coli= this->x(_,i), colj= this->x(_,j);
+      XtXs(i,j)= sum(coli * colj);
+      //XtXs(i,j)= arma::as_scalar(coli.t() * colj);
+      XtXcomputed(i,j)= 1; 
+
+    }
+
+    return XtXs.at(i,j);
+
+  }
+
+}
+
+
+/***************************************************************************************************/
+/* CLASS crossprodmat USING BASIC C++                                                              */
+/***************************************************************************************************/
+
 /*Constructor
 
  INPUT

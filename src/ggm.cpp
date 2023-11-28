@@ -126,5 +126,15 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 void GGM_Gibbs_singlerow(arma::sp_mat *ans, int iter, int rowid, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
 
+  //double *prova= Omegaini->at(rowid);
+  //arma::uword ptr= (Omegaini->col_ptrs)[rowid];
+  //double *Omegaini_rowid= Omegaini->at(ptr);
+  
+  //arma::colvec Omegaini_rowid= Omegaini->col(rowid); //careful, this may copy the whole row
+
+  arma::SpSubview_col<double> Omegaini_rowid= Omegaini->col(rowid); //careful, this compiles but may copy the whole row
+  
+  Rprintf("Omegaini row %d is %f, %f, %f", rowid, Omegaini_rowid[0], Omegaini_rowid[1], Omegaini_rowid[2]);
+  
 }
 

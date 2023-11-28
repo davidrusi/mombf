@@ -11,13 +11,10 @@
 
 
 #include "crossprodmat.h"
+#include "cstat.h"
 
 using namespace Rcpp;
 using namespace std;
-
-arma::sp_mat rowSumsC(NumericMatrix x, List prCoef, List prModel, List samplerPars);
-
-arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 
 
 
@@ -52,6 +49,19 @@ private:
   List samplerPars; //posterior sampler parameters
 
 };
+
+
+
+//*************************************************************************************
+// FUNCTIONS
+//*************************************************************************************
+
+arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+
+void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
+
+void GGM_Gibbs_singlerow(arma::sp_mat *ans, int iter, int rowid, ggmObject *ggm, arma::sp_mat *Omegaini);
+
 
 
 #endif /* MODELSEL_H */

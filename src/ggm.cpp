@@ -65,12 +65,24 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
   ggmObject *ggm;
   ggm= new ggmObject(y, prCoef, prModel, samplerPars);
 
-  //Create output matrix
   int niter= ggm->niter(), p= ggm->ncol();
   int npars= p*(p+1)/2;
-  arma::sp_mat ans(niter, npars);
-  //  ans(1,2)= 1; //test
 
+  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  std::string Gibbs("Gibbs"), zigzag("zigzag");
+
+  //Create output matrix
+  arma::sp_mat ans(niter, npars);
+
+  if (sampler == Gibbs) {
+
+    GGM_Gibbs(&ans, ggm, &Omegaini);
+
+  } else if (sampler == zigzag) {
+    
+    Rprintf("zigzag will be implemented soon\n");
+
+  } else Rf_error("This sampler type is not currently implemented\n");
 
   //Test crossprodmat
   //crossprodmatRcpp S(y, false);
@@ -78,11 +90,41 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
   //double s12= S.at(0,1);
   //Rprintf("s11=%f, s12=%f\n", s11, s12);
 
-
   delete ggm;
 
   return ans;
 }
 
 
+void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
+
+  int i, j, *rowidx;
+  arma::SpMat<short> model(ggm->ncol(), ggm->ncol());
+
+  //Initialize order in which rows of Omega will be sampled
+  rowidx= ivector(0, ggm->ncol() -1);
+  for (i=0; i< ggm->ncol(); i++) rowidx[i]= i; 
+
+  //Initialize model
+  arma::sp_mat::const_iterator it;
+  for (it= Omegaini->begin(); it != Omegaini->end(); ++it) model[it.row(), it.col()]= 1;
+    
+  for (i=0; i <= ggm->niter(); i++) {
+
+    samplei_wr(rowidx, ggm->ncol(), ggm->ncol()); //permute row indexes
+
+    for (j=0; j <= ggm->ncol(); j++) {
+      GGM_Gibbs_singlerow(ans, i, rowidx[j], ggm, Omegaini); //update row given by rowidx[j]
+    }
+
+  }
+
+  free_ivector(rowidx, 0, ggm->ncol() -1);
+
+}
+
+void GGM_Gibbs_singlerow(arma::sp_mat *ans, int iter, int rowid, ggmObject *ggm, arma::sp_mat *Omegaini) {
+
+
+}
 

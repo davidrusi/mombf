@@ -3691,6 +3691,18 @@ void inv_posdef_chol(double **invchol,
 }
 
 
+/* Inverse of a positive definite matrix A, inverse of its Cholesky decomposition and log(det(Ainv)) */
+void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A) {
+  int i, npar= A->n_cols;
+  (*cholAinv) = arma::inv(trimatu(arma::chol(*A)));
+  (*Ainv)= (*cholAinv) * cholAinv->t();
+  for (i=0, (*logdet_Ainv=0); i<npar; i++) (*logdet_Ainv) += log(cholAinv->at(i,i));
+  (*logdet_Ainv) *= 2;
+
+}
+
+
+
 /*
  * LU decomposition, Inverse and determinant of a non-singular matrix.
  * Given a matrix a[1..n][1..n], replace it by the LU decomposition of a

@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // modelSelectionGGMC
-arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 RcppExport SEXP _mombf_modelSelectionGGMC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
     Rcpp::traits::input_parameter< List >::type prCoef(prCoefSEXP);
     Rcpp::traits::input_parameter< List >::type prModel(prModelSEXP);
     Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);

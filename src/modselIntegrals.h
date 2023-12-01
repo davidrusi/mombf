@@ -6,9 +6,14 @@
 #include <map>
 #include <string>
 #include "modelSel_regression.h"
+#include "ggm.h"
 #include "cstat.h"
 using namespace std;
 
+
+/***********************************************************************************/
+/* Integrated likelihoods for regression models                                    */
+/***********************************************************************************/
 
 class modselIntegrals {
 
@@ -33,6 +38,46 @@ private:
   std::map<string, double> logjointSaved; //Saves previously computed logjoint
 
 };
+
+
+/************************************************************************************/
+/* Integrated likelihoods for Gaussian graphical models with precision matrix Omega */
+/*                                                                                  */
+/* Models are defined by non-zero entries in column cold, and are conditional on    */
+/* a given value of Omegainv, the inverse of Omega[-colid,-colid]                   */
+/************************************************************************************/
+
+
+class modselIntegrals_GGM {
+
+public:
+
+  modselIntegrals_GGM(pt2GGM_rowmarg marfun, ggmObject *ggm, unsigned int colid, arma::mat *Omegainv); 
+  
+  ~modselIntegrals_GGM();
+
+  void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm); //Return logjoint() and posterior sample for off-diagonal and diagonal elements 
+
+  double maxIntegral; //Stores value of largest integral
+
+  string maxModel; //Stores model with largest integral, e.g. "10001" 
+
+  int nvars; //number of variables (ncol(Omega) - 1)
+
+private:
+
+  pt2GGM_rowmarg jointFunction; //Function computing log(marginal likelihood) + log(model prior)
+  unsigned int colid; //column of Omega for which log-joints are being calculated
+  arma::mat *Omegainv; //inverse of Omega[-colid,-colid]
+
+  //int maxVars; //Maximum number of covariates
+  //char *zerochar;  //Store model id (vars in the model) in character format, e.g. "00000"
+  std::map<string, double> logjointSaved; //saves log-joint for each previously computed model
+  std::map<string, arma::mat *> meanSaved; //saves posterior mean for each previously computed model
+  std::map<string, arma::mat *> cholVSaved; //save Cholesky decomp of the posterior covariance for each previously computed model
+
+};
+
 
 #endif
 

@@ -245,6 +245,8 @@ void inv_posdef_upper(double **a, int n, double **aout, bool *posdef); //Same bu
 void invdet_posdef(double **a, int n, double **aout, double *det_a); //Inverse and determinant of positive def matrix
 void inv_posdef_chol(double **invchol, int n, double **aout); //Inverse given cholesky decomposition
 
+void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant
+
 void ludc(double **a, int n, int *indx, double *d); //LU decomposition (renamed routine ludcmp from NR)
 void lu_solve(double **a, int n, const int *indx, double b[]); //Solve A*x=b (renamed routine lubksb from NR)
 void lu_inverse(double **a, int n, double **aout); //Inverse of A[1..n][1..n]

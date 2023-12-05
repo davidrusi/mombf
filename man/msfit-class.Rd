@@ -5,6 +5,7 @@
 \alias{msfit}
 \alias{show,msfit-method}
 \alias{msfit.coef}
+\alias{msfit.plot}
 \alias{msfit.predict}
 \alias{coefByModel}
 \alias{coefByModel-methods}
@@ -72,6 +73,8 @@ and sampling from their posterior distribution, as indicated below.
       averaging}
     \item{coefByModel}{Obtains posterior means and intervals for
       individual models}
+    \item{plot}{Shows estimated posterior inclusion probability for each
+      parameter vs. number of MCMC iterations}
     \item{predict}{Obtains posterior means and intervals for given
       covariate values. These are posterior intervals for the mean, not
       posterior predictive intervals for the outcome}

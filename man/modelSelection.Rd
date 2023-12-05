@@ -253,6 +253,8 @@ Object of class \code{msfit}, which extends a list with elements
   \code{coef.msfit} for Bayesian model averaging estimates and
   intervals. \code{predict.msfit} for BMA estimates and intervals
   for user-supplied covariate values.
+  \code{plot.msfit} for an MCMC diagnostic plot showing estimated
+  marginal posterior inclusion probabilities vs. iteration number.
  \code{\link{rnlp}} to obtain posterior samples for the coefficients.
  \code{\link{nlpMarginal}} to compute marginal densities for a given model.
 

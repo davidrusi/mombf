@@ -17,6 +17,7 @@
 #include "crossprodmat.h"
 #include "cstat.h"
 
+
 using namespace Rcpp;
 using namespace std;
 
@@ -57,15 +58,6 @@ private:
 };
 
 
-//*************************************************************************************
-// typedefs
-//*************************************************************************************
-
-//pointer to function to compute log joint (log marginal likelihood + log model prior prob) for a given row
-//GGMrow_marg is an example of such a function
-typedef void(*pt2GGM_rowmarg)(double *, arma::mat *, arma::mat *, arma::SpMat<short> *, unsigned int, ggmObject *);  
-
-
 
 //*************************************************************************************
 // FUNCTIONS
@@ -80,9 +72,9 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iter, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
+void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
 
-void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm);
+void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
 
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
 

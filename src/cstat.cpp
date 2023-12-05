@@ -5666,6 +5666,19 @@ void rmvnormC(double *y,
 }
 
 
+//draw from multivariate Normal for Armadillo input/output arguments. y and mu are taken as a column vector
+// - y: output
+// - mu: mean
+// - chols: Cholesky decomposition of the covariance, i.e. cov = chols.t() * chols
+void rmvnormC(arma::mat *y, arma::mat *mu, arma::mat *chols) {
+  int i, n= y->n_rows;
+  arma::mat z(n,1);
+
+  for (i = 0; i < n; i++) z.at(i,0) = rnormC(0, 1);
+  (*y)= chols->t() * z + (*mu);
+
+}
+
 //Mill's ratio (1-pnorm(z))/dnorm(z)
 double millsnorm(double z) {
   return (1.0 - pnormC(z)) / dnormC(z,0);

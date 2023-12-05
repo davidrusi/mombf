@@ -4,6 +4,18 @@
 
 ### Methods for msfit objects
 
+
+plot.msfit= function(x, y, ...) {
+  if (!x$enumerate) {
+    margppcum= apply(x$postSample, 2, cumsum) / (1:nrow(x$postSample))
+    plot(margppcum[,1], type='l', ylim=c(0,1), xlab='Iteration', ylab='Marginal posterior inclusion probabilities')
+    if (ncol(margppcum)>1) for (i in 2:ncol(margppcum)) lines(margppcum[,i])
+  } else {
+    stop("plot.msfit produces an MCMC convergence diagnostic plot, but MCMC output is not available (you probably set enumerate=FALSE)")
+  }
+}
+
+
 setMethod("show", signature(object='msfit'), function(object) {
   cat('msfit object with outcome of type',object$outcometype,',',object$p,'covariates and',object$family,'error distribution\n')
   ifelse(any(object$postMode!=0), paste('  Posterior mode: covariate',which(object$postMode==1)), '  Posterior mode: null model')

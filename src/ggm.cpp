@@ -1,3 +1,5 @@
+
+#include "modselIntegrals.h"
 #include "ggm.h"
 
 
@@ -60,16 +62,6 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
 
   if (computeS) {
     this->S= (*y).t() * (*y);
-    //this->S= new arma::mat(y->n_cols, y->n_cols);
-    //this->S= (*y).t() * (*y);
-  //this->S= transpose(y) * y;
-    //this->S= new arma::mat(y.ncol(), y.ncol());
-    //int j, k;
-    //for (j=0; j < y->n_cols; j++) {
-    //  for (k=j; k < y->n_cols; k++) {
-    //    (this->S)->at(j,k) = sum(y(_,j) * y(_,k));
-    //  }
-    //}
   }
 
 }
@@ -220,7 +212,7 @@ OUTPUT
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, *colidx, p= ggm->ncol();
+  int i, j, *colidx, p= ggm->ncol(), iterini= -1, burnin= ggm->burnin();
 
   //Initialize order in which rows of Omega will be sampled
   colidx= ivector(0, p-1);
@@ -235,6 +227,7 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
       //Create Omegaini(-colidx[j],-colidx[j])
       arma::sp_mat Omega_j(p-1, p-1);
       spmat_droprowcol(&Omega_j, Omegaini, colidx + j);
+      //Consider replacing spmat_droprowcol by shed_row, shed_col, and then insert_row, insert_col at end of for j loop
 
       //Invert Omegaini(-colidx[j],-colidx[j])
       arma::mat I= arma::eye(p-1, p-1);
@@ -242,7 +235,9 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
       //arma::mat invOmega_j= arma::spsolve(Omega_j, I, "superlu"); //superLU solver, faster but requires -lsuperlu compiler flag
 
       arma::sp_mat Omegacol= Omegaini->col(colidx[j]);
-      GGM_Gibbs_singlecol(ans, i, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+      if (i >= burnin) iterini++;
+      GGM_Gibbs_singlecol(ans, iterini, iterini, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+
     }
 
   }
@@ -254,6 +249,7 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 /*Gibbs sampling for column colid of Omega in a Gaussian graphical model
 
 INPUT
+  - iterini, iterfi: sampled values of Omega are stored in ans[iterini:iterfi,]. Negative entries in iterini:iterfi are not stored (burnin)
   - colid: index of the column to be updated (starts at 0)
   - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters
   - Omegacol: current value of Omega[,colid]
@@ -263,32 +259,108 @@ OUTPUT
   - ans: Omegacol after applying a Gibbs update to its entries
 */
 
-void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iter, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
+void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
 
-  int p= ggm->ncol();
-  double mcurrent, mnew;
+  int i, j, k, p= ggm->ncol(), flatidx_jj, flatidx_jk;
+  double mcurrent, mnew, ppnew, sample_diag, samplenew_diag;
+  arma::mat *sample_offdiag, *samplenew_offdiag;
   arma::sp_mat::const_iterator it;
+  arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
+  arma::SpMat<short>::iterator it_short, it2_short;
+  //arma::SpMat<short> model(p, 1), modelnew(p, 1), *model_tmp_ptr;
+  modselIntegrals_GGM *ms;
+  pt2GGM_rowmarg marfun= &GGMrow_marg;
+
+  sample_offdiag= new arma::mat(p, p);
 
   //Initialize model and modelnew
-  arma::SpMat<short> model(p, 1), modelnew(p, 1);
-  for (it= Omegacol->begin(); it != Omegacol->end(); ++it) model(it.row(), it.col())= modelnew(it.row(), it.col())= 1;
+  model= new arma::SpMat<short>(p, 1);
+  modelnew= new arma::SpMat<short>(p, 1);
+  for (it= Omegacol->begin(); it != Omegacol->end(); ++it) model->at(it.row(), it.col())= modelnew->at(it.row(), it.col())= 1;
 
   //Obtain log-marginal + log-prior for current model
-  //TO DO: use class modselIntegrals_GGM
-  GGMrow_marg(&mcurrent, &m, &cholV, &model, colid, ggm, invOmega_rest);
+  ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
-  //For each entry j in colid, obtain log-marginal + log-prior for birth/death of j
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model);
+
+  for (i= iterini; i <= iterfi; i++) {
+    //For each entry j in colid, obtain log-marginal + log-prior for adding/removing j
+    for (j= 0; j <= p; j++) {
+
+      if (j == (int) colid) continue;  //diagonal entry is always in
+
+      if (model->at(j,0) != 0) modelnew->at(j,0) = 0; else modelnew->at(j,0) = 1;
+      samplenew_offdiag= new arma::mat(modelnew->n_rows, modelnew->n_rows);
+
+      ms->getJoint(&mnew, samplenew_offdiag, &samplenew_diag, modelnew);
+
+      ppnew = exp(mnew - mcurrent);
+      ppnew /= (1.0 + ppnew);
+
+      if (runif() < ppnew) { //if new model is accepted
+
+        model_tmp_ptr= model;
+        model= modelnew;
+        modelnew= model_tmp_ptr;
+
+        delete sample_offdiag;
+        sample_offdiag= samplenew_offdiag;
+        sample_diag= samplenew_diag;
+
+      } else {
+
+        delete samplenew_offdiag;
+
+      }
+
+    } //end j for (iteration over columns)
+
+    //Copy current model into ans[i,] as flat vector
+    if (i >= 0) {
+
+      ans->at(i, colid)= sample_diag;
+      for (it_short= model->begin(); it_short != model->end(); ++it_short) {
+        j= it_short.row();
+        flatidx_jj= j * (j+1) / 2; //store (j,j) into  flat vector's position flatidx_jj
+        for (it2_short= it_short; it2_short != model->end(); ++it2_short) {
+          k= it2_short.row();
+          flatidx_jk= flatidx_jj + k - j; //store (j,k) into  flat vector's position flatidx_jk
+          ans->at(i, flatidx_jk)= sample_offdiag->at(j, k);
+        }
+      }
+
+    }
+
+  } //end i for (Gibbs iterations)
+
+  delete sample_offdiag;
+  delete model;
+  delete modelnew;
   
 }
 
 
-//Compute log-joint (log-marginal likelihood + log prior) for model specifying non-zero entries in column colid of Omega, given inverse of Omega[-colid,-colid]
-void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm) {
+/* Compute log-joint (log-marginal likelihood + log prior) for model specifying non-zero entries in column colid of Omega, given the entries selected by model of the inverse of Omega[-colid,-colid]
+
+  INPUT
+  - model: entries that are non-zero
+  - colid: column id
+  - ggm: object storing info about the Gaussian graphical model
+  - Omegainv_model: entries selected by model from Omega[-colid,-colid]
+
+  OUTPUT
+  - logjoint: log-marginal + log-prior for model
+  - m: u1 ~ multivariate Normal with mean m and covariance Uinv, where u1= -Omega[-colid,colid] are the (negative) off-diagonal entries
+  - cholUinv: Cholesky decomposition of Uinv, i.e. Uinv= t(cholUinv) * cholUinv
+
+*/
+void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
 
   unsigned int i, j, npar= model->n_nonzero -1;
-  arma::vec tau = as<arma::vec>(ggm->prCoef["tau"]);
+  arma::vec tau = as<arma::vec>(ggm->prCoef["tau"]); //Prior is Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
+  arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
   double tauinv= 1.0/tau[0];
-  arma::mat Omegainv_model(npar,npar), U(npar,npar), s(npar, 1);
+  arma::mat U(npar,npar), s(npar, 1);
   arma::SpMat<short> model_offdiag(ggm->ncol() -1, 1);
   arma::SpMat<short>::iterator it;
 
@@ -302,39 +374,21 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
     i++;
   }
 
-  //Copy submatrix of Omegainv into Omegainv_model
-  copy_submatrix(&Omegainv_model, Omegainv, &model_offdiag);
-  //Rprintf("Model_offdiag\n");
-  //print_mat <arma::SpMat<short> *>(&model_offdiag); //debug
-  //Rprintf("Omegainv\n"); //debug
-  //print_mat <arma::mat *>(Omegainv); //debug
-  //Rprintf("Omegainv_model\n"); //debug
-  //print_mat <arma::mat *>(&Omegainv_model); //debug
-
   //Create U matrix
-  double ct= ggm->prCoef["lambda"] + ggm->S.at(colid, colid);
+  double ct= lambda[0] + ggm->S.at(colid, colid);
   for (i=0; i<npar; i++) {
-    U.at(i,i)= ct * Omegainv_model.at(i,i) + tauinv;
-    for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model.at(i,j);
+    U.at(i,i)= ct * Omegainv_model->at(i,i) + tauinv;
+    for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model->at(i,j);
   }
 
   double logdetUinv= 0;
   arma::mat Uinv(npar,npar);
-  choldcinv_det(&Uinv, &cholUinv, &logdetUinv, &U);
+  choldcinv_det(&Uinv, cholUinv, &logdetUinv, &U);
   //arma::mat Uinv= inv_sympd(U);
 
-  m= Uinv * s;
+  (*m)= Uinv * s;
 
-  //Rprintf("U\n");
-  //print_mat <arma::mat *> (&U); //debug
-  //Rprintf("Uinv\n");
-  //print_mat <arma::mat *> (&Uinv); //debug
-  //Rprintf("s\n");
-  //print_mat <arma::mat *> (&s);
-  //Rprintf("m\n");
-  //print_mat <arma::mat *> (&m);
-
-  (*logjoint) = 0.5 * (as_scalar(m.t() * U * m) - ((double) npar) * log(tau[0]) + logdetUinv);
+  (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log(tau[0]) + logdetUinv);
   (*logjoint) += logprior_GGM(&model_offdiag, ggm);
 
 }

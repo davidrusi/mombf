@@ -315,6 +315,7 @@ double apnorm(double y, bool logscale); //approx Normal(0,1) cdf
 double apnorm2(double y, bool logscale); //higher-accuracy approx Normal(0,1) cdf
 double rnormC(double mu, double s); //draw from univariate Normal(mu,s^2)
 void rmvnormC(double *y, int n, const double *mu, double **chols); //draw from multivariate Normal
+void rmvnormC(arma::mat *y, arma::mat *mu, arma::mat *chols); //draw from multivariate Normal
 double millsnorm(double z); //Mill's ratio (1-pnorm(z))/dnorm(z)
 double invmillsnorm(double z); //Inverse Mill's ratio dnorm(z)/pnorm(z)
 

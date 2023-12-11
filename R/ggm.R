@@ -66,16 +66,22 @@ GGM_rowmargR= function(y, colsel, Omega, model= (Omega[,colsel]!=0), priorCoef=n
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
   lambda= prCoef[["lambda"]]
   tau= prCoef[["tau"]]
-  #Obtain Omegainv, select submatrix for model
-  Omegainv= solve(Omega[-colsel,-colsel,drop=FALSE])
-  Omegainv_model= Omegainv[model[-colsel], model[-colsel], drop=FALSE]
-  #Obtain posterior mean m and covariance Uinv
-  U= (S[colsel,colsel] + lambda) * Omegainv_model + diag(1/tau, nrow=nrow(Omegainv_model))
-  Uinv= solve(U)
-  s= S[which(model)[-colsel], colsel, drop=FALSE]
-  m= Uinv %*% s
-  #Log marginal likelihood
-  logmarg= 0.5 * t(m) %*% U %*% m - 0.5 * sum(model) * log(tau) - 0.5 * log(det(U))
+  if (sum(model)>1) {
+    S= t(y) %*% y
+    #Obtain Omegainv, select submatrix for model
+    Omegainv= solve(Omega[-colsel,-colsel,drop=FALSE])
+    Omegainv_model= Omegainv[model[-colsel], model[-colsel], drop=FALSE]
+    #Obtain posterior mean m and covariance Uinv
+    U= (S[colsel,colsel] + lambda) * Omegainv_model + diag(1/tau, nrow=nrow(Omegainv_model))
+    Uinv= solve(U)
+    s= S[which(model)[-colsel], colsel, drop=FALSE]
+    m= Uinv %*% s
+    #Log marginal likelihood
+    logmarg= 0.5 * t(m) %*% U %*% m - 0.5 * sum(model) * log(tau) - 0.5 * log(det(U))
+  } else {
+    logmarg= - 0.5 * sum(model) * log(tau)
+    Omegainv= Omegainv_model= Uinv= m= NULL
+  }
   #Log model prior
   p= 1/ncol(y); nsel= sum(model[-colsel])
   logprior= nsel * log(p) + (length(model) - 1 - nsel) * log(1-p)

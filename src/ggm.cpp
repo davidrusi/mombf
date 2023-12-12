@@ -145,14 +145,14 @@ arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List sam
   ggmObject *ggm;
   ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
 
-  int niter= ggm->niter(), p= ggm->ncol();
+  int niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
   int npars= p*(p+1)/2;
 
   std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), zigzag("zigzag");
 
   //Create output matrix
-  arma::sp_mat ans(niter, npars);
+  arma::sp_mat ans(npars, niter - burnin);
 
   if (sampler == Gibbs) {
 
@@ -203,16 +203,19 @@ void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
 
 INPUT
   - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
-  - Omegaini: initial value of Omega
 
 OUTPUT
   - ans: sparse matrix where each row corresponds to a posterior sample. If the Gaussian precision matrix Omega is p x p, then ans has p*(p+1)/2 columns storing Omega in column order. That is, the first p entries correspond to Omega[,1] (first column in Omega), the next p-1 entries to Omega[2:p,2], the next p-2 entries to Omega[3:p,3], and so on.
+
+INPUT/OUTPUT
+
+  - Omegaini: initial value of Omega, this is updated at each iteration and the value at the last iteration is returned
 
 */
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, *colidx, p= ggm->ncol(), iterini= -1, burnin= ggm->burnin();
+  int i, j, k, *colidx, p= ggm->ncol(), iter= -1, burnin= ggm->burnin();
   arma::sp_mat ans_row(p, 1);
   arma::sp_mat::iterator it;
 
@@ -220,7 +223,7 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
   colidx= ivector(0, p-1);
   for (i=0; i< p; i++) colidx[i]= i; 
 
-  for (i=0; i <= ggm->niter(); i++) {
+  for (i=0; i < ggm->niter(); i++) {
 
     //samplei_wr(colidx, p, p); //permute row indexes
 
@@ -237,22 +240,17 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
       //arma::mat invOmega_j= arma::spsolve(Omega_j, I, "superlu"); //superLU solver, faster but requires -lsuperlu compiler flag
 
       arma::sp_mat Omegacol= Omegaini->col(colidx[j]);
-      if (i >= burnin) iterini++;
-      GGM_Gibbs_singlecol(&ans_row, iterini, iterini, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+      if (i >= burnin) iter++;
+      GGM_Gibbs_singlecol(&ans_row, iter, iter, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
 
-      //Copy from ans_row into ans
-      if (i >= burnin) {
-        int pos, posj= colidx[j] * (colidx[j]+1) / 2;
-        for (it= ans_row.begin(); it != ans_row.end(); ++it) {
-          k= it.row(); //ans_row.at(k,0) stores entry (colid[j], k) of ans
-          //Stored as flat vector (colidx[j],k) goes to column start index + abs(colidx[j] - k)
-          //Column start index is k * (k+1)/2 if k < colidx[j], else it's posj obtained above
-          if (colidx[j] > k) pos= k * (k+1) / 2 + k - colidx[j]; else pos= posj + colidx[j] - k;
-          ans->at(pos,iterini)= ans_row.at(k,0);
+      //Update Omegaini
+      for (it= ans_row.begin(); it != ans_row.end(); ++it) {
+        k= it.row(); //ans_row->at(k,0) stores entry (colid, k) of ans
+        Omegaini->at(colidx[j],k)= Omegaini->at(k,colidx[j])= ans_row.at(k,0);
+      }     
 
-        }     
-      }
-      
+      //Copy from Omegaini into ans(,iter)
+      if (i >= burnin) save_spmat2_flatspmat(ans, Omegaini, iter);
 
     }
 
@@ -261,6 +259,60 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
   free_ivector(colidx, 0, p-1);
 
 }
+
+
+/* Copy sparse matrix into flattened sparse symmetric matrix
+
+  INPUT
+  - ans: a sparse matrix A.
+  - col2store: column of ans into which A has to stored in a flattened format
+
+  OUTPUT: A is copied in a flattened way into ans(,col2store).
+          If A is p x p then ans must have p * (p+1) / 2 rows.
+          Entries in ans(,col2store) are ordered A(1,1), A(2,1), A(2,2), A(3,1)...
+
+*/
+void save_spmat2_flatspmat(arma::sp_mat *ans, arma::sp_mat *A, int col2store) {
+  int k, l, pos;
+  arma::sp_mat::iterator it;
+
+  for (it= A->begin(); it != A->end(); ++it) {
+    k= it.row(); l= it.col();
+    if (k <= l) {
+      pos= (k+1)*(k+2)/2 - 1 + l - k;
+      ans->at(pos, col2store)= A->at(k,l);
+    }
+  }
+
+}
+
+
+/* Copy sparse row (1-column sparse matrix) into flattened sparse symmetric matrix
+
+  INPUT
+    - ans_row: stores column colid of matrix A as a 1-column sparse matrix
+    - colid: column of A stored in ans_row
+    - iter: column of ans in which to copy A[,colid]
+
+  OUTPUT: ans[,iter] stores the matrix A in flat format, A(1,1), A(2,1), A(2,2), A(3,1), ...
+
+
+*/
+//void save_spvec2_flatspmat(arma::sp_mat *ans, arma::sp_mat *ans_row, int colid, int iter) {
+// 
+//  int pos, posj= colidx[j] * (colid+1) / 2;
+//  arma::sp_mat::iterator it;
+// 
+//  for (it= ans_row->begin(); it != ans_row->end(); ++it) {
+//    k= it.row(); //ans_row->at(k,0) stores entry (colid, k) of ans
+//    //Stored as flat vector (colid,k) goes to column start index + abs(colid - k)
+//    //Column start index is k * (k+1)/2 if k < colid, else it's posj obtained above
+//    if (colid > k) pos= k * (k+1) / 2 + k - colid; else pos= posj + colid - k;
+//    ans->at(pos,iter)= ans_row->at(k,0);
+// 
+//  }     
+// 
+//}
 
 /*Gibbs sampling for column colid of Omega in a Gaussian graphical model
 
@@ -302,7 +354,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
 
   for (i= iterini; i <= iterfi; i++) {
     //For each entry j in colid, obtain log-marginal + log-prior for adding/removing j
-    for (j= 0; j <= p; j++) {
+    for (j= 0; j < p; j++) {
 
       if (j == (int) colid) continue;  //diagonal entry is always in
 
@@ -329,6 +381,8 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
         delete samplenew_offdiag;
 
       }
+
+      modelnew->at(j,0)= model->at(j,0);
 
     } //end j for (iteration over columns)
 

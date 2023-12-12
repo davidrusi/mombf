@@ -36,23 +36,51 @@ initialEstimateGGM= function(y, initialize) {
     ans= Matrix(nrow=ncol(y), ncol=ncol(y), sparse=TRUE)
         
   } else if (initialize=='glasso') {
-        
+
     sfit= glassopath(cov(y), trace=0)  #from package glasso
-    #sfit= glassopath(cov(y),rho=seq(.005,.05,length=20),trace=0)
-     
-    logl= double(length(sfit$rholist))
-    for (i in 1:length(sfit$rholist)) {
-        logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$w[,,i], log=TRUE))
-        npar= sum(sfit$w[,,i] != 0)
+    bic= glasso_getBIC(y=y, sfit=sfit)
+
+    topbic= which.min(bic)
+    found= (topbic != 1) & (topbic != length(bic))
+
+    niter= 1
+    while ((!found) & (niter<=5)) {
+        
+      if (topbic==1) {
+          rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10)
+      } else {
+          l= sfit$rholist[length(sfit$rholist)]
+          rholist= seq(l, 10*l, length=10)
+      }
+
+      sfit= glassopath(cov(y), rho=rholist, trace=0)
+      bic= glasso_getBIC(y=y, sfit=sfit)
+      
+      topbic= which.min(bic)
+      found= (topbic != 1) & (topbic != length(bic))
+      niter= niter+1
+
     }
-    bic= -2*logl + npar * log(nrow(y))
-    ans= Matrix(sfit$w[,,which.min(bic)], sparse=TRUE)
+        
+    ans= Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE)
+      
   } else {
     stop("initialize must be 'null' or 'glasso'")
   }
     
   return(ans)
 
+}
+
+
+glasso_getBIC= function(y, sfit) {
+  logl= double(length(sfit$rholist))
+  for (i in 1:length(sfit$rholist)) {
+    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$wi[,,i], log=TRUE))
+    npar= sum(sfit$wi[,,i] != 0)
+  }
+  bic= -2*logl + npar * log(nrow(y))
+  return(bic)
 }
 
 

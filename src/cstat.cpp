@@ -1494,8 +1494,16 @@ void writeArray(float *x,
 
 
 /******************************************************************************
-                                       ERROR HANDLING
+                            MESSAGES AND ERROR HANDLING
 ******************************************************************************/
+
+void print_iterprogress(int *iter, int *niter, int *everyiter) {
+  if ((*iter % *everyiter) == 0) {
+    Rcout << "\r";  //Carriage return (deletes current line)
+    Rcout << 100 * (*iter) / (*niter) << "%"; //% iteration progress
+  }
+}
+
 
 void fserror(const char *proc,
              const char *act,

@@ -60,6 +60,10 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->prModel = prModel;
   this->samplerPars = samplerPars;
 
+  arma::vec v = as<arma::vec>(samplerPars["verbose"]);
+  if (v[0] == 1) this->verbose= true; else this->verbose= false;
+
+
   if (computeS) {
     this->S= (*y).t() * (*y);
   }
@@ -94,6 +98,8 @@ int ggmObject::niter() {
 int ggmObject::burnin() {
   return this->samplerPars["burnin"];
 }
+
+
 
 
 
@@ -174,29 +180,6 @@ arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List sam
 }
 
 
-//Drop row and column j from sparse matrix A, return the new matrix in A_minusj
-void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int *j) {
-  int itcol, itrow;
-  arma::sp_mat::const_iterator it;
-  for (it= A->begin(); it != A->end(); ++it) {
-    itcol= it.col(); itrow= it.row();
-    if (itcol == *j) continue; else if (itcol > *j) itcol--;
-    if (itrow == *j) continue; else if (itrow > *j) itrow--;
-    (*A_minusj)(itrow, itcol)= (*A_minusj)(itcol,itrow)= A->at(it.row(),it.col());
-  }
-}
-
-//Copy A[model,model] into Aout
-void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
-  int i, j;
-  arma::SpMat<short>::iterator it, it2;
-
-  for (it= model->begin(), i=0; it != model->end(); ++it, i++) {
-    for (it2= model->begin(), j=0; it2 != model->end(); ++it2, j++) {
-        Aout->at(i,j)= A->at(it.row(), it2.row());
-    }
-  }
-}
 
 
 /*Gibbs sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n
@@ -215,15 +198,19 @@ INPUT/OUTPUT
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, *colidx, p= ggm->ncol(), iter= -1, burnin= ggm->burnin();
-  arma::sp_mat ans_row(p, 1);
+  int i, j, k, *colidx, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10;
   arma::sp_mat::iterator it;
+
+  if (niter >10) { niter10= niter / 10; } else { niter10= 1; }
+
 
   //Initialize order in which rows of Omega will be sampled
   colidx= ivector(0, p-1);
   for (i=0; i< p; i++) colidx[i]= i; 
 
-  for (i=0; i < ggm->niter(); i++) {
+  if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
+
+  for (i=0; i < niter; i++) {
 
     //samplei_wr(colidx, p, p); //permute row indexes
 
@@ -240,25 +227,38 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
       //arma::mat invOmega_j= arma::spsolve(Omega_j, I, "superlu"); //superLU solver, faster but requires -lsuperlu compiler flag
 
       arma::sp_mat Omegacol= Omegaini->col(colidx[j]);
-      if (i >= burnin) iter++;
-      GGM_Gibbs_singlecol(&ans_row, iter, iter, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+      arma::sp_mat ans_row(p, 1);
+      GGM_Gibbs_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
 
       //Update Omegaini
+      spmat_rowcol2zero(Omegaini, colidx[j]); //set row & column colidx[j] in Omegaini to zero
+
       for (it= ans_row.begin(); it != ans_row.end(); ++it) {
         k= it.row(); //ans_row->at(k,0) stores entry (colid, k) of ans
         Omegaini->at(colidx[j],k)= Omegaini->at(k,colidx[j])= ans_row.at(k,0);
-      }     
+      }
+      //Rprintf("Finished i=%d, j=%d\n", i, j); //debug
+      //ans_row.print("ans_row\n"); //debug
+      //Omegaini->print("Updated Omega"); //debug
 
-      //Copy from Omegaini into ans(,iter)
-      if (i >= burnin) save_spmat2_flatspmat(ans, Omegaini, iter);
+    } //end for j
 
+    //Copy from Omegaini into ans(,iter)
+    if (i >= burnin) {
+      if (i >= burnin) spmatsym_save2flat(ans, Omegaini, iter);
+      iter++;
     }
 
-  }
+    if (ggm->verbose) print_iterprogress(&i, &niter, &niter10);
+
+  } //end for i
+
+  if (ggm->verbose) { Rcout << "\r Done\n"; }
 
   free_ivector(colidx, 0, p-1);
 
 }
+
 
 
 /* Copy sparse matrix into flattened sparse symmetric matrix
@@ -272,47 +272,24 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
           Entries in ans(,col2store) are ordered A(1,1), A(2,1), A(2,2), A(3,1)...
 
 */
-void save_spmat2_flatspmat(arma::sp_mat *ans, arma::sp_mat *A, int col2store) {
+void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store) {
   int k, l, pos;
   arma::sp_mat::iterator it;
 
   for (it= A->begin(); it != A->end(); ++it) {
     k= it.row(); l= it.col();
-    if (k <= l) {
-      pos= (k+1)*(k+2)/2 - 1 + l - k;
-      ans->at(pos, col2store)= A->at(k,l);
+    if (k < l) {
+      pos= l*(l+1)/2 + k;
+    } else if (k == l) {
+      pos= (l+1)*(l+2)/2 - 1;
+    } else {
+      continue;
     }
+    ans->at(pos, col2store)= A->at(k,l);
   }
 
 }
 
-
-/* Copy sparse row (1-column sparse matrix) into flattened sparse symmetric matrix
-
-  INPUT
-    - ans_row: stores column colid of matrix A as a 1-column sparse matrix
-    - colid: column of A stored in ans_row
-    - iter: column of ans in which to copy A[,colid]
-
-  OUTPUT: ans[,iter] stores the matrix A in flat format, A(1,1), A(2,1), A(2,2), A(3,1), ...
-
-
-*/
-//void save_spvec2_flatspmat(arma::sp_mat *ans, arma::sp_mat *ans_row, int colid, int iter) {
-// 
-//  int pos, posj= colidx[j] * (colid+1) / 2;
-//  arma::sp_mat::iterator it;
-// 
-//  for (it= ans_row->begin(); it != ans_row->end(); ++it) {
-//    k= it.row(); //ans_row->at(k,0) stores entry (colid, k) of ans
-//    //Stored as flat vector (colid,k) goes to column start index + abs(colid - k)
-//    //Column start index is k * (k+1)/2 if k < colid, else it's posj obtained above
-//    if (colid > k) pos= k * (k+1) / 2 + k - colid; else pos= posj + colid - k;
-//    ans->at(pos,iter)= ans_row->at(k,0);
-// 
-//  }     
-// 
-//}
 
 /*Gibbs sampling for column colid of Omega in a Gaussian graphical model
 
@@ -325,6 +302,9 @@ INPUT
 
 OUTPUT
   - ans: each column of ans contains Omegacol after applying a Gibbs update to its entries
+
+IMPORTANT: at input ans should only contain zeroes
+
 */
 
 void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
@@ -454,12 +434,21 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
      
     double logdetUinv= 0;
     arma::mat Uinv(npar,npar);
+
     choldcinv_det(&Uinv, cholUinv, &logdetUinv, &U);
     //arma::mat Uinv= inv_sympd(U);
      
     (*m)= Uinv * s;
      
     (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log(tau[0]) + logdetUinv);
+
+    //bool debug= false;
+    //if (debug) { //debug
+    //  model->print("model:");
+    //  Omegainv_model->print("Omegainv_model");
+    //  U.print("U");
+    //  m->print("m");
+    //}
 
   } else { //if all off-diagonal entries are zero
 
@@ -493,3 +482,50 @@ double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm) {
 //double GGMrow_margupdate(int *changevar, ggmObject *ggm, int *colid, arma::sp_mat *Omega, arma::mat *Omega_colid_inv) {
 // 
 //}
+
+
+/************************************************************************************************
+
+ MATRIX MANIPULATION
+
+************************************************************************************************/
+
+
+//Set row and colum colid of A to 0
+void spmat_rowcol2zero(arma::sp_mat *A, int colid) {
+  int j;
+  long unsigned int k;
+  std::vector<int> idx2delete;
+  arma::sp_mat::iterator it;
+  //Find indexes of rows to be deleted
+  for (it= A->begin_col(colid); it != A->end_col(colid); ++it) idx2delete.push_back(it.row());
+  //Set entries to zero
+  for (k=0; k < idx2delete.size(); k++) {
+    j= idx2delete.at(k);
+    A->at(j,colid)= A->at(colid,j)= 0;
+  }
+}
+
+//Drop row and column j from sparse matrix A, return the new matrix in A_minusj
+void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int *j) {
+  int itcol, itrow;
+  arma::sp_mat::const_iterator it;
+  for (it= A->begin(); it != A->end(); ++it) {
+    itcol= it.col(); itrow= it.row();
+    if (itcol == *j) continue; else if (itcol > *j) itcol--;
+    if (itrow == *j) continue; else if (itrow > *j) itrow--;
+    (*A_minusj)(itrow, itcol)= (*A_minusj)(itcol,itrow)= A->at(it.row(),it.col());
+  }
+}
+
+//Copy A[model,model] into Aout
+void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
+  int i, j;
+  arma::SpMat<short>::iterator it, it2;
+
+  for (it= model->begin(), i=0; it != model->end(); ++it, i++) {
+    for (it2= model->begin(), j=0; it2 != model->end(); ++it2, j++) {
+        Aout->at(i,j)= A->at(it.row(), it2.row());
+    }
+  }
+}

@@ -1,4 +1,43 @@
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), initialize='null') {
+###
+### ggm.R
+###
+
+### Methods for msfit_ggm objects
+
+setMethod("show", signature(object='msfit_ggm'), function(object) {
+  cat('Gaussian graphical model (msfit_ggm object) with ',object$p,'variables\n')
+  cat("Use coef() to get BMA estimates, posterior intervals and posterior marginal prob of entries being non-zero\n")
+}
+)
+
+coef.msfit_ggm <- function(object,...) {
+  m= Matrix::colMeans(object$postSample)
+  margpp= Matrix::colMeans(object$postSample != 0)
+  ci= sparseMatrixStats::colQuantiles(fit$postSample, prob=c(0.025,0.975))
+  ans= cbind(t(object$indexes), m, ci, margpp)
+  colnames(ans)[-1:-2]= c('estimate','2.5%','97.5%','margpp')
+  return(ans)
+}
+
+icov <- function(fit, threshold) {
+  if (!inherits(fit, 'msfit_ggm')) stop("Argument fit must be of class msfit_ggm")
+  m= Matrix::colMeans(fit$postSample)
+  if (!missing(threshold)) {
+      margpp= Matrix::colMeans(fit$postSample != 0)
+      sel= (margpp >= threshold)
+      ans= Matrix::sparseMatrix(i= fit$indexes[1,sel], j= fit$indexes[2,sel], x=m[sel], dims=c(fit$p,fit$p), symmetric=TRUE)
+  } else {
+      ans= matrix(nrow=fit$p,ncol=fit$p)
+      ans[upper.tri(ans,diag=TRUE)]= m
+      ans[lower.tri(ans)]= t(ans)[lower.tri(ans)]
+  }
+  return(ans)
+}
+
+
+### Model selection routines
+
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   if (ncol(y) <=1) stop("y must have at least 2 columns")
@@ -10,14 +49,24 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prCoef= as.list(c(priorlabel=prCoef$priorCoef@priorDistr, prCoef[c('prior','tau','lambda')]))
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
   #Format posterior sampler parameters
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin))
-  names(samplerPars)= c('sampler','niter','burnin')
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','verbose')
   #Initial value for sampler
-  Omegaini= initialEstimateGGM(y, initialize)
+  Omegaini= initialEstimateGGM(y, Omegaini)
     
   #Call C++ function
   ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
 
+  #Return output
+  priors= list(priorCoef=priorCoef, priorModel=priorModel, priorDiag=priorDiag)
+
+  A= diag(ncol(y))
+  indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
+  rownames(indexes)= c('row','column')
+    
+  ans= list(postSample= Matrix::t(ans), priors=priors, p=ncol(y), indexes=indexes)
+
+  new("msfit_ggm",ans)
 }
 
 #Multivariate normal density given the precision matrix
@@ -29,16 +78,32 @@ dmvnorm_prec <- function(x, sigmainv, logdet.sigmainv, mu = rep(0, ncol(sigmainv
   return(ans)
 }
 
-initialEstimateGGM= function(y, initialize) {
+#Initial estimate of precision matrix
+initialEstimateGGM= function(y, Omegaini) {
+    
+  if (is.character(Omegaini)) {
+    ans= initGGM(y, Omegaini)
+  } else if (inherits(Omegaini, "matrix")) {
+    ans= Matrix(Omegaini, sparse=TRUE)
+  } else if (inherits(Omegaini, "dgCMatrix", "ddiMatrix")) {
+    ans= Omegaini
+  } else stop("Invalid Omegaini. It must be of class matrix, dgCMatrix or ddiMatrix")
+  return(ans)
+    
+}
 
-  if (initialize=='null') {
+initGGM= function(y, Omegaini) {
+    
+  if (Omegaini=='null') {
         
-    ans= Matrix(nrow=ncol(y), ncol=ncol(y), sparse=TRUE)
+    ans= sparseMatrix(1:ncol(y), 1:ncol(y), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
         
-  } else if (initialize=='glasso') {
+  } else if (Omegaini %in% c('glasso-bic','glasso-ebic')) {
+
+    method= ifelse(Omegaini == 'glasso-bic', 'BIC', 'EBIC')
 
     sfit= glassopath(cov(y), trace=0)  #from package glasso
-    bic= glasso_getBIC(y=y, sfit=sfit)
+    bic= glasso_getBIC(y=y, sfit=sfit, method=method)
 
     topbic= which.min(bic)
     found= (topbic != 1) & (topbic != length(bic))
@@ -54,7 +119,7 @@ initialEstimateGGM= function(y, initialize) {
       }
 
       sfit= glassopath(cov(y), rho=rholist, trace=0)
-      bic= glasso_getBIC(y=y, sfit=sfit)
+      bic= glasso_getBIC(y=y, sfit=sfit, method=method)
       
       topbic= which.min(bic)
       found= (topbic != 1) & (topbic != length(bic))
@@ -65,7 +130,7 @@ initialEstimateGGM= function(y, initialize) {
     ans= Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE)
       
   } else {
-    stop("initialize must be 'null' or 'glasso'")
+    stop("Omegaini must be 'null', 'glasso-ebic' or 'glasso-bic'")
   }
     
   return(ans)
@@ -73,14 +138,18 @@ initialEstimateGGM= function(y, initialize) {
 }
 
 
-glasso_getBIC= function(y, sfit) {
-  logl= double(length(sfit$rholist))
+glasso_getBIC= function(y, sfit, method='EBIC') {
+  logl= npar= double(length(sfit$rholist))
   for (i in 1:length(sfit$rholist)) {
     logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$wi[,,i], log=TRUE))
-    npar= sum(sfit$wi[,,i] != 0)
+    npar[i]= sum(sfit$wi[,,i] != 0)
   }
-  bic= -2*logl + npar * log(nrow(y))
-  return(bic)
+  if (method == 'BIC') {
+    ans= -2*logl + npar * log(nrow(y))
+  } else if (method == 'EBIC') {
+    ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
+  }
+  return(ans)
 }
 
 
@@ -102,7 +171,9 @@ GGM_rowmargR= function(y, colsel, Omega, model= (Omega[,colsel]!=0), priorCoef=n
     #Obtain posterior mean m and covariance Uinv
     U= (S[colsel,colsel] + lambda) * Omegainv_model + diag(1/tau, nrow=nrow(Omegainv_model))
     Uinv= solve(U)
-    s= S[which(model)[-colsel], colsel, drop=FALSE]
+    idx= which(model)
+    idx= idx[idx != colsel]
+    s= S[idx, colsel, drop=FALSE]
     m= Uinv %*% s
     #Log marginal likelihood
     logmarg= 0.5 * t(m) %*% U %*% m - 0.5 * sum(model) * log(tau) - 0.5 * log(det(U))

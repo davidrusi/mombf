@@ -16,6 +16,8 @@ modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nva
 
   this->maxIntegral= -1.0e250;
 
+  this->maxsave= 1000000000; //save first 10^9 models
+
   this->zerochar = (char *) calloc(nvars+1, sizeof(char));
   for (i=0; i<nvars; i++) this->zerochar[i]= '0';
 
@@ -46,10 +48,9 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
     ans= logjointSaved[s];
   } else {
     ans= marginalFunction(sel,nsel,pars);
-    //Rprintf("marginal=%f, prior=%f\n",ans,priorFunction(sel,nsel,pars));
     ans+= priorFunction(sel,nsel,pars);
     double d= maxIntegral - ans;
-    if (d<10 || maxVars<=16) logjointSaved[s]= ans;
+    if (d<10 || maxVars<=16 || logjointSaved.size() <= maxsave) logjointSaved[s]= ans;
     if (d<0) {
       maxIntegral= ans;
       maxModel= s;
@@ -86,6 +87,8 @@ modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject
 
   this->maxIntegral= -1.0e250;
 
+  this->maxsave= 1000000000; //save first 10^9 models
+
   this->zerochar = (char *) calloc(this->nvars + 1, sizeof(char));
   for (i=0; i < this->nvars; i++) this->zerochar[i]= '0';
 
@@ -104,7 +107,8 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 
 
 void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model) {
-  
+
+  bool delete_m_cholV= false;  
   int npar= model->n_nonzero -1;
   arma::mat *m, *cholV;
   arma::SpMat<short>::iterator it;
@@ -132,13 +136,12 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
-    if (d<15 || this->nvars<=16) {
+    if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {
       logjointSaved[s]= *logjoint;
       meanSaved[s]= m; 
       cholVSaved[s]= cholV;      
     } else {  //if not stored, free the allocated memory
-      delete m;
-      delete cholV;
+      delete_m_cholV= true;
     }
 
     //Update top model
@@ -160,6 +163,11 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   
   (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
 
+  //Free memory
+  if (delete_m_cholV) {
+    delete m;
+    delete cholV;
+  }
   
   //Return zerochar to its original empty model status
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '0';
@@ -170,17 +178,20 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 // Return Omegainv[model,model], dropping column colid
 arma::mat modselIntegrals_GGM::get_Omegainv_model(arma::SpMat<short> *model) {
 
-  int i, npar= model->n_nonzero -1;
+  int npar= model->n_nonzero -1;
   arma::mat Omegainv_model(npar,npar);
   arma::SpMat<short>::iterator it;
-  arma::SpMat<short> model_offdiag(ggm->ncol() -1, 1);
 
-  for (it= model->begin(), i=0; it != model->end(); ++it) {
-    if (it.row() == colid) continue;
-    model_offdiag.at(i, 0)= model->at(it.row(), 0);
-    i++;
-  }
+  arma::SpMat<short> model_offdiag= *model;
+  model_offdiag.shed_row(colid);  //remove row colid from model
+
   copy_submatrix(&Omegainv_model, Omegainv, &model_offdiag);
+
+  //Omegainv->print("Omegainv"); //debug
+  //model->print("model");   //debug
+  //Rprintf("colid= %d\n",colid);   //debug
+  //model_offdiag.print("model_offdiag");   //debug
+  //Omegainv_model.print("Omegainv_model\n"); //debug
 
   return Omegainv_model;
 

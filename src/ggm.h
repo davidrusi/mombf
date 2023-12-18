@@ -51,6 +51,8 @@ public:
   List prModel; //prior on model
   List samplerPars; //posterior sampler parameters
 
+  bool verbose;
+
 private:
 
   arma::mat *y;
@@ -72,8 +74,6 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void save_spmat2_flatspmat(arma::sp_mat *ans, arma::sp_mat *A, int col2store);
-
 void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
 
 void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
@@ -81,7 +81,12 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
 
 //Matrix manipulation
+void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store); //copy symmetric sp_mat in flat format to A(,col2store)
+
+void spmat_rowcol2zero(arma::sp_mat *A, int colid); //Set row and colum colid of A to 0
+
 void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int *j); //drop row & column j from A
+
 void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout, excluding column excludecol
 
 

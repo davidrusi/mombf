@@ -1,5 +1,6 @@
 CHANGES IN VERSION 3.5.0
 - Added modelSelectionGGM
+- Added prettier iteration progress
 
 CHANGES IN VERSION 3.4.3
 - Fixed bug in coef method for msfit objects that affected GLMs (continuous

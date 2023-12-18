@@ -36,6 +36,7 @@ private:
   pt2margFun marginalFunction;  //Function computing log(marginal likelihood)
   pt2margFun priorFunction;     //Function computing log(model prior)
   std::map<string, double> logjointSaved; //Saves previously computed logjoint
+  long unsigned int maxsave;
 
 };
 
@@ -85,6 +86,8 @@ private:
   std::map<string, double> logjointSaved; //saves log-joint for each previously computed model
   std::map<string, arma::mat *> meanSaved; //saves posterior mean for each previously computed model
   std::map<string, arma::mat *> cholVSaved; //save Cholesky decomp of the posterior covariance for each previously computed model
+
+  long unsigned int maxsave; //if size of logjointSaved, meanSaved, cholVsaved  >= maxsave, save only models with non-negligible post prob vs maxModel
 
   arma::mat get_Omegainv_model(arma::SpMat<short> *model);
 

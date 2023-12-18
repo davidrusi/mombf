@@ -1130,7 +1130,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
   }
 
   sel= ivector(0,nbvars);
-  if (*verbose ==1) Rprintf("Computing posterior probabilities");
+  if (*verbose ==1) Rprintf(" Computing posterior probabilities\n");
   if (*nmodels >10) { niter10= (*nmodels)/10; } else { niter10= 1; }
 
   postModeidx= 0;
@@ -1149,7 +1149,8 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
       }
       if (postProb[i] > *postModeProb) { (*postModeProb)= postProb[i]; postModeidx= i; }
     }
-    if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
+    if (*verbose == 1) print_iterprogress(&i, nmodels, &niter10);
+    //if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
 
   //Store posterior mode
@@ -1158,7 +1159,8 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
     for (j= *(*pars).p; j< (*(*pars).p)+2; j++) { postMode[j]= models[(*nmodels)*j + postModeidx]; }
   }
 
-  if (*verbose==1) Rprintf(" Done.\n");
+  if (*verbose == 1) { Rcout << "\r Done\n"; }
+  //if (*verbose==1) Rprintf(" Done.\n");
 
   free_ivector(sel,0,nbvars); free_dvector(mfamily,0,nbfamilies-1); free_dvector(pfamily,0,nbfamilies-1);
   delete integrals;
@@ -1264,7 +1266,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars) {
 
   bool copylast, validmodel, nonbinary=false;
-  int i, j, jgroup, jgroup2, k, niter10, niterthin, savecnt, ilow, iupper, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, *nconstraints= (*pars).nconstraints, *ninvconstraints= (*pars).ninvconstraints, *family= (*pars).family;
+  int i, j, jgroup, jgroup2, k, niter10, niterthin, savecnt, ilow, iupper, itercount, nbvars, nbfamilies=4, curfamily, newfamily, ngroups, *nvaringroup, *firstingroup, *nconstraints= (*pars).nconstraints, *ninvconstraints= (*pars).ninvconstraints, *family= (*pars).family;
   int *addgroups, *dropgroups, naddgroups, ndropgroups, *modelidx, *sample;
   int nsel, nselnew, nselnew2, nselnew3, *sel, *selnew, *selnew2, *selnew3, nselplus1, *selaux;
   double currentJ, *newJ, *ppnew, ppnewsum, u, *mfamily, *pfamily, sumpfamily;
@@ -1319,7 +1321,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
   if (nonbinary) { selnew2= ivector(0,nbvars); selnew3= ivector(0, nbvars); }
 
   //Initialize
-  if (*verbose ==1) Rprintf("Running Gibbs sampler");
+  if (*verbose ==1) Rprintf(" Running Gibbs sampler");
   niterthin= (int) floor((*niter - *burnin +.0)/(*thinning+.0));
   if (*niter >10) { niter10= *niter/10; } else { niter10= 1; }
   for (j=0; j< (*(*pars).p); j++) { margpp[j]= 0; }
@@ -1343,7 +1345,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 
 
   //Iterate
-  for (i=ilow; i< iupper; i++) {
+  for (i=ilow, itercount=0; i< iupper; i++, itercount++) {
     j= jgroup= 0;
     while (j< *(*pars).p) {
 
@@ -1492,13 +1494,15 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
       postProb[savecnt]= currentJ;
       savecnt++;
     }
-    if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
+    if (*verbose == 1) print_iterprogress(&itercount, niter, &niter10);
+    //if ((*verbose==1) && ((i%niter10)==0)) { Rprintf("."); }
   }
   if (iupper>ilow) { for (j=0; j< (*(*pars).p); j++) { margpp[j] /= (iupper-imax_xy(0,ilow)+.0); } } //from sum to average
   if (*family ==0) {
     margpp[(*(*pars).p)] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+1] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+2] /= (iupper-imax_xy(0,ilow)+.0); margpp[(*(*pars).p)+3] /= (iupper-imax_xy(0,ilow)+.0);
   }
-  if (*verbose==1) Rprintf(" Done.\n");
+  if (*verbose) { Rcout << "\r Done\n"; }
+  //if (*verbose==1) Rprintf(" Done.\n");
 
   //Copy marginal probabilities from 1st variable in each group to all other variables in the group
   for (jgroup=0; jgroup<ngroups; jgroup++) {
@@ -1601,7 +1605,7 @@ void greedyVarSelC(int *postMode, double *postModeProb, int *prDelta, int *prCon
   for (j=1, firstingroup[0]=0; j<ngroups; j++) { firstingroup[j]= firstingroup[j-1] + nvaringroup[j-1]; }
 
   //Initialize
-  if (*verbose==1) Rprintf("Greedy searching posterior mode... ");
+  if (*verbose==1) Rprintf(" Greedy searching posterior mode... ");
   for (j=0, nsel=*ndeltaini; j< nsel; j++) { sel[j]= deltaini[j]; }
   *postModeProb= marginalFunction(sel,&nsel,pars) + priorFunction(sel,&nsel,pars);
 

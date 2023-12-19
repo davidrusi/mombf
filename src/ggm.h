@@ -44,6 +44,8 @@ public:
   CharacterVector sampler(); //sampler type
   int niter();
   int burnin();
+  double pbirth();  //probability of birth move, ignored unless sampler is "birthdeath"
+  int nbirth(); //number of birth/death updates to perform when updating each column of the precision matrix
 
   arma::mat S; //t(y) * y
 
@@ -74,7 +76,13 @@ arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List
 
 void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
+arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
+
 void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
+
+void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
+
+void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
 
 void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
 
@@ -85,7 +93,7 @@ void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store); //co
 
 void spmat_rowcol2zero(arma::sp_mat *A, int colid); //Set row and colum colid of A to 0
 
-void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int *j); //drop row & column j from A
+void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int j); //drop row & column j from A
 
 void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout, excluding column excludecol
 

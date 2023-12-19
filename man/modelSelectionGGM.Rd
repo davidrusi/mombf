@@ -20,8 +20,8 @@
 modelSelectionGGM(y, priorCoef=normalidprior(tau=1),
 priorModel=modelbinomprior(1/ncol(y)),
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE,
-sampler='Gibbs', niter=10^3, burnin= round(niter/10), Omegaini='glasso-ebic',
-verbose=TRUE)
+sampler='Gibbs', niter=10^3, pbirth= 0.5, burnin= round(niter/10),
+Omegaini='glasso-ebic', verbose=TRUE)
 
 }
 \arguments{
@@ -42,9 +42,16 @@ verbose=TRUE)
   \item{scale}{If \code{TRUE}, the columns of \code{y} will be scaled to
     unit sample variance}
   
-  \item{sampler}{Posterior sampler. Options are "Gibbs" and "zigzag"}
+  \item{sampler}{Posterior sampler. Options are "Gibbs", "birthdeath"
+  and "zigzag"}
   
   \item{niter}{Number of posterior samples to be obtained}
+
+  \item{pbirth}{Probability of a birth move. Ignored unless
+    \code{sampler=="birthdeath"}}
+
+  \item{nbirth}{Number of birth/death updates to perform for each row of
+  the precision matrix. Defaults to \code{ncol(y)}}
   
   \item{burnin}{The first burnin samples will be discarded}
   

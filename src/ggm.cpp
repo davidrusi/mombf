@@ -100,6 +100,16 @@ int ggmObject::burnin() {
 }
 
 
+double ggmObject::pbirth() {
+  return this->samplerPars["pbirth"];
+}
+
+
+int ggmObject::nbirth() {
+  return this->samplerPars["nbirth"];
+}
+
+
 
 
 
@@ -155,16 +165,21 @@ arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List sam
   int npars= p*(p+1)/2;
 
   std::string sampler = Rcpp::as<std::string>(ggm->sampler());
-  std::string Gibbs("Gibbs"), zigzag("zigzag");
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
+  bool use_gibbs= (sampler == Gibbs);
+  bool use_birthdeath= (sampler == birthdeath);
+  bool use_zigzag= (sampler == zigzag);
 
   //Create output matrix
   arma::sp_mat ans(npars, niter - burnin);
 
-  if (sampler == Gibbs) {
+  if (use_gibbs || use_birthdeath) {
+  //if ((sampler == Gibbs) || (sampler == birthdeath)) {
 
     GGM_Gibbs(&ans, ggm, &Omegaini);
 
-  } else if (sampler == zigzag) {
+  } else if (use_zigzag) {
+  //} else if (sampler == zigzag) {
     
     Rprintf("zigzag will be implemented soon\n");
 
@@ -182,7 +197,7 @@ arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List sam
 
 
 
-/*Gibbs sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n
+/*Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n
 
 INPUT
   - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
@@ -201,6 +216,13 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
   int i, j, k, *colidx, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10;
   arma::sp_mat::iterator it;
 
+  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+  bool use_gibbs= (sampler == Gibbs);
+  bool use_birthdeath= (sampler == birthdeath);
+
+  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs requires the sampler to be Gibbs or birthdeath");
+
   if (niter >10) { niter10= niter / 10; } else { niter10= 1; }
 
 
@@ -216,19 +238,15 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
     for (j=0; j < p; j++) {  //for each column
 
-      //Create Omegaini(-colidx[j],-colidx[j])
-      arma::sp_mat Omega_j(p-1, p-1);
-      spmat_droprowcol(&Omega_j, Omegaini, colidx + j);
-      //Consider replacing spmat_droprowcol by shed_row, shed_col, and then insert_row, insert_col at end of for j loop
-
-      //Invert Omegaini(-colidx[j],-colidx[j])
-      arma::mat I= arma::eye(p-1, p-1);
-      arma::mat invOmega_j= arma::spsolve(Omega_j, I, "lapack"); //lapack solver, slower but more portable
-      //arma::mat invOmega_j= arma::spsolve(Omega_j, I, "superlu"); //superLU solver, faster but requires -lsuperlu compiler flag
-
+      arma::mat invOmega_j= get_invOmega_j(Omegaini, colidx[j]);
       arma::sp_mat Omegacol= Omegaini->col(colidx[j]);
       arma::sp_mat ans_row(p, 1);
-      GGM_Gibbs_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+
+      if (use_gibbs) {
+        GGM_Gibbs_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+      } else {
+        GGM_birthdeath_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+      }
 
       //Update Omegaini
       spmat_rowcol2zero(Omegaini, colidx[j]); //set row & column colidx[j] in Omegaini to zero
@@ -257,6 +275,22 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   free_ivector(colidx, 0, p-1);
 
+}
+
+
+/* Compute the inverse of Omega[-j,-j] */
+arma::mat get_invOmega_j(arma::sp_mat *Omega, int j) {
+  int p= Omega->n_rows;
+  //Create Omega(-colidx[j],-colidx[j])
+  arma::sp_mat Omega_j(p-1, p-1);
+  spmat_droprowcol(&Omega_j, Omega, j);
+  //To do: consider replacing spmat_droprowcol by shed_row, shed_col, and then insert_row, insert_col at end of for j loop
+
+  //Invert Omega(-colidx[j],-colidx[j])
+  arma::mat I= arma::eye(p-1, p-1);
+  arma::mat invOmega_j= arma::spsolve(Omega_j, I, "lapack"); //lapack solver, slower but more portable
+  //arma::mat invOmega_j= arma::spsolve(Omega_j, I, "superlu"); //superLU solver, faster but requires -lsuperlu compiler flag
+  return invOmega_j;
 }
 
 
@@ -310,13 +344,10 @@ IMPORTANT: at input ans should only contain zeroes
 void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
 
   int i, j, p= ggm->ncol();
-  unsigned int k;
   double mcurrent, mnew, ppnew, sample_diag, samplenew_diag;
   arma::mat *sample_offdiag, *samplenew_offdiag;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
-  arma::SpMat<short>::iterator it_short, it2_short;
-  //arma::SpMat<short> model(p, 1), modelnew(p, 1), *model_tmp_ptr;
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
 
@@ -359,6 +390,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
       } else {
 
         delete samplenew_offdiag;
+        ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model); //if not updating model, update parameter values only
 
       }
 
@@ -367,14 +399,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
     } //end j for (iteration over columns)
 
     //Copy current model into ans[,i] as flat vector
-    if (i >= 0) {
-
-      for (it_short= model->begin(), j=0; it_short != model->end(); ++it_short) {
-        k= it_short.row();
-        if (k != colid) { ans->at(k,0)= sample_offdiag->at(j,0); j++; } else ans->at(k,0)= sample_diag;
-      }
-
-    }
+    if (i >= 0) save_ggmsample_col(ans, model, &sample_diag, sample_offdiag, i, colid);  
 
   } //end i for (Gibbs iterations)
 
@@ -385,6 +410,124 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
 }
 
 
+
+/*Birth-death sampling for column colid of Omega in a Gaussian graphical model
+
+INPUT
+  - iterini, iterfi: sampled values of Omega are stored in ans[iterini:iterfi,]. Negative entries in iterini:iterfi are not stored (burnin)
+  - colid: index of the column to be updated (starts at 0)
+  - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters
+  - Omegacol: current value of Omega[,colid]
+  - invOmega_rest: inverse of Omega[-colid,-colid]
+
+OUTPUT
+  - ans: each column of ans contains Omegacol after applying a total of (iterfi - iterini + 1) birth-death updates
+
+IMPORTANT: at input ans should only contain zeroes
+
+*/
+
+void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
+
+  bool birth;
+  int i, j, p= ggm->ncol(), nbirth= ggm->nbirth(), idx_update;
+  double pbirth= ggm->pbirth(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag, samplenew_diag;
+  arma::mat *sample_offdiag, *samplenew_offdiag;
+  arma::sp_mat::const_iterator it;
+  arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
+  modselIntegrals_GGM *ms;
+  pt2GGM_rowmarg marfun= &GGMrow_marg;
+
+  //Initialize model and modelnew
+  model= new arma::SpMat<short>(p, 1);
+  modelnew= new arma::SpMat<short>(p, 1);
+  for (it= Omegacol->begin(); it != Omegacol->end(); ++it) model->at(it.row(), it.col())= modelnew->at(it.row(), it.col())= 1;
+
+  //Obtain log-marginal + log-prior for current model
+  ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
+
+  sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
+
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model);
+
+  for (i= iterini; i <= iterfi; i++) {
+
+      for (j=1; j<=nbirth; j++) {  //Make nbirth birth/death updates
+
+        //Make birth/death proposal
+        arma::SpMat<short> model_colid= (*model);
+        model_colid.shed_row(colid);
+        rbirthdeath(&idx_update, &birth, &model_colid, pbirth);
+         
+        //Store birth/death proposal into modelnew_colid and modelnew
+        arma::SpMat<short> modelnew_colid= model_colid;
+        if (birth) modelnew_colid.at(idx_update,0)= 1; else modelnew_colid.at(idx_update,0)= 0;
+         
+        if (idx_update >= (int) colid) idx_update++;
+        if (birth) modelnew->at(idx_update,0)= 1; else modelnew->at(idx_update,0)= 0;
+         
+        dpropnew= dbirthdeath(&modelnew_colid, &model_colid, pbirth, true);
+        dpropcurrent= dbirthdeath(&model_colid, &modelnew_colid, pbirth, true);
+         
+        //model->print("model"); //debug
+        //Rprintf("idx_update= %d; birth= %B\n", idx_update, birth); //debug
+        //modelnew->print("modelnew"); //debug
+        //Rprintf("dpropnew= %f; dpropcurrent= %f\n", dpropnew, dpropcurrent); //debug
+         
+        //Obtain posterior sample for modelnew
+        samplenew_offdiag= new arma::mat(modelnew->n_nonzero - 1, 1);
+         
+        ms->getJoint(&mnew, samplenew_offdiag, &samplenew_diag, modelnew);
+         
+        ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew);
+        ppnew /= (1.0 + ppnew);
+         
+        if (runif() < ppnew) { //if new model is accepted
+         
+          model_tmp_ptr= model;
+          model= modelnew;
+          modelnew= model_tmp_ptr;
+         
+          delete sample_offdiag;
+          sample_offdiag= samplenew_offdiag;
+          sample_diag= samplenew_diag;
+         
+        } else {
+         
+          delete samplenew_offdiag;
+          ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model); //if not updating model, update parameter values only
+         
+        }
+         
+        modelnew->at(idx_update,0)= model->at(idx_update,0);
+
+    } //end for j
+
+    //Copy current model into ans[,i] as flat vector
+    if (i >= 0) save_ggmsample_col(ans, model, &sample_diag, sample_offdiag, i, colid);  
+
+  } //end i for (Gibbs iterations)
+
+  delete sample_offdiag;
+  delete model;
+  delete modelnew;
+  
+}
+
+
+/* Save sample_diag and sample_diag into ans[,col2save] */
+void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid) {
+
+  int j;
+  unsigned int k;
+  arma::SpMat<short>::iterator it_short;
+
+  for (it_short= model->begin(), j=0; it_short != model->end(); ++it_short) {
+    k= it_short.row();
+    if (k != colid) { ans->at(k,col2save)= sample_offdiag->at(j,0); j++; } else ans->at(k,col2save)= *sample_diag;
+  }
+
+}
 
 
 
@@ -507,13 +650,13 @@ void spmat_rowcol2zero(arma::sp_mat *A, int colid) {
 }
 
 //Drop row and column j from sparse matrix A, return the new matrix in A_minusj
-void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int *j) {
+void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int j) {
   int itcol, itrow;
   arma::sp_mat::const_iterator it;
   for (it= A->begin(); it != A->end(); ++it) {
     itcol= it.col(); itrow= it.row();
-    if (itcol == *j) continue; else if (itcol > *j) itcol--;
-    if (itrow == *j) continue; else if (itrow > *j) itrow--;
+    if (itcol == j) continue; else if (itcol > j) itcol--;
+    if (itrow == j) continue; else if (itrow > j) itrow--;
     (*A_minusj)(itrow, itcol)= (*A_minusj)(itcol,itrow)= A->at(it.row(),it.col());
   }
 }

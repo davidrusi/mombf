@@ -110,29 +110,6 @@ void lmbayes(double *bpost, double *spost, double *b, double **Vb, double *a_s, 
 void lmbayes_knownvar(double *bpost, double *b, double **Vb, double **XtX, double **invXtX, double *Xty, double *sigma, int *B, double *y, double **X, int *n, int *p, int *useXtX, double *mpr, double **Spr_inv, double *tauprior); //same as lmbayes with known variance sigma^2
 
 
-/**************************************************************/
-/* Input/output functions (interface)                         */
-/**************************************************************/
-
-FILE *openIn(const char *filename);
-FILE *openOut(const char *filename);
-
-void writeInt(int);
-void writeLong(long i);
-void writeFloat(float);
-void writeDouble(double);
-
-void writeIntArray(int *, int, int);
-void fwriteIntArray(FILE *, int *, int, int);
-void fwriteIntMatrix(FILE *f, int **x, int rows, int cols);
-void writeIntMatrix(int **x, int rows, int cols);
-void writeDoubleArray(double *, int, int);
-void writeDoubleMatrix2(double **, int , int);
-void fwriteDoubleArray(FILE *, double *, int, int);
-void fwriteDoubleMatrix2(FILE *, double **, int , int);
-void writeDoubleMatrix(double **, int, int);
-void writeFloatArray(float *, int, int);
-void writeArray(float *, int, int);
 
 
 /**************************************************************/
@@ -141,9 +118,8 @@ void writeArray(float *, int, int);
 
 void print_iterprogress(int *iter, int *niter, int *everyiter);
 void errorC(const char *module, const char *msg, int nr);
-void err_msg(const char *fct, const char *txt, int n1, int n2, int n3);
-void fserror(const char *proc, const char *act, const char *what);
 void nrerror(const char *proc, const char *act, const char *what);
+
 
 /**************************************************************/
 /* Memory allocation                                          */
@@ -272,6 +248,10 @@ void iindexsort(int *x, int *index, int ilo, int ihi, int incr); //like dindexso
 
 void samplei_wr(int *x, int popsize, int n); //sample wo replacement from a vector of integers
 void sampled_wr(double *x, int popsize, int n); //same for vector of doubles
+
+void rbirthdeath(int *index, bool *birth, arma::SpMat<short> *model, double pbirth); //random draw from birth-death proposal
+double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, bool logscale); //pmf of birth-death proposal
+
 
 /**************************************************************/
 /* Probability distributions                                  */

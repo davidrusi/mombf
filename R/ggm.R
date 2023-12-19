@@ -37,20 +37,21 @@ icov <- function(fit, threshold) {
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   if (ncol(y) <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
-  if (!(sampler %in% c('Gibbs','zigzag'))) stop("sampler must be 'Gibbs' or 'zigzag'")
+  if (!(sampler %in% c('Gibbs','birthdeath','zigzag'))) stop("sampler must be 'Gibbs', 'birthdeath' or 'zigzag'")
   y = scale(y, center=center, scale=scale)
   #Format prior parameters
   prCoef= formatmsPriorsMarg(priorCoef=priorCoef, priorVar=priorDiag)
   prCoef= as.list(c(priorlabel=prCoef$priorCoef@priorDistr, prCoef[c('prior','tau','lambda')]))
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
   #Format posterior sampler parameters
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','verbose')
+  if (missing(nbirth)) nbirth= as.integer(ncol(y)) else nbirth= as.integer(nbirth)
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','verbose')
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
     

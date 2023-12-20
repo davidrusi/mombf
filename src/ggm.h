@@ -68,19 +68,17 @@ private:
 //*************************************************************************************
 
 
-//void print_mat( mat_type A );
-//void print_mat(arma::mat *A);
-//void print_spmat(arma::sp_mat *A);
+List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 
-arma::sp_mat modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_Gibbs_parallel(std::list<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
 
-void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
+void GGM_Gibbs_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
 
-void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
+void GGM_birthdeath_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest);
 
 void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
 
@@ -97,6 +95,7 @@ void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int j); //drop ro
 
 void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout, excluding column excludecol
 
+void symmat2vec(arma::vec *Aflat, arma::mat *A); //flatten symmetric matrix A, in column-wise order
 
 
 #endif /* MODELSEL_H */

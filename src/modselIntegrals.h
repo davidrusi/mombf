@@ -66,7 +66,7 @@ public:
   
   ~modselIntegrals_GGM();
 
-  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model); //Return logjoint() and posterior sample for off-diagonal and diagonal elements 
+  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample); //Return logjoint() and posterior sample for off-diagonal and diagonal elements 
 
   double maxIntegral; //Stores value of largest integral
 
@@ -89,7 +89,7 @@ private:
 
   long unsigned int maxsave; //if size of logjointSaved, meanSaved, cholVsaved  >= maxsave, save only models with non-negligible post prob vs maxModel
 
-  arma::mat get_Omegainv_model(arma::SpMat<short> *model);
+  void get_Omegainv_model(arma::mat *Omegainv_model, arma::SpMat<short> *model);
 
 };
 

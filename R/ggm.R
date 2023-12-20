@@ -4,6 +4,14 @@
 
 ### Methods for msfit_ggm objects
 
+plot.msfit_ggm= function(x, y, ...) {
+  postSample= x$postSample[,x$indexes[1,] != x$indexes[2,],drop=FALSE]
+  margppcum= apply(postSample !=0, 2, cumsum) / (1:nrow(postSample))
+  plot(margppcum[,1], type='l', ylim=c(0,1), xlab='Iteration', ylab='Marginal posterior inclusion probabilities')
+  if (ncol(margppcum)>1) for (i in 2:min(5000,ncol(margppcum))) lines(margppcum[,i])
+}
+
+
 setMethod("show", signature(object='msfit_ggm'), function(object) {
   cat('Gaussian graphical model (msfit_ggm object) with ',object$p,'variables\n')
   cat("Use coef() to get BMA estimates, posterior intervals and posterior marginal prob of entries being non-zero\n")
@@ -11,15 +19,20 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 )
 
 coef.msfit_ggm <- function(object,...) {
+  if (object$almost_parallel) stop("coef not yet implemented for almost_parallel")
   m= Matrix::colMeans(object$postSample)
-  margpp= Matrix::colMeans(object$postSample != 0)
   ci= sparseMatrixStats::colQuantiles(fit$postSample, prob=c(0.025,0.975))
-  ans= cbind(t(object$indexes), m, ci, margpp)
+  if (object$samplerPars['sampler'] == 'Gibbs') {
+    ans= cbind(t(object$indexes), m, ci, object$margpp)
+  } else {
+    ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0))
+  }
   colnames(ans)[-1:-2]= c('estimate','2.5%','97.5%','margpp')
   return(ans)
 }
 
 icov <- function(fit, threshold) {
+  if (object$almost_parallel) stop("coef not yet implemented for almost_parallel")
   if (!inherits(fit, 'msfit_ggm')) stop("Argument fit must be of class msfit_ggm")
   m= Matrix::colMeans(fit$postSample)
   if (!missing(threshold)) {
@@ -37,26 +50,34 @@ icov <- function(fit, threshold) {
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   if (ncol(y) <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
   if (!(sampler %in% c('Gibbs','birthdeath','zigzag'))) stop("sampler must be 'Gibbs', 'birthdeath' or 'zigzag'")
   y = scale(y, center=center, scale=scale)
+    
   #Format prior parameters
   prCoef= formatmsPriorsMarg(priorCoef=priorCoef, priorVar=priorDiag)
   prCoef= as.list(c(priorlabel=prCoef$priorCoef@priorDistr, prCoef[c('prior','tau','lambda')]))
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
+    
   #Format posterior sampler parameters
-  if (missing(nbirth)) nbirth= as.integer(ncol(y)) else nbirth= as.integer(nbirth)
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','verbose')
+  samplerPars= format_GGM_samplerPars(sampler, niter, burnin, pbirth, nbirth, verbose)
+    
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
     
   #Call C++ function
-  ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
+  if (!almost_parallel) {
+    ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
+    postSample= Matrix::t(ans$postSample)
+  } else {
+    ans= GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
+    postSample= lapply(ans, Matrix::t)
+  }
+    
 
   #Return output
   priors= list(priorCoef=priorCoef, priorModel=priorModel, priorDiag=priorDiag)
@@ -64,10 +85,24 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   A= diag(ncol(y))
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
-    
-  ans= list(postSample= Matrix::t(ans), priors=priors, p=ncol(y), indexes=indexes)
+
+  ans= list(postSample=postSample, margpp=ans$margpp, priors=priors, p=ncol(y), indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
 
   new("msfit_ggm",ans)
+}
+
+
+
+#Format posterior sampling parameters to pass onto C++
+format_GGM_samplerPars= function(sampler, niter, burnin, pbirth, nbirth, verbose) {
+  if (missing(nbirth)) {
+      nbirth= as.integer(min(ncol(y), max(log(ncol(y)), 10)))
+  } else {
+      nbirth= as.integer(nbirth)
+  }
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','verbose')
+  return(samplerPars)
 }
 
 #Multivariate normal density given the precision matrix

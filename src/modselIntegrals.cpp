@@ -72,6 +72,7 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
 /************************************************************************************/
 
 
+//Class constructor
 modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject *ggm, unsigned int colid, arma::mat *Omegainv) {
 
   int i;
@@ -94,6 +95,7 @@ modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject
 
 }
 
+//Class destructor
 modselIntegrals_GGM::~modselIntegrals_GGM() {
 
   free((char  *) this->zerochar);
@@ -105,20 +107,25 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 }
 
 
+/* Log-integrated likelihood + log-prior for model. 
 
-void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model) {
+If postSample=true, sample_offdiag returns a posterior for the off-diagonal parametes and sample_diag for the diagonal parameters
+
+*/
+void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample) {
 
   bool delete_m_cholV= false;  
   int npar= model->n_nonzero -1;
   arma::mat *m, *cholV;
   arma::SpMat<short>::iterator it;
+  arma::mat Omegainv_model(npar, npar); 
 
   //Set zerochar to current model
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
   std::string s (zerochar);
 
   //Copy entries of Omegainv selected by model to Omegainv_model
-  arma::mat Omegainv_model= this->get_Omegainv_model(model);
+  //arma::mat Omegainv_model= this->get_Omegainv_model(model);
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
@@ -127,6 +134,9 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     cholV= cholVSaved[s];
      
   } else {
+
+    //Copy entries of Omegainv selected by model to Omegainv_model
+    this->get_Omegainv_model(&Omegainv_model, model);
 
     //Allocate memory for m and cholV
     m= new arma::mat(npar, 1);
@@ -152,16 +162,23 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
   }
 
-  //Sample off-diagonal elements
-  rmvnormC(sample_offdiag, m, cholV);
-  (*sample_offdiag) *= -1.0;
+  if (postSample) {
 
-  //Sample diagonal element
-  arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
-  double a= 0.5 * (double) ggm->n() + 1.0;
-  double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * lambda[0];
-  
-  (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
+    //Copy entries of Omegainv selected by model to Omegainv_model
+    this->get_Omegainv_model(&Omegainv_model, model);
+
+    //Sample off-diagonal elements
+    rmvnormC(sample_offdiag, m, cholV);
+    (*sample_offdiag) *= -1.0;
+     
+    //Sample diagonal element
+    arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
+    double a= 0.5 * (double) ggm->n() + 1.0;
+    double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * lambda[0];
+     
+    (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
+
+  }
 
   //Free memory
   if (delete_m_cholV) {
@@ -176,23 +193,16 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
 
 // Return Omegainv[model,model], dropping column colid
-arma::mat modselIntegrals_GGM::get_Omegainv_model(arma::SpMat<short> *model) {
+void modselIntegrals_GGM::get_Omegainv_model(arma::mat *Omegainv_model, arma::SpMat<short> *model) {
 
-  int npar= model->n_nonzero -1;
-  arma::mat Omegainv_model(npar,npar);
+  unsigned int npar= model->n_nonzero -1;
+  if (Omegainv_model->n_cols != npar) Rf_error("Error in get_Omegainv_model: Omegainv_model has the wrong size");
   arma::SpMat<short>::iterator it;
 
   arma::SpMat<short> model_offdiag= *model;
   model_offdiag.shed_row(colid);  //remove row colid from model
 
-  copy_submatrix(&Omegainv_model, Omegainv, &model_offdiag);
-
-  //Omegainv->print("Omegainv"); //debug
-  //model->print("model");   //debug
-  //Rprintf("colid= %d\n",colid);   //debug
-  //model_offdiag.print("model_offdiag");   //debug
-  //Omegainv_model.print("Omegainv_model\n"); //debug
-
-  return Omegainv_model;
+  copy_submatrix(Omegainv_model, Omegainv, &model_offdiag);
 
 }
+

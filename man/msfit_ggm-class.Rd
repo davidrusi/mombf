@@ -5,6 +5,7 @@
 \alias{msfit_ggm}
 \alias{show,msfit_ggm-method}
 \alias{msfit_ggm.coef}
+\alias{msfit.plot}
 
 
 \title{Class "msfit_ggm"}
@@ -45,6 +46,11 @@ being non-zero
   \describe{
     \item{coef}{Obtain BMA posterior means, intervals and posterior
       probability of non-zeroes}
+
+    \item{plot}{Shows estimated posterior inclusion probability for each
+      parameter vs. number of MCMC iterations. Only up to the first 5000
+      parameters are shown}
+
     \item{show}{\code{signature(object = "msfit_ggm")}:
       Displays general information about the object. }
   }

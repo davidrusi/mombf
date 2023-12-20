@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // modelSelectionGGMC
-arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 RcppExport SEXP _mombf_modelSelectionGGMC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -23,6 +23,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat >::type Omegaini(OmegainiSEXP);
     rcpp_result_gen = Rcpp::wrap(modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini));
+    return rcpp_result_gen;
+END_RCPP
+}
+// GGM_Gibbs_parallelC
+List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+RcppExport SEXP _mombf_GGM_Gibbs_parallelC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type y(ySEXP);
+    Rcpp::traits::input_parameter< List >::type prCoef(prCoefSEXP);
+    Rcpp::traits::input_parameter< List >::type prModel(prModelSEXP);
+    Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
+    Rcpp::traits::input_parameter< arma::sp_mat >::type Omegaini(OmegainiSEXP);
+    rcpp_result_gen = Rcpp::wrap(GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -80,6 +95,7 @@ RcppExport SEXP testfunctionCI(void *);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 5},
+    {"_mombf_GGM_Gibbs_parallelC", (DL_FUNC) &_mombf_GGM_Gibbs_parallelC, 5},
     {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
     {"_mombf_rcpparma_innerproduct", (DL_FUNC) &_mombf_rcpparma_innerproduct, 1},
     {"_mombf_rcpparma_bothproducts", (DL_FUNC) &_mombf_rcpparma_bothproducts, 1},

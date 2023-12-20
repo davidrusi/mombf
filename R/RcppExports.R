@@ -5,6 +5,10 @@ modelSelectionGGMC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
     .Call(`_mombf_modelSelectionGGMC`, y, prCoef, prModel, samplerPars, Omegaini)
 }
 
+GGM_Gibbs_parallelC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
+    .Call(`_mombf_GGM_Gibbs_parallelC`, y, prCoef, prModel, samplerPars, Omegaini)
+}
+
 rcpparma_outerproduct <- function(x) {
     .Call(`_mombf_rcpparma_outerproduct`, x)
 }

@@ -157,7 +157,7 @@ void print_mat( mat_type A ) {
 
 
 // [[Rcpp::export]]
-arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
+List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
   ggmObject *ggm;
   ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
 
@@ -171,28 +171,69 @@ arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List sam
   bool use_zigzag= (sampler == zigzag);
 
   //Create output matrix
-  arma::sp_mat ans(npars, niter - burnin);
+  arma::sp_mat postSample(npars, niter - burnin);
 
+  arma::mat margpp = arma::zeros(p,p); 
+  arma::Mat<int> margppcount;
+  margppcount.zeros(p, p);
+  arma::vec margppflat(p * (p+1)/2);
+
+  //Obtain posterior samples
   if (use_gibbs || use_birthdeath) {
-  //if ((sampler == Gibbs) || (sampler == birthdeath)) {
 
-    GGM_Gibbs(&ans, ggm, &Omegaini);
+    GGM_Gibbs(&postSample, &margpp, &margppcount, ggm, &Omegaini);
+
+    margpp = margpp / margppcount;
+    for (int i=0; i < p; i++) margpp.at(i,i)= 1;
+    symmat2vec(&margppflat, &margpp);
 
   } else if (use_zigzag) {
-  //} else if (sampler == zigzag) {
     
     Rprintf("zigzag will be implemented soon\n");
 
   } else Rf_error("This sampler type is not currently implemented\n");
 
-  //Test crossprodmat
-  //crossprodmatRcpp S(y, false);
-  //double s11= S.at(0,0);
-
+  //Free memory and return output
   delete ggm;
 
-  return ans;
+  List ret;
+  ret["postSample"] = postSample;
+  ret["margpp"] = margppflat;
+  return ret;
+
 }
+
+
+//arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
+//  ggmObject *ggm;
+//  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
+// 
+//  int niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
+//  int npars= p*(p+1)/2;
+// 
+//  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+//  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
+//  bool use_gibbs= (sampler == Gibbs);
+//  bool use_birthdeath= (sampler == birthdeath);
+//  bool use_zigzag= (sampler == zigzag);
+// 
+//  //Create output matrix
+//  arma::sp_mat ans(npars, niter - burnin);
+// 
+//  if (use_gibbs || use_birthdeath) {
+// 
+//    GGM_Gibbs(&ans, ggm, &Omegaini);
+// 
+//  } else if (use_zigzag) {
+//    
+//    Rprintf("zigzag will be implemented soon\n");
+// 
+//  } else Rf_error("This sampler type is not currently implemented\n");
+// 
+//  delete ggm;
+// 
+//  return ans;
+//}
 
 
 
@@ -203,7 +244,11 @@ INPUT
   - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
 
 OUTPUT
-  - ans: sparse matrix where each row corresponds to a posterior sample. If the Gaussian precision matrix Omega is p x p, then ans has p*(p+1)/2 columns storing Omega in column order. That is, the first p entries correspond to Omega[,1] (first column in Omega), the next p-1 entries to Omega[2:p,2], the next p-2 entries to Omega[3:p,3], and so on.
+  - ans: sparse matrix where each column corresponds to a posterior sample. If the Gaussian precision matrix Omega is p x p, then ans has p*(p+1)/2 columns storing Omega in column order. That is, the first p entries correspond to Omega[,1] (first column in Omega), the next p-1 entries to Omega[2:p,2], the next p-2 entries to Omega[3:p,3], and so on.
+
+  - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
+
+  - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
 
 INPUT/OUTPUT
 
@@ -211,9 +256,9 @@ INPUT/OUTPUT
 
 */
 
-void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, *colidx, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10;
+  int i, j, k, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10;
   arma::sp_mat::iterator it;
 
   std::string sampler = Rcpp::as<std::string>(ggm->sampler());
@@ -225,39 +270,40 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   if (niter >10) { niter10= niter / 10; } else { niter10= 1; }
 
-
-  //Initialize order in which rows of Omega will be sampled
-  colidx= ivector(0, p-1);
-  for (i=0; i< p; i++) colidx[i]= i; 
-
   if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
 
   for (i=0; i < niter; i++) {
 
-    //samplei_wr(colidx, p, p); //permute row indexes
-
     for (j=0; j < p; j++) {  //for each column
 
-      arma::mat invOmega_j= get_invOmega_j(Omegaini, colidx[j]);
-      arma::sp_mat Omegacol= Omegaini->col(colidx[j]);
+      arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+      arma::sp_mat Omegacol= Omegaini->col(j);
       arma::sp_mat ans_row(p, 1);
+      arma::vec margpp_row= arma::zeros(p);
+      arma::Col<int> margppcount_row;
+      margppcount_row.zeros(p);
 
       if (use_gibbs) {
-        GGM_Gibbs_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+        GGM_Gibbs_singlecol(&ans_row, &margpp_row, &margppcount_row, 0, 0, (unsigned int) j, ggm, &Omegacol,  &invOmega_j); //update row given by j
       } else {
-        GGM_birthdeath_singlecol(&ans_row, 0, 0, (unsigned int) colidx[j], ggm, &Omegacol,  &invOmega_j); //update row given by colidx[j]
+        GGM_birthdeath_singlecol(&ans_row, &margpp_row, &margppcount_row, 0, 0, (unsigned int) j, ggm, &Omegacol,  &invOmega_j); //update row given by j
       }
 
       //Update Omegaini
-      spmat_rowcol2zero(Omegaini, colidx[j]); //set row & column colidx[j] in Omegaini to zero
+      spmat_rowcol2zero(Omegaini, j); //set row & column j in Omegaini to zero
 
       for (it= ans_row.begin(); it != ans_row.end(); ++it) {
-        k= it.row(); //ans_row->at(k,0) stores entry (colid, k) of ans
-        Omegaini->at(colidx[j],k)= Omegaini->at(k,colidx[j])= ans_row.at(k,0);
+        k= it.row(); //ans_row->at(k,0) stores entry (j, k) of ans
+        Omegaini->at(j,k)= Omegaini->at(k,j)= ans_row.at(k,0);
       }
-      //Rprintf("Finished i=%d, j=%d\n", i, j); //debug
-      //ans_row.print("ans_row\n"); //debug
-      //Omegaini->print("Updated Omega"); //debug
+
+      //Copy posterior marginal inclusion probabilities
+      for (k=0; k<p; k++) { 
+        margpp->at(k,j) += margpp_row.at(k); 
+        margpp->at(j,k)= margpp->at(k,j);
+        margppcount->at(k,j) += margppcount_row.at(k);
+        margppcount->at(j,k)= margppcount->at(k,j);
+      }
 
     } //end for j
 
@@ -273,7 +319,112 @@ void GGM_Gibbs(arma::sp_mat *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   if (ggm->verbose) { Rcout << "\r Done\n"; }
 
-  free_ivector(colidx, 0, p-1);
+}
+
+
+
+// [[Rcpp::export]]
+List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
+/* Interface for GGM_Gibbs_parallel to be called from R */
+
+  ggmObject *ggm;
+  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
+
+  int j, niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
+
+  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
+  bool use_gibbs= (sampler == Gibbs);
+  bool use_birthdeath= (sampler == birthdeath);
+  bool use_zigzag= (sampler == zigzag);
+
+  //Create output matrix
+  std::list<arma::sp_mat> ans;
+  //List ans;
+  for (j=0; j<p; j++) {
+    ans.push_back(arma::sp_mat(p, niter-burnin));
+  }
+
+  //Obtain posterior samples
+  if (use_gibbs || use_birthdeath) {
+
+    GGM_Gibbs_parallel(&ans, ggm, &Omegaini);
+
+  } else if (use_zigzag) {
+    
+    Rprintf("zigzag will be implemented soon\n");
+
+  } else Rf_error("This sampler type is not currently implemented\n");
+
+  //Free memory and return output
+  delete ggm;
+
+  std::list<arma::sp_mat>::iterator it;
+  List ret(p);
+  for (it= ans.begin(), j=0; it != ans.end(); ++it, j++) { 
+    ret[j]= (*it);
+  }
+
+  //return Rcpp::List::create(ans);
+  return ret;
+
+
+}
+
+/*Parallel Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. Each column is sampled independently from its conditional posterior, given the current value of Omega, i.e. the algorithm targets a pseudo-posterior rather than the actual posterior
+
+INPUT
+  - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
+
+OUTPUT
+  - ans: list where entry j stores posterior samples for Omega[,j], in a sparse matrix format (p rows and number of columns equal to the number of iterations)
+
+INPUT/OUTPUT
+
+  - Omegaini: initial value of Omega, this is updated at each iteration and the value at the last iteration is returned
+
+*/
+
+void GGM_Gibbs_parallel(std::list<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_mat *Omegaini) {
+
+  int j, p= ggm->ncol(), burnin= ggm->burnin(), niter= ggm->niter(), p10;
+  std::list<arma::sp_mat>::iterator it;
+
+  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+  bool use_gibbs= (sampler == Gibbs);
+  bool use_birthdeath= (sampler == birthdeath);
+
+  arma::vec margpp_row= arma::zeros(p);
+  arma::Col<int> margppcount_row;
+  margppcount_row.zeros(p);
+
+  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs_parallel requires the sampler to be Gibbs or birthdeath");
+
+  if (p >10) { p10= p / 10; } else { p10= 1; }
+
+  if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
+
+  for (it= ans->begin(), j=0; it != ans->end(); ++it, j++) { //for each column  
+
+    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+    arma::sp_mat Omegacol= Omegaini->col(j);
+    arma::sp_mat *ans_row= &(*it);
+
+    if (use_gibbs) {
+      GGM_Gibbs_singlecol(ans_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j);
+    } else {
+      GGM_birthdeath_singlecol(ans_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j);
+    }
+
+    //Rprintf("j=%d\n",j); //debug
+    //ans_row->print("ans_row"); //debug
+
+  } //end for j
+
+  if (ggm->verbose) print_iterprogress(&j, &p, &p10);
+
+  if (ggm->verbose) { Rcout << "\r Done\n"; }
 
 }
 
@@ -337,15 +488,19 @@ INPUT
 OUTPUT
   - ans: each column of ans contains Omegacol after applying a Gibbs update to its entries
 
+  - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
+
+  - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
+
 IMPORTANT: at input ans should only contain zeroes
 
 */
 
-void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
+void GGM_Gibbs_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
 
   int i, j, p= ggm->ncol();
-  double mcurrent, mnew, ppnew, sample_diag, samplenew_diag;
-  arma::mat *sample_offdiag, *samplenew_offdiag;
+  double mcurrent, mnew, ppnew, sample_diag;
+  arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
@@ -359,9 +514,9 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
   //Obtain log-marginal + log-prior for current model
   ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
-  sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
+  //sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
 
-  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model);
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false);
 
   for (i= iterini; i <= iterfi; i++) {
     //For each entry j in colid, obtain log-marginal + log-prior for adding/removing j
@@ -370,12 +525,14 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
       if (j == (int) colid) continue;  //diagonal entry is always in
 
       if (model->at(j,0) != 0) modelnew->at(j,0) = 0; else modelnew->at(j,0) = 1;
-      samplenew_offdiag= new arma::mat(modelnew->n_nonzero - 1, 1);
 
-      ms->getJoint(&mnew, samplenew_offdiag, &samplenew_diag, modelnew);
+      ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
 
       ppnew = exp(mnew - mcurrent);
       ppnew /= (1.0 + ppnew);
+
+      if (model->at(j,0) == 0) margpp->at(j) += ppnew; else margpp->at(j) += 1 - ppnew;
+      margppcount->at(j) ++;
 
       if (runif() < ppnew) { //if new model is accepted
 
@@ -383,20 +540,14 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned in
         model= modelnew;
         modelnew= model_tmp_ptr;
 
-        delete sample_offdiag;
-        sample_offdiag= samplenew_offdiag;
-        sample_diag= samplenew_diag;
-
-      } else {
-
-        delete samplenew_offdiag;
-        ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model); //if not updating model, update parameter values only
-
       }
 
       modelnew->at(j,0)= model->at(j,0);
 
     } //end j for (iteration over columns)
+
+    sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
+    ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values
 
     //Copy current model into ans[,i] as flat vector
     if (i >= 0) save_ggmsample_col(ans, model, &sample_diag, sample_offdiag, i, colid);  
@@ -423,16 +574,20 @@ INPUT
 OUTPUT
   - ans: each column of ans contains Omegacol after applying a total of (iterfi - iterini + 1) birth-death updates
 
+  - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
+
+  - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
+
 IMPORTANT: at input ans should only contain zeroes
 
 */
 
-void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
+void GGM_birthdeath_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest) {
 
   bool birth;
   int i, j, p= ggm->ncol(), nbirth= ggm->nbirth(), idx_update;
-  double pbirth= ggm->pbirth(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag, samplenew_diag;
-  arma::mat *sample_offdiag, *samplenew_offdiag;
+  double pbirth= ggm->pbirth(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
+  arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
@@ -448,7 +603,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsign
 
   sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
 
-  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model);
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false);
 
   for (i= iterini; i <= iterfi; i++) {
 
@@ -475,12 +630,14 @@ void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsign
         //Rprintf("dpropnew= %f; dpropcurrent= %f\n", dpropnew, dpropcurrent); //debug
          
         //Obtain posterior sample for modelnew
-        samplenew_offdiag= new arma::mat(modelnew->n_nonzero - 1, 1);
-         
-        ms->getJoint(&mnew, samplenew_offdiag, &samplenew_diag, modelnew);
+        ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
          
         ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew);
         ppnew /= (1.0 + ppnew);
+
+        //Update posterior marginal inclusion probabilities
+        if (birth) margpp->at(idx_update) += ppnew; else margpp->at(idx_update) += 1 - ppnew;
+        margppcount->at(idx_update) ++;
          
         if (runif() < ppnew) { //if new model is accepted
          
@@ -488,20 +645,14 @@ void GGM_birthdeath_singlecol(arma::sp_mat *ans, int iterini, int iterfi, unsign
           model= modelnew;
           modelnew= model_tmp_ptr;
          
-          delete sample_offdiag;
-          sample_offdiag= samplenew_offdiag;
-          sample_diag= samplenew_diag;
-         
-        } else {
-         
-          delete samplenew_offdiag;
-          ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model); //if not updating model, update parameter values only
-         
         }
          
         modelnew->at(idx_update,0)= model->at(idx_update,0);
 
     } //end for j
+
+    sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
+    ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values
 
     //Copy current model into ans[,i] as flat vector
     if (i >= 0) save_ggmsample_col(ans, model, &sample_diag, sample_offdiag, i, colid);  
@@ -671,4 +822,19 @@ void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
         Aout->at(i,j)= A->at(it.row(), it2.row());
     }
   }
+}
+
+
+//Flatten symmetric matrix A, in column-wise order
+void symmat2vec(arma::vec *Aflat, arma::mat *A) {
+  unsigned int i, j, k=0, p= A->n_rows;
+  if (Aflat->size() != p * (p+1)/2) Rf_error("Error in symmat2vec: matrix dimensions don't match");
+
+  for (i=0; i<p; i++) {
+    for (j=0; j<=i; j++) {
+      Aflat->at(k)= A->at(i,j);
+      k++;
+    }
+  }
+
 }

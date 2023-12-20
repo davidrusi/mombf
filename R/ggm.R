@@ -32,7 +32,7 @@ coef.msfit_ggm <- function(object,...) {
 }
 
 icov <- function(fit, threshold) {
-  if (object$almost_parallel) stop("coef not yet implemented for almost_parallel")
+  if (fit$almost_parallel) stop("coef not yet implemented for almost_parallel")
   if (!inherits(fit, 'msfit_ggm')) stop("Argument fit must be of class msfit_ggm")
   m= Matrix::colMeans(fit$postSample)
   if (!missing(threshold)) {

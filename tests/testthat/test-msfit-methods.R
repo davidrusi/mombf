@@ -41,5 +41,5 @@ patrick::with_parameters_test_that(
     expect_equal(pprobs[1:5,3], pprobs_cut[,3], tolerance=tolerance)
   },
   method=c("norm", "exact"),
-  test_name=method
+  .test_name=method
 )

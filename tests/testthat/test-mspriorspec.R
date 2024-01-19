@@ -12,6 +12,6 @@ patrick::with_parameters_test_that(
     expect_equal(as.double(pr_taustd@priorPars['taustd']), 2)
     expect_equal(as.double(pr_tau@priorPars['tau']), .3)
   },
-  test_name=c("momprior", "zellnerprior", "normalidprior", "groupmomprior", "groupzellnerprior"),
+  .test_name=c("momprior", "zellnerprior", "normalidprior", "groupmomprior", "groupzellnerprior"),
   priorfun=c(momprior, zellnerprior, normalidprior, groupmomprior, groupzellnerprior)
 )

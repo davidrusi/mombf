@@ -47,7 +47,7 @@ patrick::with_parameters_test_that(
     expect_equal(ans_max, ans_max_group)
     expect_equal(ans_all, ans_all_group)
   },
-  test_name=c("mom", "imom", "emom", "zellner", "normalid"),
+  .test_name=c("mom", "imom", "emom", "zellner", "normalid"),
   pCoef=c(momprior(tau=0.35), imomprior(tau=0.35), emomprior(tau=0.35), zellnerprior(tau=0.35), normalidprior(tau=0.35))
 )
 

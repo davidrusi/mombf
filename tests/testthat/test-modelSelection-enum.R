@@ -79,7 +79,7 @@ patrick::with_parameters_test_that(
     pprobs <- postProb(fit)
     expect_true(any(pprobs$modelid[1:5] == "3,4,6,7"))
   },
-  test_name=c("uniform", "binomial", "betabinomial", "complex"),
+  .test_name=c("uniform", "binomial", "betabinomial", "complex"),
   pDelta=c(modelunifprior(), modelbinomprior(p=0.5), modelbbprior(alpha.p=1, beta.p=1), modelcomplexprior(c=1))
 )
 

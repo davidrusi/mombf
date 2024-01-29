@@ -3237,6 +3237,78 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
 
 
 
+/* Update the inverse of symmetric matrix A after replacing row/col colid by difvals, given current inverse of A
+
+  The function uses fast rank 1 computations based on the Woodbury formula
+
+  Updated A adds difvals to A[colid,] then adds v2 to A[,colid], where v2= difvals with a zero in position colid
+
+  INPUT
+  - Ainv: inverse of A before the update
+  - difvals: new values of A[,colid] minus previous values of A[,colid] (and A[colid,], by symmetry)
+  - colid: row being updated
+
+  OUPUT: Ainv stores the inverse of A after the update
+
+*/
+void symmat_inv_colupdate(arma::mat *Ainv, arma::sp_mat *difvals, int colid) {
+  arma::sp_mat v2= (*difvals);
+  v2.at(colid,0)= 0;
+  updateinv_rank1(Ainv, difvals, colid); //inverse of A + difvals e^T
+  updateinv_rank1(Ainv, colid, &v2); //inverse of A + difvals e^T + e v2^T
+}
+
+
+
+/*Compute inverse of A + u v^T, given Ainv=A^{-1}
+
+ INPUT
+ - Ainv: A^{-1}
+ - u: column vector giving the rank 1 update
+ - v: column vector giving the rank 1 update
+
+ OUTPUT: Ainv stores the inverse of A + u v^T
+
+ Details: (A + u v^T)^{-1}= A^{-1} - A^{-1} u v^T A^{-1} / (1 + v^T A^{-1} u)
+*/
+void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, arma::sp_mat *v) {
+  arma::mat Ainvu= (*Ainv) * (*u);
+  arma::mat vTAinvu= v->t() * Ainvu;
+  double den= 1.0 + vTAinvu.at(0,0);
+ 
+  arma::sp_mat vden= (*v) / den;
+  (*Ainv)= (*Ainv) - Ainvu * vden.t() * (*Ainv);
+}
+
+
+/* Particular case of updateinv_rank1 where only 1 row in A is updated by adding v^T
+
+ This is equivalent to setting u^T=(0,..,0,1,0,..,0) where 1 is in entry rowid
+*/
+void updateinv_rank1(arma::mat *Ainv, int rowid, arma::sp_mat *v) {
+  arma::mat Ainvu= Ainv->col(rowid);
+  arma::mat vTAinvu= v->t() * Ainvu;
+  double den= 1.0 + vTAinvu.at(0,0);
+
+  arma::sp_mat vden= (*v) / den;
+  (*Ainv)= (*Ainv) - Ainvu * vden.t() * (*Ainv);
+}
+
+/* Particular case of updateinv_rank1 where only column A[,colid] is updated by adding u
+
+ This is equivalent to setting v^T=(0,..,0,1,0,..,0) where 1 is in entry colid
+*/
+void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, int colid) {
+  arma::mat vTAinv= Ainv->row(colid);
+  arma::mat vTAinvu= vTAinv * (*u);
+  double den= 1.0 + vTAinvu.at(0,0);
+
+  arma::sp_mat uden= (*u)/den;
+  (*Ainv)= (*Ainv) - (*Ainv) * uden * vTAinv; //good formula
+}
+
+
+
 /*
  * LU decomposition, Inverse and determinant of a non-singular matrix.
  * Given a matrix a[1..n][1..n], replace it by the LU decomposition of a

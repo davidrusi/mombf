@@ -46,13 +46,13 @@ B=10^4, burnin= round(B/10), logscale=TRUE, returndraws=TRUE, verbose=TRUE)
 
   The MOM-IW-Dir prior is
 
-  d(mu,Sigma) Dir(eta; q) prod_j N(mu_j; mu0, g Sigma) IW(Sigma_j; nu0, S0)
+  \deqn{d(\mu,A) Dir(\eta; q) \prod_j N(\mu_j; \mu0, g \Sigma_j) IW(\Sigma_j; \nu_0, S0)}
 
   where
 
-  d(mu,Sigma)= [prod_{j<l} (mu_j-mu_l)' A (mu_j-mu_l)]
+  \deqn{d(\mu,A)= [\prod_{j<l} (\mu_j-\mu_l)' A (\mu_j-\mu_l)]}
 
-  and A is the average of Sigma_1^{-1},...,Sigma_k^{-1}. Note that
+  and A is the average of \eqn{\Sigma_1^{-1},...,\Sigma_k^{-1}}. Note that
   one must have q>1 for the MOM-IW-Dir to define a non-local prior.
 
   By default the prior parameter g is set such that

@@ -21,7 +21,7 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 coef.msfit_ggm <- function(object,...) {
   if (object$almost_parallel) stop("coef not yet implemented for almost_parallel")
   m= Matrix::colMeans(object$postSample)
-  ci= sparseMatrixStats::colQuantiles(fit$postSample, prob=c(0.025,0.975))
+  ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
   if (object$samplerPars['sampler'] == 'Gibbs') {
     ans= cbind(t(object$indexes), m, ci, object$margpp)
   } else {
@@ -64,7 +64,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, niter, burnin, pbirth, nbirth, verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=ncol(y), niter, burnin, pbirth, nbirth, verbose)
     
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
@@ -94,9 +94,9 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, niter, burnin, pbirth, nbirth, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, pbirth, nbirth, verbose) {
   if (missing(nbirth)) {
-      nbirth= as.integer(min(ncol(y), max(log(ncol(y)), 10)))
+      nbirth= as.integer(min(p, max(log(p), 10)))
   } else {
       nbirth= as.integer(nbirth)
   }
@@ -107,7 +107,7 @@ format_GGM_samplerPars= function(sampler, niter, burnin, pbirth, nbirth, verbose
 
 #Multivariate normal density given the precision matrix
 dmvnorm_prec <- function(x, sigmainv, logdet.sigmainv, mu = rep(0, ncol(sigmainv)), log = FALSE) {
-  if (missing(logdet.sigmainv)) logdet.sigmainv= determinant(sigmainv,log=TRUE)$modulus
+  if (missing(logdet.sigmainv)) logdet.sigmainv= determinant(sigmainv,logarithm=TRUE)$modulus
   d= mahalanobis(x, center=mu, cov=sigmainv, inverted=TRUE)
   ans= -0.5 * (d + ncol(sigmainv) * log(2*pi) - logdet.sigmainv)
   if(!log) ans= exp(ans)
@@ -154,7 +154,7 @@ initGGM= function(y, Omegaini) {
           rholist= seq(l, 10*l, length=10)
       }
 
-      sfit= glassopath(cov(y), rho=rholist, trace=0)
+      sfit= glassopath(cov(y), rholist=rholist, trace=0)
       bic= glasso_getBIC(y=y, sfit=sfit, method=method)
       
       topbic= which.min(bic)

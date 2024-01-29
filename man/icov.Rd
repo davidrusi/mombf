@@ -40,13 +40,10 @@ icov(fit, threshold)
   Estimated inverse covariance matrix.
 
 }
-\references{
-
-}
 \author{ David Rossell }
 \seealso{
   \code{\link{modelSelectionGGM}}, 
-  \code{\link{coef.msfit_ggm}} for Bayesian model averaging estimates and
+  \code{coef.msfit_ggm} for Bayesian model averaging estimates and
   intervals. 
 }
 \examples{

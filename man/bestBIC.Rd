@@ -79,7 +79,7 @@ summary(fit) #usual GLM summary
 
 coef(fit) #MLE under top model
 
-confint(fit) #conf int under top model
+#confint(fit) #conf int under top model (requires MASS package)
 
 
 

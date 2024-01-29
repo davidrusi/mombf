@@ -224,6 +224,13 @@ void inv_posdef_chol(double **invchol, int n, double **aout); //Inverse given ch
 
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant
 
+//Updating matrix inverses after rank 1 updates
+void symmat_inv_colupdate(arma::mat *Ainv, arma::sp_mat *difvals, int colid); //update symmetric A by changing 1 row/col
+void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, arma::sp_mat *v); //A + u v^T
+void updateinv_rank1(arma::mat *Ainv, int rowid, arma::sp_mat *v); //add v to A[,rowid]
+void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, int colid); //add u to A[colid,]
+
+
 void ludc(double **a, int n, int *indx, double *d); //LU decomposition (renamed routine ludcmp from NR)
 void lu_solve(double **a, int n, const int *indx, double b[]); //Solve A*x=b (renamed routine lubksb from NR)
 void lu_inverse(double **a, int n, double **aout); //Inverse of A[1..n][1..n]

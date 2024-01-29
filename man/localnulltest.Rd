@@ -86,24 +86,24 @@ priorDelta=modelbbprior(), verbose=FALSE, ...)
 \details{
   Local variable selection considers the model
 
-  y[i]= beta_0(z[i]) + sum_{j=1}^p beta_j(z[i], x[i]) + e[i]
+  \deqn{y_i= \beta_0(z_i) + sum_{j=1}^p \beta_j(z_i, x_i) + e_i}
 
-  beta_0(z[i]) is the baseline mean
+  \eqn{\beta_0(z_i)} is the baseline mean
   
-  beta_j(z[i],x[i]) is local effect of covariate j at coordinate z[i]
+  \eqn{\beta_j(z_i,x_i)} is local effect of covariate j at coordinate z_i
   
-  e[i] a Gaussian error term assumed either independent or with a
+  \eqn{e_i} a Gaussian error term assumed either independent or with a
   covariance structure given by Sigma. If assuming independence it is
   possible to consider alternatives to Gaussianity,
   e.g. set \code{family='binomial'} for logistic regression
   or \code{family='poisson'} for Poisson regression
 
-  Note: a sum-to-zero type constraint is set on beta_1(z[i],x[i]) so
-  that it defines a deviation from the baseline mean beta_0(z[i])
+  Note: a sum-to-zero type constraint is set on \eqn{\beta_1(z_i,x_i)} so
+  that it defines a deviation from the baseline mean \eqn{\beta_0(z_i)}
 
-  We model beta_0 using B-splines of degree \code{basedegree} with
+  We model \eqn{\beta_0} using B-splines of degree \code{basedegree} with
   \code{nbaseknots} knots.
-  We model beta_j using B-splines of degree \code{cutdegree} with
+  We model \eqn{\beta_j} using B-splines of degree \code{cutdegree} with
   \code{nlocalknots}. Using \code{cutdegree=0} runs fastest is usually
   gives similar inference than higher degrees, and is hence recommended
   by default.
@@ -156,7 +156,7 @@ m= truemean(x,z)
 y= truemean(x,z) + rnorm(n, 0, .5)
 
 #Run localnulltest with 10 knots
-fit0= localnulltest(y, x=x, z=z, nlocalknots=10)
+fit0= localnulltest(y, x=x, z=z, nlocalknots=10, niter=1000)
 
 #Estimated covariate effects and posterior probabilities
 b= coef(fit0)

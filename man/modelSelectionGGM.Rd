@@ -17,10 +17,12 @@
 }
 \usage{
 
-modelSelectionGGM(y, priorCoef=normalidprior(tau=1),
-priorModel=modelbinomprior(1/ncol(y)),
-priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE,
-sampler='Gibbs', niter=10^3, pbirth= 0.5, burnin= round(niter/10),
+
+modelSelectionGGM(y, priorCoef=normalidprior(tau=1), 
+priorModel=modelbinomprior(1/ncol(y)), 
+priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
+almost_parallel= FALSE, sampler='Gibbs', niter=10^3, 
+burnin= round(niter/10), pbirth=0.5, nbirth, 
 Omegaini='glasso-ebic', verbose=TRUE)
 
 }
@@ -41,6 +43,9 @@ Omegaini='glasso-ebic', verbose=TRUE)
   
   \item{scale}{If \code{TRUE}, the columns of \code{y} will be scaled to
     unit sample variance}
+
+  \item{almost_parallel}{Use almost parallel algorithm sampling from each 
+column independently and using an MH step}
   
   \item{sampler}{Posterior sampler. Options are "Gibbs", "birthdeath"
   and "zigzag"}
@@ -92,9 +97,6 @@ Omegaini='glasso-ebic', verbose=TRUE)
 
 \item{priors}{List storing the priors specified when calling
   \code{modelSelectionGGM}}
-
-}
-\references{
 
 }
 \author{ David Rossell }

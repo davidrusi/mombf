@@ -5,18 +5,21 @@
 # - initpar: method to initialize the parameters. It can be 'MLE', 'L1', 'MLE-aisgd', 'L2-aisgd'. If missing, it uses MLE when p <= n/2 and L1 when p > n/2. If p>200 or n>10,000 then ai-sgd is used (averaged intrinsic stochatic gradient descent)
 initParameters <- function(y, x, family, initpar) {
     n= length(y); p= ncol(x)
-    if (!(initpar %in% c('none','auto','MLE','MLE-aisgd','L1','L2-aisgd'))) stop("initpar must be 'none', 'auto', 'MLE', 'MLE-aisgd', 'L1' or 'L2-aisgd'")
+    if (!(initpar %in% c('none','auto','MLE','L1'))) stop("initpar must be 'none', 'auto', 'MLE'")
+    #Disabled sgd since sgd package was discontinued
+    #if (!(initpar %in% c('none','auto','MLE','MLE-aisgd','L1','L2-aisgd'))) stop("initpar must be 'none', 'auto', 'MLE', 'MLE-aisgd', 'L1' or 'L2-aisgd'")
     if (initpar =='auto') {
-        large= (n > 10000) || (p > 200)
-        if ((p<=n/2) && (!large)) {
-            initpar= 'MLE'
-        } else if ((p<=n/2) && large) {
-            initpar= 'MLE-aisgd'
-        } else if ((p>n/2) && (!large)) {
-            initpar= 'L1'
-        } else {
-            initpar= 'L2-aisgd'
-        }
+        initpar= ifelse(p <= n/2, 'MLE', 'L1')
+        #large= (n > 10000) || (p > 200)
+        #if ((p<=n/2) && (!large)) {
+        #    initpar= 'MLE'
+        #} else if ((p<=n/2) && large) {
+        #    initpar= 'MLE-aisgd'
+        #} else if ((p>n/2) && (!large)) {
+        #    initpar= 'L1'
+        #} else {
+        #    initpar= 'L2-aisgd'
+        #}
     }
     if (!(family %in% c('binomial','poisson'))) family= 'gaussian'
     if (initpar == 'none') {
@@ -24,9 +27,9 @@ initParameters <- function(y, x, family, initpar) {
     } else if (initpar == 'MLE') {
         fit= glm(y ~ x -1, family=family)
         ans= coef(fit)
-    } else if (initpar == 'MLE-aisgd') {
-        fit= sgd(x=x, y=y, model="glm", model.control=list(family=family), sgd.control=list(method="ai-sgd"))
-        ans= coef(fit)
+    #} else if (initpar == 'MLE-aisgd') {
+    #    fit= sgd(x=x, y=y, model="glm", model.control=list(family=family), sgd.control=list(method="ai-sgd"))
+    #    ans= coef(fit)
     }  else if (initpar == 'L1') {
         int= (colSums(x==1) == nrow(x))
         fit= glmnet(x=x[,!int], y=y, intercept=TRUE, family=family, nlambda=50, alpha=1)
@@ -37,41 +40,12 @@ initParameters <- function(y, x, family, initpar) {
         ans= coef(fit)[,which.min(bicvals)]
     #} else if (initpar == 'L1-aisgd') {
         #Function sgd does not appear to return correct results for aisgd with L1
-        #lambdamax= 1
-        #fit= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda1=lambdamax), sgd.control=list(method="ai-sgd"))
-        #nvars = sum(coef(fit) !=0)
-        #if (nvars > 0) { #increase lambdamax, until all coefficients are 0
-        #  iter =1
-        #  while ((nvars > 0) && (iter<10)) {
-        #      lambdamax= 10*lambdamax
-        #      fit= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda1=lambdamax), sgd.control=list(method="ai-sgd"))
-        #      nvars = sum(coef(fit) !=0)
-        #      iter= iter+1
-        #  }
-        #} else { #decrease lambdamax,
-        #  while (nvars == 0) {
-        #      lambdamaxnew= lambdamax/10
-        #      fitnew= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda1=lambda1), sgd.control=list(method="ai-sgd"))
-        #      nvars = sum(coef(fit) !=0)
-        #      if (nvars == 0) { lambdamax= lambdamaxnew; fit= fitnew }
-        #  }
-        #}
-        #lambdamax= 1
-        #lambda.min.ratio = ifelse(n < p, 0.01, 1e-04) #same default as in glmnet
-        #lambdaseq = exp(seq(log(lambdamax*lambda.min.ratio), log(lambdamax), length=20))
-        #beta= matrix(0, nrow=ncol(x), ncol=length(lambdaseq))
-        #bicvals= double(length(lambdaseq))
-        #for (i in 1:length(lambdaseq)) {
-        #      fit= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda1=lambdaseq[i]), sgd.control=list(method="ai-sgd"))
-        #      beta[,i]= coef(fit)
-        #      bicvals[i]= glmBIC(beta[,i], y=y, x=x, family=family)
-        #}
-        #ans= beta[,which.min(bicvals)]
-      } else if (initpar == 'L2-aisgd') {
-        #Ridge penalty
-        fit= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda2=0.001), sgd.control=list(method="ai-sgd"))
-        ans= coef(fit)
-    } else stop("Invalid 'initpar'. Allowed values are 'MLE', 'L1', 'MLE-aisgd', 'L2-aisgd'")
+      #} else if (initpar == 'L2-aisgd') {
+      #  #Ridge penalty
+      #  fit= sgd(x=x, y=y, model="glm", model.control=list(family=family, lambda2=0.001), sgd.control=list(method="ai-sgd"))
+      #  ans= coef(fit)
+    #} else stop("Invalid 'initpar'. Allowed values are 'MLE', 'L1', 'MLE-aisgd', 'L2-aisgd'")
+    } else stop("Invalid 'initpar'. Allowed values are 'MLE', 'L1'")
     return(ans)    
 }
 

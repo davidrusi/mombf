@@ -5,7 +5,6 @@
 \alias{msfit_ggm}
 \alias{show,msfit_ggm-method}
 \alias{msfit_ggm.coef}
-\alias{msfit.plot}
 
 
 \title{Class "msfit_ggm"}

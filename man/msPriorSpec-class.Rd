@@ -8,6 +8,7 @@
 \alias{bicprior}
 \alias{ic}
 \alias{emomprior}
+\alias{exponentialprior}
 \alias{imomprior}
 \alias{momprior}
 \alias{zellnerprior}
@@ -41,6 +42,8 @@ emomprior(tau, tau.adj=10^6)
 zellnerprior(taustd=1, tau, tau.adj=10^6)
 normalidprior(taustd=1, tau, tau.adj=10^6)
 
+exponentialprior(lambda = 1)
+
 groupmomprior(taustd=1, tau, tau.adj=10^6)
 groupimomprior(tau, tau.adj=10^6)
 groupemomprior(tau, tau.adj=10^6)
@@ -67,7 +70,9 @@ igprior(alpha=.01, lambda=.01)
   \item{c}{Under the Complexity prior the prior
     probability of having k variables in the model is proportional to \code{1/p^(ck)}}
   \item{alpha}{Inverse gamma prior has parameters alpha/2, lambda/2}
-  \item{lambda}{Inverse gamma prior has parameters alpha/2, lambda/2}
+  \item{lambda}{\code{igprior} defines an inverse gamma prior with
+    parameters alpha/2, lambda/2. \code{exponentialprior} defines an
+    exponential prior with rate parameter \code{lambda}}
 }
 \section{Objects from the Class}{
 Objects can be created by calls of the form \code{new("msPriorSpec",
@@ -138,10 +143,10 @@ No methods defined with class "msPriorSpec" in the signature.
 
   groupzellnerprior is the prior density on delta
 
-  p_z(delta; tau)= prod_j N(delta_j; 0, (tau/p_j)) (X_j'X_j)^{-1})
+  \deqn{p_z(\delta; \tau)= \prod_j N(\delta_j; 0, (\tau/p_j)) (X_j'X_j)^{-1}}
 
-  where X_j are the design matrix columns associated to delta_j and p_j=ncol(X_j)
-  is th number of covariates in the group (for groupmomprior, the term in the
+  where \eqn{X_j} are the design matrix columns associated to \eqn{delta_j} and p_j=ncol(X_j)
+  is the number of covariates in the group (for groupmomprior, the term in the
   denominator is (p_j +2) instead of p_j). A default
   tau=n=nrow(X_j) mimics the unit information prior and implies that the
   ratio of variance explained by X_j / residual variance is expected to be

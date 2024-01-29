@@ -1,4 +1,3 @@
-
 #include "modselIntegrals.h"
 #include "ggm.h"
 
@@ -276,6 +275,9 @@ void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount
 
     for (j=0; j < p; j++) {  //for each column
 
+      Rprintf("i=%d, j=%d\n", i, j); //debug
+      Omegaini->print("Omegaini"); //debug
+
       arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
       arma::sp_mat Omegacol= Omegaini->col(j);
       arma::sp_mat ans_row(p, 1);
@@ -320,6 +322,119 @@ void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount
   if (ggm->verbose) { Rcout << "\r Done\n"; }
 
 }
+
+
+void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini) {
+
+  int i, j, k, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10, colupdated;
+  arma::sp_mat::iterator it;
+  arma::sp_mat ans_row(p, 1), newvals, oldvals, difvals;
+  arma::mat invOmega_j, invOmega_j_safe;
+
+  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+  bool use_gibbs= (sampler == Gibbs);
+  bool use_birthdeath= (sampler == birthdeath);
+
+  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs requires the sampler to be Gibbs or birthdeath");
+
+  if (niter >10) { niter10= niter / 10; } else { niter10= 1; }
+
+  if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
+
+  invOmega_j= get_invOmega_j(Omegaini, 0);
+
+  for (i=0; i < niter; i++) {
+
+    for (j=0; j < p; j++) {  //for each column
+
+      Rprintf("i=%d, j=%d\n", i, j); //debug
+      Omegaini->print("Omegaini"); //debug
+      //Update invOmega_j
+      if ((i>0) | (j > 0)) {
+
+        if (p >= 50) {
+
+          if (j>0) { colupdated= j-1;  } else { colupdated= p-2; } //index of the column that was last updated
+          oldvals= Omegaini->col(j); //previous values in Omega_j
+          oldvals.shed_row(colupdated);
+          newvals= Omegaini->col(colupdated); //new values in Omega[,j]
+          newvals.shed_row(j);
+          if (j==0) { //put last entry in newvals as first
+            arma::sp_mat first= newvals.row(newvals.n_rows - 1);
+            newvals.shed_row(newvals.n_rows - 1);
+            newvals= join_cols(first, newvals);
+          }
+          arma::sp_mat difvals= newvals - oldvals;
+          oldvals.print("oldvals"); //debug
+          newvals.print("newvals"); //debug
+          difvals.print("difvals"); //debug
+	   
+          //Less accurate matrix inversion, quadratic cost
+          if (j>0) {
+            symmat_inv_colupdate(&invOmega_j, &difvals, j-1); 
+          } else {
+            symmat_inv_colupdate(&invOmega_j, &difvals, 0);
+            //to do: permute last column into first
+          }
+          invOmega_j_safe= get_invOmega_j(Omegaini, j); //more accurate, cubic cost
+	   
+          double approxerror= norm(invOmega_j - invOmega_j_safe, "fro"); //approx error in rank 1  
+          Rprintf("i=%d, j=%d, approx error= %f\n", i, j, approxerror); //debug
+          invOmega_j.print("invOmega_j (rank 1 update)"); //debug
+          invOmega_j_safe.print("invOmega_j (full update)"); //debug
+
+        } else {
+
+          invOmega_j= get_invOmega_j(Omegaini, j); //more accurate, cubic cost
+
+        }
+
+      }
+
+      arma::sp_mat Omegacol= Omegaini->col(j);
+      arma::vec margpp_row= arma::zeros(p);
+      arma::Col<int> margppcount_row;
+      margppcount_row.zeros(p);
+
+      if (use_gibbs) {
+        GGM_Gibbs_singlecol(&ans_row, &margpp_row, &margppcount_row, 0, 0, (unsigned int) j, ggm, &Omegacol,  &invOmega_j); //update row given by j
+      } else {
+        GGM_birthdeath_singlecol(&ans_row, &margpp_row, &margppcount_row, 0, 0, (unsigned int) j, ggm, &Omegacol,  &invOmega_j); //update row given by j
+      }
+
+      //Update Omegaini
+      spmat_rowcol2zero(Omegaini, j); //set row & column j in Omegaini to zero
+
+      for (it= ans_row.begin(); it != ans_row.end(); ++it) {
+        k= it.row(); //ans_row->at(k,0) stores entry (j, k) of ans
+        Omegaini->at(j,k)= Omegaini->at(k,j)= ans_row.at(k,0);
+      }
+
+      //Copy posterior marginal inclusion probabilities
+      for (k=0; k<p; k++) { 
+        margpp->at(k,j) += margpp_row.at(k); 
+        margpp->at(j,k)= margpp->at(k,j);
+        margppcount->at(k,j) += margppcount_row.at(k);
+        margppcount->at(j,k)= margppcount->at(k,j);
+      }
+
+    } //end for j
+
+    //Copy from Omegaini into ans(,iter)
+    if (i >= burnin) {
+      if (i >= burnin) spmatsym_save2flat(ans, Omegaini, iter);
+      iter++;
+    }
+
+    if (ggm->verbose) print_iterprogress(&i, &niter, &niter10);
+
+  } //end for i
+
+  if (ggm->verbose) { Rcout << "\r Done\n"; }
+
+}
+
 
 
 

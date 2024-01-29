@@ -150,11 +150,16 @@ to the number of variables in \code{x}. }
 \item{optim_maxit}{Maximum number of iterations when method=='Laplace'}
 \item{initpar}{Initial regression parameter values when finding the
   posterior mode to approximate the integrated likelihood. 'none', 'MLE',
-  'MLE-aisgd', 'L1', 'L2-aisgd', or a numeric vector with initial
-  values. If p<n/2 MLE is used, else L1 (regularization parameter set
-  via BIC). 'auto': if n>10,000 or p>200, then MLE-aisgd or L2-aisgd are
-  used. aisgd stands for averaged intrinsic stochastic gradient descent
-  (see function sgd in package sgd)}
+  'L1', or a numeric vector with initial
+  values. 'auto': if p<n/2 MLE is used, else L1 (regularization parameter set
+  via BIC)}
+%\item{initpar}{Initial regression parameter values when finding the
+%  posterior mode to approximate the integrated likelihood. 'none', 'MLE',
+%  'MLE-aisgd', 'L1', 'L2-aisgd', or a numeric vector with initial
+%  values. If p<n/2 MLE is used, else L1 (regularization parameter set
+%  via BIC). 'auto': if n>10,000 or p>200, then MLE-aisgd or L2-aisgd are
+%  used. aisgd stands for averaged intrinsic stochastic gradient descent
+%  (see function sgd in package sgd)}
 \item{B}{Number of samples to use in Importance Sampling scheme. Ignored
   if \code{method=='Laplace'}}
 \item{XtXprecomp}{Set to \code{TRUE} to pre-compute the Gram matrix x'x

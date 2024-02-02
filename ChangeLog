@@ -1,3 +1,6 @@
+CHANGES IN VERSION 3.5.3
+- Fixed memory allocation error in modselIntegralsGGM
+
 CHANGES IN VERSION 3.5.0
 - Added modelSelectionGGM
 - Added prettier iteration progress

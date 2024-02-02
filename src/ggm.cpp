@@ -275,8 +275,8 @@ void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount
 
     for (j=0; j < p; j++) {  //for each column
 
-      Rprintf("i=%d, j=%d\n", i, j); //debug
-      Omegaini->print("Omegaini"); //debug
+      //Rprintf("i=%d, j=%d\n", i, j); //debug
+      //Omegaini->print("Omegaini"); //debug
 
       arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
       arma::sp_mat Omegacol= Omegaini->col(j);
@@ -348,8 +348,8 @@ void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppc
 
     for (j=0; j < p; j++) {  //for each column
 
-      Rprintf("i=%d, j=%d\n", i, j); //debug
-      Omegaini->print("Omegaini"); //debug
+      //Rprintf("i=%d, j=%d\n", i, j); //debug
+      //Omegaini->print("Omegaini"); //debug
       //Update invOmega_j
       if ((i>0) | (j > 0)) {
 
@@ -366,9 +366,9 @@ void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppc
             newvals= join_cols(first, newvals);
           }
           arma::sp_mat difvals= newvals - oldvals;
-          oldvals.print("oldvals"); //debug
-          newvals.print("newvals"); //debug
-          difvals.print("difvals"); //debug
+          //oldvals.print("oldvals"); //debug
+          //newvals.print("newvals"); //debug
+          //difvals.print("difvals"); //debug
 	   
           //Less accurate matrix inversion, quadratic cost
           if (j>0) {
@@ -379,10 +379,10 @@ void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppc
           }
           invOmega_j_safe= get_invOmega_j(Omegaini, j); //more accurate, cubic cost
 	   
-          double approxerror= norm(invOmega_j - invOmega_j_safe, "fro"); //approx error in rank 1  
-          Rprintf("i=%d, j=%d, approx error= %f\n", i, j, approxerror); //debug
-          invOmega_j.print("invOmega_j (rank 1 update)"); //debug
-          invOmega_j_safe.print("invOmega_j (full update)"); //debug
+          //double approxerror= norm(invOmega_j - invOmega_j_safe, "fro"); //approx error in rank 1  
+          //Rprintf("i=%d, j=%d, approx error= %f\n", i, j, approxerror; //debug
+          //invOmega_j.print("invOmega_j (rank 1 update)"); //debug
+          //invOmega_j_safe.print("invOmega_j (full update)"); //debug
 
         } else {
 
@@ -531,9 +531,6 @@ void GGM_Gibbs_parallel(std::list<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_m
     } else {
       GGM_birthdeath_singlecol(ans_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j);
     }
-
-    //Rprintf("j=%d\n",j); //debug
-    //ans_row->print("ans_row"); //debug
 
   } //end for j
 
@@ -850,14 +847,6 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
     (*m)= Uinv * s;
      
     (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log(tau[0]) + logdetUinv);
-
-    //bool debug= false;
-    //if (debug) { //debug
-    //  model->print("model:");
-    //  Omegainv_model->print("Omegainv_model");
-    //  U.print("U");
-    //  m->print("m");
-    //}
 
   } else { //if all off-diagonal entries are zero
 

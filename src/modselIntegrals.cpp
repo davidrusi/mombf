@@ -90,7 +90,7 @@ modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject
 
   this->maxsave= 1000000000; //save first 10^9 models
 
-  this->zerochar = (char *) calloc(this->nvars + 1, sizeof(char));
+  this->zerochar = (char *) calloc(this->nvars + 2, sizeof(char));
   for (i=0; i < this->nvars; i++) this->zerochar[i]= '0';
 
 }

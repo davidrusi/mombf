@@ -1,7 +1,7 @@
 Package: mombf
 Type: Package
-Version: 3.5.1
-Date: 2024-01-29
+Version: 3.5.3
+Date: 2024-02-01
 Title: Model Selection with Bayesian Methods and Information Criteria 
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck, Oriol Abril, Miquel Torrens
 Maintainer: David Rossell <rosselldavid@gmail.com>

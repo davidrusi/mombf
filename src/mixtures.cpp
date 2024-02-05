@@ -2,6 +2,7 @@
 #include "mixtures.h"
 
 
+// [[Rcpp::export]]
 SEXP normalmixGibbsCI(SEXP Sx, SEXP Sn, SEXP Sp, SEXP Sncomp, SEXP Sz, SEXP Smu0, SEXP Sg, SEXP Snu0, SEXP SS0, SEXP Sq, SEXP SB, SEXP Sburnin, SEXP Sverbose) {
   //Posterior sampling for Normal mixture models under a Normal-IWishart-Dir prior. Also posterior probability of one empty cluster, required for Bayes factor calculation
   //

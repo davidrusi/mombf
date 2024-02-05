@@ -520,7 +520,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     postModeProb <- double(1)
     if (initSearch=='greedy') {
       niterGreed <- as.integer(100)
-      ans= .Call("greedyVarSelCI",knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+      ans= greedyVarSelCI(knownphi,familygreedy,prior,priorgr,niterGreed,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,xstd,colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
       postMode <- ans[[1]]; postModeProb <- ans[[2]]
       if (familyint==0) { postMode <- as.integer(c(postMode,0,0)); postModeProb <- as.double(postModeProb - 2*log(2)) }
       postMode[includevars==1] <- TRUE
@@ -536,7 +536,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     }
 
     #Run MCMC
-    ans <- .Call("modelSelectionGibbsCI", postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans <- modelSelectionGibbsCI(postMode,postModeProb,knownphi,familyint,prior,priorgr,niter,thinning,burnin,ndeltaini,deltaini,includevars,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postSample <- matrix(ans[[1]],ncol=ifelse(familyint!=0,p,p+2))
     margpp <- ans[[2]]; postMode <- ans[[3]]; postModeProb <- ans[[4]]; postProb <- ans[[5]]
     margpp[includevars==1]= 1
@@ -560,7 +560,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     nmodels= as.integer(nrow(models))
     models= as.integer(models)
     includevars= as.integer(includevars)
-    ans= .Call("modelSelectionEnumCI", nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
+    ans= modelSelectionEnumCI(nmodels,models,knownphi,familyint,prior,priorgr,n,p,ystd,uncens,sumy2,sumy,sumlogyfact,as.double(xstd),colsumsx,hasXtX,XtX,ytX,method,adj.overdisp,hesstype,optimMethod,optim_maxit,thinit,usethinit,B,alpha,lambda,phi,tau,taugroup,taualpha,fixatanhalpha,r,prDelta,prDeltap,parprDeltap,prConstr,prConstrp,parprConstrp,groups,ngroups,nvaringroup,constraints,invconstraints,as.integer(verbose))
     postMode <- ans[[1]]; postModeProb <- ans[[2]]; postProb <- ans[[3]]
     postSample <- matrix(nrow=0,ncol=ifelse(familyint!=0,p,p+2))
     models <- matrix(models,nrow=nmodels)

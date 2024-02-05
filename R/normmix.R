@@ -100,7 +100,8 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
         if ("NULL" %in% class(em)) em= try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
         if ('try-error' %in% class(em)) { z= as.integer(kmeans(x, centers=k[i])$cluster) } else { z= as.integer(em$classification) }
         #Gibbs sampling (version using mombf)
-        mcmcfit= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
+        mcmcfit= "normalmixGibbsCI"(as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
+        #mcmcfit= .Call("normalmixGibbsCI",as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
         names(mcmcfit)= c('logprobempty','logpen','eta','mu','cholSigmainv')
         logprobempty[i]= mcmcfit$logprobempty
         eta= t(matrix(mcmcfit$eta,ncol=(B-burnin)))

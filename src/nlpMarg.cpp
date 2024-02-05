@@ -20,8 +20,9 @@
 #include <string>
 
 //Syntax calling from R, see nlpMarginal.R
-//.Call("nlpMarginalCI",   sel,       nsel,    familyint,           prior,          priorgr,       n,       p,       y,       uncens,       sumy2,       x,       colsumsx,       XtX,       ytX,       method,       hesstype,       optimMethod, optim_maxit,       B,       alpha,       lambda,       tau,       taugroup,       taualpha,       fixatanhalpha,       r,       groups,       ngroups,       nvaringroup,       constraints,      invconstraints,        logscale)
+//nlpMarginalCI(sel,       nsel,    familyint,           prior,          priorgr,       n,       p,       y,       uncens,       sumy2,       x,       colsumsx,       XtX,       ytX,       method,       hesstype,       optimMethod, optim_maxit,       B,       alpha,       lambda,       tau,       taugroup,       taualpha,       fixatanhalpha,       r,       groups,       ngroups,       nvaringroup,       constraints,      invconstraints,        logscale)
 
+// [[Rcpp::export]]
 SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
   int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit= INTEGER(Susethinit)[0], priorcode;
   double *rans, *ytXuncens=NULL, emptydouble=0, *thinit;

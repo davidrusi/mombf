@@ -14,7 +14,8 @@ bspline <- function(x, degree, knots) {
  #    degree: degree of the spline (0: piecewise constant, 1: linear etc.)
  #    knots: vector with positions of the knots
  #  Output: matrix[nx][nknots-degree-1] containing the B-spline basis
-    ans= .Call("bsplineCI", as.double(x), as.integer(degree), as.double(knots))
+    ans= bsplineCI(as.double(x), as.integer(degree), as.double(knots))
+    #ans= .Call("bsplineCI", as.double(x), as.integer(degree), as.double(knots))
     return(matrix(ans,nrow=length(x),byrow=TRUE))
 }
 

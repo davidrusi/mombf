@@ -1,3 +1,7 @@
+CHANGES IN VERSION 3.5.4
+- Changed all .Call interfaces to Rcpp exports, to avoid warnings when turning
+on -flto compiler flag
+
 CHANGES IN VERSION 3.5.3
 - Fixed memory allocation error in modselIntegralsGGM
 

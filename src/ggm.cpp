@@ -669,6 +669,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<int> *m
   delete sample_offdiag;
   delete model;
   delete modelnew;
+  delete ms;
   
 }
 
@@ -774,6 +775,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<in
   delete sample_offdiag;
   delete model;
   delete modelnew;
+  delete ms;
   
 }
 

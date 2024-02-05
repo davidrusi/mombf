@@ -125,7 +125,8 @@ rnlpLM <- function(y, x, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, b
         ans <- matrix(1/rgamma((niter-burnin)/thinning, .5*(a_phi+n), .5*(b_phi+sum(y^2))), ncol=1)
         colnames(ans) <- 'phi'
       } else {
-        ans <- .Call("rnlpPostCI_lm",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
+        ans <- rnlpPostCI_lm(as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
+        #ans <- .Call("rnlpPostCI_lm",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(y),as.double(x),as.integer(p),as.integer(r),tau,a_phi,b_phi,prior)
         ans <- matrix(ans,ncol=p+1)
         if (is.null(colnames(x))) colnames(ans) <- c(paste('beta',1:ncol(x),sep=''),'phi') else colnames(ans) <- c(colnames(x),'phi')
       }
@@ -169,7 +170,8 @@ setMethod("rnlp", signature(y='missing',x='missing',m='numeric',V='matrix',msfit
     } else if (priorCoef@priorDistr=='peMOM') {
       prior <- as.integer(2); r <- as.integer(0)
     } else stop("This kind of prior is not implemented")
-    ans <- .Call("rnlpCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(m),as.double(V),as.integer(p),as.integer(r),tau,prior)
+    ans <- rnlpCI(as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(m),as.double(V),as.integer(p),as.integer(r),tau,prior)
+    #ans <- .Call("rnlpCI",as.integer(niter),as.integer(burnin),as.integer(thinning),as.double(m),as.double(V),as.integer(p),as.integer(r),tau,prior)
     ans <- matrix(ans,ncol=p)
   } else if (priorCoef@priorDistr %in% c('zellner','bic')) {
     ans <- t(m + t(chol(V)) %*% matrix(rnorm(p*(niter-burnin)/thinning),nrow=p))
@@ -293,7 +295,8 @@ rtnorm <- function(n, m, sd, lower, upper) {
   if (length(lower)>0) {
     lower[1] <- max(-1.0e10,lower[1])
     upper[length(upper)] <- min(1.0e10,upper[length(upper)])
-    ans <- .Call("rnorm_truncMultCI",as.integer(n),as.double(lower),as.double(upper),as.double(m),as.double(sd))
+    ans <- rnorm_truncMultCI(as.integer(n),as.double(lower),as.double(upper),as.double(m),as.double(sd))
+    #ans <- .Call("rnorm_truncMultCI",as.integer(n),as.double(lower),as.double(upper),as.double(m),as.double(sd))
   } else {
     ans <- rnorm(n, m, sd)
   }
@@ -319,7 +322,8 @@ rtmvnorm <- function(n, m, Sigma, SigmaInv, lower, upper, within, method='Gibbs'
   if (nrow(Sigma)!=length(m) | ncol(Sigma)!=length(m)) stop('Dimensions of m and Sigma do no match')
   if (!(method %in% c('Gibbs','MH'))) stop('Method should be Gibbs or MH')
   method <- as.integer(ifelse(method=='Gibbs',1,2))
-  ans <- .Call("rtmvnormCI",as.integer(n), as.double(m), as.double(Sigma), as.double(lower), as.double(upper), as.integer(within), method)
+  ans <- rtmvnormCI(as.integer(n), as.double(m), as.double(Sigma), as.double(lower), as.double(upper), as.integer(within), method)
+  #ans <- .Call("rtmvnormCI",as.integer(n), as.double(m), as.double(Sigma), as.double(lower), as.double(upper), as.integer(within), method)
   matrix(ans,ncol=length(m))
 }
 
@@ -336,7 +340,8 @@ rtmvnormProd <- function(n, m, Sigma, k=1, lower=0, upper=Inf, burnin=round(.1*n
   lowtrunc <- ifelse(lower==0,as.integer(0),as.integer(1))
   uptrunc <- ifelse(upper==Inf,as.integer(0),as.integer(1))
   if (upper==Inf) { uptrunc <- as.integer(0); upper <- as.double(0) } else { uptrunc <- as.integer(1); upper <- as.double(upper) }
-  ans= .Call("rtmvnormProdCI",as.integer(n), as.double(m), as.double(Sigma), as.integer(k), as.double(lower), upper, lowtrunc, uptrunc, as.integer(burnin));
+  ans= rtmvnormProdCI(as.integer(n), as.double(m), as.double(Sigma), as.integer(k), as.double(lower), upper, lowtrunc, uptrunc, as.integer(burnin));
+  #ans= .Call("rtmvnormProdCI",as.integer(n), as.double(m), as.double(Sigma), as.integer(k), as.double(lower), upper, lowtrunc, uptrunc, as.integer(burnin));
   matrix(ans,nrow=n)
 }
 

@@ -4827,6 +4827,7 @@ void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rt
   free_dvector(cump,0,ntrunc);
 }
 
+// [[Rcpp::export]]
 SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s) {
   double pdfans;
   SEXP ans;
@@ -4879,7 +4880,7 @@ void rtmvnorm(double *ans, int n, int p, double *mu, double **Sigma, double *low
   free_dvector(alpha,1,p); free_dvector(ansortho,0,n*p -1);
 }
 
-//R interface to rtmvnorm
+// [[Rcpp::export]]
 SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method) {
   int i, j, p= LENGTH(mu);
   double **S;
@@ -5162,7 +5163,7 @@ void rtmvnormProd(double *ans, int n, int p, double *mu, double **Sinv, int k, d
   }
 }
 
-//R interface for rtmvnormProd
+// [[Rcpp::export]]
 SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin) {
   bool posdef;
   int i,j, p=LENGTH(mu), nn=INTEGER(n)[0];
@@ -6376,7 +6377,7 @@ void demomighess(double **ans, int *n, double *th, double *logphi, double *tau, 
 // - a_phi, b_phi: prior for residual variance phi ~ IG(a_phi/2, b_phi/2)
 // - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
 
-//R interface of rnlp for linear models
+// [[Rcpp::export]]
 SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior) {
   int n= LENGTH(y), nsave;
   SEXP ans;
@@ -6512,7 +6513,7 @@ void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double
 // - tau: prior dispersion
 // - prior: prior==0 for MOM, prior==1 for iMOM, prior==2 for eMOM
 
-//R interface of rnlp for posterior determined by mean and covariance
+// [[Rcpp::export]]
 SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior) {
   int nsave;
   SEXP ans;

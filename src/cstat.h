@@ -59,16 +59,18 @@ extern "C" {
 
   SEXP mnormCI(SEXP order, SEXP m, SEXP sd); //Raw moment of N(m,sd) of order "order"
 
-  //Non-local prior sampling
-  SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
-  SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);
+}
 
-  //Truncated multivariate Normal sampling
-  SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
-  SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
-  SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
+//Non-local prior sampling
+//  SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
+//  SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);
 
-  }
+//Truncated multivariate Normal sampling
+//  SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
+//  SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
+//  SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
+
+
 
 /**************************************************************/
 /* Functions to compute means & variances                     */

@@ -60,7 +60,8 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- nlpMarginalCI(knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  #ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
   return(ans)
 }
 
@@ -84,7 +85,7 @@ check_sel_groups <- function(sel, groups) {
 
 eprod <- function(m, S, power=1, dof= -1) {
   #Mean of prod (x_i)^(2*power) when x_i ~ T_dof(mu,sigma). Set dof=-1 for N(mu,sigma). Written by John Cook
-  ans <- .Call("eprod_I",as.double(m),as.double(S), as.integer(length(m)), as.integer(power), as.double(dof))
+  ans <- eprod_I(as.double(m),as.double(S), as.integer(length(m)), as.integer(power), as.double(dof))
   ans
 }
 
@@ -127,7 +128,7 @@ pmomMarginalK <- function(sel, y, x, phi, tau, r=1, method='auto', B=10^5, logsc
   method <- as.integer(method)
   B <- as.integer(B); logscale <- as.integer(logscale)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("pmomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale, ngroups, nvaringroup)
+  ans <- pmomMarginalKI(sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, r, method, B, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
@@ -186,7 +187,7 @@ pmomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, r=1, meth
   B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("pmomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
+  ans <- pmomMarginalUI(sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,r,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 
@@ -307,7 +308,7 @@ pimomMarginalK <- function(sel, y, x, phi, tau=1, method='Laplace', B=10^5, logs
   if (method=='Laplace') method=0 else if (method=='MC') method=1 else if (method=='plugin') method=2 else stop("Invalid argument 'method'")
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("pimomMarginalKI", sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale, ngroups, nvaringroup)
+  ans <- pimomMarginalKI(sel, nsel, n, p, y, sumy2, XtX, ytX, phi, tau, method, B, logscale, ngroups, nvaringroup)
   return(ans)
 }
 
@@ -378,7 +379,7 @@ pimomMarginalU <- function(sel, y, x, alpha=0.001, lambda=0.001, tau=1, method='
   method <- as.integer(method); B <- as.integer(B); logscale <- as.integer(logscale)
   alpha <- as.double(alpha); lambda <- as.double(lambda)
   ngroups= p; nvaringroup= as.integer(rep(1,p))
-  ans <- .Call("pimomMarginalUI",sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
+  ans <- pimomMarginalUI(sel,nsel,n,p,y,sumy2,x,XtX,ytX,tau,method,B,logscale,alpha,lambda,ngroups,nvaringroup)
   return(ans);
 }
 

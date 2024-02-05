@@ -64,6 +64,7 @@ Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
 //*************************************************************************************
 
 
+// [[Rcpp::export]]
 SEXP testfunctionCI(SEXP x) {
     SEXP ans;
 
@@ -842,6 +843,8 @@ void proposalpmom(double *propPars, double *m, double *S, double *phi, int *r, d
 
 
 //Expectation of prod_j th_j^{2*power} under multivariate Normal/T with mean m, covariance S, dimension n, degrees of freedom dof (dof=-1 for Normal)
+
+// [[Rcpp::export]]
 SEXP eprod_I(SEXP m, SEXP S, SEXP n, SEXP power, SEXP dof) {
   SEXP ans;
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
@@ -1042,6 +1045,7 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
+// [[Rcpp::export]]
 SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
@@ -1188,6 +1192,7 @@ void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, i
 // - postModeProb: unnormalized posterior prob of posterior mode (log scale)
 // - postProb: unnormalized posterior prob of each visited model (log scale)
 
+// [[Rcpp::export]]
 SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
@@ -1527,6 +1532,8 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 //               Similar to Gibbs sampling, except that deterministic updates are made iff there is an increase in post model prob
 //               The scheme proceeds until no variable is included/excluded or niter iterations are reached
 // Input arguments: same as in modelSelectionC.
+
+// [[Rcpp::export]]
 SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose) {
 
   bool hasXtX= LOGICAL(ShasXtX)[0];
@@ -5516,6 +5523,7 @@ double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B) {
 // - B: number of Monte Carlo samples. Ignored unless method==1.
 // - logscale: if set to 1 result is returned in log scale
 
+// [[Rcpp::export]]
 SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
   struct marginalPars pars;
   int SoptimMethod= 1, Soptim_maxit= -1, emptyint=1, usethinit=0, knownphi=1;
@@ -5596,6 +5604,7 @@ double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars) {
 }
 
 
+// [[Rcpp::export]]
 SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
   int SoptimMethod= 1, Soptim_maxit= -1, emptyint=1, usethinit=0, knownphi=0;
   double *rans, emptydouble=0, offset=0, *taualpha=NULL;
@@ -5918,6 +5927,8 @@ void imomIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, doub
 // - method: method to approximate the marginal. method==0 for Laplace approximation (may underestimate the true value), method==1 for Importance Sampling Monte Carlo
 // - B: number of Monte Carlo samples. Ignored unless method==1.
 // - logscale: if set to 1 result is returned in log scale
+
+// [[Rcpp::export]]
 SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup) {
   int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), SoptimMethod=1, Soptim_maxit= -1, *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, emptyint=1, usethinit=0, knownphi=1;
   double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *ytX=REAL(SytX), *phi=REAL(Sphi), *tau=REAL(Stau), *rans, emptydouble=0, offset=0, *taualpha=NULL;
@@ -6196,6 +6207,7 @@ double f2int_imom(double phi) {
 }
 
 
+// [[Rcpp::export]]
 SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup) {
   int *sel=INTEGER(Ssel), *nsel=INTEGER(Snsel), *n=INTEGER(Sn), *p=INTEGER(Sp), *method=INTEGER(Smethod), *B=INTEGER(SB), *logscale=INTEGER(Slogscale), r=1, SoptimMethod=1, Soptim_maxit= -1, emptyint=1, usethinit=0, knownphi=0;
   double *y=REAL(Sy), *sumy2=REAL(Ssumy2), *x=REAL(Sx), *ytX=REAL(SytX), *tau=REAL(Stau), *alpha=REAL(Salpha), *lambda=REAL(Slambda), *rans, emptydouble=0, offset=0, *taualpha=NULL;
@@ -6489,6 +6501,7 @@ double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars) {
 // ADDITIVE MODELS
 //*************************************************************************************
 
+// [[Rcpp::export]]
 SEXP bsplineCI(SEXP x, SEXP degree, SEXP knots) {
   int nknots=LENGTH(knots), nx=LENGTH(x);
   SEXP ans;

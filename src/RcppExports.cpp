@@ -11,6 +11,97 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// rnorm_truncMultCI
+SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);
+RcppExport SEXP _mombf_rnorm_truncMultCI(SEXP nSEXP, SEXP ltruncSEXP, SEXP rtruncSEXP, SEXP mSEXP, SEXP sSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type n(nSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ltrunc(ltruncSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type rtrunc(rtruncSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type m(mSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type s(sSEXP);
+    rcpp_result_gen = Rcpp::wrap(rnorm_truncMultCI(n, ltrunc, rtrunc, m, s));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rtmvnormCI
+SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method);
+RcppExport SEXP _mombf_rtmvnormCI(SEXP nSEXP, SEXP muSEXP, SEXP SigmaSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP withinSEXP, SEXP methodSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type n(nSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type within(withinSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type method(methodSEXP);
+    rcpp_result_gen = Rcpp::wrap(rtmvnormCI(n, mu, Sigma, lower, upper, within, method));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rtmvnormProdCI
+SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin);
+RcppExport SEXP _mombf_rtmvnormProdCI(SEXP nSEXP, SEXP muSEXP, SEXP SigmaSEXP, SEXP kSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP is_low_truncSEXP, SEXP is_up_truncSEXP, SEXP burninSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type n(nSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type k(kSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type is_low_trunc(is_low_truncSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type is_up_trunc(is_up_truncSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type burnin(burninSEXP);
+    rcpp_result_gen = Rcpp::wrap(rtmvnormProdCI(n, mu, Sigma, k, lower, upper, is_low_trunc, is_up_trunc, burnin));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rnlpPostCI_lm
+SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
+RcppExport SEXP _mombf_rnlpPostCI_lm(SEXP niterSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP ySEXP, SEXP xSEXP, SEXP pSEXP, SEXP rSEXP, SEXP tauSEXP, SEXP a_phiSEXP, SEXP b_phiSEXP, SEXP priorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type niter(niterSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type p(pSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type r(rSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type a_phi(a_phiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type b_phi(b_phiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type prior(priorSEXP);
+    rcpp_result_gen = Rcpp::wrap(rnlpPostCI_lm(niter, burnin, thinning, y, x, p, r, tau, a_phi, b_phi, prior));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rnlpCI
+SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);
+RcppExport SEXP _mombf_rnlpCI(SEXP niterSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP mSEXP, SEXP VSEXP, SEXP pSEXP, SEXP rSEXP, SEXP tauSEXP, SEXP priorSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type niter(niterSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type m(mSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type V(VSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type p(pSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type r(rSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type prior(priorSEXP);
+    rcpp_result_gen = Rcpp::wrap(rnlpCI(niter, burnin, thinning, m, V, p, r, tau, prior));
+    return rcpp_result_gen;
+END_RCPP
+}
 // modelSelectionGGMC
 List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 RcppExport SEXP _mombf_modelSelectionGGMC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
@@ -38,6 +129,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat >::type Omegaini(OmegainiSEXP);
     rcpp_result_gen = Rcpp::wrap(GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini));
+    return rcpp_result_gen;
+END_RCPP
+}
+// normalmixGibbsCI
+SEXP normalmixGibbsCI(SEXP Sx, SEXP Sn, SEXP Sp, SEXP Sncomp, SEXP Sz, SEXP Smu0, SEXP Sg, SEXP Snu0, SEXP SS0, SEXP Sq, SEXP SB, SEXP Sburnin, SEXP Sverbose);
+RcppExport SEXP _mombf_normalmixGibbsCI(SEXP SxSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SncompSEXP, SEXP SzSEXP, SEXP Smu0SEXP, SEXP SgSEXP, SEXP Snu0SEXP, SEXP SS0SEXP, SEXP SqSEXP, SEXP SBSEXP, SEXP SburninSEXP, SEXP SverboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sncomp(SncompSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sz(SzSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smu0(Smu0SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sg(SgSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snu0(Snu0SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SS0(SS0SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sq(SqSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sburnin(SburninSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sverbose(SverboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(normalmixGibbsCI(Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB, Sburnin, Sverbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -74,48 +188,399 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-
-RcppExport SEXP bsplineCI(void *, void *, void *);
-RcppExport SEXP eprod_I(void *, void *, void *, void *, void *);
-RcppExport SEXP greedyVarSelCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP modelSelectionEnumCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP modelSelectionGibbsCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP nlpMarginalCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP normalmixGibbsCI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP pimomMarginalKI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP pimomMarginalUI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP pmomMarginalKI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP pmomMarginalUI(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP rnlpCI(void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP rnlpPostCI_lm(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP rnorm_truncMultCI(void *, void *, void *, void *, void *);
-RcppExport SEXP rtmvnormCI(void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP rtmvnormProdCI(void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP testfunctionCI(void *);
+// testfunctionCI
+SEXP testfunctionCI(SEXP x);
+RcppExport SEXP _mombf_testfunctionCI(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(testfunctionCI(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// eprod_I
+SEXP eprod_I(SEXP m, SEXP S, SEXP n, SEXP power, SEXP dof);
+RcppExport SEXP _mombf_eprod_I(SEXP mSEXP, SEXP SSEXP, SEXP nSEXP, SEXP powerSEXP, SEXP dofSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type m(mSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type S(SSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type n(nSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type power(powerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type dof(dofSEXP);
+    rcpp_result_gen = Rcpp::wrap(eprod_I(m, S, n, power, dof));
+    return rcpp_result_gen;
+END_RCPP
+}
+// modelSelectionEnumCI
+SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose);
+RcppExport SEXP _mombf_modelSelectionEnumCI(SEXP SnmodelsSEXP, SEXP SmodelsSEXP, SEXP SknownphiSEXP, SEXP SfamilySEXP, SEXP SpriorCoefSEXP, SEXP SpriorGroupSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP SuncensSEXP, SEXP Ssumy2SEXP, SEXP SsumySEXP, SEXP SsumlogyfactSEXP, SEXP SxSEXP, SEXP ScolsumsxSEXP, SEXP ShasXtXSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SmethodSEXP, SEXP SadjoverdispSEXP, SEXP ShesstypeSEXP, SEXP SoptimMethodSEXP, SEXP Soptim_maxitSEXP, SEXP SthinitSEXP, SEXP SusethinitSEXP, SEXP SBSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP SphiSEXP, SEXP StauSEXP, SEXP StaugroupSEXP, SEXP StaualphaSEXP, SEXP SfixatanhalphaSEXP, SEXP SrSEXP, SEXP SpriorDeltaSEXP, SEXP SprDeltapSEXP, SEXP SparprDeltapSEXP, SEXP SpriorConstrSEXP, SEXP SprConstrpSEXP, SEXP SparprConstrpSEXP, SEXP SgroupsSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP, SEXP SconstraintsSEXP, SEXP SinvconstraintsSEXP, SEXP SverboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Snmodels(SnmodelsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smodels(SmodelsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sknownphi(SknownphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfamily(SfamilySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorCoef(SpriorCoefSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorGroup(SpriorGroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Suncens(SuncensSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy(SsumySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumlogyfact(SsumlogyfactSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Scolsumsx(ScolsumsxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ShasXtX(ShasXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sadjoverdisp(SadjoverdispSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Shesstype(ShesstypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SoptimMethod(SoptimMethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Soptim_maxit(Soptim_maxitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sthinit(SthinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Susethinit(SusethinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sphi(SphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staugroup(StaugroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staualpha(StaualphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfixatanhalpha(SfixatanhalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorDelta(SpriorDeltaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprDeltap(SprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprDeltap(SparprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorConstr(SpriorConstrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprConstrp(SprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprConstrp(SparprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sgroups(SgroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sconstraints(SconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sinvconstraints(SinvconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sverbose(SverboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(modelSelectionEnumCI(Snmodels, Smodels, Sknownphi, Sfamily, SpriorCoef, SpriorGroup, Sn, Sp, Sy, Suncens, Ssumy2, Ssumy, Ssumlogyfact, Sx, Scolsumsx, ShasXtX, SXtX, SytX, Smethod, Sadjoverdisp, Shesstype, SoptimMethod, Soptim_maxit, Sthinit, Susethinit, SB, Salpha, Slambda, Sphi, Stau, Staugroup, Staualpha, Sfixatanhalpha, Sr, SpriorDelta, SprDeltap, SparprDeltap, SpriorConstr, SprConstrp, SparprConstrp, Sgroups, Sngroups, Snvaringroup, Sconstraints, Sinvconstraints, Sverbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// modelSelectionGibbsCI
+SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sthinning, SEXP Sburnin, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose);
+RcppExport SEXP _mombf_modelSelectionGibbsCI(SEXP SpostModeiniSEXP, SEXP SpostModeiniProbSEXP, SEXP SknownphiSEXP, SEXP SfamilySEXP, SEXP SpriorCoefSEXP, SEXP SpriorGroupSEXP, SEXP SniterSEXP, SEXP SthinningSEXP, SEXP SburninSEXP, SEXP SndeltainiSEXP, SEXP SdeltainiSEXP, SEXP SincludevarsSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP SuncensSEXP, SEXP Ssumy2SEXP, SEXP SsumySEXP, SEXP SsumlogyfactSEXP, SEXP SxSEXP, SEXP ScolsumsxSEXP, SEXP ShasXtXSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SmethodSEXP, SEXP SadjoverdispSEXP, SEXP ShesstypeSEXP, SEXP SoptimMethodSEXP, SEXP Soptim_maxitSEXP, SEXP SthinitSEXP, SEXP SusethinitSEXP, SEXP SBSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP SphiSEXP, SEXP StauSEXP, SEXP StaugroupSEXP, SEXP StaualphaSEXP, SEXP SfixatanhalphaSEXP, SEXP SrSEXP, SEXP SpriorDeltaSEXP, SEXP SprDeltapSEXP, SEXP SparprDeltapSEXP, SEXP SpriorConstrSEXP, SEXP SprConstrpSEXP, SEXP SparprConstrpSEXP, SEXP SgroupsSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP, SEXP SconstraintsSEXP, SEXP SinvconstraintsSEXP, SEXP SverboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type SpostModeini(SpostModeiniSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpostModeiniProb(SpostModeiniProbSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sknownphi(SknownphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfamily(SfamilySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorCoef(SpriorCoefSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorGroup(SpriorGroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sniter(SniterSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sthinning(SthinningSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sburnin(SburninSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sndeltaini(SndeltainiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sdeltaini(SdeltainiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sincludevars(SincludevarsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Suncens(SuncensSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy(SsumySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumlogyfact(SsumlogyfactSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Scolsumsx(ScolsumsxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ShasXtX(ShasXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sadjoverdisp(SadjoverdispSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Shesstype(ShesstypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SoptimMethod(SoptimMethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Soptim_maxit(Soptim_maxitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sthinit(SthinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Susethinit(SusethinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sphi(SphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staugroup(StaugroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staualpha(StaualphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfixatanhalpha(SfixatanhalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorDelta(SpriorDeltaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprDeltap(SprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprDeltap(SparprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorConstr(SpriorConstrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprConstrp(SprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprConstrp(SparprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sgroups(SgroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sconstraints(SconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sinvconstraints(SinvconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sverbose(SverboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(modelSelectionGibbsCI(SpostModeini, SpostModeiniProb, Sknownphi, Sfamily, SpriorCoef, SpriorGroup, Sniter, Sthinning, Sburnin, Sndeltaini, Sdeltaini, Sincludevars, Sn, Sp, Sy, Suncens, Ssumy2, Ssumy, Ssumlogyfact, Sx, Scolsumsx, ShasXtX, SXtX, SytX, Smethod, Sadjoverdisp, Shesstype, SoptimMethod, Soptim_maxit, Sthinit, Susethinit, SB, Salpha, Slambda, Sphi, Stau, Staugroup, Staualpha, Sfixatanhalpha, Sr, SpriorDelta, SprDeltap, SparprDeltap, SpriorConstr, SprConstrp, SparprConstrp, Sgroups, Sngroups, Snvaringroup, Sconstraints, Sinvconstraints, Sverbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// greedyVarSelCI
+SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sniter, SEXP Sndeltaini, SEXP Sdeltaini, SEXP Sincludevars, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP ShasXtX, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Sphi, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP SpriorDelta, SEXP SprDeltap, SEXP SparprDeltap, SEXP SpriorConstr, SEXP SprConstrp, SEXP SparprConstrp, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Sverbose);
+RcppExport SEXP _mombf_greedyVarSelCI(SEXP SknownphiSEXP, SEXP SfamilySEXP, SEXP SpriorCoefSEXP, SEXP SpriorGroupSEXP, SEXP SniterSEXP, SEXP SndeltainiSEXP, SEXP SdeltainiSEXP, SEXP SincludevarsSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP SuncensSEXP, SEXP Ssumy2SEXP, SEXP SsumySEXP, SEXP SsumlogyfactSEXP, SEXP SxSEXP, SEXP ScolsumsxSEXP, SEXP ShasXtXSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SmethodSEXP, SEXP SadjoverdispSEXP, SEXP ShesstypeSEXP, SEXP SoptimMethodSEXP, SEXP Soptim_maxitSEXP, SEXP SthinitSEXP, SEXP SusethinitSEXP, SEXP SBSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP SphiSEXP, SEXP StauSEXP, SEXP StaugroupSEXP, SEXP StaualphaSEXP, SEXP SfixatanhalphaSEXP, SEXP SrSEXP, SEXP SpriorDeltaSEXP, SEXP SprDeltapSEXP, SEXP SparprDeltapSEXP, SEXP SpriorConstrSEXP, SEXP SprConstrpSEXP, SEXP SparprConstrpSEXP, SEXP SgroupsSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP, SEXP SconstraintsSEXP, SEXP SinvconstraintsSEXP, SEXP SverboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Sknownphi(SknownphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfamily(SfamilySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorCoef(SpriorCoefSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorGroup(SpriorGroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sniter(SniterSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sndeltaini(SndeltainiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sdeltaini(SdeltainiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sincludevars(SincludevarsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Suncens(SuncensSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy(SsumySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumlogyfact(SsumlogyfactSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Scolsumsx(ScolsumsxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ShasXtX(ShasXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sadjoverdisp(SadjoverdispSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Shesstype(ShesstypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SoptimMethod(SoptimMethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Soptim_maxit(Soptim_maxitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sthinit(SthinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Susethinit(SusethinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sphi(SphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staugroup(StaugroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staualpha(StaualphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfixatanhalpha(SfixatanhalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorDelta(SpriorDeltaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprDeltap(SprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprDeltap(SparprDeltapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorConstr(SpriorConstrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SprConstrp(SprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SparprConstrp(SparprConstrpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sgroups(SgroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sconstraints(SconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sinvconstraints(SinvconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sverbose(SverboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(greedyVarSelCI(Sknownphi, Sfamily, SpriorCoef, SpriorGroup, Sniter, Sndeltaini, Sdeltaini, Sincludevars, Sn, Sp, Sy, Suncens, Ssumy2, Ssumy, Ssumlogyfact, Sx, Scolsumsx, ShasXtX, SXtX, SytX, Smethod, Sadjoverdisp, Shesstype, SoptimMethod, Soptim_maxit, Sthinit, Susethinit, SB, Salpha, Slambda, Sphi, Stau, Staugroup, Staualpha, Sfixatanhalpha, Sr, SpriorDelta, SprDeltap, SparprDeltap, SpriorConstr, SprConstrp, SparprConstrp, Sgroups, Sngroups, Snvaringroup, Sconstraints, Sinvconstraints, Sverbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pmomMarginalKI
+SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup);
+RcppExport SEXP _mombf_pmomMarginalKI(SEXP SselSEXP, SEXP SnselSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP Ssumy2SEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SphiSEXP, SEXP StauSEXP, SEXP SrSEXP, SEXP SmethodSEXP, SEXP SBSEXP, SEXP SlogscaleSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Ssel(SselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snsel(SnselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sphi(SphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slogscale(SlogscaleSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    rcpp_result_gen = Rcpp::wrap(pmomMarginalKI(Ssel, Snsel, Sn, Sp, Sy, Ssumy2, SXtX, SytX, Sphi, Stau, Sr, Smethod, SB, Slogscale, Sngroups, Snvaringroup));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pmomMarginalUI
+SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Sr, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup);
+RcppExport SEXP _mombf_pmomMarginalUI(SEXP SselSEXP, SEXP SnselSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP Ssumy2SEXP, SEXP SxSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP StauSEXP, SEXP SrSEXP, SEXP SmethodSEXP, SEXP SBSEXP, SEXP SlogscaleSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Ssel(SselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snsel(SnselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slogscale(SlogscaleSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    rcpp_result_gen = Rcpp::wrap(pmomMarginalUI(Ssel, Snsel, Sn, Sp, Sy, Ssumy2, Sx, SXtX, SytX, Stau, Sr, Smethod, SB, Slogscale, Salpha, Slambda, Sngroups, Snvaringroup));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pimomMarginalKI
+SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP SXtX, SEXP SytX, SEXP Sphi, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Sngroups, SEXP Snvaringroup);
+RcppExport SEXP _mombf_pimomMarginalKI(SEXP SselSEXP, SEXP SnselSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP Ssumy2SEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SphiSEXP, SEXP StauSEXP, SEXP SmethodSEXP, SEXP SBSEXP, SEXP SlogscaleSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Ssel(SselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snsel(SnselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sphi(SphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slogscale(SlogscaleSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    rcpp_result_gen = Rcpp::wrap(pimomMarginalKI(Ssel, Snsel, Sn, Sp, Sy, Ssumy2, SXtX, SytX, Sphi, Stau, Smethod, SB, Slogscale, Sngroups, Snvaringroup));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pimomMarginalUI
+SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup);
+RcppExport SEXP _mombf_pimomMarginalUI(SEXP SselSEXP, SEXP SnselSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP Ssumy2SEXP, SEXP SxSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP StauSEXP, SEXP SmethodSEXP, SEXP SBSEXP, SEXP SlogscaleSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Ssel(SselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snsel(SnselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slogscale(SlogscaleSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    rcpp_result_gen = Rcpp::wrap(pimomMarginalUI(Ssel, Snsel, Sn, Sp, Sy, Ssumy2, Sx, SXtX, SytX, Stau, Smethod, SB, Slogscale, Salpha, Slambda, Sngroups, Snvaringroup));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bsplineCI
+SEXP bsplineCI(SEXP x, SEXP degree, SEXP knots);
+RcppExport SEXP _mombf_bsplineCI(SEXP xSEXP, SEXP degreeSEXP, SEXP knotsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type degree(degreeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type knots(knotsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bsplineCI(x, degree, knots));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nlpMarginalCI
+SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale);
+RcppExport SEXP _mombf_nlpMarginalCI(SEXP SknownphiSEXP, SEXP SselSEXP, SEXP SnselSEXP, SEXP SfamilySEXP, SEXP SpriorCoefSEXP, SEXP SpriorGroupSEXP, SEXP SnSEXP, SEXP SpSEXP, SEXP SySEXP, SEXP SuncensSEXP, SEXP Ssumy2SEXP, SEXP SsumySEXP, SEXP SsumlogyfactSEXP, SEXP SxSEXP, SEXP ScolsumsxSEXP, SEXP SXtXSEXP, SEXP SytXSEXP, SEXP SmethodSEXP, SEXP SadjoverdispSEXP, SEXP ShesstypeSEXP, SEXP SoptimMethodSEXP, SEXP Soptim_maxitSEXP, SEXP SthinitSEXP, SEXP SusethinitSEXP, SEXP SBSEXP, SEXP SalphaSEXP, SEXP SlambdaSEXP, SEXP StauSEXP, SEXP StaugroupSEXP, SEXP StaualphaSEXP, SEXP SfixatanhalphaSEXP, SEXP SrSEXP, SEXP SgroupsSEXP, SEXP SngroupsSEXP, SEXP SnvaringroupSEXP, SEXP SconstraintsSEXP, SEXP SinvconstraintsSEXP, SEXP SlogscaleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Sknownphi(SknownphiSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssel(SselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snsel(SnselSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfamily(SfamilySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorCoef(SpriorCoefSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SpriorGroup(SpriorGroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sn(SnSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sp(SpSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sy(SySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Suncens(SuncensSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy2(Ssumy2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumy(SsumySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ssumlogyfact(SsumlogyfactSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sx(SxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Scolsumsx(ScolsumsxSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SXtX(SXtXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SytX(SytXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Smethod(SmethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sadjoverdisp(SadjoverdispSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Shesstype(ShesstypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SoptimMethod(SoptimMethodSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Soptim_maxit(Soptim_maxitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sthinit(SthinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Susethinit(SusethinitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type SB(SBSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Salpha(SalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slambda(SlambdaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stau(StauSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staugroup(StaugroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Staualpha(StaualphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sfixatanhalpha(SfixatanhalphaSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sr(SrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sgroups(SgroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sngroups(SngroupsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Snvaringroup(SnvaringroupSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sconstraints(SconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Sinvconstraints(SinvconstraintsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Slogscale(SlogscaleSEXP);
+    rcpp_result_gen = Rcpp::wrap(nlpMarginalCI(Sknownphi, Ssel, Snsel, Sfamily, SpriorCoef, SpriorGroup, Sn, Sp, Sy, Suncens, Ssumy2, Ssumy, Ssumlogyfact, Sx, Scolsumsx, SXtX, SytX, Smethod, Sadjoverdisp, Shesstype, SoptimMethod, Soptim_maxit, Sthinit, Susethinit, SB, Salpha, Slambda, Stau, Staugroup, Staualpha, Sfixatanhalpha, Sr, Sgroups, Sngroups, Snvaringroup, Sconstraints, Sinvconstraints, Slogscale));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_mombf_rnorm_truncMultCI", (DL_FUNC) &_mombf_rnorm_truncMultCI, 5},
+    {"_mombf_rtmvnormCI", (DL_FUNC) &_mombf_rtmvnormCI, 7},
+    {"_mombf_rtmvnormProdCI", (DL_FUNC) &_mombf_rtmvnormProdCI, 9},
+    {"_mombf_rnlpPostCI_lm", (DL_FUNC) &_mombf_rnlpPostCI_lm, 11},
+    {"_mombf_rnlpCI", (DL_FUNC) &_mombf_rnlpCI, 9},
     {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 5},
     {"_mombf_GGM_Gibbs_parallelC", (DL_FUNC) &_mombf_GGM_Gibbs_parallelC, 5},
+    {"_mombf_normalmixGibbsCI", (DL_FUNC) &_mombf_normalmixGibbsCI, 13},
     {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
     {"_mombf_rcpparma_innerproduct", (DL_FUNC) &_mombf_rcpparma_innerproduct, 1},
     {"_mombf_rcpparma_bothproducts", (DL_FUNC) &_mombf_rcpparma_bothproducts, 1},
-    {"bsplineCI",             (DL_FUNC) &bsplineCI,              3},
-    {"eprod_I",               (DL_FUNC) &eprod_I,                5},
-    {"greedyVarSelCI",        (DL_FUNC) &greedyVarSelCI,        48},
-    {"modelSelectionEnumCI",  (DL_FUNC) &modelSelectionEnumCI,  46},
-    {"modelSelectionGibbsCI", (DL_FUNC) &modelSelectionGibbsCI, 52},
-    {"nlpMarginalCI",         (DL_FUNC) &nlpMarginalCI,         38},
-    {"normalmixGibbsCI",      (DL_FUNC) &normalmixGibbsCI,      13},
-    {"pimomMarginalKI",       (DL_FUNC) &pimomMarginalKI,       15},
-    {"pimomMarginalUI",       (DL_FUNC) &pimomMarginalUI,       17},
-    {"pmomMarginalKI",        (DL_FUNC) &pmomMarginalKI,        16},
-    {"pmomMarginalUI",        (DL_FUNC) &pmomMarginalUI,        18},
-    {"rnlpCI",                (DL_FUNC) &rnlpCI,                 9},
-    {"rnlpPostCI_lm",         (DL_FUNC) &rnlpPostCI_lm,         11},
-    {"rnorm_truncMultCI",     (DL_FUNC) &rnorm_truncMultCI,      5},
-    {"rtmvnormCI",            (DL_FUNC) &rtmvnormCI,             7},
-    {"rtmvnormProdCI",        (DL_FUNC) &rtmvnormProdCI,         9},
-    {"testfunctionCI",        (DL_FUNC) &testfunctionCI,         1},
+    {"_mombf_testfunctionCI", (DL_FUNC) &_mombf_testfunctionCI, 1},
+    {"_mombf_eprod_I", (DL_FUNC) &_mombf_eprod_I, 5},
+    {"_mombf_modelSelectionEnumCI", (DL_FUNC) &_mombf_modelSelectionEnumCI, 46},
+    {"_mombf_modelSelectionGibbsCI", (DL_FUNC) &_mombf_modelSelectionGibbsCI, 52},
+    {"_mombf_greedyVarSelCI", (DL_FUNC) &_mombf_greedyVarSelCI, 48},
+    {"_mombf_pmomMarginalKI", (DL_FUNC) &_mombf_pmomMarginalKI, 16},
+    {"_mombf_pmomMarginalUI", (DL_FUNC) &_mombf_pmomMarginalUI, 18},
+    {"_mombf_pimomMarginalKI", (DL_FUNC) &_mombf_pimomMarginalKI, 15},
+    {"_mombf_pimomMarginalUI", (DL_FUNC) &_mombf_pimomMarginalUI, 17},
+    {"_mombf_bsplineCI", (DL_FUNC) &_mombf_bsplineCI, 3},
+    {"_mombf_nlpMarginalCI", (DL_FUNC) &_mombf_nlpMarginalCI, 38},
     {NULL, NULL, 0}
 };
 

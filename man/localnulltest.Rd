@@ -15,7 +15,7 @@
 }
 \usage{
 
-localnulltest(y, x, z, x.adjust, localgridsize=100, localgrid,
+localnulltest(y, x, z, x.adjust, localgridsize, localgrid,
 nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0,
 usecutbasis=TRUE, priorCoef=normalidprior(taustd=1),
 priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(),
@@ -23,20 +23,20 @@ mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE,
 ...)
 
 localnulltest_fda(y, x, z, x.adjust, function_id,
-Sigma='AR/MA', localgridsize=100, localgrid, nbaseknots=20,
+Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20,
 nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE,
 priorCoef=momprior(), priorGroup=groupmomprior(),
 priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)),
 return.mcmc=FALSE, verbose=FALSE, ...)
 
-localnulltest_givenknots(y, x, z, x.adjust, localgridsize=100,
+localnulltest_givenknots(y, x, z, x.adjust, localgridsize,
 localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0,
 usecutbasis=TRUE, priorCoef=normalidprior(taustd=1),
 priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(),
 verbose=FALSE, ...)
 
 localnulltest_fda_givenknots(y, x, z, x.adjust, function_id,
-Sigma='AR/MA', localgridsize=100, localgrid, nbaseknots=20,
+Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20,
 nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE,
 priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1),
 priorDelta=modelbbprior(), verbose=FALSE, ...)
@@ -56,7 +56,9 @@ priorDelta=modelbbprior(), verbose=FALSE, ...)
   and AR). Alternatively the user can supply a function such that
   \code{Sigma(z[i,],z[j,])} returns the within-function \code{cov(y[i,], y[j,])}}
 \item{localgridsize}{Local test probabilities will be returned for a
-  grid of \code{z} values of size \code{localgridsize} for each dimension}
+  grid of \code{z} values of size \code{localgridsize} for each
+  dimension. If \code{ncol(z)==1} then \code{localgridsize} defaults to
+  100, else to 10}
 \item{localgrid}{Regions at which tests will be performed. Defaults to
   dividing each \code{[min(z[,i]),  max(z[,i])]} into 10 equal
   intervals. If provided, \code{localgrid} must be a list with one entry

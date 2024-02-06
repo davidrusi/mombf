@@ -82,11 +82,12 @@ setMethod("postProb", signature(object='localtest'), function(object, nmax, meth
 # - regionbounds: list with region bounds defined by the local testing knots at each resolution level
 # - Sigma: input parameter
 
-localnulltest= function(y, x, z, x.adjust, localgridsize=100, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Check & format input arguments
     check= checkargs_localnulltest(y=y,x=x,x.adjust=x.adjust,z=z)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     #Define local grid
+    if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
     #Perform local null tests
     localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
@@ -94,11 +95,12 @@ localnulltest= function(y, x, z, x.adjust, localgridsize=100, localgrid, nbasekn
 
 
 #Same as localnulltest, but for data observed on a regular grid (e.g. time series, functional data analysis) where errors may be correlated
-localnulltest_fda= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize=100, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=momprior(), priorGroup=groupmomprior(), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest_fda= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=momprior(), priorGroup=groupmomprior(), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Check & format input requirements
     check= checkargs_localnulltest(y=y,x=x,z=z,x.adjust=x.adjust,function_id=function_id)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     #Define local grid
+    if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z) #define localgrid
     #Perform local null tests
     localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
@@ -129,7 +131,7 @@ checkargs_localnulltest= function(y, x, z, x.adjust, function_id) {
 
 #Core function to run local null tests at multiple resolutions.
 # It calls localnulltest_givenknots (for iid errors) or localnulltest_fda_givenknots (for dependent errors observed on regular grids)
-localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsize=100, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Define function to be run at each resolution level
     if (missing(Sigma)) {
         foo= function(i) { localnulltest_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots[i], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
@@ -187,11 +189,12 @@ localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsiz
 
 
 
-localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize=100, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
+localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     # Define local tests
+    if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
     # Define knots and corresponding knot-based testing regions
     kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots)
@@ -242,7 +245,7 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize=100, localgr
 
 
 
-localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize=100, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
+localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
@@ -256,6 +259,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     y= y[o]; x= x[o,,drop=FALSE]; z= z[o,,drop=FALSE]; function_id= function_id[o]
     if (!is.null(x.adjust)) x.adjust= x.adjust[o,,drop=FALSE]
     # Define local tests
+    if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
     # Define knots and corresponding knot-based testing regions
     kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots)
@@ -697,14 +701,24 @@ estimationPoints= function(x, z, regioncoord, regionbounds, testov) {
     }
     colnames(z)= paste('z',1:ncol(z),sep='')
     #Figure out region for each row in z
-    zregion= matrix(NA, nrow=nrow(z), ncol=ncol(z))
-    for (i in 1:ncol(z)) {
-        regionid= intervals::interval_overlap(z[,i], intervals::Intervals(regioncoord[[i]]))
+    if (ncol(z)==1) {
+        regionid= intervals::interval_overlap(z[,1], intervals::Intervals(regioncoord[[1]]))
         regionid= sapply(regionid, '[[', 1) #if there are multiple hits, then return the 1st one
-        regionnames= rownames(regioncoord[[i]])[regionid]
-        zregion[,i]= as.numeric(sub("R","",regionnames))
+        #regionnames= rownames(regioncoord[[1]])[regionid]
+        #zregion= matrix(as.numeric(sub("R","",regionnames)), ncol=1)
+        #zregion= apply(zregion,1,paste,collapse='.')
+    } else {
+        zoverlap= vector("list", ncol(z))
+        for (i in 1:ncol(z)) zoverlap[[i]]= intervals::interval_overlap(z[,i], intervals::Intervals(regioncoord[[i]]))
+        regionid= integer(nrow(z))
+        for (j in 1:nrow(z)) {
+            zoverlapj= lapply(zoverlap, '[[', j)
+            tmp= do.call(intersect, zoverlapj) #same as intersect(zoverlapj[[1]], ..., zoverlapj[[ncol(z)]])
+            regionid[j]= tmp[1] #if there are multiple hits, then return the 1st one
+        }
     }
-    zregion= apply(zregion,1,paste,collapse='.')
+    zregion= rownames(regioncoord[[1]])[regionid]
+    zregion= sub("R","",zregion)
     #Build design matrix
     m= colMeans(x)
     xmid= matrix(rep(m,each=nrow(z)), nrow=nrow(z))
@@ -977,10 +991,10 @@ decorrelate= function(w0, w1, region, w0new, w1new, regionnew) {
 #For each local test, find the regions that have an overlap with the test
 # Input
 # - localgrid: list where each element corresponds to a coordinate, and contains the grid defining the local test boundaries in each coordinate
-# - regioncoord: list where each element corresponds to a coordinate, and contains the region start and end formatted as a data.frame
+# - regioncoord: coordinates of the local test regions. A list where element j is a data.frame with a row for each test region that indicates the start/end in the j^th coordinate. For example, regioncoord[[1]][1,] is the start/end of testing region 1 in the first coordinate z[,1], regioncoord[[2]][1,] that for the 2nd coordinate
 # Output
 # - testIntervals: localgrid formatted as intervals
-# - testxregion: list with an entry for each test, indicating the regions overlapping that test
+# - testxregion: list with an entry for each element in the grid, indicating the local test regions overlapping that element
 testOverlaps= function(localgrid, regioncoord) {
     ndim= length(localgrid)
     testIntervals= overlaps= vector("list", length(localgrid))
@@ -990,18 +1004,20 @@ testOverlaps= function(localgrid, regioncoord) {
         regionIntervals= Intervals(regioncoord[[i]]) 
         overlaps[[i]]= interval_overlap(testIntervals[[i]], regionIntervals) #from package intervals
     }
-    #For each local test, select regions that overlap in all coordinates
-    testxregion= overlaps[[1]]
-    if (ndim > 1) {
+    #For each grid element, select regions that overlap in all coordinates
+    if (ndim == 1) {
+      testxregion= overlaps[[1]]
+    } else {
       tests= expand.grid(lapply(localgrid, function(l) 1:(length(l)-1)))
       names(tests)= paste('dim',1:ncol(tests),sep='')
+      testxregion= vector("list", nrow(tests))
       for (j in 1:nrow(tests)) {
           testjoverlap= vector("list",ndim)
-          for (i in 2:ndim) {
+          for (i in 1:ndim) {
               testdimi= tests[j,i]
               testjoverlap[[i]]= overlaps[[i]][[testdimi]]  #regions overlapping j^th test in i^th coordinate
-              testxregion[[j]]= intersect(testxregion[[j]], testjoverlap[[i]])
           }
+          testxregion[[j]]= do.call(intersect, testjoverlap)
       }
     }
     #Convert region ids to names

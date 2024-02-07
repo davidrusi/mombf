@@ -204,7 +204,11 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //*************************************************************************************
 
 void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumy,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *adjoverdisp,int *hesstype,int *optimMethod,int *optim_maxit,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
+
+void delete_marginalPars(struct marginalPars *pars);
+
 void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
+
 void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
 

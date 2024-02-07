@@ -983,6 +983,10 @@ void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncen
   (*pars).ninvconstraints= ninvconstraints;
 }
 
+void delete_marginalPars(struct marginalPars *pars) {
+  delete (*pars).V0inv;
+}
+
 void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel) {
   f2opt_pars.m= m;
   f2opt_pars.S= S;
@@ -1104,6 +1108,7 @@ SEXP modelSelectionEnumCI(SEXP Snmodels, SEXP Smodels, SEXP Sknownphi, SEXP Sfam
 
   modelSelectionEnum(postMode, postModeProb, postProb, INTEGER(Snmodels), INTEGER(Smodels), INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sverbose), &pars);
 
+  delete_marginalPars(&pars);
   delete XtX;
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
   free_dvector(thinit, 0,mycols2+1); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
@@ -1258,6 +1263,7 @@ SEXP modelSelectionGibbsCI(SEXP SpostModeini, SEXP SpostModeiniProb, SEXP Sknown
 
   modelSelectionGibbs(postSample, margpp, postMode, postModeProb, postProb, INTEGER(SpriorDelta), INTEGER(SpriorConstr), INTEGER(Sniter), INTEGER(Sthinning), INTEGER(Sburnin), INTEGER(Sndeltaini), INTEGER(Sdeltaini), INTEGER(Sincludevars), &constraints, &invconstraints, INTEGER(Sverbose), &pars);
 
+  delete_marginalPars(&pars);
   free_dvector(thinit, 0,mycols2+1);   free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
@@ -1588,6 +1594,7 @@ SEXP greedyVarSelCI(SEXP Sknownphi, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGr
 
   greedyVarSelC(postMode,postModeProb,INTEGER(SpriorDelta),INTEGER(SpriorConstr),INTEGER(Sniter),INTEGER(Sndeltaini),INTEGER(Sdeltaini),INTEGER(Sincludevars),&constraints,&invconstraints,INTEGER(Sverbose),&pars);
 
+  delete_marginalPars(&pars);
   free_dvector(thinit, 0,mycols+1); free_ivector(isgroup, 0, INTEGER(Sp)[0]);
   free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
   delete XtX;
@@ -5538,6 +5545,7 @@ SEXP pmomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
   rans = REAL(ans);
   *rans= pmomMarginalKC(INTEGER(Ssel),INTEGER(Snsel),&pars);
 
+  delete_marginalPars(&pars);
   delete XtX;
   UNPROTECT(1);
   return ans;
@@ -5619,6 +5627,7 @@ SEXP pmomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy
   rans = REAL(ans);
   *rans= pmomMarginalUC(INTEGER(Ssel), INTEGER(Snsel), &pars);
 
+  delete_marginalPars(&pars);
   delete XtX;
   UNPROTECT(1);
   return ans;
@@ -5941,6 +5950,8 @@ SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalKC(sel, nsel, &pars);
+
+  delete_marginalPars(&pars);
   delete XtX;
   UNPROTECT(1);
   return ans;
@@ -6220,6 +6231,8 @@ SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
   PROTECT(ans = Rf_allocVector(REALSXP, 1));
   rans = REAL(ans);
   *rans= pimomMarginalUC(sel, nsel, &pars);
+
+  delete_marginalPars(&pars);
   delete XtX;
   UNPROTECT(1);
   return ans;

@@ -191,6 +191,7 @@ localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsiz
 
 localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
+    if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest")
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     # Define local tests
@@ -202,7 +203,7 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
     #Create design matrix & run Bayesian model selection
     desnew= estimationPoints(x=x, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
     if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value"))
-    des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE)
+    des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE, rowids.fullrank=1:nrow(x))
     w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]
     if (!is.null(x.adjust)) {
         w= cbind(w, x.adjust)
@@ -248,6 +249,7 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
 
 localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
+    if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest_fda")
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     if (inherits(Sigma, "character")) {
@@ -778,6 +780,7 @@ regionCoordinates= function(zdiscrete, regionlabels) {
 # - usecutbasis: if FALSE, then the basis is not cut and a standard spline basis is returned
 # - useSigma: if TRUE, ytilde= Sigma^{-1/2} y and Sigma^{-1/2} w are returned
 # - Sigma: covariance matrix, as given to localnulltest
+# - rowids.fullrank: ensure that design matrix is full-rank for these rows. If necessary, drop constant columns from design matrix
 # Output
 # - w: design matrix. Its first columns corresponds to baseline design matrix w0, the rest to the cut spline basis w1. The output satisfies cor(w0,w1)=0
 # - wnew: design matrix for (xnew, znew). Note that cor(w0new, w1new) need not be zero
@@ -789,7 +792,7 @@ regionCoordinates= function(zdiscrete, regionlabels) {
 # - wtilde: block-diag(Sigma)^{-1/2} w
 # - wtilde.adjust: block-diag(Sigma)^{-1/2} x.adjust
 # - logdetSinv: log-determinant of block-diag(Sigma)^{-1}
-createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, region, regionnew, regionbounds, basedegree, cutdegree, knots, dropzeroes=TRUE, usecutbasis=TRUE, useSigma=FALSE, Sigma) {
+createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, region, regionnew, regionbounds, basedegree, cutdegree, knots, dropzeroes=TRUE, usecutbasis=TRUE, useSigma=FALSE, Sigma, rowids.fullrank) {
     if (!missing(xnew)) {
         xall= rbind(x, xnew)
         zall= rbind(z, znew)
@@ -841,6 +844,20 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
     } else {
         wnew= NULL
     }
+    #Ensure that design matrix is full rank
+    ct= apply(w[rowids.fullrank,,drop=FALSE], 2, 'sd') == 0
+    if (any(ct)) {
+        w= w[,!ct]
+        wnew= wnew[,!ct]
+        ncolw0= ncol(w0) - sum(ct[1:ncol(w0)])
+        ncolw1= ncol(w_decorrelated$w1o) - sum(ct[-1:-ncol(w0)])
+        vargroups= vargroups[!ct]
+        vargroupsn= vargroupsn[!ct]
+        w1varname= w1varname[ !ct[-1:-ncol(w0)] ]
+    } else {
+        ncolw0= ncol(w0)
+        ncolw1= ncol(w_decorrelated$w1o)
+    }
     #If errors are dependent, transform the outcome and the design matrix
     if (useSigma) {
         if (!is.function(Sigma)) {
@@ -856,7 +873,8 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
         ytilde= wtilde= NULL
         logdetSinv= 0
     }
-    ans= list(w=w, wnew=wnew, ncolw0= ncol(w0), ncolw1= ncol(w_decorrelated$w1o), vargroups=vargroups, vargroupsn=vargroupsn, w1varname=w1varname, ytilde=ytilde, wtilde=wtilde, logdetSinv=logdetSinv)
+    #Return output
+    ans= list(w=w, wnew=wnew, ncolw0= ncolw0, ncolw1=ncolw1, vargroups=vargroups, vargroupsn=vargroupsn, w1varname=w1varname, ytilde=ytilde, wtilde=wtilde, logdetSinv=logdetSinv)
     return(ans)
 }
 

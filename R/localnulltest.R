@@ -201,6 +201,7 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
     knots= kk$knots; regionbounds= kk$regionbounds; region=kk$region; regioncoord= kk$regioncoord; testov= kk$testov; testxregion= kk$testxregion; testIntervals= kk$testIntervals
     #Create design matrix & run Bayesian model selection
     desnew= estimationPoints(x=x, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value"))
     des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE)
     w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]
     if (!is.null(x.adjust)) {
@@ -267,6 +268,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     #Create design matrix & run Bayesian model selection
     xc= scale(x, center=TRUE, scale=FALSE)
     desnew= estimationPoints(x=xc, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value"))
     des= createDesignLocaltest(x=xc, z=z, y=y, x.adjust=x.adjust, xnew=desnew$x, znew=desnew$z, function_id=function_id, region=region, regionnew=desnew$region, regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=TRUE, Sigma=Sigma)
     ytilde= des$ytilde; wtilde= des$wtilde; logdetSinv= des$logdetSinv
     wnew= des$wnew
@@ -881,23 +883,37 @@ cutbasis= function(z, degree, region, knots, dropzeroes=TRUE, usecutbasis=TRUE) 
        baseline= tensorbspline(z, degree=degree, knots=knots, maineffects=FALSE)$tensor
     }
     #Obtain cut splines by placing 0's in the standard B-splines
+    # First, order regionds by region id. Like regionids= regionids[order(as.numeric(regionids))], but applicable when ncol(z)>=3
     regionids= unique(region)
-    regionids= regionids[order(as.numeric(regionids))]
+    regionidschar= strsplit(regionids, split="\\.")
+    maxchar= max(sapply(regionidschar, function(z) max(nchar(z))), na.rm=TRUE)
+    regionidschar= sapply(regionidschar, function(z) {
+        ans= paste(rep("0",maxchar-1), z, sep='')
+        ans= substr(ans, start=nchar(ans)-maxchar+1, stop=nchar(ans))
+        paste(ans, collapse=".")
+    })
+    regionidschar[is.na(regionids)]= 'NA'
+    regionids= regionids[order(regionidschar)]
     nregions= length(regionids)
     basis= vector("list",nregions)
     for (i in 1:nregions) {
-        rowsel= (region == regionids[i])
-        basissel= (colSums(baseline[rowsel,,drop=FALSE] != 0) >= ifelse(dropzeroes,5,1)) #remove columns that are essentially always 0
-        if (usecutbasis) {
-            basis[[i]]= matrix(0, nrow=nrow(z), ncol=sum(basissel))
-            basis[[i]][rowsel,]= baseline[rowsel,basissel]
-        } else {
-            basis[[i]]= baseline[,basissel,drop=FALSE]
-        }
-        if (sum(basissel)==1) {
-            colnames(basis[[i]])= paste("R",regionids[i],sep='')
-        } else if (sum(basissel)>1) {
-            colnames(basis[[i]])= paste("R",regionids[i],".",1:ncol(basis[[i]]),sep='')
+        if (!is.na(regionids[i])) {
+          rowsel= (region == regionids[i])
+          rowsel[is.na(rowsel)]= FALSE
+          basissel= (colSums(baseline[rowsel,,drop=FALSE] != 0) >= ifelse(dropzeroes,5,1)) #remove columns that are essentially always 0
+          if (usecutbasis) {
+              basis[[i]]= matrix(0, nrow=nrow(z), ncol=sum(basissel))
+              basis[[i]][rowsel,]= baseline[rowsel,basissel]
+          } else {
+              basis[[i]]= baseline[,basissel,drop=FALSE]
+          }
+          if (sum(basissel)==1) {
+              colnames(basis[[i]])= paste("R",regionids[i],sep='')
+          } else if (sum(basissel)>1) {
+              colnames(basis[[i]])= paste("R",regionids[i],".",1:ncol(basis[[i]]),sep='')
+          }
+        } else { #regionids[i]==NA when some regions didn't have enough observations and hence were removed
+          basis[[i]]= matrix(0, nrow=nrow(z), ncol=0)
         }
     }
     regionid= rep(regionids, sapply(basis,ncol))
@@ -968,6 +984,7 @@ decorrelate= function(w0, w1, region, w0new, w1new, regionnew) {
     regionids= unique(region)
     for (j in 1:length(regionids)) {
         rowsel= (region == regionids[j])     #rows in w0 corresponding to observations in region j
+        rowsel[is.na(rowsel)]= FALSE
         colsel1= (colSums(w1[rowsel,,drop=FALSE]!=0) > 0) #columns in w1 coding for region j
         colsel0= (colSums(w0[rowsel,,drop=FALSE]!=0) > 0) #columns in w0 coding for region j
         if (any(colsel1)) {

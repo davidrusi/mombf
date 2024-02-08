@@ -62,6 +62,7 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
 
   (*rans)= nlpMarginal(INTEGER(Ssel), INTEGER(Snsel), &pars);
 
+  delete_marginalPars(&pars);
   delete XtX;
   free_dvector(thinit, 0, p);
   UNPROTECT(1);

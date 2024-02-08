@@ -202,7 +202,7 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
     knots= kk$knots; regionbounds= kk$regionbounds; region=kk$region; regioncoord= kk$regioncoord; testov= kk$testov; testxregion= kk$testxregion; testIntervals= kk$testIntervals
     #Create design matrix & run Bayesian model selection
     desnew= estimationPoints(x=x, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
-    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value"))
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
     des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE, rowids.fullrank=1:nrow(x))
     w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]
     if (!is.null(x.adjust)) {
@@ -270,7 +270,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     #Create design matrix & run Bayesian model selection
     xc= scale(x, center=TRUE, scale=FALSE)
     desnew= estimationPoints(x=xc, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
-    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value"))
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
     des= createDesignLocaltest(x=xc, z=z, y=y, x.adjust=x.adjust, xnew=desnew$x, znew=desnew$z, function_id=function_id, region=region, regionnew=desnew$region, regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=TRUE, Sigma=Sigma)
     ytilde= des$ytilde; wtilde= des$wtilde; logdetSinv= des$logdetSinv
     wnew= des$wnew

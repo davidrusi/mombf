@@ -1,6 +1,8 @@
 CHANGES IN VERSION 3.5.5
 - Fixed bug in localnulltest occuring for multivariate coordinates
 - Fixed memory leak in set_marginalPars
+- Added biocViews: to DESCRIPTION for automatic installation of bioconductor
+packages
 
 CHANGES IN VERSION 3.5.4
 - Changed all .Call interfaces to Rcpp exports, to avoid warnings when turning

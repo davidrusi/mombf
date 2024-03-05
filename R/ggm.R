@@ -53,7 +53,8 @@ icov <- function(fit, threshold) {
 modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
-  if (ncol(y) <=1) stop("y must have at least 2 columns")
+  p= ncol(y);
+  if (p <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
   if (!(sampler %in% c('Gibbs','birthdeath','zigzag'))) stop("sampler must be 'Gibbs', 'birthdeath' or 'zigzag'")
   y = scale(y, center=center, scale=scale)
@@ -64,7 +65,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=ncol(y), niter, burnin, pbirth, nbirth, verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter, burnin, pbirth, nbirth, verbose)
     
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
@@ -75,18 +76,19 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     postSample= Matrix::t(ans$postSample)
   } else {
     ans= GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
-    postSample= lapply(ans, Matrix::t)
+    postSample= lapply(ans[1:p], Matrix::t)
+    propdens= Matrix::t(ans[[p+1]]);
   }
     
 
   #Return output
   priors= list(priorCoef=priorCoef, priorModel=priorModel, priorDiag=priorDiag)
 
-  A= diag(ncol(y))
+  A= diag(p)
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, margpp=ans$margpp, priors=priors, p=ncol(y), indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
+  ans= list(postSample=postSample, propdens, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
 
   new("msfit_ggm",ans)
 }

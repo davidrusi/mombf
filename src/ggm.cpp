@@ -489,10 +489,11 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   delete ggm;
 
   std::list<arma::sp_mat>::iterator it;
-  List ret(p);
+  List ret(p+1);
   for (it= ans.begin(), j=0; it != ans.end(); ++it, j++) { 
     ret[j]= (*it);
   }
+  ret[p]= propdens;
 
   //return Rcpp::List::create(ans);
   return ret;

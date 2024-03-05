@@ -324,6 +324,8 @@ void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount
 }
 
 
+
+//Not working yet. Attempt at improving GGM_Gibbs using rank 1 updates to obtain invOmega_j
 void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10, colupdated;
@@ -440,7 +442,14 @@ void GGM_Gibbs_new(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppc
 
 // [[Rcpp::export]]
 List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
-/* Interface for GGM_Gibbs_parallel to be called from R */
+/* Interface for GGM_Gibbs_parallel to be called from R 
+
+
+   Output: list with p+1 elements. 
+     - Elements j=0,...,p-1 are arma::sp_mat storing proposed samples for Omega[,j] given Omegaini[-j,-j]
+     - The last element p is a matrix where column j stores the proposal density for the proposed samples of Omega[,j]
+*/
+
 
   ggmObject *ggm;
   ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
@@ -471,6 +480,11 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
   } else Rf_error("This sampler type is not currently implemented\n");
 
+  //Compute proposal density for proposed samples
+  arma::mat propdens(p, niter-burnin);
+
+  GGM_parallel_propdensity(&propdens, &ans, ggm, &Omegaini);
+
   //Free memory and return output
   delete ggm;
 
@@ -485,6 +499,44 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
 
 }
+
+
+
+/* Evaluate proposal density for GGM samples proposed in parallel
+
+  Input
+  - samples: list where j=0,...,p-1 is an sp_mat with p rows and niter columns, storing the proposed values for Omega[,j] given Omegaini[-j,-j]
+  - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
+  - Omegaini: initial guess at Omega used to propose new values for Omega
+
+  Output
+  - propdens: a matrix with j=0,...,p-1 rows and niter columns. propdens[j,i] is the proposal density for ith sample in samples[j]
+
+*/
+void GGM_parallel_propdensity(arma::mat *propdens, std::list<arma::sp_mat> *samples, ggmObject *ggm, arma::sp_mat *Omegaini) {
+  int i, j, nsamples;
+  arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
+  double lambdahalf= 0.5 * lambda[0];
+  std::list<arma::sp_mat>::iterator it;
+
+  for (it= samples->begin(), j=0; it != samples->end(); ++it, j++) { //for each column  
+
+    double b= 0.5 * (ggm->S).at(j,j) + lambdahalf;
+    arma::sp_mat Omega_j= (*Omegaini);
+    Omega_j.shed_row(j);
+    Omega_j.shed_col(j);
+    nsamples= (*it).n_cols;
+
+    for (i= 0; i < nsamples; i++) {
+        arma::sp_mat samplei= (*it).col(i);
+        propdens->at(j,i)= arma::as_scalar(samplei.t() * Omega_j * samplei);
+    }
+
+  }
+
+}
+
+
 
 /*Parallel Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. Each column is sampled independently from its conditional posterior, given the current value of Omega, i.e. the algorithm targets a pseudo-posterior rather than the actual posterior
 
@@ -532,9 +584,9 @@ void GGM_Gibbs_parallel(std::list<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_m
       GGM_birthdeath_singlecol(ans_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j);
     }
 
-  } //end for j
+    if (ggm->verbose) print_iterprogress(&j, &p, &p10);
 
-  if (ggm->verbose) print_iterprogress(&j, &p, &p10);
+  } //end for each colum
 
   if (ggm->verbose) { Rcout << "\r Done\n"; }
 

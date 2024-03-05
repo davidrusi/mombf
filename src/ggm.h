@@ -72,6 +72,8 @@ List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List sampler
 
 void GGM_Gibbs(arma::sp_mat *ans, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini);
 
+void GGM_parallel_propdensity(arma::mat *propdens, std::list<arma::sp_mat> *samples, ggmObject *ggm, arma::sp_mat *Omegaini);
+
 void GGM_Gibbs_parallel(std::list<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);

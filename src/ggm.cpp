@@ -530,7 +530,8 @@ void GGM_parallel_propdensity(arma::mat *propdens, std::list<arma::sp_mat> *samp
 
     for (i= 0; i < nsamples; i++) {
         arma::sp_mat samplei= (*it).col(i);
-        propdens->at(j,i)= arma::as_scalar(samplei.t() * Omega_j * samplei);
+        samplei.shed_row(j); 
+        propdens->at(j,i)= b * arma::as_scalar(samplei.t() * Omega_j * samplei);
     }
 
   }
@@ -780,40 +781,41 @@ void GGM_birthdeath_singlecol(arma::sp_mat *ans, arma::vec *margpp, arma::Col<in
         model_colid.shed_row(colid);
         rbirthdeath(&idx_update, &birth, &model_colid, pbirth);
          
-        //Store birth/death proposal into modelnew_colid and modelnew
-        arma::SpMat<short> modelnew_colid= model_colid;
-        if (birth) modelnew_colid.at(idx_update,0)= 1; else modelnew_colid.at(idx_update,0)= 0;
-         
-        if (idx_update >= (int) colid) idx_update++;
-        if (birth) modelnew->at(idx_update,0)= 1; else modelnew->at(idx_update,0)= 0;
-         
-        dpropnew= dbirthdeath(&modelnew_colid, &model_colid, pbirth, true);
-        dpropcurrent= dbirthdeath(&model_colid, &modelnew_colid, pbirth, true);
-         
-        //model->print("model"); //debug
-        //Rprintf("idx_update= %d; birth= %B\n", idx_update, birth); //debug
-        //modelnew->print("modelnew"); //debug
-        //Rprintf("dpropnew= %f; dpropcurrent= %f\n", dpropnew, dpropcurrent); //debug
-         
-        //Obtain posterior sample for modelnew
-        ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
-         
-        ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew);
-        ppnew /= (1.0 + ppnew);
+        //If proposed birth/death move was possible (not all entries in model were already alive/dead)
+        if (idx_update != -1) {  
 
-        //Update posterior marginal inclusion probabilities
-        if (birth) margpp->at(idx_update) += ppnew; else margpp->at(idx_update) += 1 - ppnew;
-        margppcount->at(idx_update) ++;
-         
-        if (runif() < ppnew) { //if new model is accepted
-         
-          model_tmp_ptr= model;
-          model= modelnew;
-          modelnew= model_tmp_ptr;
-         
+          //Store birth/death proposal into modelnew_colid and modelnew
+          arma::SpMat<short> modelnew_colid= model_colid;
+
+          if (birth) modelnew_colid.at(idx_update,0)= 1; else modelnew_colid.at(idx_update,0)= 0;
+
+          if (idx_update >= (int) colid) idx_update++;
+          if (birth) modelnew->at(idx_update,0)= 1; else modelnew->at(idx_update,0)= 0;
+           
+          dpropnew= dbirthdeath(&modelnew_colid, &model_colid, pbirth, true);
+          dpropcurrent= dbirthdeath(&model_colid, &modelnew_colid, pbirth, true);
+           
+          //Obtain posterior sample for modelnew
+          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
+           
+          ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew);
+          ppnew /= (1.0 + ppnew);
+	   
+          //Update posterior marginal inclusion probabilities
+          if (birth) margpp->at(idx_update) += ppnew; else margpp->at(idx_update) += 1 - ppnew;
+          margppcount->at(idx_update) ++;
+           
+          if (runif() < ppnew) { //if new model is accepted
+           
+            model_tmp_ptr= model;
+            model= modelnew;
+            modelnew= model_tmp_ptr;
+           
+          }
+           
+          modelnew->at(idx_update,0)= model->at(idx_update,0);
+
         }
-         
-        modelnew->at(idx_update,0)= model->at(idx_update,0);
 
     } //end for j
 

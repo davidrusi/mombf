@@ -93,10 +93,23 @@ column independently and using an MH step}
   the precision matrix. Stored as a sparse matrix, see package Matrix
   to utilities to work with such matrices}
 
-\item{p}{Number of columns in \code{y}}
+\item{propdens}{If \code{almost_parallel=TRUE}, a matrix where entry
+  (i,j) stores the proposal density for proposed sample i of column j}
+
+\item{margpp}{Rao-Blackwellized estimates of posterior marginal
+  inclusion probabilities. Only valid when using the Gibbs algorithm}
 
 \item{priors}{List storing the priors specified when calling
   \code{modelSelectionGGM}}
+
+\item{p}{Number of columns in \code{y}}
+
+\item{indexes}{Indicates what row/column of Omega is stored in each
+  column of \code{postSample}}
+
+\item{samplerPars}{MCMC sampling parameters}
+
+\item{almost_parallel}{Stores the input argument \code{almost_parallel}}
 
 }
 \author{ David Rossell }

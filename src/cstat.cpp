@@ -3949,7 +3949,7 @@ void sampled_wr(double *x,
 
  Output
 
- - index: index of the entry that was born / killed
+ - index: index of the entry that was born / killed. Returns -1 if a birth move was chosen but all entries were already 1, or a death move was chosen but all entries were already 0
 
  - birth: indicates whether the entry given by index was born / killed, e.g. index= 0, birth=false means that entry 0 in model was killed
 
@@ -3961,6 +3961,7 @@ void rbirthdeath(int *index, bool *birth, arma::SpMat<short> *model, double pbir
   int i, dnonzero= model->n_nonzero, d= model->n_rows;
   arma::SpMat<short>::iterator it;
 
+  (*index)= -1; //return value if proposed update cannot be done
   (*birth)= (runif() < pbirth);
 
   if (*birth) {  //propose birth

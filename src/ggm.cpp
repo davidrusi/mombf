@@ -522,16 +522,18 @@ void GGM_parallel_propdensity(arma::mat *propdens, std::list<arma::sp_mat> *samp
 
   for (it= samples->begin(), j=0; it != samples->end(); ++it, j++) { //for each column  
 
-    double b= 0.5 * (ggm->S).at(j,j) + lambdahalf;
+    double b= -0.5 * (ggm->S).at(j,j) + lambdahalf;
     arma::sp_mat Omega_j= (*Omegaini);
     Omega_j.shed_row(j);
     Omega_j.shed_col(j);
+    arma::mat invOmega_j= get_invOmega_j(Omegaini, j); //to do: use low-rank update
+
     nsamples= (*it).n_cols;
 
     for (i= 0; i < nsamples; i++) {
         arma::sp_mat samplei= (*it).col(i);
         samplei.shed_row(j); 
-        propdens->at(j,i)= b * arma::as_scalar(samplei.t() * Omega_j * samplei);
+        propdens->at(j,i)= b * arma::as_scalar(samplei.t() * invOmega_j * samplei);
     }
 
   }

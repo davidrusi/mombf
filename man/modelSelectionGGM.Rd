@@ -94,7 +94,7 @@ column independently and using an MH step}
   to utilities to work with such matrices}
 
 \item{propdens}{If \code{almost_parallel=TRUE}, a matrix where entry
-  (i,j) stores the proposal density for proposed sample i of column j}
+  (i,j) stores the log-proposal density for proposed sample i of column j}
 
 \item{margpp}{Rao-Blackwellized estimates of posterior marginal
   inclusion probabilities. Only valid when using the Gibbs algorithm}

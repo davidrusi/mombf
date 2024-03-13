@@ -5,3 +5,5 @@
 ^compile_flags\.txt$
 ^codecov.yml$
 ^scripts$
+^\.vscode$
+^debug$

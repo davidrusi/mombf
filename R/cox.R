@@ -19,9 +19,9 @@ pmomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Normal',
     if (!is.data.frame(x)) x <- data.frame(x)
   }
   if (p==0) {
-    ans <- coxph(y ~ 1)$loglik
+    ans <- survival::coxph(y ~ 1)$loglik
   } else {
-    fit <- coxph(y ~ ., data=x)
+    fit <- survival::coxph(y ~ ., data=x)
     thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
     Sinv <- Vinv + diag(p)/tau; S <- solve(Sinv)
     m <- S %*% Vinv %*% thhat
@@ -56,12 +56,12 @@ pimomCoxMarginalR <- function(y, x, tau, r=1, method=ifelse(ncol(x)<=10,'Laplace
     if (!is.data.frame(x)) x <- data.frame(x)
   }
   if (p==0) {
-    ans <- coxph(y ~ 1)$loglik
+    ans <- survival::coxph(y ~ 1)$loglik
   } else {
     if (p>nrow(x)) {
       ans <- -Inf
     } else {
-      fit <- coxph(y ~ ., data=x)
+      fit <- survival::coxph(y ~ ., data=x)
       V <- solve(fit$var)
       r <- as.vector(V %*% matrix(coef(fit),ncol=1))
       m <- imomModeK(coef(fit), XtX=V, ytX=r, phi=1, tau=tau)

@@ -131,7 +131,7 @@ setMethod("getBIC", signature(object='msfit'), function(object) {
 
 setMethod("getIC", signature(object='msfit'), function(object) {
     ic = -2 * ( object$postProb + object$p * log(2) )
-    ans= tibble(modelid=object$modelid, ic=ic)
+    ans= dplyr::tibble(modelid=object$modelid, ic=ic)
     ans= ans[order(ans$ic),]
     return(ans)
 }
@@ -144,8 +144,7 @@ setMethod("getEBIC", signature(object='msfit'), function(object) {
     isbbprior= (pm@priorDistr == 'binomial') && all(pm@priorPars == c(1,1))
     if ((pc@priorDistr != 'bic') || !isbbprior) stop("To obtain BIC you should set priorCoef=bic() and priorDelta=modelbbprior() when calling modelSelection")
     ebic = -2  * ( object$postProb + log(object$p+1) )
-    ans= tibble(modelid=object$modelid, ebic=ebic)
-    #ans= cbind(getmodelid(object), ebic)
+    ans= dplyr::tibble(modelid=object$modelid, ebic=ebic)
     ans= ans[order(ans$ebic),]
     return(ans)
 }

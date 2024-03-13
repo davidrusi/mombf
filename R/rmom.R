@@ -263,7 +263,7 @@ rnlpCox <- function(y, x, priorCoef, priorGroup, isgroup=isgroup, niter=10^3, bu
     if (p==0) {
       ans <- matrix(double(0),nrow=(niter-burnin)/thinning,ncol=0)
     } else {
-      fit <- coxph(y ~ ., data=data.frame(x))
+      fit <- survival::coxph(y ~ ., data=data.frame(x))
       thhat <- matrix(coef(fit),ncol=1); Vinv <- solve(fit$var)
       if (priorCoef@priorDistr == 'zellner') {
         Sinv <- Vinv * (1+1/tau)

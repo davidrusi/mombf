@@ -19,7 +19,6 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 )
 
 coef.msfit_ggm <- function(object,...) {
-  if (object$almost_parallel) stop("coef not yet implemented for almost_parallel")
   m= Matrix::colMeans(object$postSample)
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
   if (object$samplerPars['sampler'] == 'Gibbs') {
@@ -32,7 +31,6 @@ coef.msfit_ggm <- function(object,...) {
 }
 
 icov <- function(fit, threshold) {
-  if (fit$almost_parallel) stop("coef not yet implemented for almost_parallel")
   if (!inherits(fit, 'msfit_ggm')) stop("Argument fit must be of class msfit_ggm")
   m= Matrix::colMeans(fit$postSample)
   if (!missing(threshold)) {
@@ -50,7 +48,7 @@ icov <- function(fit, threshold) {
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, save_proposal=FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -71,13 +69,17 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   Omegaini= initialEstimateGGM(y, Omegaini)
     
   #Call C++ function
+  proposal= proposaldensity= NULL
   if (!almost_parallel) {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
   } else {
     ans= GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
-    postSample= lapply(ans[1:p], Matrix::t)
-    propdens= Matrix::t(ans[[p+1]]);
+    postSample= Matrix::t(ans[[p+2]])
+    if (save_proposal) {
+      proposal= lapply(ans[1:p], Matrix::t)
+      proposaldensity= Matrix::t(ans[[p+1]])
+    }
   }
     
 
@@ -88,7 +90,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, propdens=propdens, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
+  ans= list(postSample=postSample, proposal=proposal, proposaldensity=proposaldensity, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
 
   new("msfit_ggm",ans)
 }
@@ -122,7 +124,7 @@ initialEstimateGGM= function(y, Omegaini) {
   if (is.character(Omegaini)) {
     ans= initGGM(y, Omegaini)
   } else if (inherits(Omegaini, "matrix")) {
-    ans= Matrix(Omegaini, sparse=TRUE)
+    ans= Matrix::Matrix(Omegaini, sparse=TRUE)
   } else if (inherits(Omegaini, "dgCMatrix", "ddiMatrix")) {
     ans= Omegaini
   } else stop("Invalid Omegaini. It must be of class matrix, dgCMatrix or ddiMatrix")
@@ -134,13 +136,13 @@ initGGM= function(y, Omegaini) {
     
   if (Omegaini=='null') {
         
-    ans= sparseMatrix(1:ncol(y), 1:ncol(y), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
+    ans= Matrix::sparseMatrix(1:ncol(y), 1:ncol(y), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
         
   } else if (Omegaini %in% c('glasso-bic','glasso-ebic')) {
 
     method= ifelse(Omegaini == 'glasso-bic', 'BIC', 'EBIC')
 
-    sfit= glassopath(cov(y), trace=0)  #from package glasso
+    sfit= glasso::glassopath(cov(y), trace=0)  #from package glasso
     bic= glasso_getBIC(y=y, sfit=sfit, method=method)
 
     topbic= which.min(bic)
@@ -156,7 +158,7 @@ initGGM= function(y, Omegaini) {
           rholist= seq(l, 10*l, length=10)
       }
 
-      sfit= glassopath(cov(y), rholist=rholist, trace=0)
+      sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
       bic= glasso_getBIC(y=y, sfit=sfit, method=method)
       
       topbic= which.min(bic)
@@ -165,7 +167,7 @@ initGGM= function(y, Omegaini) {
 
     }
         
-    ans= Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE)
+    ans= Matrix::Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE)
       
   } else {
     stop("Omegaini must be 'null', 'glasso-ebic' or 'glasso-bic'")

@@ -1,8 +1,11 @@
 CHANGES IN VERSION 3.5.5
+- Added almost parallel sampler to modelSelectionGGM
 - Fixed bug in localnulltest occuring for multivariate coordinates
 - Fixed memory leak in set_marginalPars
 - Added biocViews: to DESCRIPTION for automatic installation of bioconductor
 packages
+- Fixed memory leak in GGM birth/death proposal
+- Removed many importFrom instances from NAMESPACE, replace by :: in code 
 
 CHANGES IN VERSION 3.5.4
 - Changed all .Call interfaces to Rcpp exports, to avoid warnings when turning

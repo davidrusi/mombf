@@ -95,9 +95,9 @@ bfnormmix <- function(x, k=1:2, mu0=rep(0,ncol(x)), g, nu0, S0, q=3, q.niw=1, B=
     for (i in length(k):2) {
         ak= lgamma(k[i]*q.niw) - lgamma(k[i]*q.niw-q.niw) + lgamma(n+k[i]*q.niw-q.niw) - lgamma(n+k[i]*q.niw)
         #Initialize clusters via MLE
-        em= Mclust(data=x, G=k[i], modelNames=ifelse(p==1,'V','VVV'),verbose=0)
+        em= mclust::Mclust(data=x, G=k[i], modelNames=ifelse(p==1,'V','VVV'),verbose=0)
         #if MLE failed, set prior to prevent 0 variances
-        if ("NULL" %in% class(em)) em= try(Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=priorControl(functionName="defaultPrior"),verbose=0))
+        if ("NULL" %in% class(em)) em= try(mclust::Mclust(data=x,G=k[i],modelNames=ifelse(p==1,'V','VVV'),prior=mclust::priorControl(functionName="defaultPrior"),verbose=0))
         if ('try-error' %in% class(em)) { z= as.integer(kmeans(x, centers=k[i])$cluster) } else { z= as.integer(em$classification) }
         #Gibbs sampling (version using mombf)
         mcmcfit= "normalmixGibbsCI"(as.double(x),as.integer(n),as.integer(p),as.integer(k[i]),z,as.double(mu0),as.double(g),as.integer(nu0),as.double(S0),as.double(q.niw),as.integer(B),as.integer(burnin),as.integer(verbose))
@@ -176,7 +176,7 @@ ppOneEmpty <- function(x,g,q,q.niw,mcmcfit,logscale=TRUE,verbose=TRUE) {
         Sigmainv= lapply(1:k, function(j) { getSigmainv(j,p,mcmcfit[[3]][i,]) })
         Sigma= lapply(Sigmainv, solve)
         #Cluster allocation probabilities (n x k matrix)
-        pp= sapply(1:k, function(j) dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
+        pp= sapply(1:k, function(j) mvtnorm::dmvnorm(x,mu[[j]],sigma=Sigma[[j]],log=TRUE) + log(eta[j]))
         pp= exp(pp-apply(pp,1,'max')); pp= pp/rowSums(pp)
         pp[pp> 1-1e-13]= 1-1e-13
         #log-probability of each cluster being empty
@@ -184,9 +184,9 @@ ppOneEmpty <- function(x,g,q,q.niw,mcmcfit,logscale=TRUE,verbose=TRUE) {
         #MOM-IW penalty
         Ainv= Reduce("+",Sigmainv) / k
         mumat= do.call(rbind,mu)
-        logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + constddir + qdif * sum(log(eta))
-        #same as logprior= sum(dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + ddir(eta,q=q,logscale=TRUE) - ddir(eta,q=q.niw,logscale=TRUE)
-        for (jj in 1:k) logprior= logprior - dmvnorm(mu[[jj]],sigma=g*Sigma[[jj]],log=TRUE)
+        logprior= sum(mvtnorm::dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + constddir + qdif * sum(log(eta))
+        #same as logprior= sum(mvtnorm::dmvnorm(mumat,sigma=g*solve(Ainv),log=TRUE)) + ddir(eta,q=q,logscale=TRUE) - ddir(eta,q=q.niw,logscale=TRUE)
+        for (jj in 1:k) logprior= logprior - mvtnorm::dmvnorm(mu[[jj]],sigma=g*Sigma[[jj]],log=TRUE)
         d= as.vector(dist(mumat %*% t(chol(Ainv))))^2 #Pairwise Mahalanobis distances between mu's
         logpen[i]= logprior + sum(log(d)) - k*(k-1)/2*log(g) - normctNMix(k=k,p=p)
         if (verbose & ((i %% (niter/10))==0)) cat(".")

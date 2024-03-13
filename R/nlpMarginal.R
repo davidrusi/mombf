@@ -151,7 +151,7 @@ pmomMarginalKR <- function(y, x, phi, tau, r=1, method='Laplace', B=10^5, logsca
     } else if (method=='1storder') {
       I <- r*sum(log(m^2))
     } else if (method=='MC') {
-      thsim <- rmvnorm(B,m,phi*solve(S))
+      thsim <- mvtnorm::rmvnorm(B,m,phi*solve(S))
       eprod <- exp(rowSums(log(thsim^(2*r))))
       I <- log(mean(eprod))
     }
@@ -217,7 +217,7 @@ pmomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lapl
       I <- r*sum(log(m^2))
     } else if (method=='MC') {
       cholV <- t(chol(solve(V)))
-      z <- rmvnorm(B,rep(0,p),diag(p))
+      z <- mvtnorm::rmvnorm(B,rep(0,p),diag(p))
       thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(nu/rchisq(B,df=nu))
       eprod <- exp(colSums(log(thsim^(2*r))))
       seprod <- sd(eprod)/sqrt(length(eprod))
@@ -339,10 +339,10 @@ pimomMarginalKR <- function(y, x, phi, tau=1, method='Laplace', B=10^5, logscale
       uplim <- ILaplace$thopt + 2*sign(ILaplace$thopt)*sqrt(diag(Vinv))
       sdprop <- diag(abs(uplim)/2,ncol=p1)
       Vprop <- sdprop %*% cov2cor(Vinv) %*% sdprop
-      #thsim <- rmvnorm(B,rep(0,p1),Vprop)
-      #adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - dmvnorm(thsim,rep(0,p1),Vprop,log=TRUE)
-      thsim <- rmvt(B,sigma=Vprop,df=1)
-      adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - dmvt(thsim,delta=rep(0,p1),sigma=Vprop,df=1,log=TRUE)
+      #thsim <- mvtnorm::rmvnorm(B,rep(0,p1),Vprop)
+      #adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - mvtnorm::dmvnorm(thsim,rep(0,p1),Vprop,log=TRUE)
+      thsim <- mvtnorm::rmvt(B,sigma=Vprop,df=1)
+      adj <- - fimomNeg(thsim,XtX=XtX,ytX=ytX,phi=phi,tau=tau) - mvtnorm::dmvt(thsim,delta=rep(0,p1),sigma=Vprop,df=1,log=TRUE)
       m <- max(adj)
       adj <- log(mean(exp(adj-m+500))) + m - 500
       ans <- k + adj
@@ -537,7 +537,7 @@ pemomMarginalKR <- function(y, x, phi, tau, method='Laplace', B=10^5, logscale=T
     } else if (method=='1storder') {
       I <- - tau*phi*sum(1/m^2)
     } else if (method=='MC') {
-      thsim <- rmvnorm(B,m,phi*solve(S))
+      thsim <- mvtnorm::rmvnorm(B,m,phi*solve(S))
       eprod <- exp(-tau*phi*rowSums(1/thsim^2))
       I <- log(mean(eprod))
     }
@@ -579,7 +579,7 @@ pemomMarginalUR <- function(y, x, r, alpha=0.001, lambda=0.001, tau, method='Lap
     } else if (method=='MC') {
       phisim <- 1/rgamma(B, apost, lpost)
       cholV <- t(chol(solve(S)))
-      z <- rmvnorm(B,rep(0,p),diag(p))
+      z <- mvtnorm::rmvnorm(B,rep(0,p),diag(p))
       thsim <- as.vector(m) + (cholV %*% t(z)) * sqrt(phisim)
       eprod <- -tau*phisim*colSums(1/thsim^2)
       offset <- max(eprod)

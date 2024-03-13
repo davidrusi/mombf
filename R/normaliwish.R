@@ -24,7 +24,7 @@ dpostNIW <- function(mu,Sigma,x,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma)+1,S0,l
     S1= S0 + cov(x)*(n-1) + n/(1+n*g) * (dm %*% t(dm))
     w= n/(n+1/g)
     m1= w * xbar + (1-w) * mu0
-    ans= dmvnorm(mu,m1,Sigma/(n+1/g),log=TRUE) + diwish(Sigma,nu=nu1,S=S1,logscale=TRUE)
+    ans= mvtnorm::dmvnorm(mu,m1,Sigma/(n+1/g),log=TRUE) + diwish(Sigma,nu=nu1,S=S1,logscale=TRUE)
     if (!logscale) ans= exp(ans)
     return(ans)
 }
@@ -69,7 +69,7 @@ rpostNIW <- function(n,x,g=1,mu0=0,nu0,S0,precision=FALSE) {
             Sigma= riwish(nu=nu1,Sinv=S1inv)
             ans[[2]][i,]= Sigma[lower.tri(Sigma,diag=TRUE)]
         }
-        ans[[1]][i,]= rmvnorm(1,m1,Sigma/(samplesize+1/g))
+        ans[[1]][i,]= mvtnorm::rmvnorm(1,m1,Sigma/(samplesize+1/g))
     }
     return(ans)
 }
@@ -238,7 +238,7 @@ dpostNIWCommon <- function(mu,Sigma,x,z,g=1,mu0=rep(0,length(mu)),nu0=nrow(Sigma
         S1= S1 + (txc %*% t(txc)) + zcount[i]/(1+zcount[i]*g) * (dm %*% t(dm))
         w= zcount[i]/(zcount[i]+1/g)
         m1= w * xbar[[i]] + (1-w) * mu0
-        ans= ans + dmvnorm(mu[[i]],m1,Sigma/(zcount[i]+1/g),log=TRUE)
+        ans= ans + mvtnorm::dmvnorm(mu[[i]],m1,Sigma/(zcount[i]+1/g),log=TRUE)
     }
     nu1= nu0+n
     ans= ans + diwish(Sigma,nu=nu1,S=S1,logscale=TRUE)

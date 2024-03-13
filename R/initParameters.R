@@ -32,7 +32,7 @@ initParameters <- function(y, x, family, initpar) {
     #    ans= coef(fit)
     }  else if (initpar == 'L1') {
         int= (colSums(x==1) == nrow(x))
-        fit= glmnet(x=x[,!int], y=y, intercept=TRUE, family=family, nlambda=50, alpha=1)
+        fit= glmnet::glmnet(x=x[,!int], y=y, intercept=TRUE, family=family, nlambda=50, alpha=1)
         b= matrix(NA, nrow=ncol(x), ncol=length(fit$lambda))
         b[!int,]= as.matrix(coef(fit)[-1,])
         b[int,]= coef(fit)[1,]

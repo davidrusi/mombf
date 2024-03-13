@@ -1035,9 +1035,9 @@ testOverlaps= function(localgrid, regioncoord) {
     testIntervals= overlaps= vector("list", length(localgrid))
     #For each coordinate, find overlaps between local tests & regions
     for (i in 1:ndim) {
-        testIntervals[[i]]= Intervals(cbind(localgrid[[i]][-length(localgrid[[i]])], localgrid[[i]][-1])) #from package intervals
-        regionIntervals= Intervals(regioncoord[[i]]) 
-        overlaps[[i]]= interval_overlap(testIntervals[[i]], regionIntervals) #from package intervals
+        testIntervals[[i]]= intervals::Intervals(cbind(localgrid[[i]][-length(localgrid[[i]])], localgrid[[i]][-1]))
+        regionIntervals= intervals::Intervals(regioncoord[[i]]) 
+        overlaps[[i]]= intervals::interval_overlap(testIntervals[[i]], regionIntervals)
     }
     #For each grid element, select regions that overlap in all coordinates
     if (ndim == 1) {

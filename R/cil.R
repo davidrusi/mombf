@@ -64,7 +64,7 @@ biclogreg <- function(y, pred, x, beta) {
 lasso.bic <- function(y, x, intercept = TRUE, standardize = TRUE, family = 'gaussian') {
 ################################################################################
   if (!is.matrix(x)) x <- as.matrix(x)
-  fit <- glmnet(x = x, y = y, family = family, alpha = 1, intercept = intercept, standardize = standardize)
+  fit <- glmnet::glmnet(x = x, y = y, family = family, alpha = 1, intercept = intercept, standardize = standardize)
   if (intercept == TRUE) {
     ct <-  which(apply(x, 2, 'sd') == 0)
     if (length(ct)==0) x <- cbind(1,x)
@@ -424,7 +424,7 @@ exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), add
     #if (ntreatvals > 1 & min(table(b)) > 1) {  #David: this line seemed incorrect, for continuous b we had min(table(d))==1 and hence betad wasn't initialized
       if (mod1 == 'ginv') {
         if (familyD[i] != 'normal') stop("The generalized inverse method cannot be applied when familyD != 'normal'")
-        betad[, i] <- as.matrix(pinv(t(A) %*% A) %*% t(A) %*% b)[-exc] #pracma::pinv
+        betad[, i] <- as.matrix(pracma::pinv(t(A) %*% A) %*% t(A) %*% b)[-exc] 
       } else if (mod1 %in% c('bvs', 'bma', 'bms')) {
         m1.fit <- modelSelection(b, A, family=familyD[i], priorCoef = priorCoef, priorVar = igprior(0.01,0.01), priorDelta = modelbbprior(1,1),
           niter = Rinit, verbose = FALSE)
@@ -432,7 +432,7 @@ exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), add
         #post.th <- colMeans(rnlp(msfit = m1.fit, priorCoef = priorCoef, niter = 1e4))
         #betad[, i] <- unname(post.th[2:(length(post.th) - 1)])[-exc]
       } else if (mod1 == 'lasso') {
-        m1.fit <- cv.glmnet(x=A, y=b, intercept = addintcpt, family = familyD.glmnet[i])
+        m1.fit <- glmnet::cv.glmnet(x=A, y=b, intercept = addintcpt, family = familyD.glmnet[i])
         m1.coef <- as.numeric(coef(m1.fit, s = m1.fit[[lpen]])[-exc])
         if (nrow(betad) == length(m1.coef)) betad[,i] <- m1.coef else betad[,i] <- m1.coef[-1]
         #betad[, i] <- unname(coef(m1.fit, s = m1.fit[[lpen]])[-1, 1])[-exc]
@@ -442,7 +442,7 @@ exposureCoef <- function(Di, A, familyD, typeofvar = rep('numeric',ncol(A)), add
         #if (addintcpt == FALSE) { m1.fit[['coef']][2] <- m1.fit[['coef']][1] }
         #betad[, i] <- unname(m1.fit[['coef']][-1][-exc])
       } else if (mod1 == 'ridge') {
-        m1.fit <- cv.glmnet(A, b, alpha = 0, intercept = addintcpt, family = familyD.glmnet[i])
+        m1.fit <- glmnet::cv.glmnet(A, b, alpha = 0, intercept = addintcpt, family = familyD.glmnet[i])
         betad[, i] <- unname(coef(m1.fit, s = m1.fit[['lambda.min']]))[-exc]
         #betad[, i] <- unname(coef(m1.fit, s = m1.fit[['lambda.min']])[-1, ])[-exc]
       } else {

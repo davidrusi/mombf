@@ -528,8 +528,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
     } else if (initSearch=='SCAD') {
       if (verbose) cat("Initializing via SCAD cross-validation...")
       deltaini <- rep(TRUE,ncol(xstd))
-      cvscad <- cv.ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
-      deltaini[!ct] <- ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),penalty='SCAD',dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1,1]!=0
+      cvscad <- ncvreg::cv.ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),family="gaussian",penalty="SCAD",nfolds=10,dfmax=1000,max.iter=10^4)
+      deltaini[!ct] <- ncvreg::ncvreg(X=xstd[,!ct],y=ystd-mean(ystd),penalty='SCAD',dfmax=1000,lambda=rep(cvscad$lambda[cvscad$cv],2))$beta[-1,1]!=0
       deltaini[includevars==1] <- TRUE
       ndeltaini <- as.integer(sum(deltaini)); deltaini <- as.integer(which(deltaini)-1)
       if (verbose) cat(" Done\n")
@@ -590,7 +590,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   }
 
   priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorConstraints, priorVar=priorVar, priorSkew=priorSkew)
-  if (length(uncens)>0) { ystd[ordery]= ystd; uncens[ordery]= uncens; ystd= Surv(time=ystd, event= uncens); xstd[ordery,]= xstd }
+  if (length(uncens)>0) { ystd[ordery]= ystd; uncens[ordery]= uncens; ystd= survival::Surv(time=ystd, event= uncens); xstd[ordery,]= xstd }
   names(constraints)= paste('group',0:(length(constraints)-1))
   ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,modelid=modelid,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }

@@ -21,7 +21,8 @@
 modelSelectionGGM(y, priorCoef=normalidprior(tau=1), 
 priorModel=modelbinomprior(1/ncol(y)), 
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
-almost_parallel= FALSE, sampler='Gibbs', niter=10^3, 
+almost_parallel= FALSE, save_proposal= FALSE,
+sampler='Gibbs', niter=10^3, 
 burnin= round(niter/10), pbirth=0.5, nbirth, 
 Omegaini='glasso-ebic', verbose=TRUE)
 
@@ -45,7 +46,13 @@ Omegaini='glasso-ebic', verbose=TRUE)
     unit sample variance}
 
   \item{almost_parallel}{Use almost parallel algorithm sampling from each 
-column independently and using an MH step}
+    column independently and using an MH step}
+
+  \item{save_proposal}{If \code{TRUE}, the parallel proposals are saved
+  in \code{proposal} (a list with p entries, one per column) and the
+  corresponding proposal densities in \code{proposaldensity}. Neither
+  are typically needed, as they were already used to produce the
+  posterior samples in \code{postSample}}
   
   \item{sampler}{Posterior sampler. Options are "Gibbs", "birthdeath"
   and "zigzag"}
@@ -93,8 +100,13 @@ column independently and using an MH step}
   the precision matrix. Stored as a sparse matrix, see package Matrix
   to utilities to work with such matrices}
 
-\item{propdens}{If \code{almost_parallel=TRUE}, a matrix where entry
-  (i,j) stores the log-proposal density for proposed sample i of column j}
+\item{proposal}{If \code{almost_parallel} and \code{save_proposal} are
+  \code{TRUE}, this is a list with one entry per column of Omega,
+  containing the proposed values of each column}
+
+\item{proposaldensity}{log-proposal density for the samples in
+  \code{proposal}. Entry (i,j) stores the log-proposal density for
+  proposed sample i of column j}
 
 \item{margpp}{Rao-Blackwellized estimates of posterior marginal
   inclusion probabilities. Only valid when using the Gibbs algorithm}

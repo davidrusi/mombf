@@ -84,9 +84,9 @@ if (is.vector(V1)) {
   #require(mvtnorm)
   qtheta <- mahalanobis(x,center=theta0,cov=n*g*V1)
   if (baseDensity=='normal') {
-    ans <- qtheta*dmvnorm(x,mean=theta0,sigma=n*g*V1)/ncol(V1)
+    ans <- qtheta * mvtnorm::dmvnorm(x,mean=theta0,sigma=n*g*V1)/ncol(V1)
   } else if (baseDensity=='t') {
-    ans <- qtheta*dmvt(x,delta=theta0,sigma=n*g*V1)*(nu-2)/(nu*length(theta0))
+    ans <- qtheta * mvtnorm::dmvt(x,delta=theta0,sigma=n*g*V1)*(nu-2)/(nu*length(theta0))
   }
 }
 return(ans)
@@ -249,7 +249,7 @@ setMethod("demom",signature(x='matrix'),function(x, tau, a.tau, b.tau, phi=1, lo
   if (!missing(tau)) {
     pen <- -tau*phi*rowSums(1/x^2)
     normct <- p*sqrt(2)
-    ans <- pen + dmvnorm(x,mean=rep(0,p),sigma=tau*phi*V1,log=TRUE) + normct
+    ans <- pen + mvtnorm::dmvnorm(x,mean=rep(0,p),sigma=tau*phi*V1,log=TRUE) + normct
   } else {
     anew <- .5*(a.tau+p); bnew <- .5*(b.tau+rowSums(x^2)/phi)
     num <- sqrt(2)*p + .5*a.tau*log(.5*b.tau)

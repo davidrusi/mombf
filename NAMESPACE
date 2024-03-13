@@ -2,19 +2,11 @@
 ### NAMESPACE
 ###
 
-import(methods, mvtnorm, mgcv, ncvreg, stats)
-importFrom(dplyr, tibble)
-importFrom(glasso, glassopath)
-importFrom(glmnet, glmnet, cv.glmnet)
-importFrom(intervals, Intervals, interval_overlap)
-importFrom(Matrix, Matrix, colMeans, sparseMatrix, t)
-importFrom(mclust,Mclust,mclustBIC,priorControl)
-importFrom(sparseMatrixStats, colQuantiles)
-importFrom(survival, Surv, coxph)
+import(methods, mgcv, stats)
+importFrom(mclust, mclustBIC)
 importFrom("utils", "combn")
 importFrom(Rcpp, evalCpp)
-importFrom(pracma, pinv)
-
+ 
 importFrom("graphics", "lines")
 importFrom("grDevices", "devAskNewPage")
 

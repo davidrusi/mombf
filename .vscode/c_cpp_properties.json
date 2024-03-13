@@ -1,0 +1,19 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+          "${workspaceFolder}/**",
+          "${env:HOME}/R/x86_64-pc-linux-gnu-library/4.3/cpp11/include",
+          "/usr/share/R/include",
+          "${env:HOME}/github/mombf/src",
+          "${env:HOME}/R/x86_64-pc-linux-gnu-library/4.3/RcppArmadillo/include"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "c11",
+      "cppStandard": "c++17"
+  }
+  ],
+  "version": 4
+}

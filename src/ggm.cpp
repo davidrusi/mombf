@@ -448,6 +448,7 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
      - Elements j=0,...,p-1 (proposal_samples) are arma::sp_mat storing proposed samples for Omega[,j] given Omegaini[-j,-j]
      - Element p (propdens) is a matrix where column j stores the proposal density for the proposed samples of Omega[,j]
      - Element p+1 (postSample) are posterior samples for Omega, obtained from the proposals in proposal_samples
+     - Element p+2 (prop_accept) is the proportion of accepted proposals for each column of Omega
 */
 
 
@@ -462,6 +463,8 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   bool use_gibbs= (sampler == Gibbs);
   bool use_birthdeath= (sampler == birthdeath);
   bool use_zigzag= (sampler == zigzag);
+
+  std::vector<double> prop_accept(p, 0.0);
 
   //Allocate memory
   dpropini= dvector(0, p-1);
@@ -487,7 +490,7 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
   std::vector<arma::sp_mat>::iterator it;
   //std::list<arma::sp_mat>::iterator it;
-  List ret(p+2);
+  List ret(p+3);
   for (it= proposal_samples.begin(), j=0; it != proposal_samples.end(); ++it, j++) { 
     ret[j]= (*it);
   }
@@ -500,10 +503,9 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
   //MCMC using independent proposal MH to combine the chains
   arma::sp_mat postSample(npars, niter - burnin);
-  GGM_parallel_MH_indep(&postSample, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
-  //GGM_parallel_MH_indep(&postSample, &ret, &propdens, dpropini, ggm, &Omegaini);
-
+  GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
   ret[p+1]= postSample;
+  ret[p+2]= prop_accept;
 
   //Free memory and return output
   delete ggm;
@@ -578,7 +580,7 @@ INPUT/OUTPUT
   - dpropini: vector where entry j is the log-proposal density for Omegaini[,j] given Omegaini[-j,-j]. Updated at each iteration, the value at the last iteration is returned
 
 */
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<arma::sp_mat> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_accept, std::vector<arma::sp_mat> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, k, iter, newcol, proposal_idx, niter= postSample->n_cols, burnin= ggm->burnin(), p= ggm->ncol();
   double dpostnew, dpostold, dpropnew, dpropold, diagnew, ppnew;
@@ -588,6 +590,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<arma::sp_mat> *
   std::vector<arma::sp_mat> u1old(p);
   arma::sp_mat u1new;
   double a= 0.5 * (double) ggm->n() + 1.0;
+  std::vector<int> number_accept(p, 0);
   
   //Pre-compute constants & initialize MCMC state
   for (i=0; i < p; i++) {
@@ -619,9 +622,9 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<arma::sp_mat> *
     ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
     if ((ppnew > 1) | (runif() < ppnew)) { //if update is accepted
 
+      if (i >= burnin) number_accept[newcol]= number_accept[newcol] + 1;
       u1old[newcol]= u1new;
       dpropini[newcol]= dpropnew;
-      //diagcur[newcol]= diagnew;        
       diagnew= rgammaC(a, -bnew[newcol]) + ssnew; //sample diagonal value from full conditional posterior
 
       //Update Omegaini
@@ -647,6 +650,8 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<arma::sp_mat> *
 
 
   }
+
+  for (i=0; i<p; i++) prop_accept->at(i)= (number_accept[i] + 0.0) / (iter + 0.0);
 
 }
 

@@ -76,7 +76,7 @@ void GGM_parallel_propdensity(arma::mat *propdens, double *dpropini, std::vector
 
 void GGM_Gibbs_parallel(std::vector<arma::sp_mat> *ans, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<arma::sp_mat> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_accept, std::vector<arma::sp_mat> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
 

@@ -100,6 +100,9 @@ Omegaini='glasso-ebic', verbose=TRUE)
   the precision matrix. Stored as a sparse matrix, see package Matrix
   to utilities to work with such matrices}
 
+\item{prop_accept}{If \code{almost_parallel} is \code{TRUE}, a vector
+  with the proportion of accepted samples for each column of Omega}
+
 \item{proposal}{If \code{almost_parallel} and \code{save_proposal} are
   \code{TRUE}, this is a list with one entry per column of Omega,
   containing the proposed values of each column}

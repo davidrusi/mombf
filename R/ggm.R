@@ -73,9 +73,11 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   if (!almost_parallel) {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
+    prop_accept= NULL
   } else {
     ans= GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans[[p+2]])
+    prop_accept= ans[[p+3]]
     if (save_proposal) {
       proposal= lapply(ans[1:p], Matrix::t)
       proposaldensity= Matrix::t(ans[[p+1]])
@@ -90,7 +92,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, proposal=proposal, proposaldensity=proposaldensity, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
+  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
 
   new("msfit_ggm",ans)
 }

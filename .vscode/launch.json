@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "(lldb) Launch",
+      "type": "lldb",
+      "request": "launch",
+      "program": "/usr/lib/R/bin/exec/R",
+      "args": [
+        "--vanilla",
+        "-e",
+        "source('debug/debug.R')"
+      ],
+      "env": {
+        "R_HOME" : "/usr/lib/R"
+      },
+      "terminal": "console",
+      "stopOnEntry": false
+    }
+  ]
+}

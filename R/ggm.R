@@ -21,7 +21,7 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 coef.msfit_ggm <- function(object,...) {
   m= Matrix::colMeans(object$postSample)
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
-  if (object$samplerPars['sampler'] == 'Gibbs') {
+  if ((object$samplerPars['sampler'] == 'Gibbs') & (!object$almost_parallel)) {
     ans= cbind(t(object$indexes), m, ci, object$margpp)
   } else {
     ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0))

@@ -2,6 +2,7 @@
 \alias{postProb}
 \alias{postProb-methods}
 \alias{postProb,msfit-method}
+\alias{postProb,msfit_ggm-method}
 \alias{postProb,cilfit-method}
 \alias{postProb,localtest-method}
 \alias{postProb,mixturebf-method}
@@ -31,6 +32,10 @@ Obtain posterior model probabilities
   A \code{data.frame} with posterior model probabilities in column pp.
   Column modelid indicates the indexes of the selected covariates (empty
   for the null model with no covariates)
+
+  For \code{msfit_ggm} objects, a list with posterior probabilities
+  (element "pp") and the corresponding model (element "modelid")
+  indicating what edges are non-zero
 
   For \code{mixturebf} objects, posterior probabilities for the
   specified number of components

@@ -15,6 +15,7 @@ plot.msfit_ggm= function(x, y, ...) {
 setMethod("show", signature(object='msfit_ggm'), function(object) {
   cat('Gaussian graphical model (msfit_ggm object) with ',object$p,'variables\n')
   cat("Use coef() to get BMA estimates, posterior intervals and posterior marginal prob of entries being non-zero\n")
+  cat("use postProb() for posterior model probabilities")
 }
 )
 
@@ -44,6 +45,44 @@ icov <- function(fit, threshold) {
   }
   return(ans)
 }
+
+
+proportion_visited_models= function(postSample) {
+  modelpp <- apply(postSample != 0, 1, function(z) paste(which(z),collapse=','))
+  modelpp <- table(modelpp)/length(modelpp)
+  modelpp <- data.frame(modelid=names(modelpp), pp=as.numeric(modelpp))
+  return(modelpp)
+}
+
+setMethod("postProb", signature(object='msfit_ggm'), function(object, nmax, method='norm') {
+if (!is.null(object$models)) {
+  ans= object$models
+} else {
+  param_ids= paste('(',object$indexes[1,], ',', object$indexes[2,], ')',sep='')
+  npar= ncol(object$indexes)
+  #Compute posterior probabilities
+  modelpp = proportion_visited_models(object$postSample)
+  #Compute model identifiers
+  tmp= strsplit(modelpp$modelid, ',')
+  modelid= t(sapply(tmp, function(z) { ans= rep(FALSE,npar); ans[as.integer(z)]= TRUE; return(ans) }))
+  colnames(modelid)= param_ids
+  modelid= Matrix::Matrix(modelid, sparse=TRUE)
+  #Sort models in decreasing probability
+  o= order(modelpp$pp,decreasing=TRUE)
+  modelpp= modelpp[o,]
+  modelid= modelid[o,]
+  #Return nmax models    
+  if (!missing(nmax)) {
+      modelpp <- modelpp[1:nmax,]
+      modelid = modelid[1:nmax,]
+  }
+  #Return output
+  ans= list(modelid= modelid, pp=modelpp$pp)
+}
+return(ans)
+}
+)
+
 
 
 ### Model selection routines
@@ -80,6 +119,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     prop_accept= ans[[p+3]]
     if (save_proposal) {
       proposal= lapply(ans[1:p], Matrix::t)
+      for (i in 1:length(proposal)) proposal[[i]]@x = as.double(proposal[[i]]@x)
       proposaldensity= Matrix::t(ans[[p+1]])
     }
   }

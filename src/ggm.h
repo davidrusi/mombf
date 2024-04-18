@@ -33,7 +33,7 @@ public:
 
   //Constructor and destructor
 
-  ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool computeS);
+  ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS);
   ~ggmObject();
 
   //PUBLIC METHODS PROVIDED BY THE CLASS
@@ -46,6 +46,7 @@ public:
   int burnin();
   double pbirth();  //probability of birth move, ignored unless sampler is "birthdeath"
   int nbirth(); //number of birth/death updates to perform when updating each column of the precision matrix
+  double tempering(); //tempering parameter in almost-parallel proposal
 
   arma::mat S; //t(y) * y
 
@@ -53,6 +54,7 @@ public:
   List prModel; //prior on model
   List samplerPars; //posterior sampler parameters
 
+  bool use_tempering;
   bool verbose;
 
 private:

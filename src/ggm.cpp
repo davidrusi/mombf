@@ -52,12 +52,13 @@ IntegerVector findAdjacentStates(sp_mat adjacency, int col) {
 //*************************************************************************************
 
 //Constructor
-ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool computeS=true) {
+ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS=true) {
 
   this->y = y;
   this->prCoef = prCoef;
   this->prModel = prModel;
   this->samplerPars = samplerPars;
+  this->use_tempering= use_tempering;
 
   arma::vec v = as<arma::vec>(samplerPars["verbose"]);
   if (v[0] == 1) this->verbose= true; else this->verbose= false;
@@ -106,6 +107,10 @@ double ggmObject::pbirth() {
 
 int ggmObject::nbirth() {
   return this->samplerPars["nbirth"];
+}
+
+double ggmObject::tempering() {
+  return this->samplerPars["tempering"];
 }
 
 
@@ -157,8 +162,9 @@ void print_mat( mat_type A ) {
 
 // [[Rcpp::export]]
 List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
+  bool use_tempering= false;
   ggmObject *ggm;
-  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
+  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, use_tempering, true);
 
   int niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
   int npars= p*(p+1)/2;
@@ -201,38 +207,6 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
   return ret;
 
 }
-
-
-//arma::sp_mat modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
-//  ggmObject *ggm;
-//  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
-// 
-//  int niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
-//  int npars= p*(p+1)/2;
-// 
-//  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
-//  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
-//  bool use_gibbs= (sampler == Gibbs);
-//  bool use_birthdeath= (sampler == birthdeath);
-//  bool use_zigzag= (sampler == zigzag);
-// 
-//  //Create output matrix
-//  arma::sp_mat ans(npars, niter - burnin);
-// 
-//  if (use_gibbs || use_birthdeath) {
-// 
-//    GGM_Gibbs(&ans, ggm, &Omegaini);
-// 
-//  } else if (use_zigzag) {
-//    
-//    Rprintf("zigzag will be implemented soon\n");
-// 
-//  } else Rf_error("This sampler type is not currently implemented\n");
-// 
-//  delete ggm;
-// 
-//  return ans;
-//}
 
 
 
@@ -455,9 +429,9 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
      - Element p+2 (prop_accept) is the proportion of accepted proposals for each column of Omega
 */
 
-
+  bool use_tempering= true;
   ggmObject *ggm;
-  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, true);
+  ggm= new ggmObject(&y, prCoef, prModel, samplerPars, use_tempering, true);
 
   int j, niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin(), npars= p*(p+1)/2;
   double *dpropini;
@@ -502,6 +476,7 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   ret[p]= propdens; //proposal density of proposed samples
 
   //MCMC using independent proposal MH to combine the chains
+  ggm->use_tempering= false;
   arma::sp_mat postSample(npars, niter - burnin);
   GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
   ret[p+1]= postSample;
@@ -890,7 +865,7 @@ IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL) {
 
   int i, j, p= ggm->ncol();
-  double mcurrent, mnew, ppnew, sample_diag;
+  double mcurrent, mnew, ppnew, sample_diag, tempering= ggm->tempering();
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
@@ -990,7 +965,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
   bool birth;
   int i, j, p= ggm->ncol(), nbirth= ggm->nbirth(), idx_update;
-  double pbirth= ggm->pbirth(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
+  double pbirth= ggm->pbirth(), tempering= ggm->tempering(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;

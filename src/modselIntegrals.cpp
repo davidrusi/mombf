@@ -144,6 +144,8 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
     jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
 
+    if (ggm->use_tempering) (*logjoint) *= (ggm->tempering());
+
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
     if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {

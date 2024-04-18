@@ -87,13 +87,14 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, save_proposal=FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, tempering=0.5, save_proposal=FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
   if (p <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
   if (!(sampler %in% c('Gibbs','birthdeath','zigzag'))) stop("sampler must be 'Gibbs', 'birthdeath' or 'zigzag'")
+  if (tempering < 0) stop("tempering cannot be negative")
   y = scale(y, center=center, scale=scale)
     
   #Format prior parameters
@@ -102,7 +103,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter, burnin, pbirth, nbirth, verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, pbirth=pbirth, nbirth=nbirth, tempering=tempering, verbose=verbose)
     
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
@@ -140,14 +141,14 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, pbirth, nbirth, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, pbirth, nbirth, tempering, verbose) {
   if (missing(nbirth)) {
       nbirth= as.integer(min(p, max(log(p), 10)))
   } else {
       nbirth= as.integer(nbirth)
   }
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','verbose')
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.double(tempering), as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','tempering','verbose')
   return(samplerPars)
 }
 

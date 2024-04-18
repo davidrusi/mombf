@@ -21,7 +21,7 @@
 modelSelectionGGM(y, priorCoef=normalidprior(tau=1), 
 priorModel=modelbinomprior(1/ncol(y)), 
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
-almost_parallel= FALSE, save_proposal= FALSE,
+almost_parallel= FALSE, tempering= 0.5, save_proposal= FALSE,
 sampler='Gibbs', niter=10^3, 
 burnin= round(niter/10), pbirth=0.5, nbirth, 
 Omegaini='glasso-ebic', verbose=TRUE)
@@ -45,8 +45,12 @@ Omegaini='glasso-ebic', verbose=TRUE)
   \item{scale}{If \code{TRUE}, the columns of \code{y} will be scaled to
     unit sample variance}
 
-  \item{almost_parallel}{Use almost parallel algorithm sampling from each 
-    column independently and using an MH step}
+  \item{almost_parallel}{If \code{TRUE}, MCMC is based on
+    Metropolis-Hastings where models are proposed using a column-wise model
+    search that is run a priori (possibly in parallel), using
+    approximate tempered posteriors}
+
+  \item{tempering}{}
 
   \item{save_proposal}{If \code{TRUE}, the parallel proposals are saved
   in \code{proposal} (a list with p entries, one per column) and the

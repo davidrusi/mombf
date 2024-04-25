@@ -279,7 +279,7 @@ double complexPrior(int k, int p, double priorc, int logscale);
 
 
 // Uniform
-double runif();
+double runifC();
 double dunifC(double x, double a, double b);
 int runifdisc(int min, int max);
 

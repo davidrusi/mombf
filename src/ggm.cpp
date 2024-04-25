@@ -54,19 +54,44 @@ IntegerVector findAdjacentStates(sp_mat adjacency, int col) {
 //Constructor
 ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS=true) {
 
-  this->y = y;
-  this->prCoef = prCoef;
-  this->prModel = prModel;
-  this->samplerPars = samplerPars;
-  this->use_tempering= use_tempering;
+  //this->y = y;
+  //this->prCoef = prCoef;
+  //this->prModel = prModel;
+  //this->samplerPars = samplerPars;
 
-  arma::vec v = as<arma::vec>(samplerPars["verbose"]);
-  if (v[0] == 1) this->verbose= true; else this->verbose= false;
-
+  //Data summaries
+  this->n= y->n_rows;
+  this->ncol= y->n_cols;
 
   if (computeS) {
     this->S= (*y).t() * (*y);
+  } else {
+    Rf_error("Error in ggmObject. Currently computeS must be set to true");
   }
+
+
+  //Parameters of prior distribution  
+  this->prCoef_lambda= as<double>(prCoef["lambda"]);
+  this->prCoef_tau = as<double>(prCoef["tau"]);
+
+  this->priorlabel= as<string> (prModel["priorlabel"]);
+  this->priorPars_p= as<double>(prModel["priorPars.p"]);
+
+  //MCMC sampler parameters
+  CharacterVector samplerR= samplerPars["sampler"];
+  std::string samplerC = Rcpp::as<std::string>(samplerR);
+  this->sampler= samplerC;
+
+  this->burnin= as<int>(samplerPars["burnin"]);
+  this->nbirth= as<int>(samplerPars["nbirth"]);
+  this->niter= as<int>(samplerPars["niter"]);
+  this->tempering= as<double>(samplerPars["tempering"]);
+  this->pbirth= as<double>(samplerPars["pbirth"]);
+  this->use_tempering= use_tempering;
+
+  //Set print progress iteration to true/false
+  arma::vec v = as<arma::vec>(samplerPars["verbose"]);
+  if (v[0] == 1) this->verbose= true; else this->verbose= false;
 
 }
 
@@ -75,43 +100,22 @@ ggmObject::~ggmObject() {
 
 }
 
-int ggmObject::n() {
-  return this->y->n_rows;
-  //return (this->y).nrow();
-}
+//int ggmObject::n() { return this->y->n_rows; }
 
-int ggmObject::ncol() {
-  return this->y->n_cols;
-  //return (this->y).ncol();
-}
-
+//int ggmObject::ncol() { return this->y->n_cols; }
 
 //Posterior sampler type
-CharacterVector ggmObject::sampler() { 
-  return this->samplerPars["sampler"]; 
-}
+//CharacterVector ggmObject::sampler() { return this->samplerPars["sampler"]; }
 
-int ggmObject::niter() {
-  return this->samplerPars["niter"];
-}
+//int ggmObject::niter() { return this->samplerPars["niter"]; }
 
-int ggmObject::burnin() {
-  return this->samplerPars["burnin"];
-}
+//int ggmObject::burnin() {  return this->samplerPars["burnin"]; }
 
+//double ggmObject::pbirth() return this->samplerPars["pbirth"]; }
 
-double ggmObject::pbirth() {
-  return this->samplerPars["pbirth"];
-}
+// int ggmObject::nbirth() { return this->samplerPars["nbirth"]; }
 
-
-int ggmObject::nbirth() {
-  return this->samplerPars["nbirth"];
-}
-
-double ggmObject::tempering() {
-  return this->samplerPars["tempering"];
-}
+// double ggmObject::tempering() { return this->samplerPars["tempering"]; }
 
 
 
@@ -166,17 +170,15 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
   ggmObject *ggm;
   ggm= new ggmObject(&y, prCoef, prModel, samplerPars, use_tempering, true);
 
-  int niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin();
-  int npars= p*(p+1)/2;
+  int p= ggm->ncol, npars= p*(p+1)/2;
 
-  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
-  bool use_gibbs= (sampler == Gibbs);
-  bool use_birthdeath= (sampler == birthdeath);
-  bool use_zigzag= (sampler == zigzag);
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_zigzag= (ggm->sampler == zigzag);
 
   //Create output matrix
-  arma::sp_mat postSample(npars, niter - burnin);
+  arma::sp_mat postSample(npars, ggm->niter - ggm->burnin);
 
   arma::mat margpp = arma::zeros(p,p); 
   arma::Mat<int> margppcount;
@@ -231,13 +233,13 @@ INPUT/OUTPUT
 
 void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10;
+  int i, j, k, p= ggm->ncol, iter= 0, burnin= ggm->burnin, niter= ggm->niter, niter10;
   arma::sp_mat::iterator it;
 
-  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath");
-  bool use_gibbs= (sampler == Gibbs);
-  bool use_birthdeath= (sampler == birthdeath);
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
   arma::SpMat<short> *models= NULL;
   arma::mat *model_logprob= NULL;
 
@@ -250,9 +252,6 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
   for (i=0; i < niter; i++) {
 
     for (j=0; j < p; j++) {  //for each column
-
-      //Rprintf("i=%d, j=%d\n", i, j); //debug
-      //Omegaini->print("Omegaini"); //debug
 
       arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
       arma::sp_mat Omegacol= Omegaini->col(j);
@@ -304,15 +303,15 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 //Not working yet. Attempt at improving GGM_Gibbs using rank 1 updates to obtain invOmega_j
 void GGM_Gibbs_new(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, p= ggm->ncol(), iter= 0, burnin= ggm->burnin(), niter= ggm->niter(), niter10, colupdated;
+  int i, j, k, p= ggm->ncol, iter= 0, burnin= ggm->burnin, niter= ggm->niter, niter10, colupdated;
   arma::sp_mat::iterator it;
   arma::sp_mat samples_row(p, 1), newvals, oldvals, difvals;
   arma::mat invOmega_j, invOmega_j_safe;
 
-  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath");
-  bool use_gibbs= (sampler == Gibbs);
-  bool use_birthdeath= (sampler == birthdeath);
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
   arma::SpMat<short> *models= NULL;
   arma::mat *model_logprob= NULL;
 
@@ -328,8 +327,6 @@ void GGM_Gibbs_new(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *mar
 
     for (j=0; j < p; j++) {  //for each column
 
-      //Rprintf("i=%d, j=%d\n", i, j); //debug
-      //Omegaini->print("Omegaini"); //debug
       //Update invOmega_j
       if ((i>0) | (j > 0)) {
 
@@ -346,9 +343,6 @@ void GGM_Gibbs_new(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *mar
             newvals= join_cols(first, newvals);
           }
           arma::sp_mat difvals= newvals - oldvals;
-          //oldvals.print("oldvals"); //debug
-          //newvals.print("newvals"); //debug
-          //difvals.print("difvals"); //debug
 	   
           //Less accurate matrix inversion, quadratic cost
           if (j>0) {
@@ -426,24 +420,23 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
      - Elements j=0,...,p-1 (proposal_samples) are arma::sp_mat storing proposed samples for Omega[,j] given Omegaini[-j,-j]
      - Element p (propdens) is a matrix where column j stores the proposal density for the proposed samples of Omega[,j]
      - Element p+1 (postSample) are posterior samples for Omega, obtained from the proposals in proposal_samples
-     - Element p+2 (prop_accept) is the proportion of accepted proposals for each column of Omega
+     - Element p+2 (prop_accept) is the proportion of accepted proposals
 */
 
   bool use_tempering= true;
   ggmObject *ggm;
   ggm= new ggmObject(&y, prCoef, prModel, samplerPars, use_tempering, true);
 
-  int j, niter= ggm->niter(), p= ggm->ncol(), burnin= ggm->burnin(), npars= p*(p+1)/2;
-  double *dpropini;
+  int j, niter= ggm->niter, p= ggm->ncol, burnin= ggm->burnin, npars= p*(p+1)/2;
+  double *dpropini, prop_accept;
 
-  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
-  bool use_gibbs= (sampler == Gibbs);
-  bool use_birthdeath= (sampler == birthdeath);
-  bool use_zigzag= (sampler == zigzag);
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_zigzag= (ggm->sampler == zigzag);
 
   arma::mat propdens(p, niter-burnin);
-  std::vector<double> prop_accept(p, 0.0);
 
   //Allocate memory
   dpropini= dvector(0, p-1);
@@ -465,24 +458,26 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
   } else Rf_error("This sampler type is not currently implemented\n");
 
-  //Store proposals into returned list (ret)
-  std::vector<arma::SpMat<short>>::iterator it;
-  List ret(p+3);
-  for (it= proposal_samples.begin(), j=0; it != proposal_samples.end(); ++it, j++) { 
-    ret[j]= (*it);
-  }
-
- //GGM_parallel_propdensity(&propdens, dpropini, &proposal_samples, ggm, &Omegaini);
-  ret[p]= propdens; //proposal density of proposed samples
-
   //MCMC using independent proposal MH to combine the chains
   ggm->use_tempering= false;
   arma::sp_mat postSample(npars, niter - burnin);
   GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
-  ret[p+1]= postSample;
-  ret[p+2]= prop_accept;
 
-  //Free memory and return output
+  //Return output
+  List ret(p+3);
+  //List ret(2);
+  ret[0]= postSample;
+  ret[1]= prop_accept;
+
+  //Store proposals into returned list (ret)
+  std::vector<arma::SpMat<short>>::iterator it;
+  for (it= proposal_samples.begin(), j=2; it != proposal_samples.end(); ++it, j++) { 
+    ret[j]= (*it);
+  }
+
+  ret[p+2]= propdens;
+ 
+   //Free memory and return output
   delete ggm;
   free_dvector(dpropini, 0, p-1);
 
@@ -549,6 +544,7 @@ INPUT
 OUTPUT
 
   - postSample: sparse matrix where each column corresponds to a posterior sample. If the Gaussian precision matrix Omega is p x p, then postSample has p*(p+1)/2 columns storing Omega in column order. That is, the first p entries correspond to Omega[,1] (first column in Omega), the next p-1 entries to Omega[2:p,2], the next p-2 entries to Omega[3:p,3], and so on.
+  - prop_accept: proportion of accepted proposals
 
 INPUT/OUTPUT
 
@@ -556,19 +552,18 @@ INPUT/OUTPUT
   - dpropini: vector where entry j is the log-proposal density for Omegaini[,j] given Omegaini[-j,-j]. Updated at each iteration, the value at the last iteration is returned
 
 */
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, k, iter, newcol, proposal_idx, niter= postSample->n_cols, burnin= ggm->burnin(), p= ggm->ncol();
+  int i, iter, newcol, number_accept= 0, proposal_idx, burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
-  arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
   std::vector<double> diagcur(p), bnew(p);
   std::vector<arma::SpMat<short>> modelold(p);
   arma::SpMat<short> modelnew;
-  std::vector<int> number_accept(p, 0);
   pt2GGM_rowmarg marfun= &GGMrow_marg;
 
   //Initialize MCMC state
+  /*
   for (j=0; j < p; j++) {
 
     //Init modelold
@@ -589,17 +584,33 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
     delete ms;
 
   }
+  */
+  for (newcol=0; newcol < p; newcol++) {
+    proposal_idx= runifdisc(0, niter - burnin -1); //index of proposal
+    modelold[newcol]= ((*proposal_samples)[newcol]).col(proposal_idx); //proposed model
+    dpropini[newcol]= propdens->at(newcol, proposal_idx);  //log-proposal for proposed model
+
+    //Init Omegaini[,newcol]
+    arma::mat invOmega_newcol= get_invOmega_j(Omegaini, newcol); //to do: use low-rank update
+    modselIntegrals_GGM *ms;
+    ms= new modselIntegrals_GGM(marfun, ggm, newcol, &invOmega_newcol);
+    sample_offdiag= new arma::mat((modelold[newcol]).n_nonzero - 1, 1);
+    ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &(modelold[newcol]), true); //sample Omega[,newcol]
+    update_Omegaini(Omegaini, &newcol, &sample_diag, &modelnew, sample_offdiag); //copy sampled values into Omegaini[,newcol]
+
+    delete ms;
+    delete sample_offdiag;
+  }
+
 
   //MCMC iterations
   for (i = 0, iter = 0; i < niter; i++) {
-
+    
     newcol= runifdisc(0, p-1); //column to update
     proposal_idx= runifdisc(0, niter - burnin -1); //index of proposal
     
     modelnew= ((*proposal_samples)[newcol]).col(proposal_idx); //proposed value
 
-//    Omegaini->print("Omegaini (before update)"); //debug
-//    modelnew.print("modelnew"); //debug
     arma::mat invOmega_newcol= get_invOmega_j(Omegaini, newcol); //to do: use low-rank update
 
     modselIntegrals_GGM *ms;
@@ -609,12 +620,16 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
 
     dpropnew= propdens->at(newcol, proposal_idx);  //log-proposal for proposed model
     dpropold= dpropini[newcol]; //log-proposal for current model
-//    Rprintf("dpostnew=%f, dpostold=%f, dpropnew=%f, dpropold=%f\n", dpostnew, dpostold, dpropnew, dpropold); //debug
 
     ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
-    if ((ppnew > 1) | (runif() < ppnew)) { //if update is accepted
+    //Rprintf("newcol=%d", newcol); //debug
+    //modelnew.print("modelnew"); //debug
+    //(modelold[newcol]).print("modelold[newcol]"); //debug
+    //Rprintf("dpostnew=%f, dpostold=%f, dpropnew=%f, dpropold=%f", dpostnew, dpostold, dpropnew, dpropold); //debug
 
-      if (i >= burnin) number_accept[newcol]= number_accept[newcol] + 1;
+    if ((ppnew > 1) | (runifC() < ppnew)) { //if update is accepted
+
+      if (i >= burnin) number_accept++;
 
       dpropini[newcol]= dpropnew;
       modelold[newcol]= modelnew;
@@ -622,28 +637,14 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
       //Sample Omega[,newcol]
       sample_offdiag= new arma::mat(modelnew.n_nonzero - 1, 1);
       ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, true); //sample Omega[,newcol]
-//      sample_offdiag->print("sample_offdiag"); //debug
 
-      //Update Omegaini
-      spmat_rowcol2zero(Omegaini, newcol); //Set row and colum newcol to 0
-
-      //Copy (sample_offdiag, sample_diag) to Omegaini
-      Omegaini->at(newcol, newcol)= sample_diag; //save diagonal element
-      arma::SpMat<short>::iterator it;
-      for (it= modelnew.begin(), j=0; it != modelnew.end(); ++it) {
-        k= it.row();
-        if (k != newcol) { //skip diagonal element (already saved earlier)
-          Omegaini->at(k, newcol)= Omegaini->at(newcol, k)= sample_offdiag->at(j,0); 
-          j++;
-        } 
-      }
-//      Omegaini->print("Omegaini (after update)"); //debug
+      update_Omegaini(Omegaini, &newcol, &sample_diag, &modelnew, sample_offdiag); //copy sampled values into Omegaini[,newcol]
 
       delete sample_offdiag;
 
     }
 
-    //Copy from Omegaini into postSample[iter,]
+    //Copy from Omegaini into postSample[,iter]
     if (i >= burnin) {
       spmatsym_save2flat(postSample, Omegaini, iter);
       iter++;
@@ -653,7 +654,36 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
 
   }
 
-  for (i=0; i<p; i++) prop_accept->at(i)= (number_accept[i] + 0.0) / (iter + 0.0);
+  (*prop_accept)= (number_accept + 0.0) / (iter + 0.0);
+
+}
+
+/*Update symmetric Omegaini[,newcol] by storing Omegaini[newcol,newcol]= sample_diag and storing sample_offdiag into the off-diagonal entries indicated by modelnew
+  Input
+  - newcol: column to be updated
+  - sample_diag: new diagonal entry to be stored
+  - modelnew: sparse column vector (dimension nrow(Omegaini) x 1) indicating what off-diagonal entries in Omegaini[,newcol] will be non-zero
+  - sample_offdiag: dense vector of length equal to modelnew->n_nonzero storing the non-zero entries
+  Output
+  - Omegaini: row and column newcol are updated with the values in sample_diag and sample_offdiag. The rest of Omegaini is not altered
+
+*/
+void update_Omegaini(arma::sp_mat *Omegaini, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag) {
+  int j, k;
+
+  //Update Omegaini
+  spmat_rowcol2zero(Omegaini, *newcol); //Set row and colum newcol to 0
+
+  //Copy (sample_offdiag, sample_diag) to Omegaini
+  Omegaini->at(*newcol, *newcol)= *sample_diag; //save diagonal element
+  arma::SpMat<short>::iterator it;
+  for (it= modelnew->begin(), j=0; it != modelnew->end(); ++it) {
+    k= it.row();
+    if (k != *newcol) { //skip diagonal element (already saved earlier)
+      Omegaini->at(k, *newcol)= Omegaini->at(*newcol, k)= sample_offdiag->at(j,0); 
+      j++;
+    } 
+  }
 
 }
 
@@ -661,7 +691,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
 /* Old version where the proposal provided samples for Omega, rather than proposing only model indicators 
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_accept, std::vector<arma::sp_mat> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, k, iter, newcol, proposal_idx, niter= postSample->n_cols, burnin= ggm->burnin(), p= ggm->ncol();
+  int i, k, iter, newcol, proposal_idx, niter= postSample->n_cols, burnin= ggm->burnin, p= ggm->ncol;
   double dpostnew, dpostold, dpropnew, dpropold, diagnew, ppnew;
   arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
   double lambdahalf= 0.5 * lambda[0];
@@ -752,17 +782,13 @@ OUTPUT
 
 void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop) {
 
-  int j, p= ggm->ncol(), burnin= ggm->burnin(), niter= ggm->niter(), p10;
-  std::vector<arma::SpMat<short>>::iterator it;
+  int j, p= ggm->ncol, burnin= ggm->burnin, niter= ggm->niter, p10;
+//  std::vector<arma::SpMat<short>>::iterator it;
 
-  std::string sampler = Rcpp::as<std::string>(ggm->sampler());
+  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath");
-  bool use_gibbs= (sampler == Gibbs);
-  bool use_birthdeath= (sampler == birthdeath);
-
-  arma::vec margpp_row= arma::zeros(p);
-  arma::Col<int> margppcount_row;
-  margppcount_row.zeros(p);
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
 
   if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs_parallel requires the sampler to be Gibbs or birthdeath");
 
@@ -770,19 +796,24 @@ void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm,
 
   if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
 
-  for (it= models->begin(), j=0; it != models->end(); ++it, j++) { //for each column  
+  #pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
+    for (j=0; j < p; j++) { //for each column
 
+    arma::SpMat<short> *models_row= &(models->at(j));
     arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
-    arma::SpMat<short> *models_row= &(*it);
     arma::sp_mat *samples_row= NULL;
+    arma::vec *margpp_row= NULL;
+    arma::Col<int> *margppcount_row= NULL;
 
     if (use_gibbs) {
-      GGM_Gibbs_singlecol(samples_row, models_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
+      GGM_Gibbs_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
     } else {
-      GGM_birthdeath_singlecol(samples_row, models_row, &margpp_row, &margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
+      GGM_birthdeath_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
     }
 
+    //Rprintf("Column j=%d \n\n Proposed models \n",j); //debug
+    //models_row->print("models_row"); //debug
     if (ggm->verbose) print_iterprogress(&j, &p, &p10);
 
   } //end for each colum
@@ -864,13 +895,18 @@ IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 */
 void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL) {
 
-  int i, j, p= ggm->ncol();
-  double mcurrent, mnew, ppnew, sample_diag, tempering= ggm->tempering();
+  int i, j, p= ggm->ncol;
+  double mcurrent, mnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
+
+  std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
+//  std::default_random_engine generator((omp_get_thread_num() + 1));  //multi-thread version. Set seed according to thread number
+//  std::default_random_engine generator; //single thread version. Do not set seed
+  std::uniform_real_distribution<double> unifdist(0.0,1.0);
 
   //Initialize model and modelnew
   model= new arma::SpMat<short>(p, 1);
@@ -895,10 +931,14 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
       ppnew = exp(mnew - mcurrent);
       ppnew /= (1.0 + ppnew);
 
-      if (model->at(j,0) == 0) margpp->at(j) += ppnew; else margpp->at(j) += 1 - ppnew;
-      margppcount->at(j) ++;
+      if (margpp != NULL) {
+        if (model->at(j,0) == 0) margpp->at(j) += ppnew; else margpp->at(j) += 1 - ppnew;
+      }
+      if (margppcount != NULL) margppcount->at(j) ++;
 
-      if (runif() < ppnew) { //if new model is accepted
+      double u= unifdist(generator);
+
+      if (u < ppnew) { //if new model is accepted
 
         model_tmp_ptr= model;
         model= modelnew;
@@ -913,7 +953,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
     if (samples != NULL) {
 
       sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values
+      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values. DO NOT USE IN A MULTI-THREAD ENVIRONMENT (WRITES TO SHARED RANDOM SEED)
       if (i >= 0) save_ggmsample_col(samples, model, &sample_diag, sample_offdiag, i, colid); //copy current model into samples[,i] as flat vector 
       delete sample_offdiag;
 
@@ -925,7 +965,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
     if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if (model_logprob != NULL) model_logprob->at(colid, i)= mcurrent;
+    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(colid, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 
@@ -964,13 +1004,18 @@ IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL) {
 
   bool birth;
-  int i, j, p= ggm->ncol(), nbirth= ggm->nbirth(), idx_update;
-  double pbirth= ggm->pbirth(), tempering= ggm->tempering(), mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
+  int i, j, p= ggm->ncol, nbirth= ggm->nbirth, idx_update;
+  double pbirth= ggm->pbirth, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
+
+  std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
+//  std::default_random_engine generator((omp_get_thread_num() + 1));  //multi-thread version. Set seed according to thread number
+//  std::default_random_engine generator; //single thread version. Do not set seed
+  std::uniform_real_distribution<double> unifdist(0.0,1.0);
 
   //Initialize model and modelnew
   model= new arma::SpMat<short>(p, 1);
@@ -1012,10 +1057,12 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
           ppnew /= (1.0 + ppnew);
 	   
           //Update posterior marginal inclusion probabilities
-          if (birth) margpp->at(idx_update) += ppnew; else margpp->at(idx_update) += 1 - ppnew;
-          margppcount->at(idx_update) ++;
+          if (margpp != NULL) {
+            if (birth) margpp->at(idx_update) += ppnew; else margpp->at(idx_update) += 1 - ppnew;
+          }
+          if (margppcount != NULL) margppcount->at(idx_update) ++;
            
-          if (runif() < ppnew) { //if new model is accepted
+          if (unifdist(generator) < ppnew) { //if new model is accepted
            
             model_tmp_ptr= model;
             model= modelnew;
@@ -1044,7 +1091,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
     if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if (model_logprob != NULL) model_logprob->at(colid, i)= mcurrent;
+    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(colid, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 
@@ -1103,14 +1150,14 @@ void save_ggmmodel_col(arma::SpMat<short> *ans, arma::SpMat<short> *model, int c
 void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
 
   unsigned int npar= model->n_nonzero -1;
-  arma::vec tau = as<arma::vec>(ggm->prCoef["tau"]); //Prior is Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
-  arma::SpMat<short> model_offdiag(ggm->ncol() -1, 1);
+  //arma::vec tau = as<arma::vec>(ggm->prCoef["tau"]); //Prior is Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
+  arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
 
   if (npar > 0) { //if some off-diagonal entry is non-zero
 
     unsigned int i, j;
-    arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
-    double tauinv= 1.0/tau[0];
+    //arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
+    double tauinv= 1.0/ ggm->prCoef_tau;
     arma::mat U(npar,npar), s(npar, 1);
     arma::SpMat<short>::iterator it;
 
@@ -1124,7 +1171,7 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
     }
      
     //Create U matrix
-    double ct= lambda[0] + ggm->S.at(colid, colid);
+    double ct= ggm->prCoef_lambda + ggm->S.at(colid, colid);
     for (i=0; i<npar; i++) {
       U.at(i,i)= ct * Omegainv_model->at(i,i) + tauinv;
       for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model->at(i,j);
@@ -1138,11 +1185,11 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
      
     (*m)= Uinv * s;
      
-    (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log(tau[0]) + logdetUinv);
+    (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log( ggm->prCoef_tau ) + logdetUinv);
 
   } else { //if all off-diagonal entries are zero
 
-    (*logjoint) = - ((double) npar) * log(tau[0]);
+    (*logjoint) = - ((double) npar) * log( ggm->prCoef_tau );
 
   }
 
@@ -1153,13 +1200,13 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
 
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm) {
   double ans;
-  string priorlabel= as<string> (ggm->prModel["priorlabel"]);
+  //string priorlabel= as<string> (ggm->prModel["priorlabel"]);
 
-  if (priorlabel == "binomial") {
+  if (ggm->priorlabel == "binomial") {
 //  if (ggm->prModel["priorlabel"] == "binomial") {
     double npar= (double) model->n_nonzero; 
-    double p= as<double>(ggm->prModel["priorPars.p"]); 
-    //arma::vec p= as<arma::vec>(ggm->prModel["priorPars.p"]); 
+    double p= ggm->priorPars_p;
+    //double p= as<double>(ggm->prModel["priorPars.p"]); 
 
     ans= npar * log(p) + ((double) (model->n_rows) - npar) * log(1-p);
 

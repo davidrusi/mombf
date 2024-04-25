@@ -87,7 +87,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, tempering=0.5, save_proposal=FALSE, sampler='Gibbs', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, tempering=0.5, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -116,12 +116,12 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     prop_accept= NULL
   } else {
     ans= GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
-    postSample= Matrix::t(ans[[p+2]])
-    prop_accept= ans[[p+3]]
+    postSample= Matrix::t(ans[[1]])
+    prop_accept= ans[[2]]
     if (save_proposal) {
-      proposal= lapply(ans[1:p], Matrix::t)
+      proposal= lapply(ans[3:(3+p-1)], Matrix::t)
       for (i in 1:length(proposal)) proposal[[i]]@x = as.double(proposal[[i]]@x)
-      proposaldensity= Matrix::t(ans[[p+1]])
+      proposaldensity= Matrix::t(ans[[length(ans)]])
     }
   }
     

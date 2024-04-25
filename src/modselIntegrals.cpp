@@ -76,7 +76,7 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
 modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject *ggm, unsigned int colid, arma::mat *Omegainv) {
 
   int i;
-  this->nvars= ggm->ncol() - 1;
+  this->nvars= ggm->ncol - 1;
 
   this->jointFunction= jointFunction;
 
@@ -144,7 +144,7 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
     jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
 
-    if (ggm->use_tempering) (*logjoint) *= (ggm->tempering());
+    if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
 
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
@@ -174,9 +174,9 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     (*sample_offdiag) *= -1.0;
      
     //Sample diagonal element
-    arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
-    double a= 0.5 * (double) ggm->n() + 1.0;
-    double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * lambda[0];
+    //arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
+    double a= 0.5 * (double) ggm->n + 1.0;
+    double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * ggm->prCoef_lambda;
      
     (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
 

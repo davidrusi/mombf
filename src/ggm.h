@@ -38,28 +38,34 @@ public:
 
   //PUBLIC METHODS PROVIDED BY THE CLASS
 
-  int n();    //sample size nrow(y)
-  int ncol(); //number of variables ncol(y)
+  int n;    //sample size nrow(y)
+  int ncol; //number of variables ncol(y)
 
-  CharacterVector sampler(); //sampler type
-  int niter();
-  int burnin();
-  double pbirth();  //probability of birth move, ignored unless sampler is "birthdeath"
-  int nbirth(); //number of birth/death updates to perform when updating each column of the precision matrix
-  double tempering(); //tempering parameter in almost-parallel proposal
+  int burnin;  //number of MCMC burnin iterations
+  double pbirth;  //probability of birth move, ignored unless sampler is "birthdeath"
+  int nbirth; //number of birth/death updates to perform when updating each column of the precision matrix
+  int niter; //number of MCMC iterations
+  double tempering; //tempering parameter in almost-parallel proposal
 
   arma::mat S; //t(y) * y
 
-  List prCoef;  //prior on parameters
-  List prModel; //prior on model
-  List samplerPars; //posterior sampler parameters
+  double prCoef_lambda; //Prior on diagonal entries Omega_{jj} ~ Exp(lambda)
+  double prCoef_tau; //Prior on off-diagonal Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
+  //List prCoef;  //prior on parameters
+
+  std::string priorlabel; //Label for model space prior. Currently only "binomial" is possible, P(Omega_{jk} != 0) = priorPars_p
+  double priorPars_p;
+  //List prModel; //prior on model
+
+  std::string sampler; //MCMC sampler type, e.g. Gibbs, birth-death
+  //List samplerPars; //posterior sampler parameters
 
   bool use_tempering;
   bool verbose;
 
-private:
+//private:
 
-  arma::mat *y;
+//  arma::mat *y;
 
 };
 
@@ -78,7 +84,9 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 
 void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop);
 
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+
+void update_Omegaini(arma::sp_mat *Omegaini, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
 

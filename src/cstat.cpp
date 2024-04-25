@@ -3898,7 +3898,7 @@ void samplei_wr(int *x,
     for (i = 0; i < n; i++) {
         int r;
 
-        r = i + (int)((popsize - i - 1) * runif());
+        r = i + (int)((popsize - i - 1) * runifC());
         {
             int temp;
 
@@ -3927,7 +3927,7 @@ void sampled_wr(double *x,
     for (i = 0; i < n; i++) {
         int r;
 
-        r = i + (int)((popsize - i - 1) * runif());
+        r = i + (int)((popsize - i - 1) * runifC());
         {
             double temp;
 
@@ -3962,7 +3962,7 @@ void rbirthdeath(int *index, bool *birth, arma::SpMat<short> *model, double pbir
   arma::SpMat<short>::iterator it;
 
   (*index)= -1; //return value if proposed update cannot be done
-  (*birth)= (runif() < pbirth);
+  (*birth)= (runifC() < pbirth);
 
   if (*birth) {  //propose birth
 
@@ -4055,7 +4055,7 @@ void setseed(long is1,
 }
 
 
-double runif(void)
+double runifC(void)
 {
     double x;
 
@@ -4083,7 +4083,7 @@ double dunifC(double x,
 int runifdisc(int min,
               int max)
 {
-    return(min + (int)(runif()*(max+1-min)));
+    return(min + (int)(runifC()*(max+1-min)));
 }
 
 
@@ -4096,7 +4096,7 @@ int rdisc(const double *probs, int nvals) {
     int i;
     double u, pcum;
 
-    u = runif();
+    u = runifC();
     pcum = probs[0];
     for (i = 1; (pcum < u) && (i < nvals); i++) {
         pcum += probs[i];
@@ -4602,7 +4602,7 @@ int rbinomial(int n,
     int x = 0;
 
     for (i = 0; i < n; i++) {
-        x += (runif() < p) ? 1 : 0;
+        x += (runifC() < p) ? 1 : 0;
     }
     return x;
 }
@@ -4657,7 +4657,7 @@ void rmultinomial(int ndraws, int ncells, const double *pr, int *x) {
     for (j = 0; j < ndraws; j++) {
         double uj;
 
-        uj = runif() * cum_p[ncells-1];
+        uj = runifC() * cum_p[ncells-1];
         for (i = 0; ((uj > cum_p[i]) & (i < ncells)); i++);
         x[j] = i;
     }
@@ -4724,8 +4724,8 @@ double rnormC(double mu,
              * Pick two uniform numbers in the square extending
              * from -1 to +1 in each direction
              */
-            v1 = 2.0 * runif() - 1.0;
-            v2 = 2.0 * runif() - 1.0;
+            v1 = 2.0 * runifC() - 1.0;
+            v2 = 2.0 * runifC() - 1.0;
             /* See if they are in the unit circle */
             rsq = (v1 * v1) + (v2 * v2);
         } while (rsq >= 1.0 || rsq == 0.0);
@@ -4788,7 +4788,7 @@ double rnorm_trunc_prob(double lprob,
         /*NOTREACHED*/
     }
     /* Generate uniform between lprob, rprob */
-    u = lprob + runif() * (rprob-lprob);
+    u = lprob + runifC() * (rprob-lprob);
     return qnormC(u, m, s);
 }
 
@@ -4818,7 +4818,7 @@ void rnorm_truncMult(double *y, double *pdfy, int *n, double *ltrunc, double *rt
   //Generate random draws
   (*pdfy)= 0;
   for (i=0; i< *n; i++) {
-    u= runif() * cump[ntrunc];
+    u= runifC() * cump[ntrunc];
     j= 0;
     while ((u > cump[j+1]) && (j< ntrunc -1)) j++;
     y[i]= qnormC(p[j][0] + u - cump[j], *m, *s);
@@ -4931,7 +4931,7 @@ void rtmvnormMH(double *ansortho, double *paccept, int n, int p, double *alpha, 
     rtmvnormProp(x0, &propnew, p, alpha, D, lower, upper, within);
     lnew= 0;
     for (j=1; j<=p; j++) lnew -= 0.5 * (x0[j]-alpha[j]) * (x0[j]-alpha[j]);
-    if (runif() <= exp(lnew - lold + propold - propnew)) {
+    if (runifC() <= exp(lnew - lold + propold - propnew)) {
       for (j=1; j<=p; j++) ansortho[i + n*(j-1)]= x0[j];
       lold= lnew; propold= propnew;
       naccept++;
@@ -5863,7 +5863,7 @@ double rt_trunc_prob(int nu,
         /*NOTREACHED*/
     }
     /* Generate uniform between lprob, rprob */
-    u = lprob + runif() * (rprob-lprob);
+    u = lprob + runifC() * (rprob-lprob);
     return(qtC(u, nu));
 }
 
@@ -6431,7 +6431,7 @@ void rnlpPost_lm(double *ans, int niter, int burnin, int thinning, double *y, do
       phinew= 1.0/rgammaC(apost, bpost);
       th2invsum= 0;
       for (j=1; j<=p; j++) th2invsum += 1/(thcur[j]*thcur[j]);
-      if (runif() < exp((phicur-phinew)*tau*th2invsum)) { phicur= phinew; sqrtphi= sqrt(phicur); }
+      if (runifC() < exp((phicur-phinew)*tau*th2invsum)) { phicur= phinew; sqrtphi= sqrt(phicur); }
     }
     for (j=1; j<=p; j++) {
       alpha[j]= mortho[j]/sqrtphi;
@@ -6474,21 +6474,21 @@ void rnlp_Gibbs(double *th, int p, double *m, double **cholS, double **K, double
   if (prior==0) {
     for (i=1; i<=p; i++) {
       upperb= pen_mom(th+i, phi, tau, r);
-      l[i]= runif() * upperb;  //l[i]= runif() * pow(th[i]*th[i] / (phi*tau), r + .0);
+      l[i]= runifC() * upperb;  //l[i]= runifC() * pow(th[i]*th[i] / (phi*tau), r + .0);
       if (r==1) { upper[i]= sqrt(l[i] * (*tau) * (*phi)); } else { upper[i]= pow(l[i] * (*tau) * (*phi), 1.0/(2.0*r)); }
       lower[i]= -upper[i];
     }
   } else if (prior==1) {
     for (i=1; i<=p; i++) {
       upperb= pen_imom(th+i, phi, tau, 1);
-      l[i]= log(runif()) + upperb;
+      l[i]= log(runifC()) + upperb;
       upper[i]= invpen_imom_sandwich(l+i, phi, tau);
       lower[i]= -upper[i];
     }
   } else if (prior==2) {
     for (i=1; i<=p; i++) {
       upperb= pen_emom(th+i, phi, tau, 1);
-      l[i]= runif() * exp(upperb);  //l[i]= runif() * exp(sqrt(2) + tau*phi/th[i]^2)
+      l[i]= runifC() * exp(upperb);  //l[i]= runifC() * exp(sqrt(2) + tau*phi/th[i]^2)
       upper[i]= sqrt(fabs((*tau) * (*phi)/(log(l[i])-sqrt(2.0))));
       lower[i]= -upper[i];
     }
@@ -6577,21 +6577,21 @@ void rnlp_Gibbs_multiple(double *th, double *thini, int p, double *m, double **c
     if (prior==0) {
       for (i=1; i<=p; i++) {
         upperb= pen_mom(thcur+i, &phi, tau, r);
-        l[i]= runif() * upperb;
+        l[i]= runifC() * upperb;
         if (r==1) { upper[i]= sqrt(l[i] * (*tau) * phi); } else { upper[i]= pow(l[i] * (*tau) * phi, 1.0/(2.0*r)); }
         lower[i]= -upper[i];
       }
     } else if (prior==1) {
       for (i=1; i<=p; i++) {
         upperb= pen_imom(thcur+i, &phi, tau, 1);
-        l[i]= log(runif()) + upperb;
+        l[i]= log(runifC()) + upperb;
         upper[i]= invpen_imom_sandwich(l+i, &phi, tau);
         lower[i]= -upper[i];
       }
     } else if (prior==2) {
       for (i=1; i<=p; i++) {
         upperb= pen_emom(thcur+i, &phi, tau, 1);
-        l[i]= runif() * exp(upperb);
+        l[i]= runifC() * exp(upperb);
         upper[i]= sqrt(fabs((*tau) * phi/(log(l[i])-sqrt(2.0))));
         lower[i]= -upper[i];
       }

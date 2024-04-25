@@ -704,9 +704,9 @@ void sample_latentProbit(double *y, double *res, double *sumres2, int *ybinary, 
     linpred= linpred1[i] + linpred2[i];
     plinpred= pnormC(-linpred,0,1);
     if (ybinary[i]) {
-      u= plinpred + (1.0-plinpred) * runif();  //u ~ Unif(plinpred,1)
+      u= plinpred + (1.0-plinpred) * runifC();  //u ~ Unif(plinpred,1)
     } else {
-      u= plinpred * runif(); //u ~ Unif(0,plinpred)
+      u= plinpred * runifC(); //u ~ Unif(0,plinpred)
     }
     res[i]= qnormC(u,0,1);
     (*sumres2)+= res[i]*res[i];
@@ -756,7 +756,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
   } else {
     *pinclude= 1.0/(1.0+exp(logbf+logpratio));
   }
-  if (runif() < *pinclude) { deltaprop=1; } else { deltaprop=0; }
+  if (runifC() < *pinclude) { deltaprop=1; } else { deltaprop=0; }
   //Propose coef
   nu= (int) sqrt((double) n);
   if ((curModel[j]==0) && (deltaprop==0)) {  //proposal is to keep variable out of the model
@@ -797,7 +797,7 @@ void MHTheta1pmom(int *newdelta, double *newcoef, double *pinclude, int *resupda
       den+= dmom(curCoef1[j],0,*(*pars).tau1,*curPhi,*(*pars).r,1);
       lambda= exp(num-den);
     }
-    if (runif()<lambda) {
+    if (runifC()<lambda) {
       *newdelta=deltaprop; *newcoef= thetaprop;
       *resupdate= 1;  //signal that res and partialres have to be interchanged after exiting the function
       for (i=0, *sumres2=0; i< n; i++) (*sumres2)+= partialres[i]*partialres[i];
@@ -1412,7 +1412,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
           }
 
           //update model
-          u= runif();
+          u= runifC();
           ppnew[0] /= ppnewsum; ppnew[1] /= ppnewsum; ppnew[2] /= ppnewsum; ppnew[3] /= ppnewsum;
           if (u< ppnew[1]) {
             selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ[0];
@@ -1442,7 +1442,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 
             ppnew[1] /= ppnewsum;
             if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew[1]; } else { margpp[j]+= (1-ppnew[1]); } } //update Rao-Blackwellized inclusion probabilities
-            u= runif();
+            u= runifC();
             if (u < ppnew[1]) {  selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ[0]; } //update model
 
           } else {

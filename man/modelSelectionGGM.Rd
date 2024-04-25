@@ -22,7 +22,7 @@ modelSelectionGGM(y, priorCoef=normalidprior(tau=1),
 priorModel=modelbinomprior(1/ncol(y)), 
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
 almost_parallel= FALSE, tempering= 0.5, save_proposal= FALSE,
-sampler='Gibbs', niter=10^3, 
+sampler='birthdeath', niter=10^3, 
 burnin= round(niter/10), pbirth=0.5, nbirth, 
 Omegaini='glasso-ebic', verbose=TRUE)
 
@@ -58,8 +58,7 @@ Omegaini='glasso-ebic', verbose=TRUE)
   are typically needed, as they were already used to produce the
   posterior samples in \code{postSample}}
   
-  \item{sampler}{Posterior sampler. Options are "Gibbs", "birthdeath"
-  and "zigzag"}
+  \item{sampler}{Posterior sampler. Options are "Gibbs" and "birthdeath"}
   
   \item{niter}{Number of posterior samples to be obtained}
 

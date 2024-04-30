@@ -166,11 +166,15 @@ initialEstimateGGM= function(y, Omegaini) {
     
   if (is.character(Omegaini)) {
     ans= initGGM(y, Omegaini)
-  } else if (inherits(Omegaini, "matrix")) {
+  } else {
+    if (ncol(Omegaini) != nrow(Omegaini)) stop("Omegaini must be a square matrix")
+    if (ncol(y) != ncol(Omegaini)) stop("ncol(Omegaini) must be equal to ncol(y)")
+    if (inherits(Omegaini, "matrix")) {
     ans= Matrix::Matrix(Omegaini, sparse=TRUE)
-  } else if (inherits(Omegaini, "dgCMatrix", "ddiMatrix")) {
+  } else if (inherits(Omegaini, c("dgCMatrix", "ddiMatrix", "dsCMatrix"))) {
     ans= Omegaini
-  } else stop("Invalid Omegaini. It must be of class matrix, dgCMatrix or ddiMatrix")
+  } else stop("Invalid Omegaini. It must be of class matrix, dgCMatrix, dsCMatrix or ddiMatrix")
+  }
   return(ans)
     
 }

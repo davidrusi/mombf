@@ -34,6 +34,7 @@ public:
   //Constructor and destructor
 
   ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS);
+  ggmObject(ggmObject *ggm);
   ~ggmObject();
 
   //PUBLIC METHODS PROVIDED BY THE CLASS
@@ -83,6 +84,8 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 //void GGM_parallel_propdensity(arma::mat *propdens, double *dpropini, std::vector<arma::sp_mat> *samples, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop);
+
+void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
 
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 

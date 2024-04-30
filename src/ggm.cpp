@@ -54,11 +54,6 @@ IntegerVector findAdjacentStates(sp_mat adjacency, int col) {
 //Constructor
 ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS=true) {
 
-  //this->y = y;
-  //this->prCoef = prCoef;
-  //this->prModel = prModel;
-  //this->samplerPars = samplerPars;
-
   //Data summaries
   this->n= y->n_rows;
   this->ncol= y->n_cols;
@@ -92,6 +87,37 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   //Set print progress iteration to true/false
   arma::vec v = as<arma::vec>(samplerPars["verbose"]);
   if (v[0] == 1) this->verbose= true; else this->verbose= false;
+
+}
+
+
+//Constructor
+ggmObject::ggmObject(ggmObject *ggm) {
+
+  //Data summaries
+  this->n= ggm->n;
+  this->ncol= ggm->ncol;
+  this->S= ggm->S;
+
+  //Parameters of prior distribution  
+  this->prCoef_lambda= ggm->prCoef_lambda;
+  this->prCoef_tau = ggm->prCoef_tau;
+
+  this->priorlabel= ggm->priorlabel;
+  this->priorPars_p= ggm->priorPars_p;
+
+  //MCMC sampler parameters
+  this->sampler= ggm->sampler;
+
+  this->burnin= ggm->burnin;
+  this->nbirth= ggm->nbirth;
+  this->niter= ggm->niter;
+  this->tempering= ggm->tempering;
+  this->pbirth= ggm->pbirth;
+  this->use_tempering= ggm->use_tempering;
+
+  //Set print progress iteration to true/false
+  this->verbose= ggm->verbose;
 
 }
 
@@ -436,16 +462,20 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   bool use_birthdeath= (ggm->sampler == birthdeath);
   bool use_zigzag= (ggm->sampler == zigzag);
 
-  arma::mat propdens(p, niter-burnin);
+  int niter_prop, burnin_prop;
+  niter_GGM_proposal(&niter_prop, &burnin_prop, &niter, &burnin, &p);
+  ggm->niter= niter_prop; ggm->burnin= burnin_prop;
+
+  arma::mat propdens(p, niter_prop - burnin_prop);
+  //arma::mat propdens(p, niter-burnin);
 
   //Allocate memory
   dpropini= dvector(0, p-1);
 
   //Allocate vector where to store proposed models
   std::vector<arma::SpMat<short>> proposal_samples;
-  for (j=0; j<p; j++) {
-    proposal_samples.push_back(arma::SpMat<short>(p, niter-burnin));
-  }
+  for (j=0; j<p; j++) { proposal_samples.push_back(arma::SpMat<short>(p, niter_prop - burnin_prop)); } //comment out for pracma openmp alternative in GGM_Gibbs_parallel
+  //std::vector<arma::SpMat<short>> proposal_samples(p); //uncomment for pracma openmp alternative in GGM_Gibbs_parallel
 
   //Propose models, store their proposal probability into propdens
   if (use_gibbs || use_birthdeath) {
@@ -459,6 +489,7 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   } else Rf_error("This sampler type is not currently implemented\n");
 
   //MCMC using independent proposal MH to combine the chains
+  ggm->niter= niter; ggm->burnin= burnin;
   ggm->use_tempering= false;
   arma::sp_mat postSample(npars, niter - burnin);
   GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
@@ -486,6 +517,132 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
 
 }
 
+
+
+/*Parallel Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. 
+
+Each column is sampled independently from its conditional posterior, given the current value of Omega, i.e. the algorithm targets a pseudo-posterior rather than the actual posterior
+
+INPUT
+  - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
+  - Omegaini: initial value of Omega
+  - model_logprop: log-posterior probability of the proposed model
+
+OUTPUT
+  - models: list where entry j stores indicators of Omega[,j] being zero. Formatted as a sparse matrix format (p rows and number of columns equal to the number of iterations)
+
+*/
+
+void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop) {
+
+  int j, p= ggm->ncol, burnin= ggm->burnin, niter= ggm->niter, p10;
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+  bool use_gibbs= (ggm->sampler == Gibbs);
+  bool use_birthdeath= (ggm->sampler == birthdeath);
+
+  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs_parallel requires the sampler to be Gibbs or birthdeath");
+
+  if (p >10) { p10= p / 10; } else { p10= 1; }
+
+  if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
+
+  //#pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
+  for (j=0; j < p; j++) { //for each column
+
+    arma::SpMat<short> *models_row= &(models->at(j));
+    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+    arma::sp_mat Omegacol= Omegaini->col(j);
+    arma::sp_mat *samples_row= NULL;
+    arma::vec *margpp_row= NULL;
+    arma::Col<int> *margppcount_row= NULL;
+
+    if (use_gibbs) {
+      GGM_Gibbs_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
+    } else {
+      GGM_birthdeath_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
+    }
+
+    if (ggm->verbose) print_iterprogress(&j, &p, &p10);
+    //int nthreads= omp_get_num_threads(); //debug
+
+  } //end for each colum
+
+  //Alternative version where memory is not shared across threads (but requires making local copies of ggm, models and model_logprop)
+  /*
+  #pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
+  for (j=0; j < p; j++) { //for each column
+
+    ggmObject *ggm_local;
+    ggm_local= new ggmObject(ggm);
+    arma::SpMat<short> models_row(ggm_local->ncol, ggm_local->niter - ggm_local->burnin);
+    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+    arma::sp_mat Omegacol= Omegaini->col(j);
+    arma::sp_mat *samples_row= NULL;
+    arma::vec *margpp_row= NULL;
+    arma::Col<int> *margppcount_row= NULL;
+    arma::mat modelj_logprop(1, niter-burnin);
+
+    if (use_gibbs) {
+      GGM_Gibbs_singlecol(samples_row, &models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm_local, &Omegacol,  &invOmega_j, &modelj_logprop);
+    } else {
+      GGM_birthdeath_singlecol(samples_row, &models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm_local, &Omegacol,  &invOmega_j, &modelj_logprop);
+    }
+
+    delete ggm_local;
+
+    if (ggm->verbose) print_iterprogress(&j, &p, &p10);
+    //int nthreads= omp_get_num_threads(); //debug
+
+    #pragma omp critical 
+    {
+      (*models)[j]= models_row;
+      model_logprop->row(j)= modelj_logprop;
+    }
+
+  } //end for each colum
+*/
+
+  if (ggm->verbose) { Rcout << "\r Done\n"; }
+
+}
+
+
+
+/* Determine number of iterations to use in GGM parallel proposals 
+
+  The number of expected draws from each parallel proposal is m= niter / p, and its SD is s= sqrt(niter (1/p) (1 - 1/p))
+  This function returns m + 5 s, in order to propose 10 times the expected number of samples.
+  However, in cases where 10 * niter / p is too small (<1000) we return 1000, and if it's too large (>niter) we return niter.
+  Also, if niter was small to start with (niter <= 1000), it is returned unaltered.
+
+  Input: niter, burnin, p
+  Output: niter_prop, burnin_prop. The ratio of burnin_prop/niter_prop is the same as burnin/niter
+
+*/
+void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p) {
+
+  if (*niter <= 1000) {
+
+    (*niter_prop)= *niter;
+
+  } else {
+
+    double m= (*niter + .0) / (*p + .0), s= sqrt(m * (1 - 1/(*p + 0)));
+    int niter_reduced= ceil(m + 5 * s);
+//    int niter_reduced= ceil(10 * (*niter) / (*p));
+    if (niter_reduced < 1000) {
+      (*niter_prop)= *niter;
+    } else if (niter_reduced > *niter) {
+      (*niter_prop)= *niter;
+    } else {
+      (*niter_prop)= niter_reduced;
+    }
+    
+  }
+
+  (*burnin_prop)= (int) (*burnin + .0) / (*niter + .0) * (*niter_prop + .0);
+
+}
 
 
 /* Evaluate proposal density for GGM samples proposed in parallel
@@ -554,7 +711,7 @@ INPUT/OUTPUT
 */
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, iter, newcol, number_accept= 0, proposal_idx, burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol;
+  int i, i10, iter, newcol, number_accept= 0, proposal_idx, burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   std::vector<double> diagcur(p), bnew(p);
@@ -562,31 +719,14 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
   arma::SpMat<short> modelnew;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
 
+  int niter_prop= ((*proposal_samples)[0]).n_cols; //number of proposal samples
+
+  if (ggm->verbose) Rprintf("Running MH-within-Gibbs\n");
+  if (niter >10) { i10= niter / 10; } else { i10= 1; }
+
   //Initialize MCMC state
-  /*
-  for (j=0; j < p; j++) {
-
-    //Init modelold
-    arma::sp_mat Omegaini_colj= Omegaini->col(j);
-    arma::SpMat<short> model(p,1);
-    arma::sp_mat::iterator it;
-    for (it= Omegaini_colj.begin(); it != Omegaini_colj.end(); ++it) {
-      model.at(it.row(),0)= 1;
-    }
-    modelold[j]= model;
-
-    //Init dpropini
-    arma::mat invOmega_j= get_invOmega_j(Omegaini, j); //to do: use low-rank update
-
-    modselIntegrals_GGM *ms;
-    ms= new modselIntegrals_GGM(marfun, ggm, j, &invOmega_j);
-    ms->getJoint(dpropini + j, sample_offdiag, &sample_diag, &(modelold[j]), false); //log-proposal for modelold[i]
-    delete ms;
-
-  }
-  */
   for (newcol=0; newcol < p; newcol++) {
-    proposal_idx= runifdisc(0, niter - burnin -1); //index of proposal
+    proposal_idx= runifdisc(0, niter_prop -1); //index of proposal
     modelold[newcol]= ((*proposal_samples)[newcol]).col(proposal_idx); //proposed model
     dpropini[newcol]= propdens->at(newcol, proposal_idx);  //log-proposal for proposed model
 
@@ -605,9 +745,10 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
   //MCMC iterations
   for (i = 0, iter = 0; i < niter; i++) {
-    
+
     newcol= runifdisc(0, p-1); //column to update
-    proposal_idx= runifdisc(0, niter - burnin -1); //index of proposal
+    proposal_idx= runifdisc(0, niter_prop -1); //index of proposal
+    //proposal_idx= runifdisc(0, niter - burnin -1); //index of proposal
     
     modelnew= ((*proposal_samples)[newcol]).col(proposal_idx); //proposed value
 
@@ -651,6 +792,8 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
     }
 
     delete ms;
+
+    if (ggm->verbose) print_iterprogress(&i, &niter, &i10);
 
   }
 
@@ -766,61 +909,6 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, std::vector<double> *prop_a
 */
 
 
-/*Parallel Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. 
-
-Each column is sampled independently from its conditional posterior, given the current value of Omega, i.e. the algorithm targets a pseudo-posterior rather than the actual posterior
-
-INPUT
-  - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
-  - Omegaini: initial value of Omega
-  - model_logprop: log-posterior probability of the proposed model
-
-OUTPUT
-  - models: list where entry j stores indicators of Omega[,j] being zero. Formatted as a sparse matrix format (p rows and number of columns equal to the number of iterations)
-
-*/
-
-void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop) {
-
-  int j, p= ggm->ncol, burnin= ggm->burnin, niter= ggm->niter, p10;
-//  std::vector<arma::SpMat<short>>::iterator it;
-
-  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
-  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
-  bool use_gibbs= (ggm->sampler == Gibbs);
-  bool use_birthdeath= (ggm->sampler == birthdeath);
-
-  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs_parallel requires the sampler to be Gibbs or birthdeath");
-
-  if (p >10) { p10= p / 10; } else { p10= 1; }
-
-  if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
-
-  #pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
-    for (j=0; j < p; j++) { //for each column
-
-    arma::SpMat<short> *models_row= &(models->at(j));
-    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
-    arma::sp_mat Omegacol= Omegaini->col(j);
-    arma::sp_mat *samples_row= NULL;
-    arma::vec *margpp_row= NULL;
-    arma::Col<int> *margppcount_row= NULL;
-
-    if (use_gibbs) {
-      GGM_Gibbs_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
-    } else {
-      GGM_birthdeath_singlecol(samples_row, models_row, margpp_row, margppcount_row, -burnin, niter-burnin-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, model_logprop);
-    }
-
-    //Rprintf("Column j=%d \n\n Proposed models \n",j); //debug
-    //models_row->print("models_row"); //debug
-    if (ggm->verbose) print_iterprogress(&j, &p, &p10);
-
-  } //end for each colum
-
-  if (ggm->verbose) { Rcout << "\r Done\n"; }
-
-}
 
 
 /* Compute the inverse of Omega[-j,-j] */
@@ -888,14 +976,15 @@ OUTPUT
 
   - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
 
-  - model_logprob: model_logprop[,j] stores the log posterior probability of model sampled at each iteration, other columns are unchanged
+  - model_logprob: If model_logprop has >1 rows, model_logprop[colid,j] stores the log posterior probability of model sampled at iteration j, other rows are unchanged. 
+                   If model_logprop only has 1 row, then log posterior prob are stored in logprop[0,j]
 
 IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 
 */
 void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL) {
 
-  int i, j, p= ggm->ncol;
+  int i, j, p= ggm->ncol, col2save;
   double mcurrent, mnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
@@ -903,6 +992,9 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
 
+  if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
+
+  //Set random number generators
   std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
 //  std::default_random_engine generator((omp_get_thread_num() + 1));  //multi-thread version. Set seed according to thread number
 //  std::default_random_engine generator; //single thread version. Do not set seed
@@ -965,7 +1057,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
     if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(colid, i)= mcurrent;
+    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(col2save, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 
@@ -995,7 +1087,8 @@ OUTPUT
 
   - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
 
-  - model_logprob: model_logprop[,j] stores the log posterior probability of model sampled at each iteration, other columns are unchanged
+  - model_logprob: If model_logprop has >1 rows, model_logprop[colid,j] stores the log posterior probability of model sampled at iteration j, other rows are unchanged. 
+                   If model_logprop only has 1 row, then log posterior prob are stored in logprop[0,j]
 
 IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 
@@ -1004,7 +1097,7 @@ IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL) {
 
   bool birth;
-  int i, j, p= ggm->ncol, nbirth= ggm->nbirth, idx_update;
+  int i, j, p= ggm->ncol, nbirth= ggm->nbirth, idx_update, col2save;
   double pbirth= ggm->pbirth, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
@@ -1012,6 +1105,9 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun= &GGMrow_marg;
 
+  if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
+
+  //Set random number generators
   std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
 //  std::default_random_engine generator((omp_get_thread_num() + 1));  //multi-thread version. Set seed according to thread number
 //  std::default_random_engine generator; //single thread version. Do not set seed
@@ -1091,7 +1187,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
     if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(colid, i)= mcurrent;
+    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(col2save, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 

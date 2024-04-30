@@ -21,4 +21,4 @@ z= matrix(rnorm(1000*p), ncol=p)
 y= z %*% chol(sigma)
  
 #Obtain posterior samples
-fit= modelSelectionGGM(y, scale=FALSE, almost_parallel=TRUE, sampler='birthdeath', niter=1000)
+fit= modelSelectionGGM(y, scale=FALSE, almost_parallel=TRUE, sampler='birthdeath', niter=10^4)

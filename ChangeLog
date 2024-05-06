@@ -6,6 +6,7 @@ CHANGES IN VERSION 3.5.5
 packages
 - Fixed memory leak in GGM birth/death proposal
 - Removed many importFrom instances from NAMESPACE, replace by :: in code 
+- Fixed bug in bf.mom for base t density
 
 CHANGES IN VERSION 3.5.4
 - Changed all .Call interfaces to Rcpp exports, to avoid warnings when turning

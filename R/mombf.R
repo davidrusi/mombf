@@ -40,7 +40,7 @@ if (missing(theta0)) theta0 <- rep(0,length(coef)) else if (length(theta0)!=leng
   } else if (baseDensity=='t') {
     randomg <- 1/rgamma(B,nu/2,nu/2)
     bf.mom <- momunknown(thetahat[coef],V[coef,coef],n=n,g=g*randomg,ssr=ssr,nuisance.theta=p-p1,theta0=theta0,logbf=logbf)
-    bf.mom <- mean(bf.mom*g)*(nu-2)/nu
+    bf.mom <- mean(bf.mom*randomg)*(nu-2)/nu
   }
   return(bf.mom)
 }

@@ -214,9 +214,12 @@ void maxvec(const double *x, int ini, int fi, double *xmax, int *maxpos); //max 
 
 void make_posdef(double **a, int n, double offset=.01); //Make matrix +def via replacing a by a - (lmin+offset) I, where lmin is smallest eigenvalue of a
 void choldc(double **a, int n, double **aout, bool *posdef);   //Cholesky decomposition
+//void choldc(arma::mat *a, arma::mat *aout, bool *posdef); 
 void choldc_inv(double **a, int n, double **aout, bool *posdef); //Inverse of chol(a)
 void cholS_inv(double **cholS, int n, double **cholSinv); //Inverse of cholS
+//void cholS_inv(arma::mat *cholS, arma::mat *cholSinv);
 void choldc_inv_internal(double **cholS, int n);
+//void choldc_inv_internal(arma::mat *cholS);
 double choldc_det(double **chols, int n); //Determinant of a symmetric def+ using its Cholesky decomp
 double logcholdc_det(double **chols, int n); //log-determinant of a symmetric def+ using its Cholesky decomp
 void inv_posdef(double **a, int n, double **aout, bool *posdef, double **chola = NULL, double **cholainv = NULL); //Inverse of a symmetric, positive definite matrix

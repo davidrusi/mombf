@@ -61,12 +61,10 @@ public:
   std::string sampler; //MCMC sampler type, e.g. Gibbs, birth-death
   //List samplerPars; //posterior sampler parameters
 
+  bool parallel_regression; //use almost-parallel regression based proposal?
+  bool parallel_insample;  //use almost-parallel in-sample based proposal?
   bool use_tempering;
   bool verbose;
-
-//private:
-
-//  arma::mat *y;
 
 };
 
@@ -102,6 +100,8 @@ void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sa
 void save_ggmmodel_col(arma::SpMat<short> *ans, arma::SpMat<short> *model, int col2save, unsigned int colid);
 
 void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
+
+void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
 
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
 

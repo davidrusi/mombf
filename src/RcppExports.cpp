@@ -155,39 +155,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpparma_outerproduct
-arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _mombf_rcpparma_outerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_innerproduct
-double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _mombf_rcpparma_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_bothproducts
-Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _mombf_rcpparma_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_bothproducts(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // testfunctionCI
 SEXP testfunctionCI(SEXP x);
 RcppExport SEXP _mombf_testfunctionCI(SEXP xSEXP) {
@@ -567,9 +534,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 5},
     {"_mombf_GGM_Gibbs_parallelC", (DL_FUNC) &_mombf_GGM_Gibbs_parallelC, 5},
     {"_mombf_normalmixGibbsCI", (DL_FUNC) &_mombf_normalmixGibbsCI, 13},
-    {"_mombf_rcpparma_outerproduct", (DL_FUNC) &_mombf_rcpparma_outerproduct, 1},
-    {"_mombf_rcpparma_innerproduct", (DL_FUNC) &_mombf_rcpparma_innerproduct, 1},
-    {"_mombf_rcpparma_bothproducts", (DL_FUNC) &_mombf_rcpparma_bothproducts, 1},
     {"_mombf_testfunctionCI", (DL_FUNC) &_mombf_testfunctionCI, 1},
     {"_mombf_eprod_I", (DL_FUNC) &_mombf_eprod_I, 5},
     {"_mombf_modelSelectionEnumCI", (DL_FUNC) &_mombf_modelSelectionEnumCI, 46},

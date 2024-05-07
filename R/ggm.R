@@ -87,7 +87,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= FALSE, tempering=0.5, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", tempering=0.5, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), pbirth=0.5, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -103,14 +103,14 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, pbirth=pbirth, nbirth=nbirth, tempering=tempering, verbose=verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, pbirth=pbirth, nbirth=nbirth, tempering=tempering, almost_parallel=almost_parallel, verbose=verbose)
     
   #Initial value for sampler
   Omegaini= initialEstimateGGM(y, Omegaini)
     
   #Call C++ function
   proposal= proposaldensity= NULL
-  if (!almost_parallel) {
+  if (almost_parallel == 'none') {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
     prop_accept= NULL
@@ -141,14 +141,15 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, pbirth, nbirth, tempering, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, pbirth, nbirth, tempering, almost_parallel, verbose) {
   if (missing(nbirth)) {
       nbirth= as.integer(min(p, max(log(p), 10)))
   } else {
       nbirth= as.integer(nbirth)
   }
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.double(tempering), as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','tempering','verbose')
+  if (!(almost_parallel %in% c('none','regression','in-sample'))) stop("almost_parallel must be 'none', 'regression' or 'in-sample'")
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), pbirth, nbirth, as.double(tempering), almost_parallel, as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','pbirth','nbirth','tempering','almost_parallel','verbose')
   return(samplerPars)
 }
 

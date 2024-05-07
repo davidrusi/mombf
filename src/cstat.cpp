@@ -2989,28 +2989,65 @@ decomposition, A = L * L' . On input, only the upper triangle of a need be given
 }
 
 
+/* Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
+decomposition, A = L * L' . On input, only the upper triangle of a need be given;
+ The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) */
+ /*
+void choldc(arma::mat *a, arma::mat *aout, bool *posdef) {
+  int i, j, k, n= a->n_cols;
+  double sum, *p, max_a;
+
+  *posdef= true;
+  for (i=0; i<n; i++) { for (j=i; j<n; j++) { aout->at(i,j)= a->at(i,j); } }  //copy a into aout
+  p= dvector(1,n);
+  for (i=0; i<n; i++) {
+    for (j=i; j<n; j++) {
+      for (sum=aout->(i,j), k=i-1; k>=1; k--) sum -= aout->(i,k) * aout->(j,k);
+      if (i == j) {
+	      if (sum <= 0.0) *posdef= false;
+	      aout->(i,i)= sqrt(sum);
+      } else {
+	      max_a= max_xy(fabs(aout->(i,i)), 1e-10);
+	      aout->(j,i)=sum/max_a;
+      }
+    }
+  }
+  free_dvector(p,1,n);
+  for (i=0; i<n; i++) { for (j=i+1; j<n; j++) { aout->(i,j)= 0; } }  //set upper-diagonal elem to 0
+}
+*/
+
 
 
 void choldc_inv(double **a, int n, double **aout, bool *posdef) {
   /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
    of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
    (note that inv(A)= inv(L)' * inv(L)) */
-  choldc(a,n,aout,posdef);
+  choldc(a, n, aout, posdef);
   if (*posdef) {
     choldc_inv_internal(aout, n);
   }
 }
 
 
+/*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
 void cholS_inv(double **cholS, int n, double **cholSinv) {
-  /*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
   int i,j;
   for (i=1;i<=n;i++) for (j=1;j<=i;j++) cholSinv[i][j]= cholS[i][j];
   choldc_inv_internal(cholSinv,n);
 }
 
+/*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
+/*
+void cholS_inv(arma::mat *cholS, arma::mat *cholSinv) {
+  int i,j, n= cholS->n_cols;
+  for (i=0; i<n; i++) for (j=0; j<=i; j++) cholSinv->at(i,j)= cholS->at(i,j);
+  choldc_inv_internal(cholSinv,n);
+}
+*/
+
+/*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
 void choldc_inv_internal(double **cholS, int n) {
-  /*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
   int i,j,k;
   double sum, max_a;
   for (i=1;i<=n;i++) {
@@ -3021,6 +3058,22 @@ void choldc_inv_internal(double **cholS, int n) {
       for (k=i;k<j;k++) sum -= cholS[j][k]*cholS[k][i];
       max_a=max_xy(cholS[j][j], 1e-10);
       cholS[j][i]=sum/max_a;
+    }
+  }
+}
+
+/*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
+void choldc_inv_internal(arma::mat *cholS) {
+  int i,j,k, n= cholS->n_rows;
+  double sum, max_a;
+  for (i=0; i<n; i++) {
+    max_a=max_xy(cholS->at(i,i), 1e-10);
+    cholS->at(i,i)=1.0/max_a;
+    for (j=i+1; j<n; j++) {
+      sum=0.0;
+      for (k=i; k<j; k++) sum -= cholS->at(j,k) * cholS->at(k,i);
+      max_a= max_xy(cholS->at(j,j), 1e-10);
+      cholS->at(j,i)= sum/max_a;
     }
   }
 }
@@ -3140,19 +3193,11 @@ void inv_posdef_upper(double **a,
  * Inverse and determinant of a positive definite matrix a[1..n][1..n] using
  * Cholesky decomposition. Inverse is returned in aout, determinant in det_a.
  */
-void invdet_posdef(double **a,
-                   int n,
-                   double **aout,
-                   double *det_a)
-{
+void invdet_posdef(double **a, int n, double **aout, double *det_a) {
     bool posdef;
     int i;
     int j;
     double **b;
-
-    //assert(a != NULL);
-    //assert(aout != NULL);
-    //assert(det_a != NULL);
 
     b = dmatrix(1, n, 1, n);
     choldc_inv(a, n, b, &posdef);
@@ -3184,6 +3229,46 @@ void invdet_posdef(double **a,
         }
     }
 }
+
+
+/*
+ * Inverse and determinant of a positive definite matrix a[1..n][1..n] using
+ * Cholesky decomposition. Inverse is returned in aout, determinant in det_a.
+ */
+/*
+void invdet_posdef(arma::mat *a, arma::mat *aout, double *det_a) {
+    bool posdef;
+    int i, j, n= a->n_cols;
+
+    arma::mat b(n,n);
+    choldc_inv(a, b, &posdef);
+    *det_a = 1.0;
+    for (i = 0; i < n; i++) {
+        double value;
+        value = b->at(i,i);
+        (*det_a) *= 1 / (value * value);
+    }
+
+    for (i = 0; i < n; i++) {
+        for (j = i; j < n; j++) {
+            int k;
+            double sum;
+
+            sum = 0.0;
+            for (k = 0; k < n; k++) {
+                sum += b->at(k,i) * b->at(k,j);
+            }
+            aout->at(i,j) = sum;
+        }
+    }
+
+    for (i = 1; i < n; i++) {
+        for (j = 0; j < i; j++) {
+            aout->at(i,j) = aout->at(j,i);
+        }
+    }
+}
+*/
 
 
 /*

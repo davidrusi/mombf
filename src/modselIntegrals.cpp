@@ -136,13 +136,16 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   } else {
 
     //Copy entries of Omegainv selected by model to Omegainv_model
-    this->get_Omegainv_model(&Omegainv_model, model);
+    if (!this->ggm->parallel_regression) this->get_Omegainv_model(&Omegainv_model, model);
 
     //Allocate memory for m and cholV
     m= new arma::mat(npar, 1);
     cholV= new arma::mat(npar, npar);
 
     jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
+
+    //std::cout << "Model " << s; //debug
+    //Rprintf(". log-posterior= %f \n", *logjoint); //debug
 
     if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
 

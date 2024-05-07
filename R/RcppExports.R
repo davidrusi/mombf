@@ -33,18 +33,6 @@ normalmixGibbsCI <- function(Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB
     .Call(`_mombf_normalmixGibbsCI`, Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB, Sburnin, Sverbose)
 }
 
-rcpparma_outerproduct <- function(x) {
-    .Call(`_mombf_rcpparma_outerproduct`, x)
-}
-
-rcpparma_innerproduct <- function(x) {
-    .Call(`_mombf_rcpparma_innerproduct`, x)
-}
-
-rcpparma_bothproducts <- function(x) {
-    .Call(`_mombf_rcpparma_bothproducts`, x)
-}
-
 testfunctionCI <- function(x) {
     .Call(`_mombf_testfunctionCI`, x)
 }

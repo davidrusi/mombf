@@ -84,6 +84,12 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->pbirth= as<double>(samplerPars["pbirth"]);
   this->use_tempering= use_tempering;
 
+  CharacterVector almost_parallelR= samplerPars["almost_parallel"];
+  std::string almost_parallelC = Rcpp::as<std::string>(almost_parallelR);
+  std::string regression("regression"), insample("in-sample");
+  this->parallel_regression= (almost_parallelC == regression);
+  this->parallel_insample= (almost_parallelC == insample);
+
   //Set print progress iteration to true/false
   arma::vec v = as<arma::vec>(samplerPars["verbose"]);
   if (v[0] == 1) this->verbose= true; else this->verbose= false;
@@ -115,6 +121,9 @@ ggmObject::ggmObject(ggmObject *ggm) {
   this->tempering= ggm->tempering;
   this->pbirth= ggm->pbirth;
   this->use_tempering= ggm->use_tempering;
+
+  this->parallel_regression= ggm->parallel_regression;
+  this->parallel_insample= ggm->parallel_insample;
 
   //Set print progress iteration to true/false
   this->verbose= ggm->verbose;
@@ -491,6 +500,7 @@ List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPar
   //MCMC using independent proposal MH to combine the chains
   ggm->niter= niter; ggm->burnin= burnin;
   ggm->use_tempering= false;
+  ggm->parallel_regression= ggm->parallel_insample= false;
   arma::sp_mat postSample(npars, niter - burnin);
   GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_samples, &propdens, dpropini, ggm, &Omegaini);
 
@@ -550,7 +560,8 @@ void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm,
   for (j=0; j < p; j++) { //for each column
 
     arma::SpMat<short> *models_row= &(models->at(j));
-    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+    arma::mat invOmega_j;
+    if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
     arma::sp_mat *samples_row= NULL;
     arma::vec *margpp_row= NULL;
@@ -575,7 +586,8 @@ void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm,
     ggmObject *ggm_local;
     ggm_local= new ggmObject(ggm);
     arma::SpMat<short> models_row(ggm_local->ncol, ggm_local->niter - ggm_local->burnin);
-    arma::mat invOmega_j= get_invOmega_j(Omegaini, j);
+    arma::mat invOmega_j;
+    if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
     arma::sp_mat *samples_row= NULL;
     arma::vec *margpp_row= NULL;
@@ -629,7 +641,6 @@ void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burn
 
     double m= (*niter + .0) / (*p + .0), s= sqrt(m * (1 - 1/(*p + 0)));
     int niter_reduced= ceil(m + 5 * s);
-//    int niter_reduced= ceil(10 * (*niter) / (*p));
     if (niter_reduced < 1000) {
       (*niter_prop)= *niter;
     } else if (niter_reduced > *niter) {
@@ -990,7 +1001,13 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
-  pt2GGM_rowmarg marfun= &GGMrow_marg;
+  pt2GGM_rowmarg marfun;
+
+  if (ggm->parallel_regression) {
+    marfun= &GGMrow_marg_regression;
+  } else {
+    marfun= &GGMrow_marg;
+  }
 
   if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
@@ -1103,7 +1120,13 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
-  pt2GGM_rowmarg marfun= &GGMrow_marg;
+  pt2GGM_rowmarg marfun;
+
+  if (ggm->parallel_regression) {
+    marfun= &GGMrow_marg_regression;
+  } else {
+    marfun= &GGMrow_marg;
+  }
 
   if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
@@ -1121,6 +1144,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   //Obtain log-marginal + log-prior for current model
   ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
+  //for (i=0; i<p; i++) model->at(i,0)= 1; //debug
   ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false);
 
   for (i= iterini; i <= iterfi; i++) {
@@ -1246,13 +1270,11 @@ void save_ggmmodel_col(arma::SpMat<short> *ans, arma::SpMat<short> *model, int c
 void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
 
   unsigned int npar= model->n_nonzero -1;
-  //arma::vec tau = as<arma::vec>(ggm->prCoef["tau"]); //Prior is Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
   arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
 
   if (npar > 0) { //if some off-diagonal entry is non-zero
 
     unsigned int i, j;
-    //arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
     double tauinv= 1.0/ ggm->prCoef_tau;
     arma::mat U(npar,npar), s(npar, 1);
     arma::SpMat<short>::iterator it;
@@ -1286,6 +1308,84 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
   } else { //if all off-diagonal entries are zero
 
     (*logjoint) = - ((double) npar) * log( ggm->prCoef_tau );
+
+  }
+
+  (*logjoint) += logprior_GGM(&model_offdiag, ggm);
+
+}
+
+
+
+/* Compute log-joint (log-marginal likelihood + log prior) of regression proposal for model specifying non-zero entries in column colid of Omega
+
+  INPUT
+  - model: entries that are non-zero
+  - colid: column id
+  - ggm: object storing info about the Gaussian graphical model
+  - Omegainv_model: ignored, kept for compatibility with GGMrow_marg
+
+  OUTPUT
+  - logjoint: log-marginal + log-prior for model
+  - m: ignored, kept for compatibility with GGMrow_marg
+  - cholUinv: ignored, kept for compatibility with GGMrow_marg
+
+*/
+void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
+
+  unsigned int npar= model->n_nonzero -1;
+  arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
+  double alphahalf= 0.5; //prior on diagonal entries is Gamma(alpha=1, lambda/2)
+  double num, den, sumy2= ggm->S.at(colid, colid);
+
+  if (npar > 0) { //if some off-diagonal entry is non-zero
+
+    unsigned int i;
+    double tauinv= 1.0/ ggm->prCoef_tau, logdetXtXinv, nuhalf, ss;
+    arma::uvec covariate_indexes(npar);
+    arma::mat XtX(npar,npar), Xty(npar, 1), XtXinv(npar,npar), cholXtXinv(npar,npar);
+    arma::SpMat<short>::iterator it;
+
+    //Create XtX and Xty sufficient statistic matrices for model specified by model_offdiag
+    //Note: model_offdiag indicates non-zero off-diagonal elements
+    for (it= model->begin(), i=0; it != model->end(); ++it) {
+      if (it.row() == colid) continue;
+      model_offdiag.at(i, 0)= model->at(it.row(), 0);
+      Xty.at(i,0)= ggm->S.at(it.row(), colid);
+      covariate_indexes[i]= it.row();
+      i++;
+    }
+     
+    XtX = ggm->S.submat(covariate_indexes, covariate_indexes);
+    for (i=0; i<npar; i++) XtX.at(i,i) += tauinv;
+
+    //Inverse and determinant of XtX
+    choldcinv_det(&XtXinv, &cholXtXinv, &logdetXtXinv, &XtX);   
+    //invdet_posdef(&XtX, &XtXinv, &detXtX);
+
+    arma::mat m= XtXinv * Xty;
+
+    //model->print("model"); //debug
+    //Xty.print("Xty"); //debug
+    //XtX.print("XtX"); //debug
+    //XtXinv.print("XtXinv"); //debug
+    //Rprintf("logdetXtXinv"); //debug
+    //m.print("m"); //debug
+
+
+    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtXinv * m);
+    nuhalf= .5*ggm->n + alphahalf;
+
+    num= gamln(&nuhalf) + alphahalf * log(0.5 * ggm->prCoef_lambda) + nuhalf * (log(2.0) - log(ss));
+    den= .5*(ggm->n * LOG_M_2PI - logdetXtXinv) - .5 * (npar * log(tauinv)) + gamln(&alphahalf);
+    (*logjoint) = num - den;
+
+  } else { //if all off-diagonal entries are zero
+
+    double term1= .5*ggm->n + alphahalf;
+    num= alphahalf * log(ggm->prCoef_lambda) + gamln(&term1);
+    den= .5 * (ggm->n) * (LOG_M_PI) + gamln(&alphahalf);
+    (*logjoint) = num -den - term1 * log(ggm->prCoef_lambda + sumy2);
 
   }
 

@@ -31,6 +31,7 @@ struct marginalPars f2opt_pars, f2int_pars;
 //EXAMPLE FUNCTIONS CREATED BY RcppArmadillo
 //*************************************************************************************
 
+/*
 // another simple example: outer product of a vector, returning a matrix
 //
 // [[Rcpp::export]]
@@ -57,6 +58,7 @@ Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
     return Rcpp::List::create(Rcpp::Named("outer")=op, Rcpp::Named("inner")=ip);
 }
 
+*/
 
 
 //*************************************************************************************

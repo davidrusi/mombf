@@ -64,7 +64,6 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
     Rf_error("Error in ggmObject. Currently computeS must be set to true");
   }
 
-
   //Parameters of prior distribution  
   this->prCoef_lambda= as<double>(prCoef["lambda"]);
   this->prCoef_tau = as<double>(prCoef["tau"]);
@@ -774,10 +773,6 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
     dpropold= dpropini[newcol]; //log-proposal for current model
 
     ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
-    //Rprintf("newcol=%d", newcol); //debug
-    //modelnew.print("modelnew"); //debug
-    //(modelold[newcol]).print("modelold[newcol]"); //debug
-    //Rprintf("dpostnew=%f, dpostold=%f, dpropnew=%f, dpropold=%f", dpostnew, dpostold, dpropnew, dpropold); //debug
 
     if ((ppnew > 1) | (runifC() < ppnew)) { //if update is accepted
 
@@ -1319,6 +1314,11 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
 
 /* Compute log-joint (log-marginal likelihood + log prior) of regression proposal for model specifying non-zero entries in column colid of Omega
 
+  The likelihood is            y[,colid] ~ N( y[,-colid] beta, phi I)
+  The prior on parameters is   beta_gamma ~ N(0, tau phi I), where beta_gamma are the non-zero entries in beta
+                               phi ~ InvGamma(1, lambda/2)
+  The prior on the model       gamma ~ prod Bern(gamma_j; priorPars_p), where gamma_j = I(beta_j != 0)
+
   INPUT
   - model: entries that are non-zero
   - colid: column id
@@ -1365,15 +1365,7 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
 
     arma::mat m= XtXinv * Xty;
 
-    //model->print("model"); //debug
-    //Xty.print("Xty"); //debug
-    //XtX.print("XtX"); //debug
-    //XtXinv.print("XtXinv"); //debug
-    //Rprintf("logdetXtXinv"); //debug
-    //m.print("m"); //debug
-
-
-    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtXinv * m);
+    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtX * m);
     nuhalf= .5*ggm->n + alphahalf;
 
     num= gamln(&nuhalf) + alphahalf * log(0.5 * ggm->prCoef_lambda) + nuhalf * (log(2.0) - log(ss));

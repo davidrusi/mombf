@@ -81,19 +81,21 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 
 //void GGM_parallel_propdensity(arma::mat *propdens, double *dpropini, std::vector<arma::sp_mat> *samples, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop);
+void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop, double *logprop_modelini);
 
 void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
 
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void update_Omegaini(arma::sp_mat *Omegaini, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
+void update_Omega(arma::sp_mat *Omega, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
 
-void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob);
+void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm);
 
-void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob);
+void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
+
+void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
 void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
 
@@ -112,7 +114,7 @@ void spmat_rowcol2zero(arma::sp_mat *A, int colid); //Set row and colum colid of
 
 void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int j); //drop row & column j from A
 
-void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout, excluding column excludecol
+void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout
 
 void symmat2vec(arma::vec *Aflat, arma::mat *A); //flatten symmetric matrix A, in column-wise order
 

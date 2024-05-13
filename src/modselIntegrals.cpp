@@ -107,9 +107,10 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 }
 
 
-/* Log-integrated likelihood + log-prior for model. 
 
-If postSample=true, sample_offdiag returns a posterior for the off-diagonal parametes and sample_diag for the diagonal parameters
+/* The log-integrated likelihood + log-prior for model is returned in logjoint
+
+If postSample=true, sample_offdiag returns a posterior sample for the off-diagonal parametes and sample_diag for the diagonal parameters
 
 */
 void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample) {
@@ -123,9 +124,6 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   //Set zerochar to current model
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
   std::string s (zerochar);
-
-  //Copy entries of Omegainv selected by model to Omegainv_model
-  //arma::mat Omegainv_model= this->get_Omegainv_model(model);
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
@@ -143,9 +141,6 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     cholV= new arma::mat(npar, npar);
 
     jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
-
-    //std::cout << "Model " << s; //debug
-    //Rprintf(". log-posterior= %f \n", *logjoint); //debug
 
     if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
 
@@ -177,9 +172,8 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     (*sample_offdiag) *= -1.0;
      
     //Sample diagonal element
-    //arma::vec lambda= as<arma::vec>(ggm->prCoef["lambda"]); //Prior is Omega_{jj} ~ Exp(lambda)
     double a= 0.5 * (double) ggm->n + 1.0;
-    double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * ggm->prCoef_lambda;
+    double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * ggm->prCoef_lambda; //Prior is Omega_{jj} ~ Exp(lambda)
      
     (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
 
@@ -195,6 +189,85 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '0';
 
 }
+
+
+/* The log-integrated likelihood + log-prior for model is returned in logjoint
+
+ sample_offdiag returns the posterior mode for the off-diagonal parametes and sample_diag for the diagonal parameters
+
+*/
+void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model) {
+
+  bool delete_m_cholV= false;  
+  int npar= model->n_nonzero -1;
+  arma::mat *m, *cholV;
+  arma::SpMat<short>::iterator it;
+  arma::mat Omegainv_model(npar, npar); 
+
+  //Set zerochar to current model
+  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
+  std::string s (zerochar);
+
+  if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
+
+    (*logjoint)= logjointSaved[s];
+    m= meanSaved[s];
+    //cholV= cholVSaved[s];
+     
+  } else {
+
+    //Copy entries of Omegainv selected by model to Omegainv_model
+    if (!this->ggm->parallel_regression) this->get_Omegainv_model(&Omegainv_model, model);
+
+    //Allocate memory for m and cholV
+    m= new arma::mat(npar, 1);
+    cholV= new arma::mat(npar, npar);
+
+    jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
+
+    if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
+
+    //Store logjoint, m and cholV
+    double d= maxIntegral - (*logjoint);
+    if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {
+      logjointSaved[s]= *logjoint;
+      meanSaved[s]= m; 
+      cholVSaved[s]= cholV;      
+    } else {  //if not stored, free the allocated memory
+      delete_m_cholV= true;
+    }
+
+    //Update top model
+    if (d<0) {
+      maxIntegral= *logjoint;
+      maxModel= s;
+    }
+
+  }
+
+  //Copy entries of Omegainv selected by model to Omegainv_model
+  this->get_Omegainv_model(&Omegainv_model, model);
+
+  //Posterior mode for off-diagonal elements
+  (*mode_offdiag)= -(*m);
+     
+  //Posterior mode for diagonal element
+  double a= 0.5 * (double) ggm->n + 1.0;
+  double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * ggm->prCoef_lambda;
+     
+  (*mode_diag)= (a - 1)/b + arma::as_scalar(mode_offdiag->t() * Omegainv_model  * (*mode_offdiag));
+
+  //Free memory
+  if (delete_m_cholV) {
+    delete m;
+    delete cholV;
+  }
+  
+  //Return zerochar to its original empty model status
+  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '0';
+
+}
+
 
 
 // Return Omegainv[model,model], dropping column colid

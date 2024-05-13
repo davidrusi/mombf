@@ -66,7 +66,9 @@ public:
   
   ~modselIntegrals_GGM();
 
-  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample); //Return logjoint() and posterior sample for off-diagonal and diagonal elements 
+  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample); //Return logjoint() and posterior sample for off-diag & diagonal elements 
+
+  void getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model); //Return logjoint() and posterior mode for off-diag & diagonal elements
 
   double maxIntegral; //Stores value of largest integral
 

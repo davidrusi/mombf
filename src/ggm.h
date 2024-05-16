@@ -43,10 +43,12 @@ public:
   int ncol; //number of variables ncol(y)
 
   int burnin;  //number of MCMC burnin iterations
+  bool fullscan; //if true, an MCMC iteration consists of updating all columns. If false, an MCMC iteration consists of updating a randomly chosen column
   double pbirth;  //probability of birth move, ignored unless sampler is "birthdeath"
   int nbirth; //number of birth/death updates to perform when updating each column of the precision matrix
   int niter; //number of MCMC iterations
-  double tempering; //tempering parameter in almost-parallel proposal
+  double tempering; //tempering parameter in parallel proposal
+  double truncratio; //truncation ratio in parallel proposal. If prob(model) < prob(top model) / truncratio, then prob(model) = prob(top model) / truncratio
 
   arma::mat S; //t(y) * y
 
@@ -79,23 +81,23 @@ List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List sampler
 
 void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-//void GGM_parallel_propdensity(arma::mat *propdens, double *dpropini, std::vector<arma::sp_mat> *samples, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_MCMC_parallel(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_Gibbs_parallel(std::vector<arma::SpMat<short>> *models, ggmObject *ggm, arma::sp_mat *Omegaini, arma::mat *model_logprop, double *logprop_modelini);
-
-void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
-
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_samples, arma::mat *propdens, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
-
-void update_Omega(arma::sp_mat *Omega, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
-
-arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm);
 
 void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
+
+void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
+
+void unique_model_logprob(arma::SpMat<short> *uniquemodels, std::vector<double> *uniquemodels_logprob, arma::SpMat<short> *models, arma::mat *models_logprob, double *maxratio);
+
+void update_Omega(arma::sp_mat *Omega, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
+
+arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
 
 void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
 

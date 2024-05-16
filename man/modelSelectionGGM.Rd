@@ -21,9 +21,9 @@
 modelSelectionGGM(y, priorCoef=normalidprior(tau=1), 
 priorModel=modelbinomprior(1/ncol(y)), 
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
-almost_parallel= 'regression', tempering= 0.5, save_proposal= FALSE,
-sampler='birthdeath', niter=10^3, 
-burnin= round(niter/10), pbirth=0.5, nbirth, 
+almost_parallel= 'regression', tempering= 0.5, truncratio= 100,
+save_proposal= FALSE, sampler='birthdeath', niter=10^3, 
+burnin= round(niter/10), fullscan=TRUE, pbirth=0.5, nbirth, 
 Omegaini='glasso-ebic', verbose=TRUE)
 
 }
@@ -51,11 +51,17 @@ Omegaini='glasso-ebic', verbose=TRUE)
   MCMC uses Metropolis-Hastings where models are proposed for each column
   using regression posterior model probabilities for that column.
   If \code{'in-sample'}, each column's proposal use posterior model
-  probabilities given a precision matrix estimate for the other columns.}
+  probabilities given a precision matrix estimate for the other columns}
 
   \item{tempering}{If \code{almost_parallel != 'none'}, the posterior model
   probabilities of the proposal distribution are raised to the power
-  indicated by \code{tempering} (set to 1 for no tempering).}
+  indicated by \code{tempering} (set to 1 for no tempering)}
+
+  \item{truncratio}{In parallel proposal, any model's proposal probability 
+  is >= prob(top model) / truncratio. This ensures bounded weight ratios
+  in the MH step, to improve poor mixing when the current state has low
+  proposal probability, often at the cost of decreasing the acceptance rate.
+  If \code{truncratio <= 0}, no truncation is done}
 
   \item{save_proposal}{If \code{TRUE}, the parallel proposals are saved
   in \code{proposal} (a list with p entries, one per column) and the
@@ -66,6 +72,10 @@ Omegaini='glasso-ebic', verbose=TRUE)
   \item{sampler}{Posterior sampler. Options are "Gibbs" and "birthdeath"}
   
   \item{niter}{Number of posterior samples to be obtained}
+
+  \item{fullscan}{If \code{TRUE}, an MCMC iteration consists of updating
+   all columns. If \code{FALSE}, an iteration consists of updating a randomly
+   chosen column}
 
   \item{pbirth}{Probability of a birth move. Ignored unless
     \code{sampler=="birthdeath"}}

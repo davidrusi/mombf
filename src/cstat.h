@@ -61,16 +61,6 @@ extern "C" {
 
 }
 
-//Non-local prior sampling
-//  SEXP rnlpPostCI_lm(SEXP niter, SEXP burnin, SEXP thinning, SEXP y, SEXP x, SEXP p, SEXP r, SEXP tau, SEXP a_phi, SEXP b_phi, SEXP prior);
-//  SEXP rnlpCI(SEXP niter, SEXP burnin, SEXP thinning, SEXP m, SEXP V, SEXP p, SEXP r, SEXP tau, SEXP prior);
-
-//Truncated multivariate Normal sampling
-//  SEXP rnorm_truncMultCI(SEXP n, SEXP ltrunc, SEXP rtrunc, SEXP m, SEXP s);  //R interface for rnorm_truncMult
-//  SEXP rtmvnormCI(SEXP n, SEXP mu, SEXP Sigma, SEXP lower, SEXP upper, SEXP within, SEXP method); //R interface for rtmvnorm
-//  SEXP rtmvnormProdCI(SEXP n, SEXP mu, SEXP Sigma, SEXP k, SEXP lower, SEXP upper, SEXP is_low_trunc, SEXP is_up_trunc, SEXP burnin); //R interface for rtmvnormProd
-
-
 
 /**************************************************************/
 /* Functions to compute means & variances                     */
@@ -212,6 +202,8 @@ double min_xy(double x, double y);
 void minvec(const double *x, int ini, int fi, double *xmin, int *minpos); //min of a vector and position at which min occurs
 void maxvec(const double *x, int ini, int fi, double *xmax, int *maxpos); //max of a vector and position at which max occurs
 
+void cumsum(double *x, double *cumsumx, int *n); //cumulative sum of elements in x
+
 void make_posdef(double **a, int n, double offset=.01); //Make matrix +def via replacing a by a - (lmin+offset) I, where lmin is smallest eigenvalue of a
 void choldc(double **a, int n, double **aout, bool *posdef);   //Cholesky decomposition
 //void choldc(arma::mat *a, arma::mat *aout, bool *posdef); 
@@ -248,10 +240,13 @@ void tqli(double d[], double e[], int n, double **z, bool getVecs);
 double pythag(double a, double b);
 
 
-int dcompare(const void *a, const void *b);
-void dvecsort(double *v, int size);                           //sort a vector using qsort from stdlib
+int dcompare(const void *a, const void *b);            //auxiliary function for dvecsort
+int dcompare_decreasing(const void *a, const void *b); //auxiliary function for dvecsort_decreasing
+void dvecsort(double *v, int size);            //sort a vector using qsort from stdlib
+void dvecsort_decreasing(double *v, int size); //same, but sort decreasingly
 void dindexsort(double *x, int *index, int ilo, int ihi, int incr); //sort a vector of indexes using self-written quicksort routine
 void iindexsort(int *x, int *index, int ilo, int ihi, int incr); //like dindexsort but for integers
+std::vector<int> sorted_indexes(const std::vector<double>& input, bool decreasing);
 
 
 /**************************************************************/
@@ -271,7 +266,8 @@ double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, doub
 
 // Several
 void setseed(long, long);
-int rdisc(const double *probs, int nvals);
+int rdisc(const double *probs, int nvals);  //realization of discrete random variable, given pmf
+int rdisc_pcum(const double *cdf, int nvals);  //same as rdisc, given cdf
 double gamdev(double);
 int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);

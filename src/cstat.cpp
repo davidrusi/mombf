@@ -2933,10 +2933,6 @@ void maxvec(const double *x,
 {
     int i;
 
-    //assert(x != NULL);
-    //assert(xmax != NULL);
-    //assert(maxpos != NULL);
-
     *xmax = x[ini];
     *maxpos = ini;
     for (i = ini+1; i <= fi; i++) {
@@ -2946,6 +2942,14 @@ void maxvec(const double *x,
         }
     }
 }
+
+
+/* Cumulative sum of elements in x */
+void cumsum(double *x, double *cumsumx, int *n) {
+  int i;
+  cumsumx[0]= x[0];
+  for (i=1; i< *n; i++) cumsumx[i]= cumsumx[i-1] + x[i];
+} 
 
 
 /* Make matrix a positive definite by replacing it by a - (lmin + offset) I, where lmin is the smallest eigenvalue of a and I the identity matrix  */
@@ -3793,27 +3797,27 @@ double pythag(double a, double b) {
 
 
 /* Comparison function used by qsort() for doubles */
-int dcompare(const void *a,
-             const void *b)
-{
+int dcompare(const void *a, const void *b) {
     const double *da = (const double *) a;
     const double *db = (const double *) b;
+    return (*da > *db) - (*da < *db);
+}
 
-    //assert(da != NULL);
-    //assert(db != NULL);
-
+int dcompare_decreasing(const void *a, const void *b) {
+    const double *da = (const double *) a;
+    const double *db = (const double *) b;
     return (*da > *db) - (*da < *db);
 }
 
 
-/* Sorts double vector */
-void dvecsort(double *v,
-              int size)
-{
-    //assert(v != NULL);
-    //assert(size >= 0);
-
+/* Sorts double vector increasingly */
+void dvecsort(double *v, int size) {
     qsort(v, size, sizeof(double), dcompare);
+}
+
+/* Sorts double vector decreasingly */
+void dvecsort_decreasing(double *v, int size) {
+    qsort(v, size, sizeof(double), dcompare_decreasing);
 }
 
 
@@ -3832,12 +3836,7 @@ void dvecsort(double *v,
  *   index: rearranged so that x[index[lo]], x[index[lo+1]]...x[index[ihi]]
  *          is ordered
  */
-void dindexsort(double *x,
-                int *index,
-                int ilo,
-                int ihi,
-                int incr)
-{
+void dindexsort(double *x, int *index, int ilo, int ihi, int incr) {
     int pivot;              /* pivot value for partitioning array      */
     int uhi, ulo;           /* indices at ends of unpartitioned region */
     int tempEntry;          /* temporary entry used for swapping       */
@@ -3962,6 +3961,23 @@ if ((sortup==0) && (ihi>(pivot+1))) iindexsort(x, index, pivot + 1, ihi, incr);
 }
 
 
+std::vector<int> sorted_indexes(const std::vector<double>& input, bool decreasing=false) {
+    // Create a vector of indexes
+    std::vector<int> indexes(input.size());
+    std::iota(indexes.begin(), indexes.end(), 0); // Fill with 0, 1, 2, ..., input.size()-1
+
+    // Sort the indexes based on the corresponding values in the input vector
+    if (decreasing) {
+      std::sort(indexes.begin(), indexes.end(), [&input](int i, int j) { return input[i] > input[j]; });
+    } else {
+      std::sort(indexes.begin(), indexes.end(), [&input](int i, int j) { return input[i] < input[j]; });
+    }
+
+    return indexes;
+}
+
+
+
 /**************************************************************/
 /* Random sampling                                            */
 /**************************************************************/
@@ -3977,8 +3993,6 @@ void samplei_wr(int *x,
                 int n)
 {
     int i;
-
-    //assert(x != NULL);
 
     for (i = 0; i < n; i++) {
         int r;
@@ -4173,9 +4187,11 @@ int runifdisc(int min,
 
 
 /*
- * Random deviates from a discrete distribution with values 0,1...nvals-1
- * and probabilities probs[0],probs[1]...probs[nvals-1]
- * Returns 0 with probability probs[0], 1 with probability probs[1] etc.
+   Random deviates from a discrete distribution with values 0,1...nvals-1
+   and probabilities probs[0],probs[1]...probs[nvals-1]
+   Returns 0 with probability probs[0], 1 with probability probs[1] etc.
+
+   Note: for efficiency, best to give probs in decreasing order (probs[0] >= probs[1] >= ...)
  */
 int rdisc(const double *probs, int nvals) {
     int i;
@@ -4189,6 +4205,18 @@ int rdisc(const double *probs, int nvals) {
     return(i-1);
 }
 
+/* Same as rdisc, but given cumulative probabilities (cdf) instead of cdf */
+int rdisc_pcum(const double *cdf, int nvals) {
+    int i;
+    double u, pcum;
+
+    u = runifC();
+    pcum = cdf[0];
+    for (i = 1; (pcum < u) && (i < nvals); i++) {
+        pcum = cdf[i];
+    }
+    return(i-1);
+}
 
 double rbetaC(double alpha,
               double beta)

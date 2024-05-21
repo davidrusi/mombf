@@ -63,6 +63,7 @@ public:
   std::string sampler; //MCMC sampler type, e.g. Gibbs, birth-death
   //List samplerPars; //posterior sampler parameters
 
+  double prob_parallel; //proposal probability of almost-parallel update
   bool parallel_regression; //use almost-parallel regression based proposal?
   bool parallel_insample;  //use almost-parallel in-sample based proposal?
   bool use_tempering;
@@ -81,9 +82,11 @@ List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List sampler
 
 void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_MCMC_parallel(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, std::vector<std::map<string, double>> *map_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+
+void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm);
 
@@ -91,13 +94,21 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
+void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool *birth, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, bool setmodelnew);
+
 void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
 
-void unique_model_logprob(arma::SpMat<short> *uniquemodels, std::vector<double> *uniquemodels_logprob, arma::SpMat<short> *models, arma::mat *models_logprob, double *maxratio);
+void unique_model_logprob(arma::SpMat<short> *uniquemodels, std::vector<double> *unique_logprob, std::map<string, double> *map_logprob, arma::SpMat<short> *models, arma::mat *models_logprob, double *maxratio, double *logprobini);
+
+std::string getModelid(arma::SpMat<short> *model, char *zerochar);
 
 void update_Omega(arma::sp_mat *Omega, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
+void update_invOmega_submat(arma::mat *Omega_submat_inv, arma::sp_mat *Omega, int *oldcol, int *newcol);
+void mapindexes_submat(int *mapforw, int *coldif, int *col1, int *col2, int *p);
+void mapindexes_submat(int *mapforw, int *mapback, int *coldif, int *col1, int *col2, int *p);
+
 
 void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
 
@@ -111,6 +122,8 @@ double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
 
 //Matrix manipulation
 void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store); //copy symmetric sp_mat in flat format to A(,col2store)
+
+bool checkNonZeroDiff(const arma::SpMat<short>* A, const arma::SpMat<short>* B, int maxdif);
 
 void spmat_rowcol2zero(arma::sp_mat *A, int colid); //Set row and colum colid of A to 0
 

@@ -67,26 +67,36 @@ Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
 
 
 // [[Rcpp::export]]
-SEXP testfunctionCI(SEXP x) {
-    SEXP ans;
+double testfunctionCI(arma::sp_mat A, int oldcol, int newcol) {
 
-    testfunction(REAL(x)); //run whatever code
+  //arma::mat I= arma::eye(A.n_cols, A.n_cols);
+  //arma::mat Ainv= arma::spsolve(A, I, "lapack");
 
-    PROTECT(ans = Rf_allocVector(REALSXP, 1)); //return 0
-    *REAL(ans)= 0;
-    UNPROTECT(1);
-    return ans;
-}
+    //update_inverse(&Ainv, &A_newcol, &colid);
 
+    //A.col(colid)= A_newcol; A.row(colid)= A_newcol.t();
+    //Ainv= arma::spsolve(A, I, "lapack");
+    //Ainv.print("Ainv (full inverse)");
+ 
+  arma::sp_mat A1= A, A2= A, A2_newcol;
+  A2_newcol= A.col(newcol);
+  A2_newcol.print("A2_newcol");
+  A1.shed_row(oldcol);
+  A1.shed_col(oldcol);
+  A2.shed_row(newcol);
+  A2.shed_col(newcol);
+  arma::mat I= arma::eye(A1.n_cols, A1.n_cols);
+  arma::mat A1inv= arma::spsolve(A1, I, "lapack");
+  arma::mat A2inv= arma::spsolve(A2, I, "lapack");
 
-void testfunction(double *x) {
+  A1inv.print("A1inv");
+  A2inv.print("A2inv");
 
-  Rprintf("apnorm  %f\n", apnorm(*x,false));
-  Rprintf("apnorm2 %f\n", apnorm2(*x,false));
+  //update_invOmega_submat(&A1inv, &A, &oldcol, &newcol);
 
-  Rprintf("ainvmillsnorm  %f\n", ainvmillsnorm(*x));
-  Rprintf("ainvmillsnorm2 %f\n", ainvmillsnorm2(*x));
+  A1inv.print("Updated inverse (rank 1)");
 
+  return 1.0;
 }
 
 /*

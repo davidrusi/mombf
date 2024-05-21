@@ -25,16 +25,16 @@ modelSelectionGGMC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
     .Call(`_mombf_modelSelectionGGMC`, y, prCoef, prModel, samplerPars, Omegaini)
 }
 
-GGM_Gibbs_parallelC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
-    .Call(`_mombf_GGM_Gibbs_parallelC`, y, prCoef, prModel, samplerPars, Omegaini)
+modelSelectionGGM_parallelC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
+    .Call(`_mombf_modelSelectionGGM_parallelC`, y, prCoef, prModel, samplerPars, Omegaini)
 }
 
 normalmixGibbsCI <- function(Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB, Sburnin, Sverbose) {
     .Call(`_mombf_normalmixGibbsCI`, Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB, Sburnin, Sverbose)
 }
 
-testfunctionCI <- function(x) {
-    .Call(`_mombf_testfunctionCI`, x)
+testfunctionCI <- function(A, oldcol, newcol) {
+    .Call(`_mombf_testfunctionCI`, A, oldcol, newcol)
 }
 
 eprod_I <- function(m, S, n, power, dof) {

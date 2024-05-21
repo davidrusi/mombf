@@ -21,7 +21,7 @@
 
 
 //test function for debugging
-SEXP testfunctionCI(SEXP x);
+double testfunctionCI(arma::sp_mat A, int oldcol, int newcol);
 
 //Auxiliary functions
 SEXP bsplineCI(SEXP x, SEXP degree, SEXP knots);
@@ -154,9 +154,6 @@ struct modavgPars {
   double *prModelpar; //For priorModel==1, 1st elem is prob of success. For priorModel==2, 1st and 2nd elem are Beta hyper-parameters
 };
 
-
-
-void testfunction(double *x);
 
 
 

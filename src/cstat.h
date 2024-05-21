@@ -222,6 +222,9 @@ void inv_posdef_chol(double **invchol, int n, double **aout); //Inverse given ch
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant
 
 //Updating matrix inverses after rank 1 updates
+void update_inverse(arma::mat *Ainv, arma::sp_mat *A_newcol, int *newcol); //Update inverse of A after changing its column colid
+void update_inverse_permutedindex(arma::mat *Ainv, int *indexes, arma::sp_mat *A_colid, int *colid);//Same, result is stored in Ainv[indexes[i],indexes[j]] instead of A[i,j]
+
 void symmat_inv_colupdate(arma::mat *Ainv, arma::sp_mat *difvals, int colid); //update symmetric A by changing 1 row/col
 void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, arma::sp_mat *v); //A + u v^T
 void updateinv_rank1(arma::mat *Ainv, int rowid, arma::sp_mat *v); //add v to A[,rowid]
@@ -247,6 +250,7 @@ void dvecsort_decreasing(double *v, int size); //same, but sort decreasingly
 void dindexsort(double *x, int *index, int ilo, int ihi, int incr); //sort a vector of indexes using self-written quicksort routine
 void iindexsort(int *x, int *index, int ilo, int ihi, int incr); //like dindexsort but for integers
 std::vector<int> sorted_indexes(const std::vector<double>& input, bool decreasing);
+std::vector<int> sorted_indexes(const std::vector<int>& input, bool decreasing);
 
 
 /**************************************************************/

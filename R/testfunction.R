@@ -1,7 +1,7 @@
 
-testfunction= function(x) {
-    ans= testfunctionCI(as.double(x))
-    #ans= .Call("testfunctionCI",as.double(x));
-    return(ans);
+testfunction= function(A, oldcol, newcol) {
+    A= Matrix::Matrix(A, sparse=TRUE)
+    ans= testfunctionCI(A, as.integer(oldcol), as.integer(newcol))
+    return(ans)
 }
 

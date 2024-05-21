@@ -117,9 +117,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// GGM_Gibbs_parallelC
-List GGM_Gibbs_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
-RcppExport SEXP _mombf_GGM_Gibbs_parallelC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
+// modelSelectionGGM_parallelC
+List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+RcppExport SEXP _mombf_modelSelectionGGM_parallelC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,7 +128,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type prModel(prModelSEXP);
     Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat >::type Omegaini(OmegainiSEXP);
-    rcpp_result_gen = Rcpp::wrap(GGM_Gibbs_parallelC(y, prCoef, prModel, samplerPars, Omegaini));
+    rcpp_result_gen = Rcpp::wrap(modelSelectionGGM_parallelC(y, prCoef, prModel, samplerPars, Omegaini));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -156,13 +156,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // testfunctionCI
-SEXP testfunctionCI(SEXP x);
-RcppExport SEXP _mombf_testfunctionCI(SEXP xSEXP) {
+double testfunctionCI(arma::sp_mat A, int oldcol, int newcol);
+RcppExport SEXP _mombf_testfunctionCI(SEXP ASEXP, SEXP oldcolSEXP, SEXP newcolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(testfunctionCI(x));
+    Rcpp::traits::input_parameter< arma::sp_mat >::type A(ASEXP);
+    Rcpp::traits::input_parameter< int >::type oldcol(oldcolSEXP);
+    Rcpp::traits::input_parameter< int >::type newcol(newcolSEXP);
+    rcpp_result_gen = Rcpp::wrap(testfunctionCI(A, oldcol, newcol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -532,9 +534,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mombf_rnlpPostCI_lm", (DL_FUNC) &_mombf_rnlpPostCI_lm, 11},
     {"_mombf_rnlpCI", (DL_FUNC) &_mombf_rnlpCI, 9},
     {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 5},
-    {"_mombf_GGM_Gibbs_parallelC", (DL_FUNC) &_mombf_GGM_Gibbs_parallelC, 5},
+    {"_mombf_modelSelectionGGM_parallelC", (DL_FUNC) &_mombf_modelSelectionGGM_parallelC, 5},
     {"_mombf_normalmixGibbsCI", (DL_FUNC) &_mombf_normalmixGibbsCI, 13},
-    {"_mombf_testfunctionCI", (DL_FUNC) &_mombf_testfunctionCI, 1},
+    {"_mombf_testfunctionCI", (DL_FUNC) &_mombf_testfunctionCI, 3},
     {"_mombf_eprod_I", (DL_FUNC) &_mombf_eprod_I, 5},
     {"_mombf_modelSelectionEnumCI", (DL_FUNC) &_mombf_modelSelectionEnumCI, 46},
     {"_mombf_modelSelectionGibbsCI", (DL_FUNC) &_mombf_modelSelectionGibbsCI, 52},

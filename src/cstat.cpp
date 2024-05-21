@@ -3326,6 +3326,155 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
 
 
 
+/* Update the inverse of a symmetric matrix A when a column/row newcol is changed
+
+INPUT
+  - Ainv: inverse of A before A[,newcol] was changed
+  - A_newcol: newvalues for A[,newcol]
+  - newcol: index of the column of A being changed
+
+OUTPUT
+  - Ainv: inverse of A after A[,newcol] is changed
+
+*/
+void update_inverse(arma::mat *Ainv, arma::sp_mat *A_newcol, int *newcol) {
+
+  int i, j, d= Ainv->n_cols - 1;
+  double gam = A_newcol->at(*newcol), tmp;
+
+  arma::mat A11inv(d,d), Ainv_newcol;
+  Ainv_newcol= Ainv->col(*newcol);
+  double Ainv_newcol_diag= Ainv_newcol.at(*newcol,0);
+  Ainv_newcol.shed_row(*newcol);
+
+  //Obtain A11inv= Ainv[-newcol, -newcol] - Ainv_newcol * Ainv_newcol.t() / Ainv[newcol, newcol]
+  for (i=0; i < *newcol; i++) {
+    tmp= Ainv_newcol.at(i) / Ainv_newcol_diag;
+    for (j=0; j < *newcol; j++) A11inv.at(i,j)= A11inv.at(j,i)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+    for (j= *newcol + 1; j <= i; j++) A11inv.at(i,j-1)= A11inv.at(j-1,i)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+  }
+  for (i= *newcol + 1; i <= d; i++) {
+    tmp= Ainv_newcol.at(i-1) / Ainv_newcol_diag;
+    for (j=0; j < *newcol; j++) A11inv.at(i-1,j)= A11inv.at(j,i-1)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+    for (j= *newcol + 1; j <= i; j++) A11inv.at(i-1,j-1)= A11inv.at(j-1,i-1)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j-1);
+  }
+
+  //omega_12= A_newcol[-newcol,1,drop=FALSE]
+  arma::sp_mat omega_12= *A_newcol;
+  omega_12.shed_row(*newcol);
+
+  arma::mat v= A11inv * omega_12;
+
+  //gam = A_newcol[newcol,1] - as.double(t(v) %*% omega_12)
+  gam -= arma::as_scalar(v.t() * omega_12);
+
+  //RETURN Ainv
+
+  //1. Diagonal entry
+  Ainv->at(*newcol, *newcol)= 1 / gam;
+
+  //2. Column newcol
+  //Ainv[-newcol,newcol] = - v / gam
+  //Ainv[newcol,-newcol] = - v / gam
+  arma::vec v_over_gam(d);
+  for (i=0; i < *newcol; i++) {
+    v_over_gam.at(i)= v.at(i,0) / gam;
+    Ainv->at(*newcol, i)= Ainv->at(i, *newcol)= -v_over_gam.at(i);
+  }
+  for (i= *newcol + 1; i <= d; i++) {
+    v_over_gam.at(i-1)= v.at(i-1,0) / gam;
+    Ainv->at(*newcol, i)= Ainv->at(i, *newcol)= -v_over_gam.at(i-1);
+  }
+
+  //3. Entries outside row/column newcol
+  //Ainv[ -newcol, -newcol ] = A11inv + v %*% t( v ) / gam
+  for (i=0; i < *newcol; i++) {
+    for (j=0; j < *newcol; j++) {
+      Ainv->at(i,j)= Ainv->at(j,i)= A11inv.at(i,j) + v.at(i) * v_over_gam.at(j);
+    }
+  } 
+  for (i= *newcol + 1; i <= d; i++) {
+    for (j=0; j < *newcol; j++) {
+      Ainv->at(i,j)= Ainv->at(j,i)= A11inv.at(i-1,j) + v.at(i-1) * v_over_gam.at(j);
+    }
+    for (j= *newcol + 1; j <=d; j++) {
+      Ainv->at(i,j)= Ainv->at(j,i)= A11inv.at(i-1,j-1) + v.at(i-1) * v_over_gam.at(j-1);
+    }
+
+  } 
+
+}
+
+
+//Same as update_inverse, but result is stored in Ainv[indexes[i],indexes[j]] instead of A[i,j]
+void update_inverse_permutedindex(arma::mat *Ainv, int *indexes, arma::sp_mat *A_newcol, int *newcol) {
+
+  int i, j, d= Ainv->n_cols - 1;
+  double gam = A_newcol->at(*newcol), tmp;
+
+  arma::mat A11inv(d,d), Ainv_newcol;
+  Ainv_newcol= Ainv->col(*newcol);
+  double Ainv_newcol_diag= Ainv_newcol.at(*newcol,0);
+  Ainv_newcol.shed_row(*newcol);
+
+  //Obtain A11inv= Ainv[-newcol, -newcol] - Ainv_newcol * Ainv_newcol.t() / Ainv[newcol, newcol]
+  for (i=0; i < *newcol; i++) {
+    tmp= Ainv_newcol.at(i) / Ainv_newcol_diag;
+    for (j=0; j < *newcol; j++) A11inv.at(i,j)= A11inv.at(j,i)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+    for (j= *newcol + 1; j <= i; j++) A11inv.at(i,j-1)= A11inv.at(j-1,i)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+  }
+  for (i= *newcol + 1; i <= d; i++) {
+    tmp= Ainv_newcol.at(i-1) / Ainv_newcol_diag;
+    for (j=0; j < *newcol; j++) A11inv.at(i-1,j)= A11inv.at(j,i-1)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j);
+    for (j= *newcol + 1; j <= i; j++) A11inv.at(i-1,j-1)= A11inv.at(j-1,i-1)= Ainv->at(i,j) - tmp * Ainv_newcol.at(j-1);
+  }
+
+  //omega_12= A_newcol[-newcol,1,drop=FALSE]
+  arma::sp_mat omega_12= *A_newcol;
+  omega_12.shed_row(*newcol);
+
+  arma::mat v= A11inv * omega_12;
+
+  //gam = A_newcol[newcol,1] - as.double(t(v) %*% omega_12)
+  gam -= arma::as_scalar(v.t() * omega_12);
+
+  //RETURN Ainv permuted
+
+  //1. Diagonal entry
+  Ainv->at(indexes[*newcol], indexes[*newcol])= 1 / gam;
+
+  //2. Column newcol
+  arma::vec v_over_gam(d);
+  for (i=0; i < *newcol; i++) {
+    v_over_gam.at(i)= v.at(i,0) / gam;
+    Ainv->at(indexes[*newcol], indexes[i])= Ainv->at(indexes[i], indexes[*newcol])= -v_over_gam.at(i);
+  }
+  for (i= *newcol + 1; i <= d; i++) {
+    v_over_gam.at(i-1)= v.at(i-1,0) / gam;
+    Ainv->at(indexes[*newcol], indexes[i])= Ainv->at(indexes[i], indexes[*newcol])= -v_over_gam.at(i-1);
+  }
+
+  //3. Entries outside row/column newcol
+  for (i=0; i < *newcol; i++) {
+    for (j=0; j < *newcol; j++) {
+      Ainv->at(indexes[i],indexes[j])= Ainv->at(indexes[j],indexes[i])= A11inv.at(i,j) + v.at(i) * v_over_gam.at(j);
+    }
+  } 
+  for (i= *newcol + 1; i <= d; i++) {
+    for (j=0; j < *newcol; j++) {
+      Ainv->at(indexes[i],indexes[j])= Ainv->at(indexes[j],indexes[i])= A11inv.at(i-1,j) + v.at(i-1) * v_over_gam.at(j);
+    }
+    for (j= *newcol + 1; j <=d; j++) {
+      Ainv->at(indexes[i],indexes[j])= Ainv->at(indexes[j],indexes[i])= A11inv.at(i-1,j-1) + v.at(i-1) * v_over_gam.at(j-1);
+    }
+
+  } 
+
+}
+
+
+
+
 /* Update the inverse of symmetric matrix A after replacing row/col colid by difvals, given current inverse of A
 
   The function uses fast rank 1 computations based on the Woodbury formula
@@ -3341,10 +3490,11 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
 
 */
 void symmat_inv_colupdate(arma::mat *Ainv, arma::sp_mat *difvals, int colid) {
-  arma::sp_mat v2= (*difvals);
-  v2.at(colid,0)= 0;
   updateinv_rank1(Ainv, difvals, colid); //inverse of A + difvals e^T
-  updateinv_rank1(Ainv, colid, &v2); //inverse of A + difvals e^T + e v2^T
+  double tmp= difvals->at(colid,0);
+  difvals->at(colid,0)= 0;
+  updateinv_rank1(Ainv, colid, difvals); //inverse of A + difvals e^T + e v2^T
+  difvals->at(colid,0)= tmp;
 }
 
 
@@ -3393,7 +3543,7 @@ void updateinv_rank1(arma::mat *Ainv, arma::sp_mat *u, int colid) {
   double den= 1.0 + vTAinvu.at(0,0);
 
   arma::sp_mat uden= (*u)/den;
-  (*Ainv)= (*Ainv) - (*Ainv) * uden * vTAinv; //good formula
+  (*Ainv)= (*Ainv) - (*Ainv) * uden * vTAinv; 
 }
 
 
@@ -3976,6 +4126,21 @@ std::vector<int> sorted_indexes(const std::vector<double>& input, bool decreasin
     return indexes;
 }
 
+std::vector<int> sorted_indexes(const std::vector<int>& input, bool decreasing=false) {
+    // Create a vector of indexes
+    std::vector<int> indexes(input.size());
+    std::iota(indexes.begin(), indexes.end(), 0); // Fill with 0, 1, 2, ..., input.size()-1
+
+    // Sort the indexes based on the corresponding values in the input vector
+    if (decreasing) {
+      std::sort(indexes.begin(), indexes.end(), [&input](int i, int j) { return input[i] > input[j]; });
+    } else {
+      std::sort(indexes.begin(), indexes.end(), [&input](int i, int j) { return input[i] < input[j]; });
+    }
+
+    return indexes;
+}
+
 
 
 /**************************************************************/
@@ -4113,11 +4278,11 @@ double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, doub
   int d= model->n_nonzero, dnew= modelnew->n_nonzero, nrows= model->n_rows;
   double ans;
 
-  if (dnew > d) { //birth was proposed
+  if (dnew == d+1) { //birth was proposed
 
     ans= pbirth / (double) (model->n_rows - d);
 
-  } else if (dnew < d) { //death was proposed
+  } else if (dnew == d-1) { //death was proposed
 
     ans= (1.0 - pbirth) / (double) d;
 

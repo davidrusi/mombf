@@ -23,8 +23,8 @@ priorModel=modelbinomprior(1/ncol(y)),
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
 almost_parallel= 'regression', tempering= 0.5, truncratio= 100,
 save_proposal= FALSE, sampler='birthdeath', niter=10^3, 
-burnin= round(niter/10), fullscan=TRUE, pbirth=0.5, nbirth, 
-Omegaini='glasso-ebic', verbose=TRUE)
+burnin= round(niter/10), fullscan=TRUE, pbirth=1/3, pdeath=1/3,
+nbirth, Omegaini='glasso-ebic', verbose=TRUE)
 
 }
 \arguments{
@@ -77,7 +77,10 @@ Omegaini='glasso-ebic', verbose=TRUE)
    all columns. If \code{FALSE}, an iteration consists of updating a randomly
    chosen column}
 
-  \item{pbirth}{Probability of a birth move. Ignored unless
+  \item{pbirth}{Probability of a birth move. The probability of a swap move 
+  is \code{1-pbirth-pdeath}. Ignored unless \code{sampler=="birthdeath"}}
+
+  \item{pdeath}{Probability of a death move. Ignored unless
     \code{sampler=="birthdeath"}}
 
   \item{nbirth}{Number of birth/death updates to perform for each row of

@@ -45,6 +45,7 @@ public:
   int burnin;  //number of MCMC burnin iterations
   bool fullscan; //if true, an MCMC iteration consists of updating all columns. If false, an MCMC iteration consists of updating a randomly chosen column
   double pbirth;  //probability of birth move, ignored unless sampler is "birthdeath"
+  double pdeath;  //probability of death move, ignored unless sampler is "birthdeath"
   int nbirth; //number of birth/death updates to perform when updating each column of the precision matrix
   int niter; //number of MCMC iterations
   double tempering; //tempering parameter in parallel proposal
@@ -80,11 +81,11 @@ public:
 
 List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 
-void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, std::vector<std::map<string, double>> *map_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
@@ -92,9 +93,11 @@ void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm);
 
 void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
-void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
+void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
 void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool *birth, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, bool setmodelnew);
+
+void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, bool setmodelnew);
 
 void niter_GGM_proposal(int *niter_prop, int *burnin_prop, int *niter, int *burnin, int *p);
 

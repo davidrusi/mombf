@@ -4306,6 +4306,160 @@ double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, doub
 
 }
 
+
+
+/*Random draw from a birth-death-swap proposal
+
+  With probability pbirth take a random zero entry in model and set it to 1
+  With probability pdeath take a random non-zero entry and set it to zero
+  With probability 1-pbirth-pdeath take a random zero entry in model and set it to 1, and a random non-zero entry and set it to 0
+
+ Input
+
+ - model: input model, structured as a single-column sparse matrix
+ - pbirth: birth probability
+ - pdeath: death probability
+
+ Output
+
+ - index_birth: index of the entry that was born / killed. Returns -1 if a birth move was chosen but all entries were already 1
+ - index_death: index of the dead entry that was borh. Returns -1 if a death move was chosen but all entries were already 0
+ - movetype: 1 if a birth move was chosen, 2 if a death move was chosen, 3 if a swap move was chosen
+
+*/
+void rbirthdeathswap(int *index_birth, int *index_death, int *movetype, arma::SpMat<short> *model, double pbirth, double pdeath) {
+
+  bool found;
+  int i, dnonzero= model->n_nonzero, d= model->n_rows;
+  double u;
+  arma::SpMat<short>::iterator it;
+
+  (*index_birth)= (*index_death)= -1; //return value if proposed update cannot be done
+  u = runifC();
+  if (u < pbirth) {
+
+    (*movetype)= 1;
+    if (dnonzero < d) {  //if dnonzero==d, all entries are already non-zero
+
+      int idx_birth= runifdisc(1, d - dnonzero); //choose one of the d - dnonzero entries and set it to 1
+      int dnonzero_slice, previous_row= -1;
+
+      found= false;
+      for (it= model->begin(); (it != model->end()) && (!found); ++it) {
+        dnonzero_slice= it.row() - previous_row - 1;
+
+        if (dnonzero_slice >= idx_birth) {
+          (*index_birth)= previous_row + idx_birth;
+          found= true;
+        } else {
+          idx_birth -= dnonzero_slice;
+          previous_row= it.row();
+        }
+
+      }
+
+      if (!found) (*index_birth)= previous_row + idx_birth;
+
+    }
+
+  } else if (u < pbirth + pdeath) {
+
+    (*movetype)= 2;
+    if (dnonzero>0) {  //if all entries are already zero, none can be killed
+
+      int idx_death= runifdisc(0, dnonzero - 1);
+
+      found= false;
+      for (it= model->begin(), i=0; (it != model->end()) && (!found); ++it, i++) {
+        if (i == idx_death) {
+          (*index_death)= (int) it.row();
+          found= true;
+        }
+      }
+
+    }
+
+  } else {
+
+    (*movetype)= 3;
+    if ((dnonzero < d) && (dnonzero >0)) { //if all entries are one or all are zero, a swap move is not possible
+
+      //Choose entry to be born
+      int idx_birth= runifdisc(1, d - dnonzero); //choose one of the d - dnonzero entries and set it to 1
+      int dnonzero_slice, previous_row= -1;
+
+      found= false;
+      for (it= model->begin(); (it != model->end()) && (!found); ++it) {
+        dnonzero_slice= it.row() - previous_row - 1;
+
+        if (dnonzero_slice >= idx_birth) {
+          (*index_birth)= previous_row + idx_birth;
+          found= true;
+        } else {
+          idx_birth -= dnonzero_slice;
+          previous_row= it.row();
+        }
+
+      }
+
+      if (!found) (*index_birth)= previous_row + idx_birth;
+
+      //Choose entry to kill
+      int idx_death= runifdisc(0, dnonzero - 1);
+
+      found= false;
+      for (it= model->begin(), i=0; (it != model->end()) && (!found); ++it, i++) {
+        if (i == idx_death) {
+          (*index_death)= (int) it.row();
+          found= true;
+        }
+      }
+
+    }
+  }
+
+}
+
+
+//Probability mass function of a birth-death proposal
+double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, bool logscale=true) {
+
+  int d= model->n_nonzero, dnew= modelnew->n_nonzero, nrows= model->n_rows;
+  double pswap= 1-pbirth-pdeath, ans;
+
+  if (dnew == d+1) { //birth was proposed
+
+    ans= pbirth / (double) (model->n_rows - d);
+
+  } else if (dnew == d-1) { //death was proposed
+
+    ans= pdeath / (double) d;
+
+  } else if ((dnew == d) && (d == nrows)) { //either birth or swap were proposed, but all entries were non-zero
+
+    ans= pbirth * pswap; 
+
+  } else if ((dnew == d) && (d == 0)) { //either death or swap were proposed, but all entries were zero
+
+    ans= pdeath * pswap;
+
+  } else if (dnew == d) { //if swap move was proposed
+
+    ans= (pbirth / (double) (model->n_rows - d)) * (pdeath / (double) d);
+
+  } else {
+
+    ans= 0;
+
+  }
+
+  if (logscale) ans= log(ans);
+
+  return ans;
+
+}
+
+
 /************************************************************************
                        RANDOM VARIATE GENERATION
 ************************************************************************/

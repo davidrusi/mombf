@@ -263,6 +263,9 @@ void sampled_wr(double *x, int popsize, int n); //same for vector of doubles
 void rbirthdeath(int *index, bool *birth, arma::SpMat<short> *model, double pbirth); //random draw from birth-death proposal
 double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, bool logscale); //pmf of birth-death proposal
 
+void rbirthdeathswap(int *index_birth, int *index_death, int *movetype, arma::SpMat<short> *model, double pbirth, double pdeath); //birth-death-swap proposal
+double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, bool logscale); //pmf of birth-death-swap proposal
+
 
 /**************************************************************/
 /* Probability distributions                                  */

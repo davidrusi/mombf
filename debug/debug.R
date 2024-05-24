@@ -26,14 +26,13 @@ set.seed(1)
 #mombf:::testfunction(Th, oldcol=1, newcol=2)
 
 #Hard example p=5. Smallest eigenvalue very close to 0
-Th= diag(5)
-diag(Th)= 1.5
-Th[abs(col(Th) - row(Th))==1]= 0.95
-Th[abs(col(Th) - row(Th))==2]= 0.5
-Th[abs(col(Th) - row(Th))==3]= 0.64
-y= scale(rmvnorm(500, sigma=solve(Th)), center=TRUE, scale=FALSE)
-#fitr.ap <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-ebic', niter=5000, burnin=0, scale=FALSE, almost_parallel='regression', nbirth=1, tempering=1, truncratio=100, save_proposal=TRUE, fullscan=TRUE, prob_parallel=1)
-fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-ebic', niter=5000, burnin=0, scale=FALSE, almost_parallel='none', nbirth=1, fullscan=TRUE)
+#Th= diag(5)
+#diag(Th)= 1.5
+#Th[abs(col(Th) - row(Th))==1]= 0.95
+#Th[abs(col(Th) - row(Th))==2]= 0.5
+#Th[abs(col(Th) - row(Th))==3]= 0.64
+#y= scale(rmvnorm(500, sigma=solve(Th)), center=TRUE, scale=FALSE)
+#fitr.ap <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-ebic', niter=5000, burnin=0, scale=FALSE, almost_parallel='regression', nbirth=1, tempering=1, truncratio=100, save_proposal=TRUE, fullscan=TRUE, prob_parallel=0.5)
 
 
 #Hard example. Smallest eigenvalue very close to 0
@@ -43,5 +42,4 @@ Th[abs(col(Th) - row(Th))==1]= 0.9
 Th[abs(col(Th) - row(Th))==2]= 0.5
 Th[abs(col(Th) - row(Th))==3]= 0.35
 y= scale(rmvnorm(500, sigma=solve(Th)), center=TRUE, scale=FALSE)
-#fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-bic', niter=500, burnin=0, scale=FALSE, almost_parallel='regression', nbirth=1, tempering=1, save_proposal=TRUE)
-fitr.ap <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-bic', niter=500, burnin=0, scale=FALSE, almost_parallel='regression', nbirth=1, tempering=1, save_proposal=TRUE)
+fitr2.ap <- modelSelectionGGM(y, sampler='birthdeath', Omegaini='glasso-ebic', niter=10^4, burnin=0, scale=FALSE, almost_parallel='regression', nbirth=1, tempering=1, truncratio=100, save_proposal=TRUE, fullscan=TRUE, prob_parallel=0.5)

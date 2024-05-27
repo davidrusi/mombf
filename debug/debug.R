@@ -1,9 +1,40 @@
 #Uncomment the 2 lines below to re-compile all C code each time
 #devtools::clean_dll()
 #devtools::load_all()
-
 #library(Rcpp)
 #compileAttributes("~/github/mombf")
+
+library(mvtnorm)
+library(tidyverse)
+library(mombf)
+set.seed(784)
+# Dimension
+p <- 250
+s <- 24
+n <- 250
+# Generate design matrix
+A <- matrix(runif(p*p,-1,1),ncol=p)
+Sigma <- t(A)%*%A
+mu <- rep(runif(1,1,2),p)
+X <- rmvnorm(n,mu,Sigma)
+pcs <- princomp(X)$scores
+norms.pcs<-diag(t(pcs) %*% pcs)/n
+pcs.scaled <- pcs %*% diag(1/sqrt(norms.pcs))
+X.design <- pcs %*% diag(1/sqrt(norms.pcs))
+# True beta
+betamin <- 0.35
+beta_star <- c(betamin, runif(s-2,1.05*betamin,1.1*betamin),betamin,rep(0,p-s))
+# Simulation
+y <- X.design%*%(beta_star)+rnorm(n,0,1)
+
+#debug
+models= matrix(FALSE, nrow=1, ncol=ncol(X.design))
+fit.null= bestBIC(y, X.design, models=models) #should be 1067.586
+
+
+
+## GGM examples
+
 library(mombf)
 library(mvtnorm)
 set.seed(1)

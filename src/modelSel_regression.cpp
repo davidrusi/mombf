@@ -3376,8 +3376,8 @@ double bic_lm (int *sel, int *nsel, struct marginalPars *pars) {
 
   if (*nsel ==0) {
 
-    phi= sumy2 / ((double) n);
-    ans= -0.5 * (((double) n) + ((double) n) * log(2 * M_PI * phi)) + penalty;  //Model dimension is 1 (variance parameter)
+    phi= sumy2 / ndouble;
+    ans= -0.5 * (ndouble + ndouble * log(2 * M_PI * phi) + penalty);  //Model dimension is 1 (variance parameter)
 
   } else {
 

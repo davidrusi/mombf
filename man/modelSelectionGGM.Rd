@@ -23,8 +23,9 @@ priorModel=modelbinomprior(1/ncol(y)),
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
 almost_parallel= 'regression', tempering= 0.5, truncratio= 100,
 save_proposal= FALSE, sampler='birthdeath', niter=10^3, 
-burnin= round(niter/10), fullscan=TRUE, pbirth=1/3, pdeath=1/3,
-nbirth, Omegaini='glasso-ebic', verbose=TRUE)
+burnin= round(niter/10), updates_per_column=ncol(y),
+fullscan=TRUE, pbirth=1/3, pdeath=1/3,
+Omegaini='glasso-ebic', verbose=TRUE)
 
 }
 \arguments{
@@ -71,20 +72,22 @@ nbirth, Omegaini='glasso-ebic', verbose=TRUE)
   
   \item{sampler}{Posterior sampler. Options are "Gibbs" and "birthdeath"}
   
-  \item{niter}{Number of posterior samples to be obtained}
+  \item{niter}{Number of posterior samples to be obtained. Each iteration
+  consists of selecting a column of the precision matrix at random and 
+  making \code{updates_per_column} updates to its entries}
 
-  \item{fullscan}{If \code{TRUE}, an MCMC iteration consists of updating
-   all columns. If \code{FALSE}, an iteration consists of updating a randomly
-   chosen column}
+  \item{updates_per_column}{Number of entries to update within each column
+  of the precision matrix}
+
+  \item{fullscan}{If \code{FALSE}, an iteration consists of updating a randomly
+   chosen column. If \code{TRUE}, an MCMC iteration consists of updating
+   all columns (which is costlier)}
 
   \item{pbirth}{Probability of a birth move. The probability of a swap move 
   is \code{1-pbirth-pdeath}. Ignored unless \code{sampler=="birthdeath"}}
 
   \item{pdeath}{Probability of a death move. Ignored unless
     \code{sampler=="birthdeath"}}
-
-  \item{nbirth}{Number of birth/death updates to perform for each row of
-  the precision matrix. Defaults to \code{ncol(y)}}
   
   \item{burnin}{The first burnin samples will be discarded}
   

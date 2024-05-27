@@ -80,7 +80,7 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->sampler= samplerC;
 
   this->burnin= as<int>(samplerPars["burnin"]);
-  this->nbirth= as<int>(samplerPars["nbirth"]);
+  this->updates_per_column= as<int>(samplerPars["updates_per_column"]);
   this->niter= as<int>(samplerPars["niter"]);
   this->fullscan= as<bool>(samplerPars["fullscan"]);
   this->tempering= as<double>(samplerPars["tempering"]);
@@ -122,7 +122,7 @@ ggmObject::ggmObject(ggmObject *ggm) {
   this->sampler= ggm->sampler;
 
   this->burnin= ggm->burnin;
-  this->nbirth= ggm->nbirth;
+  this->updates_per_column= ggm->updates_per_column;
   this->niter= ggm->niter;
   this->fullscan= ggm->fullscan;
   this->tempering= ggm->tempering;
@@ -158,7 +158,7 @@ ggmObject::~ggmObject() {
 
 //double ggmObject::pbirth() return this->samplerPars["pbirth"]; }
 
-// int ggmObject::nbirth() { return this->samplerPars["nbirth"]; }
+// int ggmObject::updates_per_column() { return this->samplerPars["updates_per_column"]; }
 
 // double ggmObject::tempering() { return this->samplerPars["tempering"]; }
 
@@ -224,7 +224,7 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
   bool use_birthdeath= (ggm->sampler == birthdeath);
   bool use_zigzag= (ggm->sampler == zigzag);
 
-  GGM_CDA(&Omegaini, ggm); //update Omegaini to local posterior mode
+  //GGM_CDA(&Omegaini, ggm); //update Omegaini to local posterior mode
 
   //Create output matrix
   arma::sp_mat postSample(npars, ggm->niter - ggm->burnin);
@@ -413,10 +413,10 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   dpropini= dvector(0, p-1);
 
   //Update Omegaini to local posterior mode
-  bool parallel_regression= ggm->parallel_regression;
-  ggm->parallel_regression= false;
-  GGM_CDA(&Omegaini, ggm);
-  ggm->parallel_regression= parallel_regression;
+  //bool parallel_regression= ggm->parallel_regression;
+  //ggm->parallel_regression= false;
+  //GGM_CDA(&Omegaini, ggm);
+  //ggm->parallel_regression= parallel_regression;
 
   //Vectors where to store proposal's models & their probabilities
   std::vector<arma::SpMat<short>> proposal_models(p);
@@ -426,7 +426,10 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   //Propose models, store their proposal probability into proposal_logprob
   if (use_gibbs || use_birthdeath) {
 
+    int updates_per_column= ggm->updates_per_column;
+    ggm->updates_per_column= 1;
     GGM_parallel_proposal(&proposal_models, &proposal_logprob, &map_logprob, dpropini, ggm, &Omegaini);
+    ggm->updates_per_column= updates_per_column;
 
   } else if (use_zigzag) {
     
@@ -844,7 +847,7 @@ IMPORTANT: if not NULL, at input samples and models should only contain zeroes
 
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL, double *modelini_logprob = NULL) {
 
-  int i, j, p= ggm->ncol, nbirth= ggm->nbirth, index_birth, index_death, movetype, col2save, colid_int= (int) colid;
+  int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid;
   double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL;
   arma::sp_mat::const_iterator it;
@@ -880,7 +883,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
   for (i= iterini; i <= iterfi; i++) {
 
-      for (j=1; j<=nbirth; j++) {  //Make nbirth birth/death updates
+      for (j=1; j<=updates_per_column; j++) {  //Make updates_per_column birth/death updates
 
       //GGM_birthdeath_proposal(modelnew, &idx_update, &birth, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, false);
       GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, false);
@@ -1212,7 +1215,8 @@ INPUT/OUTPUT
 */
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx, burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol;
+  int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
+  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   double prob_parallel= ggm->prob_parallel;
   bool parallel_draw;
@@ -1275,29 +1279,6 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
       newcol= sequence[j];
       if ((!ggm->fullscan) && (j != 0)) break;
 
-      parallel_draw= (runifC() < prob_parallel); //choose proposal type
-
-      //If current model has zero probability under the parallel proposal, use the birth-death proposal
-      //if (parallel_draw) {
-      //  s= getModelid(&(modelold[newcol]), zerochar);
-      //  itmap= (map_logprob->at(newcol)).find(s);
-      //  parallel_draw= (itmap != (map_logprob->at(newcol)).end());
-      //}
-      
-      if (parallel_draw && (dpropini[newcol] != -INFINITY)) { //use parallel proposal
-
-        dpropold= dpropini[newcol]; //log-proposal for current model
-        proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
-        dpropnew= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal for new value
-        modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
-
-      } else { //use birth-death proposal
-
-        //GGM_birthdeath_proposal(&modelnew, &idx_update, &birth, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), true);
-        GGM_birthdeathswap_proposal(&modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), &(ggm->pdeath), true);
-
-      }
-
       //Obtain inverse of Omegaini[-newcol,-newcol]
       if ((i==0) && (j==0)) {
         (*invOmega_newcol)= get_invOmega_j(Omegaini, newcol); 
@@ -1312,32 +1293,47 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
       modselIntegrals_GGM *ms;
       ms= new modselIntegrals_GGM(marfun, ggm, newcol, invOmega_newcol);
-      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
-      ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
 
-      ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
+      for (k=0; k < updates_per_column; k++) {  //perform multiple updates per column
 
-      //if ((newcol==29)) { //debug
-      //  bool proptype= parallel_draw && (dpropini[newcol] != -INFINITY);
-      //  Rprintf("i=%d, newcol=%d, dpostold=%f, dpostnew=%f, dpropold=%f, dpropnew=%f, parallel_update=%d \n", i, newcol, dpostold, dpostnew, dpropold, dpropnew, proptype);
-      //  (modelold[newcol]).print("modelold");
-      //  modelnew.print("modelnew");
-      //}
+        parallel_draw= (runifC() < prob_parallel); //choose proposal type
+    
+        if (parallel_draw && (dpropini[newcol] != -INFINITY)) { //use parallel proposal
 
-      if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+          dpropold= dpropini[newcol]; //log-proposal for current model
+          proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
+          dpropnew= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal for new value
+          modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
 
-        if (i >= burnin) number_accept++;
-        modelold[newcol]= modelnew;
-        //Store log parallel proposal density of updated model
-        s= getModelid(&modelnew, zerochar);
-        itmap= (map_logprob->at(newcol)).find(s);
-        if (itmap != (map_logprob->at(newcol)).end()) {
-          dpropini[newcol]= itmap->second;
-        } else {
-          dpropini[newcol]= -INFINITY;
+        } else { //use birth-death proposal
+
+          //GGM_birthdeath_proposal(&modelnew, &idx_update, &birth, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), true);
+          GGM_birthdeathswap_proposal(&modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), &(ggm->pdeath), true);
+
         }
 
-      }
+        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
+        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
+
+        ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
+
+        if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+
+          if (i >= burnin) number_accept++;
+          modelold[newcol]= modelnew;
+          dpostold= dpostnew;
+          //Store log parallel proposal density of updated model
+          s= getModelid(&modelnew, zerochar);
+          itmap= (map_logprob->at(newcol)).find(s);
+          if (itmap != (map_logprob->at(newcol)).end()) {
+            dpropini[newcol]= itmap->second;
+          } else {
+            dpropini[newcol]= -INFINITY;
+          }
+
+        }
+
+      } //end k for (perform multiple updates per column)
 
       //Sample Omega[,newcol] given model
       sample_offdiag= new arma::mat((modelold[newcol]).n_nonzero - 1, 1);
@@ -1414,7 +1410,8 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
 void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx, burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol;
+  int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
+  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL, *invOmega_newcol;
   std::vector<double> diagcur(p), bnew(p);
@@ -1467,10 +1464,6 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
       newcol= sequence[j];
       if ((!ggm->fullscan) && (j != 0)) break;
 
-      proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
-      dpropnew= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal for proposed model
-      modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
-
       //Obtain inverse of Omegaini[-newcol,-newcol]
       if ((i==0) && (j==0)) {
         (*invOmega_newcol)= get_invOmega_j(Omegaini, newcol); 
@@ -1481,20 +1474,30 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
       modselIntegrals_GGM *ms;
       ms= new modselIntegrals_GGM(marfun, ggm, newcol, invOmega_newcol);
-      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
-      ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
 
-      dpropold= dpropini[newcol]; //log-proposal for current model
+      for (k=0; k < updates_per_column; k++) {  //perform multiple updates per column
 
-      ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
+        proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
+        dpropnew= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal for proposed model
+        modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
 
-      if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
+        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
 
-        if (i >= burnin) number_accept++;
-        dpropini[newcol]= dpropnew;
-        modelold[newcol]= modelnew;
+        dpropold= dpropini[newcol]; //log-proposal for current model
 
-      }
+        ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
+
+        if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+
+          if (i >= burnin) number_accept++;
+          dpropini[newcol]= dpropnew;
+          modelold[newcol]= modelnew;
+          dpostold= dpostnew;
+
+        }
+
+      } //end k for (perform multiple updates per column)
 
       //Sample Omega[,newcol] given model
       sample_offdiag= new arma::mat((modelold[newcol]).n_nonzero - 1, 1);

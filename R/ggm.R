@@ -87,7 +87,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), fullscan=TRUE, pbirth=1/3, pdeath=1/3, nbirth, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), updates_per_column= ncol(y), fullscan=FALSE, pbirth=1/3, pdeath=1/3, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -103,10 +103,12 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, fullscan=fullscan, pbirth=pbirth, pdeath=pdeath, nbirth=nbirth, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, verbose=verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, fullscan=fullscan, pbirth=pbirth, pdeath=pdeath, updates_per_column=updates_per_column, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, verbose=verbose)
     
   #Initial value for sampler
+  if (verbose) cat(" Obtaining initial parameter estimate...")
   Omegaini= initialEstimateGGM(y, Omegaini)
+  if (verbose) cat(" Done\n")
     
   #Call C++ function
   proposal= proposaldensity= NULL
@@ -141,15 +143,15 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, fullscan, pbirth, pdeath, nbirth, prob_parallel, tempering, truncratio, almost_parallel, verbose) {
-  if (missing(nbirth)) {
-      nbirth= as.integer(min(p, max(log(p), 10)))
+format_GGM_samplerPars= function(sampler, p, niter, burnin, fullscan, pbirth, pdeath, updates_per_column, prob_parallel, tempering, truncratio, almost_parallel, verbose) {
+  if (missing(updates_per_column)) {
+      updates_per_column= as.integer(min(p, max(log(p), 10)))
   } else {
-      nbirth= as.integer(nbirth)
+      updates_per_column= as.integer(updates_per_column)
   }
   if (!(almost_parallel %in% c('none','regression','in-sample'))) stop("almost_parallel must be 'none', 'regression' or 'in-sample'")
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.logical(fullscan), pbirth, pdeath, nbirth, prob_parallel, as.double(tempering), as.double(truncratio), almost_parallel, as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','fullscan','pbirth','pdeath','nbirth','prob_parallel','tempering','truncratio','almost_parallel','verbose')
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.logical(fullscan), pbirth, pdeath, updates_per_column, prob_parallel, as.double(tempering), as.double(truncratio), almost_parallel, as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','fullscan','pbirth','pdeath','updates_per_column','prob_parallel','tempering','truncratio','almost_parallel','verbose')
   return(samplerPars)
 }
 
@@ -181,6 +183,8 @@ initialEstimateGGM= function(y, Omegaini) {
 }
 
 initGGM= function(y, Omegaini) {
+
+  maxiter= ifelse (ncol(y) <=100, 5, 1)  #use 1 iteration for large p, to avoid excessive init time
     
   if (Omegaini=='null') {
         
@@ -190,23 +194,27 @@ initGGM= function(y, Omegaini) {
 
     method= ifelse(Omegaini == 'glasso-bic', 'BIC', 'EBIC')
 
-    sfit= glasso::glassopath(cov(y), trace=0)  #from package glasso
+    sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE)
+    #sfit= glasso::glassopath(cov(y), trace=0)  #from package glasso
     bic= glasso_getBIC(y=y, sfit=sfit, method=method)
 
     topbic= which.min(bic)
     found= (topbic != 1) & (topbic != length(bic))
 
     niter= 1
-    while ((!found) & (niter<=5)) {
+    while ((!found) & (niter<=maxiter)) {
         
       if (topbic==1) {
-          rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10)
+          rholist= seq(sfit$lambda[1]/10, sfig$lambda[1], length=10) ##for package huge
+          #rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10) ##for package glasso
       } else {
-          l= sfit$rholist[length(sfit$rholist)]
+          l= sfit$lambda[length(sfit$lambda)]
+          #l= sfit$rholist[length(sfit$rholist)] ##for package glasso
           rholist= seq(l, 10*l, length=10)
       }
 
-      sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
+      sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE)
+      #sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
       bic= glasso_getBIC(y=y, sfit=sfit, method=method)
       
       topbic= which.min(bic)
@@ -214,8 +222,9 @@ initGGM= function(y, Omegaini) {
       niter= niter+1
 
     }
-        
-    ans= Matrix::Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE)
+
+    ans= Matrix::Matrix(sfit$icov[[which.min(bic)]])
+    ##ans= Matrix::Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE) ##for package glasso
       
   } else {
     stop("Omegaini must be 'null', 'glasso-ebic' or 'glasso-bic'")
@@ -226,19 +235,45 @@ initGGM= function(y, Omegaini) {
 }
 
 
+#For objects from package huge
 glasso_getBIC= function(y, sfit, method='EBIC') {
-  logl= npar= double(length(sfit$rholist))
-  for (i in 1:length(sfit$rholist)) {
-    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$wi[,,i], log=TRUE))
-    npar[i]= sum(sfit$wi[,,i] != 0)
-  }
+  #Extraction of BIC/EBIC, copied from huge.select in package huge
+  n= nrow(y); d= ncol(y)
   if (method == 'BIC') {
-    ans= -2*logl + npar * log(nrow(y))
+    gamma = 0
   } else if (method == 'EBIC') {
-    ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
+    gamma = 0.5
   }
+  ans = -n * sfit$loglik + log(n) * sfit$df + 4 * gamma * log(d) * sfit$df
+  #Manual implementation (deprecated)    
+  #logl= npar= double(length(sfit$icov))
+  #for (i in 1:length(logl)) {
+  #  logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$icov[[i]], log=TRUE))
+  #  npar[i]= sum(sfit$icov[[i]] != 0)
+  #}
+  #if (method == 'BIC') {
+  #  ans= -2*logl + npar * log(nrow(y))
+  #} else if (method == 'EBIC') {
+  #  ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
+  #}
   return(ans)
 }
+
+
+#For objects from package glasso (deprecated)
+#glasso_getBIC= function(y, sfit, method='EBIC') {
+#  logl= npar= double(length(sfit$rholist))
+#  for (i in 1:length(sfit$rholist)) {
+#    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$wi[,,i], log=TRUE))
+#    npar[i]= sum(sfit$wi[,,i] != 0)
+#  }
+#  if (method == 'BIC') {
+#    ans= -2*logl + npar * log(nrow(y))
+#  } else if (method == 'EBIC') {
+#    ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
+#  }
+#  return(ans)
+#}
 
 
 #Model log-joint (log marginal likelihood + log model prior) for the non-zero entries in colsel of Omega

@@ -100,9 +100,15 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 
   free((char  *) this->zerochar);
 
-  std::map<string, arma::mat *>::iterator it;
-  for (it= meanSaved.begin(); it != meanSaved.end(); ++it) delete it->second;
-  for (it= cholVSaved.begin(); it != cholVSaved.end(); ++it) delete it->second;
+  std::map<string, GGM_logjoint>::iterator it;
+  for (it= logjointSaved.begin(); it != logjointSaved.end(); ++it) {
+    delete (it->second).mean;
+    delete (it->second).cholV;
+  }
+
+  //std::map<string, arma::mat *>::iterator it;
+  //for (it= meanSaved.begin(); it != meanSaved.end(); ++it) delete it->second;
+  //for (it= cholVSaved.begin(); it != cholVSaved.end(); ++it) delete it->second;
 
 }
 
@@ -120,6 +126,7 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   arma::mat *m, *cholV;
   arma::SpMat<short>::iterator it;
   arma::mat Omegainv_model(npar, npar); 
+  struct GGM_logjoint *logjointptr, newlogjoint;
 
   //Set zerochar to current model
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
@@ -127,9 +134,13 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
-    (*logjoint)= logjointSaved[s];
-    m= meanSaved[s];
-    cholV= cholVSaved[s];
+    logjointptr= &(logjointSaved[s]);
+    (*logjoint)= logjointptr->logjoint;
+    m= logjointptr->mean;
+    cholV= logjointptr->cholV;
+    //(*logjoint)= logjointSaved[s];
+    //m= meanSaved[s];
+    //cholV= cholVSaved[s];
      
   } else {
 
@@ -147,9 +158,13 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
     if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {
-      logjointSaved[s]= *logjoint;
-      meanSaved[s]= m; 
-      cholVSaved[s]= cholV;      
+      newlogjoint.logjoint= *logjoint;
+      newlogjoint.mean= m;
+      newlogjoint.cholV= cholV;
+      logjointSaved[s]= newlogjoint;
+      //logjointSaved[s]= *logjoint;
+      //meanSaved[s]= m; 
+      //cholVSaved[s]= cholV;      
     } else {  //if not stored, free the allocated memory
       delete_m_cholV= true;
     }
@@ -203,6 +218,7 @@ void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, dou
   arma::mat *m, *cholV;
   arma::SpMat<short>::iterator it;
   arma::mat Omegainv_model(npar, npar); 
+  struct GGM_logjoint *logjointptr, newlogjoint;
 
   //Set zerochar to current model
   for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
@@ -210,9 +226,11 @@ void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, dou
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
-    (*logjoint)= logjointSaved[s];
-    m= meanSaved[s];
-    //cholV= cholVSaved[s];
+    logjointptr= &(logjointSaved[s]);
+    (*logjoint)= logjointptr->logjoint;
+    m= logjointptr->mean;
+    //(*logjoint)= logjointSaved[s];
+    //m= meanSaved[s];
      
   } else {
 
@@ -230,9 +248,13 @@ void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, dou
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
     if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {
-      logjointSaved[s]= *logjoint;
-      meanSaved[s]= m; 
-      cholVSaved[s]= cholV;      
+      newlogjoint.logjoint= *logjoint;
+      newlogjoint.mean= m;
+      newlogjoint.cholV= cholV;
+      logjointSaved[s]= newlogjoint;
+      //logjointSaved[s]= *logjoint;
+      //meanSaved[s]= m; 
+      //cholVSaved[s]= cholV;      
     } else {  //if not stored, free the allocated memory
       delete_m_cholV= true;
     }

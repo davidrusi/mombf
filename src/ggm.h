@@ -43,10 +43,10 @@ public:
   int ncol; //number of variables ncol(y)
 
   int burnin;  //number of MCMC burnin iterations
-  bool fullscan; //if true, an MCMC iteration consists of updating all columns. If false, an MCMC iteration consists of updating a randomly chosen column
   double pbirth;  //probability of birth move, ignored unless sampler is "birthdeath"
   double pdeath;  //probability of death move, ignored unless sampler is "birthdeath"
-  int updates_per_column; //number of birth/death updates to perform when updating each column of the precision matrix
+  int updates_per_iter; //an iteration consists of choosing updates_per_iter columns at random, and proposing updates_per_column updates for each column
+  int updates_per_column; //see updates_per_iter
   int niter; //number of MCMC iterations
   double tempering; //tempering parameter in parallel proposal
   double truncratio; //truncation ratio in parallel proposal. If prob(model) < prob(top model) / truncratio, then prob(model) = prob(top model) / truncratio

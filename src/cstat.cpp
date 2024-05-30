@@ -4153,24 +4153,19 @@ std::vector<int> sorted_indexes(const std::vector<int>& input, bool decreasing=f
  * Sample of size n without replacement from vector x of length popsize
  * Result is returned in the first n elements of x
  */
-void samplei_wr(int *x,
-                int popsize,
-                int n)
-{
-    int i;
+void samplei_wr(int *x, int popsize, int n) {
+  int i, r, temp;
 
-    for (i = 0; i < n; i++) {
-        int r;
+  for (i = 0; i < n; i++) {
 
-        r = i + (int)((popsize - i - 1) * runifC());
-        {
-            int temp;
+    r = i + floor((popsize - i) * runifC());
+    //r = i + (int)((popsize - i - 1) * runifC()); //wrong
 
-            temp = x[i];
-            x[i] = x[r];
-            x[r] = temp;
-        }
-    }
+    temp = x[i];
+    x[i] = x[r];
+    x[r] = temp;
+
+  }
 }
 
 
@@ -4180,26 +4175,19 @@ void samplei_wr(int *x,
  * Sample of size n without replacement from vector x of length popsize
  * Result is returned in the first n elements of x
  */
-void sampled_wr(double *x,
-                int popsize,
-                int n)
-{
-    int i;
+void sampled_wr(double *x, int popsize, int n) {
+  int i, r;
+  double temp;
 
-    //assert(x != NULL);
+  for (i = 0; i < n; i++) {
 
-    for (i = 0; i < n; i++) {
-        int r;
+    r = i + floor((popsize - i) * runifC());
 
-        r = i + (int)((popsize - i - 1) * runifC());
-        {
-            double temp;
+    temp = x[i];
+    x[i] = x[r];
+    x[r] = temp;
 
-            temp = x[i];
-            x[i] = x[r];
-            x[r] = temp;
-        }
-    }
+  }
 }
 
 

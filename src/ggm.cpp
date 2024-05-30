@@ -80,9 +80,9 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->sampler= samplerC;
 
   this->burnin= as<int>(samplerPars["burnin"]);
-  this->updates_per_column= as<int>(samplerPars["updates_per_column"]);
   this->niter= as<int>(samplerPars["niter"]);
-  this->fullscan= as<bool>(samplerPars["fullscan"]);
+  this->updates_per_column= as<int>(samplerPars["updates_per_column"]);
+  this->updates_per_iter= as<int>(samplerPars["updates_per_iter"]);
   this->tempering= as<double>(samplerPars["tempering"]);
   this->truncratio= as<double>(samplerPars["truncratio"]);
   this->pbirth= as<double>(samplerPars["pbirth"]);
@@ -122,9 +122,9 @@ ggmObject::ggmObject(ggmObject *ggm) {
   this->sampler= ggm->sampler;
 
   this->burnin= ggm->burnin;
-  this->updates_per_column= ggm->updates_per_column;
   this->niter= ggm->niter;
-  this->fullscan= ggm->fullscan;
+  this->updates_per_column= ggm->updates_per_column;
+  this->updates_per_iter= ggm->updates_per_iter;
   this->tempering= ggm->tempering;
   this->truncratio= ggm->truncratio;
   this->pbirth= ggm->pbirth;
@@ -286,7 +286,8 @@ INPUT/OUTPUT
 
 void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
-  int i, j, jold, k, *sequence, p= ggm->ncol, iter= 0, burnin= ggm->burnin, niter= ggm->niter, niter10, number_accept, number_proposed, total_accept=0, total_proposed=0;
+  int i, j, jold, k, *sequence, iter= 0, niter10, number_accept, number_proposed, total_accept=0, total_proposed=0;
+  int burnin= ggm->burnin, niter= ggm->niter, updates_per_iter= ggm->updates_per_iter, p= ggm->ncol;
   double *modelini_logprob= NULL;
   arma::sp_mat::iterator it;
 
@@ -304,20 +305,15 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 
   if (ggm->verbose) Rprintf(" Obtaining posterior samples\n");
 
-  if (ggm->fullscan) { sequence= ivector(0, p-1); } else { sequence= ivector(0, 0); }
+  sequence= ivector(0, p-1);
+  for (j=0; j<p; j++) sequence[j]= j;
 
   for (i=0; i < niter; i++) {
 
-    if (ggm->fullscan) { //update all columns in each iteration (in random order)
-      for (j=0; j<p; j++) sequence[j]= j;
-      samplei_wr(sequence, p, p);
-    } else {             //update one column in each iteration
-      sequence[0]= runifdisc(0, p-1);
-    }
+    samplei_wr(sequence, p, updates_per_iter); //consider updates_per_iter columns, in random order
 
-    for (int jj=0; jj < p; jj++) {  //for each column
+    for (int jj=0; jj < updates_per_iter; jj++) {  //for each column
 
-      if ((!ggm->fullscan) && (jj != 0)) break;
       j= sequence[jj];
 
       //Obtain inverse of Omegaini[-j,-j]
@@ -376,7 +372,7 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
     (*prop_accept) = (total_accept + .0) / (total_proposed + .0);
   }
 
-  if (ggm->fullscan) { free_ivector(sequence, 0, p-1); } else { free_ivector(sequence, 0, 0); }
+  free_ivector(sequence, 0, p-1);
   if (ggm->verbose) { Rcout << "\r Done\n"; }
 
   delete invOmega_j;
@@ -765,8 +761,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
       ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
 
-      ppnew = exp(mnew - mcurrent);
-      ppnew /= (1.0 + ppnew);
+      ppnew = 1 / (1 + exp(mcurrent - mnew));
 
       if (margpp != NULL) {
         if (model->at(j,0) == 0) margpp->at(j) += ppnew; else margpp->at(j) += 1 - ppnew;
@@ -777,6 +772,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
       if (u < ppnew) { //if new model is accepted
 
+        mcurrent= mnew;
         model_tmp_ptr= model;
         model= modelnew;
         modelnew= model_tmp_ptr;
@@ -793,10 +789,6 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
       ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values. DO NOT USE IN A MULTI-THREAD ENVIRONMENT (WRITES TO SHARED RANDOM SEED)
       if (i >= 0) save_ggmsample_col(samples, model, &sample_diag, sample_offdiag, i, colid); //copy current model into samples[,i] as flat vector 
       delete sample_offdiag;
-
-    } else {
-
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false); //obtain marginal likelihood, no posterior sample
 
     }
 
@@ -889,15 +881,15 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
       GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, false);
       (*number_proposed)++;
 
-      if ((index_birth != -1) || (index_death != -1)) {          
-          //Obtain marginal likelihood for modelnew
-          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
+      if ((index_birth != -1) || (index_death != -1)) {     //if a move that's not impossible was proposed
+
+          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);  //obtain marginal likelihood for modelnew
+
+          ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew); //probability of accepting modelnew
            
-          ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew);
-          ppnew /= (1.0 + ppnew);
-	            
-          if (unifdist(generator) < ppnew) { //if new model is accepted
+          if ((ppnew > 1) || (unifdist(generator) < ppnew)) { //if new model is accepted
            
+            mcurrent= mnew;
             model_tmp_ptr= model;
             model= modelnew;
             modelnew= model_tmp_ptr;
@@ -1216,7 +1208,7 @@ INPUT/OUTPUT
 void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
-  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column;
+  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   double prob_parallel= ggm->prob_parallel;
   bool parallel_draw;
@@ -1262,22 +1254,17 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
   }
 
-  if (ggm->fullscan) { sequence= ivector(0, p-1); } else { sequence= ivector(0, 0); }
+  sequence= ivector(0, p-1);
+  for (j=0; j<p; j++) sequence[j]= j;
 
   //MCMC iterations
   for (i = 0, iter = 0; i < niter; i++) {
 
-    if (ggm->fullscan) { //update all columns in each iteration (in random order)
-      sequence= ivector(0, p-1);
-      for (j=0; j<p; j++) sequence[j]= j;
-      samplei_wr(sequence, p, p);
-    } else {             //update one column in each iteration
-      sequence[0]= runifdisc(0, p-1);
-    }
-    for (j=0; j<p; j++) { //iterate over columns in random order
+    samplei_wr(sequence, p, updates_per_iter); //do updates_per_iter column updates (in random order)
+
+    for (j=0; j<updates_per_iter; j++) { //iterate over columns in random order
 
       newcol= sequence[j];
-      if ((!ggm->fullscan) && (j != 0)) break;
 
       //Obtain inverse of Omegaini[-newcol,-newcol]
       if ((i==0) && (j==0)) {
@@ -1317,9 +1304,9 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
         ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
 
-        if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+        if ((ppnew >= 1) || (runifC() < ppnew)) { //if update is accepted
 
-          if (i >= burnin) number_accept++;
+          number_accept++;
           modelold[newcol]= modelnew;
           dpostold= dpostnew;
           //Store log parallel proposal density of updated model
@@ -1354,9 +1341,9 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
   } //end i for
 
-  if (ggm->fullscan) { free_ivector(sequence, 0, p-1); } else { free_ivector(sequence, 0, 0); }
+  free_ivector(sequence, 0, p-1);
 
-  (*prop_accept)= (number_accept + 0.0) / (iter * p + 0.0);
+  (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
 
   //Free memory
   for (newcol=0; newcol < p; newcol++) free_dvector(cdf_proposal[newcol], 0, nproposal[newcol]);
@@ -1411,7 +1398,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
-  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column;
+  int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
   arma::mat *sample_offdiag= NULL, *invOmega_newcol;
   std::vector<double> diagcur(p), bnew(p);
@@ -1447,22 +1434,17 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
   }
 
-  if (ggm->fullscan) { sequence= ivector(0, p-1); } else { sequence= ivector(0, 0); }
+  sequence= ivector(0, p-1);
+  for (j=0; j<p; j++) sequence[j]= j;
 
   //MCMC iterations
   for (i = 0, iter = 0; i < niter; i++) {
 
-    if (ggm->fullscan) { //update all columns in each iteration (in random order)
-      sequence= ivector(0, p-1);
-      for (j=0; j<p; j++) sequence[j]= j;
-      samplei_wr(sequence, p, p);
-    } else {             //update one column in each iteration
-      sequence[0]= runifdisc(0, p-1);
-    }
-    for (j=0; j<p; j++) { //iterate over columns in random order
+    samplei_wr(sequence, p, updates_per_iter); //do updates_per_iter column updates (in random order)
+
+    for (j=0; j<updates_per_iter; j++) { //iterate over columns in random order
 
       newcol= sequence[j];
-      if ((!ggm->fullscan) && (j != 0)) break;
 
       //Obtain inverse of Omegaini[-newcol,-newcol]
       if ((i==0) && (j==0)) {
@@ -1488,7 +1470,7 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
         ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
 
-        if ((ppnew >= 1) | (runifC() < ppnew)) { //if update is accepted
+        if ((ppnew >= 1) || (runifC() < ppnew)) { //if update is accepted
 
           if (i >= burnin) number_accept++;
           dpropini[newcol]= dpropnew;
@@ -1518,9 +1500,9 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
   } //end i for
 
-  if (ggm->fullscan) { free_ivector(sequence, 0, p-1); } else { free_ivector(sequence, 0, 0); }
+  free_ivector(sequence, 0, p-1);
 
-  (*prop_accept)= (number_accept + 0.0) / (iter * p + 0.0);
+  (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
 
   for (newcol=0; newcol < p; newcol++) free_dvector(cdf_proposal[newcol], 0, nproposal[newcol]);
 

@@ -87,7 +87,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, sampler='birthdeath', niter=10^3, burnin= round(niter/10), updates_per_column= ncol(y), fullscan=FALSE, pbirth=1/3, pdeath=1/3, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -103,7 +103,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, fullscan=fullscan, pbirth=pbirth, pdeath=pdeath, updates_per_column=updates_per_column, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, verbose=verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, updates_per_iter=updates_per_iter, updates_per_column = updates_per_column, pbirth=pbirth, pdeath=pdeath, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, verbose=verbose)
     
   #Initial value for sampler
   if (verbose) cat(" Obtaining initial parameter estimate...")
@@ -143,15 +143,17 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, fullscan, pbirth, pdeath, updates_per_column, prob_parallel, tempering, truncratio, almost_parallel, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, updates_per_column, pbirth, pdeath, prob_parallel, tempering, truncratio, almost_parallel, verbose) {
   if (missing(updates_per_column)) {
       updates_per_column= as.integer(min(p, max(log(p), 10)))
   } else {
       updates_per_column= as.integer(updates_per_column)
   }
   if (!(almost_parallel %in% c('none','regression','in-sample'))) stop("almost_parallel must be 'none', 'regression' or 'in-sample'")
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.logical(fullscan), pbirth, pdeath, updates_per_column, prob_parallel, as.double(tempering), as.double(truncratio), almost_parallel, as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','fullscan','pbirth','pdeath','updates_per_column','prob_parallel','tempering','truncratio','almost_parallel','verbose')
+  if ((updates_per_iter < 1) | (updates_per_iter > p)) stop("updates_per_iter must be between 1 and ncol(y)")
+  if ((pbirth + pdeath) > 1) stop("pbirth + pdeath must be <=1")
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(updates_per_iter), as.integer(updates_per_column), as.double(pbirth), as.double(pdeath), as.double(prob_parallel), as.double(tempering), as.double(truncratio), almost_parallel, as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','updates_per_iter','updates_per_column','pbirth','pdeath','prob_parallel','tempering','truncratio','almost_parallel','verbose')
   return(samplerPars)
 }
 
@@ -195,35 +197,36 @@ initGGM= function(y, Omegaini) {
     method= ifelse(Omegaini == 'glasso-bic', 'BIC', 'EBIC')
 
     sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE)
+    ans= Matrix::Matrix(huge::huge.select(sfit, criterion='ebic', verbose=FALSE)$opt.icov, sparse=TRUE)
     #sfit= glasso::glassopath(cov(y), trace=0)  #from package glasso
-    bic= glasso_getBIC(y=y, sfit=sfit, method=method)
+    #bic= glasso_getBIC(y=y, sfit=sfit, method=method)
 
-    topbic= which.min(bic)
-    found= (topbic != 1) & (topbic != length(bic))
+    #topbic= which.min(bic)
+    #found= (topbic != 1) & (topbic != length(bic))
 
-    niter= 1
-    while ((!found) & (niter<=maxiter)) {
-        
-      if (topbic==1) {
-          rholist= seq(sfit$lambda[1]/10, sfig$lambda[1], length=10) ##for package huge
-          #rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10) ##for package glasso
-      } else {
-          l= sfit$lambda[length(sfit$lambda)]
-          #l= sfit$rholist[length(sfit$rholist)] ##for package glasso
-          rholist= seq(l, 10*l, length=10)
-      }
+    #niter= 1
+    #while ((!found) & (niter<=maxiter)) {
+    #    
+    #  if (topbic==1) {
+    #      rholist= seq(sfit$lambda[1]/10, sfit$lambda[1], length=10) ##for package huge
+    #      #rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10) ##for package glasso
+    #  } else {
+    #      l= sfit$lambda[length(sfit$lambda)]
+    #      #l= sfit$rholist[length(sfit$rholist)] ##for package glasso
+    #      rholist= seq(l, 10*l, length=10)
+    #  }
+    # 
+    #  sfit= huge::huge(y, lambda=rholist, method="glasso", scr=TRUE, verbose=FALSE)
+    #  #sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
+    #  bic= glasso_getBIC(y=y, sfit=sfit, method=method)
+    #  
+    #  topbic= which.min(bic)
+    #  found= (topbic != 1) & (topbic != length(bic))
+    #  niter= niter+1
+    # 
+    #}
 
-      sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE)
-      #sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
-      bic= glasso_getBIC(y=y, sfit=sfit, method=method)
-      
-      topbic= which.min(bic)
-      found= (topbic != 1) & (topbic != length(bic))
-      niter= niter+1
-
-    }
-
-    ans= Matrix::Matrix(sfit$icov[[which.min(bic)]])
+    ##ans= Matrix::Matrix(sfit$icov[[which.min(bic)]], sparse=TRUE)
     ##ans= Matrix::Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE) ##for package glasso
       
   } else {

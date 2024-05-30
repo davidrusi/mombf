@@ -58,6 +58,13 @@ typedef void(*pt2GGM_rowmarg)(double *, arma::mat *, arma::mat *, arma::SpMat<sh
 /************************************************************************************/
 
 
+struct GGM_logjoint {
+  double logjoint; //saves log-joint posterior probability for a previously computed model (presence/absence of edges in the GGM)
+  arma::mat *mean; //saves posterior mean for a previously computed model
+  arma::mat *cholV; //save Cholesky decomp of the posterior covariance for a previously computed model
+};
+
+
 class modselIntegrals_GGM {
 
 public:
@@ -85,9 +92,11 @@ private:
 
   //int maxVars; //Maximum number of covariates
   char *zerochar;  //Store model id (vars in the model) in character format, e.g. "00000"
-  std::map<string, double> logjointSaved; //saves log-joint for each previously computed model
-  std::map<string, arma::mat *> meanSaved; //saves posterior mean for each previously computed model
-  std::map<string, arma::mat *> cholVSaved; //save Cholesky decomp of the posterior covariance for each previously computed model
+
+  std::map<string, GGM_logjoint> logjointSaved; //saves log-joint, posterior mean and Cholesky decomp for each previously considered model
+  //std::map<string, double> logjointSaved; //saves log-joint for each previously computed model
+  //std::map<string, arma::mat *> meanSaved; //saves posterior mean for each previously computed model
+  //std::map<string, arma::mat *> cholVSaved; //save Cholesky decomp of the posterior covariance for each previously computed model
 
   long unsigned int maxsave; //if size of logjointSaved, meanSaved, cholVsaved  >= maxsave, save only models with non-negligible post prob vs maxModel
 

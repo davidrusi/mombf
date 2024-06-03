@@ -206,12 +206,9 @@ void cumsum(double *x, double *cumsumx, int *n); //cumulative sum of elements in
 
 void make_posdef(double **a, int n, double offset=.01); //Make matrix +def via replacing a by a - (lmin+offset) I, where lmin is smallest eigenvalue of a
 void choldc(double **a, int n, double **aout, bool *posdef);   //Cholesky decomposition
-//void choldc(arma::mat *a, arma::mat *aout, bool *posdef); 
 void choldc_inv(double **a, int n, double **aout, bool *posdef); //Inverse of chol(a)
 void cholS_inv(double **cholS, int n, double **cholSinv); //Inverse of cholS
-//void cholS_inv(arma::mat *cholS, arma::mat *cholSinv);
 void choldc_inv_internal(double **cholS, int n);
-//void choldc_inv_internal(arma::mat *cholS);
 double choldc_det(double **chols, int n); //Determinant of a symmetric def+ using its Cholesky decomp
 double logcholdc_det(double **chols, int n); //log-determinant of a symmetric def+ using its Cholesky decomp
 void inv_posdef(double **a, int n, double **aout, bool *posdef, double **chola = NULL, double **cholainv = NULL); //Inverse of a symmetric, positive definite matrix
@@ -219,7 +216,22 @@ void inv_posdef_upper(double **a, int n, double **aout, bool *posdef); //Same bu
 void invdet_posdef(double **a, int n, double **aout, double *det_a); //Inverse and determinant of positive def matrix
 void inv_posdef_chol(double **invchol, int n, double **aout); //Inverse given cholesky decomposition
 
-void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant
+//Cholesky decomposition for armadillo matrices
+void choldc(arma::mat *A, arma::mat *cholA, bool *posdef);   //Cholesky decomposition
+void choldc_inv_internal(arma::mat *cholA);                  //Inverse of Cholesky decomposition cholA
+void choldc_inv_internal(arma::mat *cholA, int n, arma::mat *cholAinv);           //Inverse of submatrix cholA[0:n,0:n], where cholA is a Cholesky matrix
+void choldcinv(arma::mat *cholAinv, bool *posdef, arma::mat *A); //Inverse of chol(A), given A
+void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant of A
+
+//Updating Cholesky decompositions
+void choldc_rank1_update(arma::mat *L, arma::vec *x);   //Cholesky decomposition of A= L L^T + x x^T
+void choldc_rank1_update(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi);
+
+void choldc_rank1_downdate(arma::mat *L, arma::vec *x); //Cholesky decomposition of A= L L^T - x x^T
+void choldc_rank1_downdate(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi);
+
+void choldc_droprow(arma::mat *cholB, int d, arma::mat *cholA); //Cholesky decomp of A=B[-d,-d] given Cholesky decomp of B
+void choldc_addrow(arma::mat *cholA, double *x, int d, arma::mat *cholB); //Cholesky decomposition of B, given Cholesky decomposition of A[-d,-d]
 
 //Updating matrix inverses after rank 1 updates
 void update_inverse(arma::mat *Ainv, arma::sp_mat *A_newcol, int *newcol); //Update inverse of A after changing its column colid

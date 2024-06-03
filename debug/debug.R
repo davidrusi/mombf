@@ -4,18 +4,23 @@
 #library(Rcpp)
 #compileAttributes("~/github/mombf")
 
-## GGM examples
+#Cholesky update
 library(mombf)
-library(mvtnorm)
-logprob2prob= function(x) { ans= exp(x - max(x)); ans/sum(ans) }
-set.seed(1)
-Th= diag(3)
-Th[1,2]= Th[2,1]= 0.4
-Th[2,3]= Th[3,2]= 0.9
-y= scale(rmvnorm(10^3, sigma=solve(Th)), center=TRUE, scale=FALSE)
+B= matrix(c(2,1,.5,.25, 1,1.5,.3,.4, .5,.3,1,.75, .25,.4,.75,2),nrow=4,byrow=TRUE)
+mombf:::testfunction(B, 3, 3)
 
-Omegaini= Th
-fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=10^4, updates_per_iter=3, updates_per_column=5, scale=FALSE, almost_parallel='none')
+## GGM examples
+#library(mombf)
+#library(mvtnorm)
+#logprob2prob= function(x) { ans= exp(x - max(x)); ans/sum(ans) }
+#set.seed(1)
+#Th= diag(3)
+#Th[1,2]= Th[2,1]= 0.4
+#Th[2,3]= Th[3,2]= 0.9
+#y= scale(rmvnorm(10^3, sigma=solve(Th)), center=TRUE, scale=FALSE)
+
+#Omegaini= Th
+#fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=10^4, updates_per_iter=3, updates_per_column=5, scale=FALSE, almost_parallel='none')
 
 
 #Th= diag(5)

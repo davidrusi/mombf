@@ -2993,40 +2993,10 @@ decomposition, A = L * L' . On input, only the upper triangle of a need be given
 }
 
 
-/* Given a positive-definite symmetric matrix a[1..n][1..n], this routine constructs its Cholesky
-decomposition, A = L * L' . On input, only the upper triangle of a need be given;
- The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) */
- /*
-void choldc(arma::mat *a, arma::mat *aout, bool *posdef) {
-  int i, j, k, n= a->n_cols;
-  double sum, *p, max_a;
-
-  *posdef= true;
-  for (i=0; i<n; i++) { for (j=i; j<n; j++) { aout->at(i,j)= a->at(i,j); } }  //copy a into aout
-  p= dvector(1,n);
-  for (i=0; i<n; i++) {
-    for (j=i; j<n; j++) {
-      for (sum=aout->(i,j), k=i-1; k>=1; k--) sum -= aout->(i,k) * aout->(j,k);
-      if (i == j) {
-	      if (sum <= 0.0) *posdef= false;
-	      aout->(i,i)= sqrt(sum);
-      } else {
-	      max_a= max_xy(fabs(aout->(i,i)), 1e-10);
-	      aout->(j,i)=sum/max_a;
-      }
-    }
-  }
-  free_dvector(p,1,n);
-  for (i=0; i<n; i++) { for (j=i+1; j<n; j++) { aout->(i,j)= 0; } }  //set upper-diagonal elem to 0
-}
-*/
-
-
-
+/*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
+ of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
+ (note that inv(A)= inv(L)' * inv(L)) */
 void choldc_inv(double **a, int n, double **aout, bool *posdef) {
-  /*Given a positive-definite symmetric matrix a[1..n][1..n], this routine computes the inverse
-   of its Cholesky matrix. That is, if A=L * L' it returns the inverse of L
-   (note that inv(A)= inv(L)' * inv(L)) */
   choldc(a, n, aout, posdef);
   if (*posdef) {
     choldc_inv_internal(aout, n);
@@ -3041,14 +3011,6 @@ void cholS_inv(double **cholS, int n, double **cholSinv) {
   choldc_inv_internal(cholSinv,n);
 }
 
-/*Given the Cholesky decomposition of a matrix S, which we denote cholS, returns the inverse of cholS */
-/*
-void cholS_inv(arma::mat *cholS, arma::mat *cholSinv) {
-  int i,j, n= cholS->n_cols;
-  for (i=0; i<n; i++) for (j=0; j<=i; j++) cholSinv->at(i,j)= cholS->at(i,j);
-  choldc_inv_internal(cholSinv,n);
-}
-*/
 
 /*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
 void choldc_inv_internal(double **cholS, int n) {
@@ -3062,22 +3024,6 @@ void choldc_inv_internal(double **cholS, int n) {
       for (k=i;k<j;k++) sum -= cholS[j][k]*cholS[k][i];
       max_a=max_xy(cholS[j][j], 1e-10);
       cholS[j][i]=sum/max_a;
-    }
-  }
-}
-
-/*Computes inverse of Cholesky matrix cholS and stores the result in cholS*/
-void choldc_inv_internal(arma::mat *cholS) {
-  int i,j,k, n= cholS->n_rows;
-  double sum, max_a;
-  for (i=0; i<n; i++) {
-    max_a=max_xy(cholS->at(i,i), 1e-10);
-    cholS->at(i,i)=1.0/max_a;
-    for (j=i+1; j<n; j++) {
-      sum=0.0;
-      for (k=i; k<j; k++) sum -= cholS->at(j,k) * cholS->at(k,i);
-      max_a= max_xy(cholS->at(j,j), 1e-10);
-      cholS->at(j,i)= sum/max_a;
     }
   }
 }
@@ -3313,14 +3259,332 @@ void inv_posdef_chol(double **invchol,
     }
 }
 
+/* Cholesky decomposition
+
+Given a positive-definite symmetric matrix A, this routine constructs its Cholesky
+decomposition, A = L * L' . On input, only the upper triangle of a need be given;
+The Cholesky factor L is returned in the lower triangle of aout (upper-diag elem are set to 0) 
+
+*/
+void choldc(arma::mat *A, arma::mat *cholA, bool *posdef) {
+
+  int i, j, k, n= A->n_cols;
+  double sum, max_a;
+
+  *posdef= true;
+  for (i=0; i<n; i++) { for (j=i; j<n; j++) { cholA->at(i,j)= A->at(i,j); } }  //copy A into cholA
+  for (i=0; i<n; i++) {
+    for (j=i; j<n; j++) {
+      for (sum=cholA->at(i,j),k=i-1; k>=0; k--) sum -= cholA->at(i,k)*cholA->at(j,k);
+      if (i == j) {
+	      if (sum <= 0.0) *posdef= false;
+	      cholA->at(i,i)=sqrt(sum);
+      } else {
+	      max_a=max_xy(fabs(cholA->at(i,i)), 1e-10);
+	      cholA->at(j,i)=sum/max_a;
+      }
+    }
+  }
+  for (i=0; i<n; i++) { for (j=i+1; j<n; j++) { cholA->at(i,j)= 0; } }  //set upper-diagonal elem to 0
+
+}
+
+/*Computes inverse of Cholesky matrix cholA and stores the result in cholA */
+void choldc_inv_internal(arma::mat *cholA) {
+  int i, j, k, n= cholA->n_rows;
+  double sum, max_a;
+  for (i=0; i<n; i++) {
+    max_a=max_xy(cholA->at(i,i), 1e-10);
+    cholA->at(i,i)=1.0/max_a;
+    for (j=i+1; j<n; j++) {
+      sum=0.0;
+      for (k=i; k<j; k++) sum -= cholA->at(j,k) * cholA->at(k,i);
+      max_a= max_xy(cholA->at(j,j), 1e-10);
+      cholA->at(j,i)= sum/max_a;
+    }
+  }
+}
+
+/* Inverse of submatrix cholA[0:n,0:n], where cholA is a Cholesky matrix
+
+  INPUT
+  - cholA
+  - n: number of rows and columns of cholA used to obtain the submatrix
+
+  OUTPUT
+  - cholAinv: inverse of cholA[0:n,0:n]
+
+*/
+void choldc_inv_internal(arma::mat *cholA, int n, arma::mat *cholAinv) {
+
+  int i, j, k;
+  double sum, max_a;
+  for (i=0; i<=n; i++) {
+    max_a= max_xy(cholA->at(i,i), 1e-10);
+    cholAinv->at(i,i)= 1.0/max_a;
+    for (j=i+1; j<=n; j++) {
+      sum= 0.0;
+      for (k=i; k<j; k++) sum -= cholA->at(j,k) * cholAinv->at(k,i);
+      max_a= max_xy(cholA->at(j,j), 1e-10);
+      cholAinv->at(j,i)= sum / max_a;
+    }
+  }
+
+}           
+
+
+
+/* Inverse of Cholesky decomposition of A 
+
+That is, if A=L * L' it returns the inverse of L
+ (note that inv(A)= inv(L)' * inv(L))
+
+INPUT
+  - A: input matrix
+OUTPUT
+  - cholAinv: inverse of Cholesky decomposition of A
+  - posdef: true if A is positive definite, false otherwise
+
+*/
+void choldcinv(arma::mat *cholAinv, bool *posdef, arma::mat *A) {
+  choldc(A, cholAinv, posdef);
+  if (*posdef) {
+    choldc_inv_internal(cholAinv);
+  }
+}
 
 /* Inverse of a positive definite matrix A, inverse of its Cholesky decomposition and log(det(Ainv)) */
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A) {
+  bool posdef;
   int i, npar= A->n_cols;
-  (*cholAinv) = arma::inv(trimatu(arma::chol(*A)));
-  (*Ainv)= (*cholAinv) * cholAinv->t();
+  choldcinv(cholAinv, &posdef, A);
+  (*Ainv)= cholAinv->t() * (*cholAinv);
+  //(*cholAinv) = arma::inv(trimatu(arma::chol(*A))); //same as line above, using armadillo built-in functions (should be slower, as it uses arma::inv)
+  //(*Ainv)= (*cholAinv) * cholAinv->t();
   for (i=0, (*logdet_Ainv=0); i<npar; i++) (*logdet_Ainv) += log(cholAinv->at(i,i));
   (*logdet_Ainv) *= 2;
+
+}
+
+/* Cholesky decomposition of A= L L^T + x x^T. The output is returned in the lower-triangular part of L */
+void choldc_rank1_update(arma::mat *L, arma::vec *x) {
+
+  int k, l, p = L->n_cols;
+  double c, r, s;
+
+  for (k=0; k<p; k++) {
+    r = sqrt(pow(L->at(k,k),2) + pow(x->at(k),2));
+    c = r / L->at(k,k);
+    s = x->at(k) / L->at(k,k);
+    L->at(k,k) = r;
+    if (k < p) {
+      for (l=k+1; l<p; l++) {
+        L->at(l,k) = (L->at(l,k) + s * x->at(l)) / c;
+        x->at(l) = c * x->at(l) - s * L->at(l,k);
+      }
+    }
+  }
+
+}   
+
+/* Same as previous choldc_rank1_update, but result is returned in cholA[cholA_rowini:cholA_rowfi, cholA_rowini:cholA_rowfi]
+
+  The Cholesky decomposition being updated is stored in L[L_rowini:L_rowfi, L_rowini:L_rowfi]
+  and the rank 1 update is given by x[x_rowini:x_rowfi]
+
+*/
+void choldc_rank1_update(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi) {
+
+  int k, l, p = cholA_rowfi - cholA_rowini, *L_index, *x_index;
+  double c, d, r, s;
+
+  if (p != L_rowfi - L_rowini) Rf_error("In choldc_rank1_update: dimensions of cholA and L do not match");
+  if (p != x_rowfi - x_rowini) Rf_error("In choldc_rank1_update: dimensions of cholA and x do not match");
+
+  //Map indexes of row/column in cholA to those in L and x
+  L_index= ivector(cholA_rowini, cholA_rowfi);
+  x_index= ivector(cholA_rowini, cholA_rowfi);
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    L_index[k]= k - cholA_rowini + L_rowini;
+    x_index[k]= k - cholA_rowini + x_rowini;
+  }
+
+  //Copy L[L_rowini,L_rowfi] into cholA[cholA_rowini:cholA_rowfi, cholA_rowini:cholA_rowfi]
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    for (l= cholA_rowini; l <= k; l++) {
+      cholA->at(k,l)= L->at(L_index[k], L_index[l]);
+    }
+  }
+
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    d= cholA->at(k,k);
+    r = sqrt(pow(d,2) + pow(x[x_index[k]],2));
+    cholA->at(k,k) = r;
+    if (k < cholA_rowfi) {
+      c = r / d; 
+      s = x[x_index[k]] / d;
+      for (l= k+1; l <= cholA_rowfi; l++) {
+        cholA->at(l,k) = (cholA->at(l,k) + s * x[x_index[l]]) / c;
+        x[x_index[l]] = c * x[x_index[l]] - s * cholA->at(l,k);
+      }
+    }
+  }
+
+  free_ivector(L_index, cholA_rowini, cholA_rowfi);
+  free_ivector(x_index, cholA_rowini, cholA_rowfi);
+
+}
+
+
+/* Cholesky decomposition of A= L L^T - x x^T. The output is returned in the lower-triangular part of L */
+void choldc_rank1_downdate(arma::mat *L, arma::vec *x) {
+
+  int k, l, p = L->n_cols;
+  double c, r, s;
+
+  for (k=0; k<p; k++) {
+    r = sqrt(pow(L->at(k,k),2) - pow(x->at(k),2));
+    c = r / L->at(k,k);
+    s = x->at(k) / L->at(k,k);
+    L->at(k,k) = r;
+    if (k < p) {
+      for (l=k+1; l<p; l++) {
+        L->at(l,k) = (L->at(l,k) - s * x->at(l)) / c;
+        x->at(l) = c * x->at(l) - s * L->at(l,k);
+      }
+    }
+  }
+  
+}
+
+
+/* Same as previous choldc_rank1_downdate, but result is returned in cholA[cholA_rowini:cholA_rowfi, cholA_rowini:cholA_rowfi]
+
+  The Cholesky decomposition being updated is stored in L[L_rowini:L_rowfi, L_rowini:L_rowfi]
+  and the rank 1 update is given by x[x_rowini:x_rowfi]
+
+*/
+void choldc_rank1_downdate(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi) {
+
+  int k, l, p = cholA_rowfi - cholA_rowini, *L_index, *x_index;
+  double c, d, r, s;
+
+  if (p != L_rowfi - L_rowini) Rf_error("In choldc_rank1_update: dimensions of cholA and L do not match");
+  if (p != x_rowfi - x_rowini) Rf_error("In choldc_rank1_update: dimensions of cholA and x do not match");
+
+  //Map indexes of row/column in cholA to those in L and x
+  L_index= ivector(cholA_rowini, cholA_rowfi);
+  x_index= ivector(cholA_rowini, cholA_rowfi);
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    L_index[k]= k - cholA_rowini + L_rowini;
+    x_index[k]= k - cholA_rowini + x_rowini;
+  }
+
+  //Copy L[L_rowini,L_rowfi] into cholA[cholA_rowini:cholA_rowfi, cholA_rowini:cholA_rowfi]
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    for (l= cholA_rowini; l <= k; l++) {
+      cholA->at(k,l)= L->at(L_index[k], L_index[l]);
+    }
+  }
+
+  for (k= cholA_rowini; k <= cholA_rowfi; k++) {
+    d= cholA->at(k,k);
+    r = sqrt(pow(d,2) - pow(x[x_index[k]],2));
+    cholA->at(k,k) = r;
+    if (k < cholA_rowfi) {
+      c = r / d; 
+      s = x[x_index[k]] / d;
+      for (l= k+1; l <= cholA_rowfi; l++) {
+        cholA->at(l,k) = (cholA->at(l,k) - s * x[x_index[l]]) / c;
+        x[x_index[l]] = c * x[x_index[l]] - s * cholA->at(l,k);
+      }
+    }
+  }
+
+  free_ivector(L_index, cholA_rowini, cholA_rowfi);
+  free_ivector(x_index, cholA_rowini, cholA_rowfi);
+
+}
+
+
+/* Cholesky decomposition after adding 1 row/column
+  This function returns the Cholesky decomposition of B, where
+        (A11 A12 A13)
+  B =   (A21 A22 A23)
+        (A31 A32 A33)
+  given cholA, which is the Cholesky decomposition of
+  A =   (A11 A13)
+        (A31 A33)
+ where x= (A12, A22, A23)^T is the d^th column of B
+
+ In the comments below, the submatrices of cholB are denoted as
+
+            (S11,   0,   0)
+  cholB =   (S12, S22,   0)
+            (S13, S23, S33)
+*/
+void choldc_addrow(arma::mat *cholA, double *x, int d, arma::mat *cholB) {
+  int i, j, p= cholA->n_cols;
+  double mysum;
+
+  // Obtain S11, S12, S13, S22
+  mysum = 0;
+  arma::mat L11inv(d,d);
+  choldc_inv_internal(cholA, d-1, &L11inv);  //Inverse of cholA[0:d-1,0:d-1]
+  for (i=0; i <= d-1; i++) {
+    cholB->at(d,i)= 0;
+    for (j=0; j<=i; j++) {
+      cholB->at(i,j)= cholA->at(i,j); //S11
+      cholB->at(d,i) += L11inv.at(i,j) * x[j]; //S12
+    }
+    for (j=d+1; j <= p; j++) cholB->at(j,i)= cholA->at(j-1,i); //S13
+    mysum += pow(cholB->at(d,i), 2);
+  }
+  cholB->at(d,d)= sqrt(x[d] - mysum); //S22
+
+  // Obtain S23
+  for (i=d+1; i <= p; i++) {
+    mysum = 0;
+    for (j=0; j <= d-1; j++) mysum += cholB->at(i,j) * cholB->at(d,j);
+    cholB->at(i,d)= (x[i] - mysum) / cholB->at(d,d);
+  }
+
+  // Obtain S33=cholB[d+1:p,d+1:p], given by Cholesky decomposition of L^T L - x x^T, where L=cholA[d:p-1,d:p-1],  x= cholB[d+1:p,d]
+  double *z, *cold= cholB->colptr(d);
+  z= dvector(d+1, p);
+  for (j= d+1; j <= p; j++) z[j]= cold[j];
+  choldc_rank1_downdate(cholB, d+1, p, cholA, d, p-1, z, d+1, p);
+  free_dvector(z, d+1, p);
+
+}
+
+
+/* Cholesky decomposition of A=B[-d,-d], given cholB = Cholesky decomposition of B
+
+  INPUT
+  - cholB: Cholesky decomposition of B
+  - d: row/column of B that is dropped to obtain A
+
+  OUTPUT
+  - cholA: Cholesky decomposition of A
+
+*/
+void choldc_droprow(arma::mat *cholB, int d, arma::mat *cholA) {
+  int i, j, p= cholB->n_cols;
+
+  for (i=0; i<d; i++) {
+    for (j=0; j<=i; j++) cholA->at(i,j)= cholB->at(i,j);       //L11
+    for (j=d; j<p-1; j++) cholA->at(j,i)= cholB->at(j+1,i); //L13 
+  }
+
+  //Obtain cholA[d-1:p-2, d-1:p-2], given by Cholesky decomposition of L L^T + x x^T, where L=cholB[d:(p-1),d:(p-1)], x= cholB[d+1:p-1,d]
+  double *z, *S23= cholB->colptr(d);
+  if (d <= p-2) {
+    z= dvector(d+1, p-1);
+    for (j= d+1; j <= p-1; j++) z[j]= S23[j];
+    choldc_rank1_update(cholA, d, p-2, cholB, d+1, p-1, z, d+1, p-1);
+    free_dvector(z, d+1, p-1);
+  }
 
 }
 

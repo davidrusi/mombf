@@ -69,34 +69,63 @@ Rcpp::List rcpparma_bothproducts(const arma::colvec & x) {
 // [[Rcpp::export]]
 double testfunctionCI(arma::sp_mat A, int oldcol, int newcol) {
 
-  //arma::mat I= arma::eye(A.n_cols, A.n_cols);
-  //arma::mat Ainv= arma::spsolve(A, I, "lapack");
+  bool posdef;
+  int p= A.n_rows;
+  double logdet_Ainv;
+  arma::mat cholAinv(p,p), Ainv(p,p);
+  arma::mat Adense = arma::conv_to<arma::mat>::from(A);
 
-    //update_inverse(&Ainv, &A_newcol, &colid);
+  //Test choldc_addrow
+  double *x= Adense.colptr(oldcol);
+  arma::mat Aminus= Adense;
+  Aminus.shed_col(oldcol);
+  Aminus.shed_row(oldcol);
+  arma::mat Lminus(p-1,p-1), cholA(p,p);
+  choldc(&Aminus, &Lminus, &posdef);
+  Lminus.print("Cholesky decomposition before adding row");
 
-    //A.col(colid)= A_newcol; A.row(colid)= A_newcol.t();
-    //Ainv= arma::spsolve(A, I, "lapack");
-    //Ainv.print("Ainv (full inverse)");
- 
-  arma::sp_mat A1= A, A2= A, A2_newcol;
-  A2_newcol= A.col(newcol);
-  A2_newcol.print("A2_newcol");
-  A1.shed_row(oldcol);
-  A1.shed_col(oldcol);
-  A2.shed_row(newcol);
-  A2.shed_col(newcol);
-  arma::mat I= arma::eye(A1.n_cols, A1.n_cols);
-  arma::mat A1inv= arma::spsolve(A1, I, "lapack");
-  arma::mat A2inv= arma::spsolve(A2, I, "lapack");
+  Rprintf("Adding column %d\n", oldcol);
 
-  A1inv.print("A1inv");
-  A2inv.print("A2inv");
+  choldc_addrow(&Lminus, x, oldcol, &cholA);
+  cholA.print("Cholesky decomposition after adding row");
 
-  //update_invOmega_submat(&A1inv, &A, &oldcol, &newcol);
 
-  A1inv.print("Updated inverse (rank 1)");
+  //Test choldcinv_det
+  choldcinv_det(&Ainv, &cholAinv, &logdet_Ainv, &Adense);
 
-  return 1.0;
+  //Ainv.print("Ainv");
+  //cholAinv.print("cholAinv");
+  //Rprintf("logdet_Ainv= %f\n", logdet_Ainv);
+
+  //Test choldc_droprow
+  //arma::mat L(p,p), cholAminus(p-1,p-1);
+  //choldc(&Adense, &L, &posdef);
+  //L.print("Cholesky decomposition A= L L^T");
+  //choldc_droprow(&L, oldcol, &cholAminus); //Cholesky decomposition of A[-oldcol,-oldcol]
+  //Rprintf("Removing column %d\n", oldcol);
+  //cholAminus.print("Cholesky decomposition after row/col removal");
+
+  //Test choldc_rank1_update
+  //bool posdef;
+  //arma::mat L(p,p);
+  //choldc(&Adense, &L, &posdef);
+  //L.print("Cholesky decomposition A= L L^T");
+
+  //arma::vec x(4);
+  //x.at(0)= .1; x.at(1)= .15; x.at(2)= .2; x.at(3)= .12;
+  //x= 2 * x;
+  //choldc_rank1_update(&L, &x);
+  //L.print("Cholesky decomposition of L L^T + x x^T");
+
+  //double *z= dvector(0, 3);
+  //z[0]= .1; z[1]= .15; z[2]= .2;
+  //int L_rowini= 0, L_rowfi= 2, cholA_rowini= 1, cholA_rowfi= 3;
+  //arma::mat cholA(4, 4);
+  //choldc_rank1_update(&cholA, cholA_rowini, cholA_rowfi, &L, L_rowini, L_rowfi, z, L_rowini, L_rowfi);
+  //free_dvector(z, 0, 3);
+  //cholA.print("cholA");
+
+  return 0.0;
 }
 
 /*

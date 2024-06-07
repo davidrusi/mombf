@@ -3353,6 +3353,14 @@ void choldcinv(arma::mat *cholAinv, bool *posdef, arma::mat *A) {
   }
 }
 
+/* Same, but also returns cholA */
+void choldcinv(arma::mat *cholAinv, arma::mat *cholA, bool *posdef, arma::mat *A) {
+  choldc(A, cholA, posdef);
+  if (*posdef) {
+    choldc_inv_internal(cholA, cholA->n_cols - 1, cholAinv);           //Inverse of cholA[0:n,0:n], where n= cholA->n_cols - 1
+  }
+}
+
 /* Inverse of a positive definite matrix A, inverse of its Cholesky decomposition and log(det(Ainv)) */
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A) {
   bool posdef;
@@ -3365,6 +3373,19 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
   (*logdet_Ainv) *= 2;
 
 }
+
+/* Inverse, Cholesky decomposition and determinant of A. Also, Cholesky decomposition of A */
+void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *cholA, arma::mat *A) {
+  bool posdef;
+  int i, npar= A->n_cols;
+
+  choldcinv(cholAinv, cholA, &posdef, A);
+  (*Ainv)= cholAinv->t() * (*cholAinv);
+  for (i=0, (*logdet_Ainv=0); i<npar; i++) (*logdet_Ainv) += log(cholAinv->at(i,i));
+  (*logdet_Ainv) *= 2;
+
+}
+
 
 /* Cholesky decomposition of A= L L^T + x x^T. The output is returned in the lower-triangular part of L */
 void choldc_rank1_update(arma::mat *L, arma::vec *x) {
@@ -3529,32 +3550,41 @@ void choldc_addrow(arma::mat *cholA, double *x, int d, arma::mat *cholB) {
 
   // Obtain S11, S12, S13, S22
   mysum = 0;
-  arma::mat L11inv(d,d);
-  choldc_inv_internal(cholA, d-1, &L11inv);  //Inverse of cholA[0:d-1,0:d-1]
-  for (i=0; i <= d-1; i++) {
-    cholB->at(d,i)= 0;
-    for (j=0; j<=i; j++) {
-      cholB->at(i,j)= cholA->at(i,j); //S11
-      cholB->at(d,i) += L11inv.at(i,j) * x[j]; //S12
+  if (d > 0) { //if d is the first column in B, then (S11, S12, S13) are not needed
+
+    arma::mat L11inv(d,d);
+    choldc_inv_internal(cholA, d-1, &L11inv);  //Inverse of cholA[0:d-1,0:d-1]
+    for (i=0; i <= d-1; i++) {
+      cholB->at(d,i)= 0;
+      for (j=0; j<=i; j++) {
+        cholB->at(i,j)= cholA->at(i,j); //S11
+        cholB->at(d,i) += L11inv.at(i,j) * x[j]; //S12
+      }
+      for (j=d+1; j <= p; j++) cholB->at(j,i)= cholA->at(j-1,i); //S13
+      mysum += pow(cholB->at(d,i), 2);
     }
-    for (j=d+1; j <= p; j++) cholB->at(j,i)= cholA->at(j-1,i); //S13
-    mysum += pow(cholB->at(d,i), 2);
+
   }
+
   cholB->at(d,d)= sqrt(x[d] - mysum); //S22
 
-  // Obtain S23
-  for (i=d+1; i <= p; i++) {
-    mysum = 0;
-    for (j=0; j <= d-1; j++) mysum += cholB->at(i,j) * cholB->at(d,j);
-    cholB->at(i,d)= (x[i] - mysum) / cholB->at(d,d);
-  }
+  if (d+1 <= p) { //if d is the last column in B, then (S13, S23, S33) are not needed
 
-  // Obtain S33=cholB[d+1:p,d+1:p], given by Cholesky decomposition of L^T L - x x^T, where L=cholA[d:p-1,d:p-1],  x= cholB[d+1:p,d]
-  double *z, *cold= cholB->colptr(d);
-  z= dvector(d+1, p);
-  for (j= d+1; j <= p; j++) z[j]= cold[j];
-  choldc_rank1_downdate(cholB, d+1, p, cholA, d, p-1, z, d+1, p);
-  free_dvector(z, d+1, p);
+    // Obtain S23
+    for (i=d+1; i <= p; i++) {
+      mysum = 0;
+      for (j=0; j <= d-1; j++) mysum += cholB->at(i,j) * cholB->at(d,j);
+      cholB->at(i,d)= (x[i] - mysum) / cholB->at(d,d);
+    }
+
+    // Obtain S33=cholB[d+1:p,d+1:p], given by Cholesky decomposition of L^T L - x x^T, where L=cholA[d:p-1,d:p-1],  x= cholB[d+1:p,d]
+    double *z, *cold= cholB->colptr(d);
+    z= dvector(d+1, p);
+    for (j= d+1; j <= p; j++) z[j]= cold[j];
+    choldc_rank1_downdate(cholB, d+1, p, cholA, d, p-1, z, d+1, p);
+    free_dvector(z, d+1, p);
+
+  }
 
 }
 
@@ -3584,6 +3614,78 @@ void choldc_droprow(arma::mat *cholB, int d, arma::mat *cholA) {
     for (j= d+1; j <= p-1; j++) z[j]= S23[j];
     choldc_rank1_update(cholA, d, p-2, cholB, d+1, p-1, z, d+1, p-1);
     free_dvector(z, d+1, p-1);
+  }
+
+}
+
+
+/* Inverse, Cholesky decomp & determinant of A=B[-d,-d] 
+
+  INPUT
+  - cholB: Cholesky decomposition of B (lower-triangular)
+  - d: index of row/column being dropped from B
+
+  OUTPUT
+  - Ainv: inverse of A (if nullptr, this is not returned)
+  - cholAinv: Cholesky decomposition of Ainv (if nullptr, this is not returned)
+  - logdet_Ainv: logarithm of the determinant of Ainv
+  - cholA: Cholesky decomposition of A
+
+*/
+void choldcinv_det_droprow(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *cholA, arma::mat *cholB, int d) {
+  int i, ncolA= cholA->n_rows;
+
+  //Obtain cholA
+  choldc_droprow(cholB, d, cholA); 
+
+  //Obtain logdet_Ainv
+  if (logdet_Ainv != nullptr) { 
+    for (i=0, (*logdet_Ainv=0); i < ncolA; i++) (*logdet_Ainv) -= log(cholA->at(i,i));
+    (*logdet_Ainv) *= 2;
+  }
+
+  //Obtain cholAinv
+  if (cholAinv != nullptr) {
+    choldc_inv_internal(cholA, ncolA - 1, cholAinv);
+
+    //Obtain Ainv
+    if (Ainv != nullptr) (*Ainv)= cholAinv->t() * (*cholAinv);
+
+  }
+
+} 
+
+/* Inverse, Cholesky decomp & det of B, given Cholesky decomp of A= B[-d,-d] 
+
+  INPUT
+  - cholA: Cholesky decomposition of A
+  - x: column of B that is missing in A. It must have length equal to the number of rows/columns in B
+  - d: column in B that is dropped to obtain A
+
+  OUTPUT
+  - Binv: inverse of B. If nullptr, this is not computed.
+  - cholBinv: Cholesky decomposition of Binv. If nullptr, this is not computed.
+  - logdet_Binv: log-determinant of Binv
+  - cholB: Cholesky decomposition of B
+
+*/
+void choldcinv_det_addrow(arma::mat *Binv, arma::mat *cholBinv, double *logdet_Binv, arma::mat *cholB, arma::mat *cholA, double *x, int d) {
+  int i, ncolB= cholB->n_cols;
+
+  //Obtain cholB
+  choldc_addrow(cholA, x, d, cholB);
+
+  //Obtain logdet_Binv
+  for (i=0, (*logdet_Binv=0); i < ncolB; i++) (*logdet_Binv) -= log(cholB->at(i,i));
+  (*logdet_Binv) *= 2;
+
+  //Obtain cholBinv
+  if (cholBinv != nullptr) {
+    choldc_inv_internal(cholB, ncolB - 1, cholBinv);
+
+    //Obtain Binv
+    if (Binv != nullptr) (*Binv)= cholBinv->t() * (*cholBinv);
+
   }
 
 }

@@ -47,7 +47,7 @@ private:
 
 //pointer to function to compute log joint (log marginal likelihood + log model prior prob) for a given row
 //GGMrow_marg is an example of such a function
-typedef void(*pt2GGM_rowmarg)(double *, arma::mat *, arma::mat *, arma::SpMat<short> *, unsigned int, ggmObject *, arma::mat *);  
+typedef void(*pt2GGM_rowmarg)(double *, arma::mat *, arma::mat *, arma::mat *, arma::SpMat<short> *, unsigned int, ggmObject *, arma::mat *, arma::mat *, arma::SpMat<short> *);  
 
 
 /************************************************************************************/
@@ -62,6 +62,7 @@ struct GGM_logjoint {
   double logjoint; //saves log-joint posterior probability for a previously computed model (presence/absence of edges in the GGM)
   arma::mat *mean; //saves posterior mean for a previously computed model
   arma::mat *cholV; //save Cholesky decomp of the posterior covariance for a previously computed model
+  arma::mat *cholVinv; //save Cholesky decomposition of the inverse posterior covariance (given by X^T X in the regression proposal)
 };
 
 
@@ -73,9 +74,11 @@ public:
   
   ~modselIntegrals_GGM();
 
-  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample); //Return logjoint() and posterior sample for off-diag & diagonal elements 
+  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample); //Return logjoint() and posterior sample for off-diag & diagonal elements 
 
-  void getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model); //Return logjoint() and posterior mode for off-diag & diagonal elements
+  void getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold); //Return logjoint() and posterior mode for off-diag & diagonal elements
+
+  std::string getModelid(arma::SpMat<short> *model); //Convert model to a string, e.g. "10001"
 
   double maxIntegral; //Stores value of largest integral
 

@@ -78,6 +78,7 @@ public:
 // FUNCTIONS
 //*************************************************************************************
 
+//Functions implementing MCMC
 
 List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
 
@@ -105,6 +106,7 @@ void unique_model_logprob(arma::SpMat<short> *uniquemodels, std::vector<double> 
 
 std::string getModelid(arma::SpMat<short> *model, char *zerochar);
 
+//Updating inverses
 void update_Omega(arma::sp_mat *Omega, int *newcol, double *sample_diag, arma::SpMat<short> *modelnew, arma::mat *sample_offdiag);
 
 arma::mat get_invOmega_j(arma::sp_mat *Omega, int j);
@@ -112,16 +114,19 @@ void update_invOmega_submat(arma::mat *Omega_submat_inv, arma::sp_mat *Omega, in
 void mapindexes_submat(int *mapforw, int *coldif, int *col1, int *col2, int *p);
 void mapindexes_submat(int *mapforw, int *mapback, int *coldif, int *col1, int *col2, int *p);
 
-
+//Saving output
 void save_ggmsample_col(arma::sp_mat *ans, arma::SpMat<short> *model, double *sample_diag, arma::mat *sample_offdiag, int col2save, unsigned int colid);
-
 void save_ggmmodel_col(arma::SpMat<short> *ans, arma::SpMat<short> *model, int col2save, unsigned int colid);
 
-void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
+//Obtaining marginal likelihoods
+void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::mat *cholU, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv, arma::mat *cholU_old, arma::SpMat<short> *modelold);
+void get_Omegainv_model(arma::mat *Omegainv_model, arma::mat *Omegainv, arma::SpMat<short> *model, unsigned int colid);
 
-void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model);
+void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::mat *cholXtX, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model, arma::mat *cholXtX_old, arma::SpMat<short> *modelold);
 
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
+
+void modelupdate_indexes(int *row_dropped, int *row_added, int *modelrow_dropped, int *modelrow_added, arma::SpMat<short> *modelold, arma::SpMat<short> *modelnew);
 
 //Matrix manipulation
 void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store); //copy symmetric sp_mat in flat format to A(,col2store)

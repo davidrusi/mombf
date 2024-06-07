@@ -91,7 +91,7 @@ modselIntegrals_GGM::modselIntegrals_GGM(pt2GGM_rowmarg jointFunction, ggmObject
   this->maxsave= 1000000000; //save first 10^9 models
 
   this->zerochar = (char *) calloc(this->nvars + 2, sizeof(char));
-  for (i=0; i < this->nvars; i++) this->zerochar[i]= '0';
+  for (i=0; i <= this->nvars; i++) this->zerochar[i]= '0';
 
 }
 
@@ -104,6 +104,7 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
   for (it= logjointSaved.begin(); it != logjointSaved.end(); ++it) {
     delete (it->second).mean;
     delete (it->second).cholV;
+    delete (it->second).cholVinv;
   }
 
   //std::map<string, arma::mat *>::iterator it;
@@ -119,18 +120,16 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 If postSample=true, sample_offdiag returns a posterior sample for the off-diagonal parametes and sample_diag for the diagonal parameters
 
 */
-void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, bool postSample) {
+void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample) {
 
   bool delete_m_cholV= false;  
   int npar= model->n_nonzero -1;
-  arma::mat *m, *cholV;
+  arma::mat *m, *cholV, *cholVinv, *cholVinv_old= nullptr;
   arma::SpMat<short>::iterator it;
   arma::mat Omegainv_model(npar, npar); 
   struct GGM_logjoint *logjointptr, newlogjoint;
 
-  //Set zerochar to current model
-  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
-  std::string s (zerochar);
+  std::string s= this->getModelid(model);
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
@@ -138,20 +137,25 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     (*logjoint)= logjointptr->logjoint;
     m= logjointptr->mean;
     cholV= logjointptr->cholV;
-    //(*logjoint)= logjointSaved[s];
-    //m= meanSaved[s];
-    //cholV= cholVSaved[s];
      
   } else {
 
-    //Copy entries of Omegainv selected by model to Omegainv_model
-    if (!this->ggm->parallel_regression) this->get_Omegainv_model(&Omegainv_model, model);
+    //Retrieve Cholesky decomposition for modelold, if available
+    if (modelold != nullptr) {
+      std::string sold= this->getModelid(modelold);
+      if (logjointSaved.count(sold) > 0) {
+        cholVinv_old= (logjointSaved[sold]).cholVinv;
+      } else {
+        cholVinv_old= nullptr;
+      }
+    }
 
     //Allocate memory for m and cholV
     m= new arma::mat(npar, 1);
     cholV= new arma::mat(npar, npar);
+    cholVinv= new arma::mat(npar, npar);
 
-    jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
+    jointFunction(logjoint, m, cholV, cholVinv, model, colid, this->ggm, Omegainv, cholVinv_old, modelold);
 
     if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
 
@@ -161,10 +165,9 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
       newlogjoint.logjoint= *logjoint;
       newlogjoint.mean= m;
       newlogjoint.cholV= cholV;
+      newlogjoint.cholVinv= cholVinv;
       logjointSaved[s]= newlogjoint;
-      //logjointSaved[s]= *logjoint;
-      //meanSaved[s]= m; 
-      //cholVSaved[s]= cholV;      
+      
     } else {  //if not stored, free the allocated memory
       delete_m_cholV= true;
     }
@@ -198,11 +201,9 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
   if (delete_m_cholV) {
     delete m;
     delete cholV;
+    delete cholVinv;
   }
   
-  //Return zerochar to its original empty model status
-  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '0';
-
 }
 
 
@@ -211,18 +212,16 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
  sample_offdiag returns the posterior mode for the off-diagonal parametes and sample_diag for the diagonal parameters
 
 */
-void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model) {
+void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold) {
 
   bool delete_m_cholV= false;  
   int npar= model->n_nonzero -1;
-  arma::mat *m, *cholV;
+  arma::mat *m, *cholV, *cholVinv, *cholVinv_old= nullptr;
   arma::SpMat<short>::iterator it;
   arma::mat Omegainv_model(npar, npar); 
   struct GGM_logjoint *logjointptr, newlogjoint;
 
-  //Set zerochar to current model
-  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '1';
-  std::string s (zerochar);
+  std::string s= this->getModelid(model);
 
   if (logjointSaved.count(s) > 0) {  //if logjoint already computed in a previous call
 
@@ -234,29 +233,39 @@ void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, dou
      
   } else {
 
-    //Copy entries of Omegainv selected by model to Omegainv_model
-    if (!this->ggm->parallel_regression) this->get_Omegainv_model(&Omegainv_model, model);
-
+    //Retrieve Cholesky decomposition for modelold, if available
+    if (modelold != nullptr) {
+      std::string sold= this->getModelid(modelold);
+      if (logjointSaved.count(sold) > 0) {
+        cholVinv_old= (logjointSaved[sold]).cholVinv;
+      } else {
+        cholVinv_old= nullptr;
+      }
+    }
+    
     //Allocate memory for m and cholV
     m= new arma::mat(npar, 1);
     cholV= new arma::mat(npar, npar);
+    cholVinv= new arma::mat(npar, npar);
 
-    jointFunction(logjoint, m, cholV, model, colid, this->ggm, &Omegainv_model);
+    jointFunction(logjoint, m, cholV, cholVinv, model, colid, this->ggm, Omegainv, cholVinv_old, modelold);
 
     if (ggm->use_tempering) (*logjoint) *= (ggm->tempering);
 
     //Store logjoint, m and cholV
     double d= maxIntegral - (*logjoint);
     if (d<15 || this->nvars<=16 || logjointSaved.size() <= maxsave) {
+
       newlogjoint.logjoint= *logjoint;
       newlogjoint.mean= m;
       newlogjoint.cholV= cholV;
+      newlogjoint.cholVinv= cholVinv;
       logjointSaved[s]= newlogjoint;
-      //logjointSaved[s]= *logjoint;
-      //meanSaved[s]= m; 
-      //cholVSaved[s]= cholV;      
+
     } else {  //if not stored, free the allocated memory
+
       delete_m_cholV= true;
+
     }
 
     //Update top model
@@ -283,13 +292,19 @@ void modselIntegrals_GGM::getMode(double *logjoint, arma::mat *mode_offdiag, dou
   if (delete_m_cholV) {
     delete m;
     delete cholV;
+    delete cholVinv;
   }
   
-  //Return zerochar to its original empty model status
-  for (it= model->begin(); it != model->end(); ++it) zerochar[it.row()]= '0';
-
 }
 
+
+std::string modselIntegrals_GGM::getModelid(arma::SpMat<short> *model) {
+  if (model->n_cols !=1) Rf_error("In getModelid, argument model must have 1 column");
+  for (arma::SpMat<short>::iterator it= model->begin(); it != model->end(); ++it) this->zerochar[it.row()]= '1'; //Set zerochar to current model
+  std::string s (this->zerochar);
+  for (arma::SpMat<short>::iterator it= model->begin(); it != model->end(); ++it) this->zerochar[it.row()]= '0'; //Return zerochar to its original empty model status
+  return s;
+}
 
 
 // Return Omegainv[model,model], dropping column colid

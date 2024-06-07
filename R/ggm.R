@@ -22,8 +22,9 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 coef.msfit_ggm <- function(object,...) {
   m= Matrix::colMeans(object$postSample)
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
-  if ((object$samplerPars['sampler'] == 'Gibbs') & (object$almost_parallel=='none')) {
-    ans= cbind(t(object$indexes), m, ci, object$margpp)
+  if (object$almost_parallel=='none') {
+  #if ((object$samplerPars['sampler'] == 'Gibbs') & (object$almost_parallel=='none')) {
+    ans= cbind(t(object$indexes), m, ci, object$margpp) #use Rao-Blackwellized edge inclusion probabilities
   } else {
     ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0))
   }

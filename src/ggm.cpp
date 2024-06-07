@@ -145,25 +145,6 @@ ggmObject::~ggmObject() {
 
 }
 
-//int ggmObject::n() { return this->y->n_rows; }
-
-//int ggmObject::ncol() { return this->y->n_cols; }
-
-//Posterior sampler type
-//CharacterVector ggmObject::sampler() { return this->samplerPars["sampler"]; }
-
-//int ggmObject::niter() { return this->samplerPars["niter"]; }
-
-//int ggmObject::burnin() {  return this->samplerPars["burnin"]; }
-
-//double ggmObject::pbirth() return this->samplerPars["pbirth"]; }
-
-// int ggmObject::updates_per_column() { return this->samplerPars["updates_per_column"]; }
-
-// double ggmObject::tempering() { return this->samplerPars["tempering"]; }
-
-
-
 
 
 // Example of returning an sp_mat object
@@ -181,6 +162,7 @@ ggmObject::~ggmObject() {
 
 
 /*Print matrix on screen. The function works for any matrix that can be printed as a double
+  Within gdb, you should be able to print matrix A by typing: call print_matrix<arma::Mat<double> >(A)
 
 Usage examples:
 
@@ -288,15 +270,15 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 
   int i, j, jold, k, *sequence, iter= 0, niter10, number_accept, number_proposed, total_accept=0, total_proposed=0;
   int burnin= ggm->burnin, niter= ggm->niter, updates_per_iter= ggm->updates_per_iter, p= ggm->ncol;
-  double *modelini_logprob= NULL;
+  double *modelini_logprob= nullptr;
   arma::sp_mat::iterator it;
 
   //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
   std::string Gibbs("Gibbs"), birthdeath("birthdeath");
   bool use_gibbs= (ggm->sampler == Gibbs);
   bool use_birthdeath= (ggm->sampler == birthdeath);
-  arma::SpMat<short> *models= NULL;
-  arma::mat *model_logprob= NULL, *invOmega_j;
+  arma::SpMat<short> *models= nullptr;
+  arma::mat *model_logprob= nullptr, *invOmega_j;
   invOmega_j = new arma::mat(p-1, p-1);
 
   if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs requires the sampler to be Gibbs or birthdeath");
@@ -506,9 +488,9 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
     arma::mat invOmega_j;
     if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
-    arma::sp_mat *samples_row= NULL;
-    arma::vec *margpp_row= NULL;
-    arma::Col<int> *margppcount_row= NULL;
+    arma::sp_mat *samples_row= nullptr;
+    arma::vec *margpp_row= nullptr;
+    arma::Col<int> *margppcount_row= nullptr;
     arma::mat modelj_logprop(1, niter_prop - burnin_prop);
     int number_accept, number_proposed;
 
@@ -539,9 +521,9 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
     arma::mat invOmega_j;
     if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
-    arma::sp_mat *samples_row= NULL;
-    arma::vec *margpp_row= NULL;
-    arma::Col<int> *margppcount_row= NULL;
+    arma::sp_mat *samples_row= nullptr;
+    arma::vec *margpp_row= nullptr;
+    arma::Col<int> *margppcount_row= nullptr;
     arma::mat modelj_logprop(1, niter_prop - burnin_prop);
     double logpropini;
     int number_accept, number_proposed;
@@ -601,7 +583,7 @@ void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm) {
   const int maxit=10;
   int i, j, k, colid, oldcolid, p= ggm->ncol, changes, changes_colid;
   double mcurrent, mnew, sample_diag;
-  arma::mat *sample_offdiag= NULL, *invOmega_rest;
+  arma::mat *sample_offdiag= nullptr, *invOmega_rest;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *modelopt, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
@@ -633,7 +615,7 @@ void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm) {
       //Obtain log-marginal + log-prior for current model
       ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, modelopt, false);
+      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, modelopt, nullptr, false);
 
       i= changes_colid= 1;
       while ((changes_colid > 0) && (i <= maxit)) {  // (update model for column colid)
@@ -647,7 +629,7 @@ void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm) {
 
           if (modelopt->at(j,0) != 0) modelnew->at(j,0) = 0; else modelnew->at(j,0) = 1;
 
-          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
+          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, modelopt, false);
 
           if (mnew > mcurrent) { //if new model has higher posterior probability
 
@@ -670,7 +652,7 @@ void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm) {
 
       sample_offdiag= new arma::mat(modelopt->n_nonzero - 1, 1);
 
-      ms->getMode(&mcurrent, sample_offdiag, &sample_diag, modelopt); //obtain posterior mode for parameters given model
+      ms->getMode(&mcurrent, sample_offdiag, &sample_diag, modelopt, nullptr); //obtain posterior mode for parameters given model
       update_Omega(Omega, &colid, &sample_diag, modelopt, sample_offdiag); //store posterior mode into Omega
 
       delete sample_offdiag;
@@ -699,9 +681,9 @@ INPUT
   - invOmega_rest: inverse of Omega[-colid,-colid]
 
 OUTPUT
-  - samples: if not NULL, each column of samples will store Omegacol after applying a Gibbs update to its entries
+  - samples: if not nullptr, each column of samples will store Omegacol after applying a Gibbs update to its entries
 
-  - models: if not NULL, stores model indicator corresponding to samples
+  - models: if not nullptr, stores model indicator corresponding to samples
 
   - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
 
@@ -712,14 +694,14 @@ OUTPUT
 
   - modelini_logprob: log posterior probability of initial model
 
-IMPORTANT: if not NULL, at input samples and models should only contain zeroes
+IMPORTANT: if not nullptr, at input samples and models should only contain zeroes
 
 */
-void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL, double *modelini_logprob = NULL) {
+void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
 
   int i, j, p= ggm->ncol, col2save;
   double mcurrent, mnew, ppnew, sample_diag;
-  arma::mat *sample_offdiag= NULL;
+  arma::mat *sample_offdiag= nullptr;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
@@ -731,7 +713,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
     marfun= &GGMrow_marg;
   }
 
-  if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
+  if ((model_logprob != nullptr) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
   //Set random number generators
   std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
@@ -747,9 +729,9 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
   //Obtain log-marginal + log-prior for current model
   ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
-  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false);
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, nullptr, false);
 
-  if (modelini_logprob != NULL) (*modelini_logprob)= mcurrent;
+  if (modelini_logprob != nullptr) (*modelini_logprob)= mcurrent;
 
   for (i= iterini; i <= iterfi; i++) {
     //For each entry j in colid, obtain log-marginal + log-prior for adding/removing j
@@ -759,14 +741,14 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
       if (model->at(j,0) != 0) modelnew->at(j,0) = 0; else modelnew->at(j,0) = 1;
 
-      ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);
+      ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, model, false);
 
       ppnew = 1 / (1 + exp(mcurrent - mnew));
 
-      if (margpp != NULL) {
+      if (margpp != nullptr) {
         if (model->at(j,0) == 0) margpp->at(j) += ppnew; else margpp->at(j) += 1 - ppnew;
       }
-      if (margppcount != NULL) margppcount->at(j) ++;
+      if (margppcount != nullptr) margppcount->at(j) ++;
 
       double u= unifdist(generator);
 
@@ -783,18 +765,18 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
     } //end j for (iteration over columns)
 
-    if (samples != NULL) {
+    if (samples != nullptr) {
 
       sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //update parameter values. DO NOT USE IN A MULTI-THREAD ENVIRONMENT (WRITES TO SHARED RANDOM SEED)
+      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, nullptr, true); //update parameter values. DO NOT USE IN A MULTI-THREAD ENVIRONMENT (WRITES TO SHARED RANDOM SEED)
       if (i >= 0) save_ggmsample_col(samples, model, &sample_diag, sample_offdiag, i, colid); //copy current model into samples[,i] as flat vector 
       delete sample_offdiag;
 
     }
 
-    if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
+    if ((models != nullptr) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(col2save, i)= mcurrent;
+    if ((i>=0) && (model_logprob != nullptr)) model_logprob->at(col2save, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 
@@ -816,9 +798,9 @@ INPUT
   - invOmega_rest: inverse of Omega[-colid,-colid]
 
 OUTPUT
-  - samples: if not NULL, each column of samples will store Omegacol after applying a Gibbs update to its entries
+  - samples: if not nullptr, each column of samples will store Omegacol after applying a Gibbs update to its entries
 
-  - models: if not NULL, stores model indicator corresponding to samples
+  - models: if not nullptr, stores model indicator corresponding to samples
 
   - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
 
@@ -833,15 +815,15 @@ OUTPUT
 
   - modelini_logprob: log posterior probability of initial model
 
-IMPORTANT: if not NULL, at input samples and models should only contain zeroes
+IMPORTANT: if not nullptr, at input samples and models should only contain zeroes
 
 */
 
-void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = NULL, double *modelini_logprob = NULL) {
+void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
 
   int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid;
   double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
-  arma::mat *sample_offdiag= NULL;
+  arma::mat *sample_offdiag= nullptr;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
   modselIntegrals_GGM *ms;
@@ -854,7 +836,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   }
 
   (*number_accept)= (*number_proposed)= 0;
-  if ((model_logprob != NULL) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
+  if ((model_logprob != nullptr) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
   //Set random number generators
   std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
@@ -869,9 +851,9 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   //Obtain log-marginal + log-prior for current model
   ms= new modselIntegrals_GGM(marfun, ggm, colid, invOmega_rest);
 
-  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false);
+  ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, nullptr, false);
 
-  if (modelini_logprob != NULL) (*modelini_logprob)= mcurrent;
+  if (modelini_logprob != nullptr) (*modelini_logprob)= mcurrent;
 
   for (i= iterini; i <= iterfi; i++) {
 
@@ -883,9 +865,18 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
       if ((index_birth != -1) || (index_death != -1)) {     //if a move that's not impossible was proposed
 
-          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, false);  //obtain marginal likelihood for modelnew
+          ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, model, false);  //obtain marginal likelihood for modelnew
 
           ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew); //probability of accepting modelnew
+
+          if (margpp != nullptr) {
+            if (index_birth != -1) margpp->at(index_birth) += min_xy(ppnew, 1);
+            if (index_death != -1) margpp->at(index_death) += 1 - min_xy(ppnew, 1);
+          }
+          if (margppcount != nullptr) {
+            if (index_birth != -1) margppcount->at(index_birth) ++;
+            if (index_death != -1) margppcount->at(index_death) ++;
+          }
            
           if ((ppnew > 1) || (unifdist(generator) < ppnew)) { //if new model is accepted
            
@@ -904,22 +895,22 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
     } //end for j
 
-    if (samples != NULL) {
+    if (samples != nullptr) {
 
       sample_offdiag= new arma::mat(model->n_nonzero - 1, 1);
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, true); //obtain marginal likelihood & posterior sample
+      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, nullptr, true); //obtain marginal likelihood & posterior sample
       if (i >= 0) save_ggmsample_col(samples, model, &sample_diag, sample_offdiag, i, colid); //copy current model into samples[,i] as flat vector
       delete sample_offdiag;
 
-    } else {
+    } //else {
 
-      ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, false); //obtain marginal likelihood, no posterior sample
+      //ms->getJoint(&mcurrent, sample_offdiag, &sample_diag, model, nullptr, false); //obtain marginal likelihood, no posterior sample
 
-    }
+    //}
 
-    if ((models != NULL) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
+    if ((models != nullptr) && (i >= 0)) save_ggmmodel_col(models, model, i, colid); //copy model indicator into models[,i] as flat vector
 
-    if ((i>=0) && (model_logprob != NULL)) model_logprob->at(col2save, i)= mcurrent;
+    if ((i>=0) && (model_logprob != nullptr)) model_logprob->at(col2save, i)= mcurrent;
 
   } //end i for (Gibbs iterations)
 
@@ -1152,7 +1143,7 @@ void unique_model_logprob(arma::SpMat<short> *uniquemodels, std::vector<double> 
     (*map_logprob)[svec[sortedIndexes[i]]]= (*unique_logprob)[i];
   }
 
-  if (logprobini != NULL) {
+  if (logprobini != nullptr) {
     if (*maxratio <= 0) {
       (*logprobini)= *logprobini - maxprob - logsumprob;
     } else {
@@ -1217,7 +1208,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
   for (i=0; i<p; i++) zerochar[i]= '0';
   std::map<string, double>::iterator itmap;
 
-  arma::mat *sample_offdiag= NULL, *invOmega_newcol;
+  arma::mat *sample_offdiag= nullptr, *invOmega_newcol;
   std::vector<double> diagcur(p), bnew(p);
   std::vector<arma::SpMat<short>> modelold(p);
   arma::SpMat<short> modelnew;
@@ -1271,10 +1262,6 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
         (*invOmega_newcol)= get_invOmega_j(Omegaini, newcol); 
       } else { //use rank 1 update (quadratic cost in p)
         update_invOmega_submat(invOmega_newcol, Omegaini, &oldcol, &newcol);
-        //Uncomment the lines below to keep track of numerical error in rank 1 calculation (none found in the tried examples)
-        //arma::mat invOmega_costly= get_invOmega_j(Omegaini, newcol); 
-        //double approxerror= norm(*invOmega_newcol - invOmega_costly, "fro"); 
-        //Rprintf("i=%d, j=%d, approx error= %f\n", i, j, approxerror); 
       }
       oldcol= newcol;
 
@@ -1299,8 +1286,8 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
         }
 
-        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
-        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
+        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), nullptr, false); //log-posterior for current model
+        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, &(modelold[newcol]), false); //log-posterior for proposed model
 
         ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
 
@@ -1324,7 +1311,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
       //Sample Omega[,newcol] given model
       sample_offdiag= new arma::mat((modelold[newcol]).n_nonzero - 1, 1);
-      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &(modelold[newcol]), true); //sample Omega[,newcol]
+      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &(modelold[newcol]), nullptr, true); //sample Omega[,newcol]
       update_Omega(Omegaini, &newcol, &sample_diag, &(modelold[newcol]), sample_offdiag); //copy sampled values into Omegaini[,newcol]
       delete sample_offdiag;
       delete ms;
@@ -1341,11 +1328,10 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
   } //end i for
 
-  free_ivector(sequence, 0, p-1);
-
   (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
 
   //Free memory
+  free_ivector(sequence, 0, p-1);
   for (newcol=0; newcol < p; newcol++) free_dvector(cdf_proposal[newcol], 0, nproposal[newcol]);
   free((char  *) zerochar);
   delete invOmega_newcol;
@@ -1400,7 +1386,7 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
   double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
-  arma::mat *sample_offdiag= NULL, *invOmega_newcol;
+  arma::mat *sample_offdiag= nullptr, *invOmega_newcol;
   std::vector<double> diagcur(p), bnew(p);
   std::vector<arma::SpMat<short>> modelold(p);
   arma::SpMat<short> modelnew;
@@ -1463,8 +1449,9 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
         dpropnew= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal for proposed model
         modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
 
-        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, false); //log-posterior for proposed model
-        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), false); //log-posterior for current model
+        if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), nullptr, false); //log-posterior for current model
+        //Rprintf("i=%d, newcol=%d k=%d\n", i, newcol, k); //debug
+        ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, &(modelold[newcol]), false); //log-posterior for proposed model
 
         dpropold= dpropini[newcol]; //log-proposal for current model
 
@@ -1483,7 +1470,7 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
       //Sample Omega[,newcol] given model
       sample_offdiag= new arma::mat((modelold[newcol]).n_nonzero - 1, 1);
-      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &(modelold[newcol]), true); //sample Omega[,newcol]
+      ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &(modelold[newcol]), nullptr, true); //sample Omega[,newcol]
       update_Omega(Omegaini, &newcol, &sample_diag, &(modelold[newcol]), sample_offdiag); //copy sampled values into Omegaini[,newcol]
       delete sample_offdiag;
       delete ms;
@@ -1500,12 +1487,11 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
   } //end i for
 
-  free_ivector(sequence, 0, p-1);
-
   (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
 
   for (newcol=0; newcol < p; newcol++) free_dvector(cdf_proposal[newcol], 0, nproposal[newcol]);
 
+  free_ivector(sequence, 0, p-1);
   delete invOmega_newcol;
 
 }
@@ -1777,17 +1763,21 @@ void save_ggmmodel_col(arma::SpMat<short> *ans, arma::SpMat<short> *model, int c
   - model: entries that are non-zero
   - colid: column id
   - ggm: object storing info about the Gaussian graphical model
-  - Omegainv_model: entries selected by model from Omega[-colid,-colid]
+  - Omegainv: inverse of Omega[-colid,-colid]
+  - cholU_old: Cholesky decomposition of U for a previous model (modelold) that differs from model by adding/dropping at most 1 non-zero entry
+  - modelold: entries that were non-zero in the previous model
 
   OUTPUT
   - logjoint: log-marginal + log-prior for model
   - m: u1 ~ multivariate Normal with mean m and covariance Uinv, where u1= -Omega[-colid,colid] are the (negative) off-diagonal entries
   - cholUinv: Cholesky decomposition of Uinv, i.e. Uinv= t(cholUinv) * cholUinv
+  - cholU: Cholesky decomposition of U
 
 */
-void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
+void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::mat *cholU, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv, arma::mat *cholU_old=nullptr, arma::SpMat<short> *modelold=nullptr) {
 
   unsigned int npar= model->n_nonzero -1;
+  int colidint= (int) colid;
   arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
 
   if (npar > 0) { //if some off-diagonal entry is non-zero
@@ -1806,22 +1796,102 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
       i++;
     }
      
-    //Create U matrix
-    double ct= ggm->prCoef_lambda + ggm->S.at(colid, colid);
-    for (i=0; i<npar; i++) {
-      U.at(i,i)= ct * Omegainv_model->at(i,i) + tauinv;
-      for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model->at(i,j);
-    }
-     
+    //Obtain Cholesky decomposition of U, inverse, Cholesky decomposition and determinant of inverse of U
+    bool fastupdate;
+    double ct= ggm->prCoef_lambda + ggm->S.at(colid, colid);    
     double logdetUinv= 0;
     arma::mat Uinv(npar,npar);
 
-    choldcinv_det(&Uinv, cholUinv, &logdetUinv, &U);
-    //arma::mat Uinv= inv_sympd(U);
-     
+    fastupdate= (npar > 1) && (cholU_old != nullptr);
+   
+    if (fastupdate) {
+
+      int row_added, row_dropped, modelrow_dropped, modelrow_added;
+      double *U_newcol;
+
+      modelupdate_indexes(&row_dropped, &row_added, &modelrow_dropped, &modelrow_added, modelold, model);    
+      if (modelrow_dropped >= colidint) row_dropped--;
+      if (modelrow_added >= colidint) { row_added--; modelrow_added--; }
+
+      if ((row_added == -1) && (row_dropped == -1)) fastupdate= false;
+
+      if (fastupdate) {
+
+        unsigned int idx;
+        if (row_added != -1) { //if a row was added, copy the U entries onto U_newcol
+          U_newcol= dvector(0, cholUinv->n_cols);
+          for (it= model->begin(), i=0; it != model->end(); ++it) {
+            idx= it.row();
+            if (idx == colid) { continue; } else if (idx > colid) { idx--; }
+            U_newcol[i]= ct * Omegainv->at(idx, modelrow_added);
+            i++;
+          }
+          U_newcol[row_added] += tauinv;
+        }
+
+        if ((row_added == -1) && (row_dropped != -1)) {  //model drops a row from modelold
+
+          choldcinv_det_droprow(&Uinv, cholUinv, &logdetUinv, cholU, cholU_old, row_dropped);
+        
+        } else if ((row_added != -1) && (row_dropped == -1)) {  //model adds a row from modelold
+
+          choldcinv_det_addrow(&Uinv, cholUinv, &logdetUinv, cholU, cholU_old, U_newcol, row_added);
+
+        } else { //model swaps rows (adds one row and removes another) relative to modelold
+
+          arma::mat choltmp(npar-1, npar-1);
+          choldcinv_det_droprow(nullptr, nullptr, nullptr, &choltmp, cholU_old, row_dropped);
+          choldcinv_det_addrow(&Uinv, cholUinv, &logdetUinv, cholU, &choltmp, U_newcol, row_added);
+
+        }
+
+        if (row_added != -1) free_dvector(U_newcol, 0, cholUinv->n_cols);
+
+      }
+
+    }
+
+    if (!fastupdate) {
+
+      //Create U matrix
+      arma::mat Omegainv_model(npar, npar); 
+      get_Omegainv_model(&Omegainv_model, Omegainv, model, colid); //copy Omegainv[model,model] onto Omegainv_model (excluding colid)
+      for (i=0; i<npar; i++) {
+        U.at(i,i)= ct * Omegainv_model.at(i,i) + tauinv;
+        for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model.at(i,j);
+      }
+
+      choldcinv_det(&Uinv, cholUinv, &logdetUinv, cholU, &U);
+
+    } 
+
+    /* CHUNK TO DEBUG: PRINTS APPROXIMATION ERROR FOR FAST CHOLESKY UPDATE, IF EVER ABOVE 1.e-4 */
+    /*if (fastupdate) {
+      arma::mat Omegainv_model(npar, npar); 
+      get_Omegainv_model(&Omegainv_model, Omegainv, model, colid); //copy Omegainv[model,model] onto Omegainv_model (excluding colid)
+      arma::mat Uinv_slow(npar,npar);
+      for (i=0; i<npar; i++) {     //Create U matrix
+        U.at(i,i)= ct * Omegainv_model.at(i,i) + tauinv;
+        for (j=i+1; j<npar; j++) U.at(i,j)= U.at(j,i)= ct * Omegainv_model.at(i,j);
+      }
+      choldcinv_det(&Uinv_slow, cholUinv, &logdetUinv, cholU, &U);
+      double approxerror= norm(Uinv - Uinv_slow, "fro"); 
+      //if (approxerror > 1.e-4) {
+        Rprintf("GGMrow_marg approx error= %f\n", approxerror);
+        modelold->print("modelold");
+        model->print("model");
+        Omegainv->print("Omegainv");
+        cholU_old->print("cholUold");
+        Uinv.print("Uinv (fast update)"); 
+        Uinv_slow.print("Uinv (slow update)");
+      //}
+    }
+    */
+    
+   
     (*m)= Uinv * s;
-     
-    (*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log( ggm->prCoef_tau ) + logdetUinv);
+    (*logjoint) = 0.5 * (arma::as_scalar(s.t() * Uinv * s) - ((double) npar) * log( ggm->prCoef_tau ) + logdetUinv);
+    //(*logjoint) = 0.5 * (arma::as_scalar(m->t() * U * (*m)) - ((double) npar) * log( ggm->prCoef_tau ) + logdetUinv); //same using U instead of Uinv
 
   } else { //if all off-diagonal entries are zero
 
@@ -1830,6 +1900,20 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
   }
 
   (*logjoint) += logprior_GGM(&model_offdiag, ggm);
+
+}
+
+// Return Omegainv[model,model], dropping column colid
+void get_Omegainv_model(arma::mat *Omegainv_model, arma::mat *Omegainv, arma::SpMat<short> *model, unsigned int colid) {
+
+  unsigned int npar= model->n_nonzero -1;
+  if (Omegainv_model->n_cols != npar) Rf_error("Error in get_Omegainv_model: Omegainv_model has the wrong size");
+  arma::SpMat<short>::iterator it;
+
+  arma::SpMat<short> model_offdiag= *model;
+  model_offdiag.shed_row(colid);  //remove row colid from model
+
+  copy_submatrix(Omegainv_model, Omegainv, &model_offdiag);
 
 }
 
@@ -1847,14 +1931,17 @@ void GGMrow_marg(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMa
   - colid: column id
   - ggm: object storing info about the Gaussian graphical model
   - Omegainv_model: ignored, kept for compatibility with GGMrow_marg
+  - cholXtX_old: Cholesky decomposition of X^T X for a previous model (modelold) that differs from model by adding/dropping at most 1 non-zero entry
+  - modelold: entries that were non-zero in the previous model
 
   OUTPUT
   - logjoint: log-marginal + log-prior for model
   - m: ignored, kept for compatibility with GGMrow_marg
   - cholUinv: ignored, kept for compatibility with GGMrow_marg
+  - cholXtX: Cholesky decomposition of X^T X, where X contains the columns of y selected by model
 
 */
-void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model) {
+void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv, arma::mat *cholXtX, arma::SpMat<short> *model, unsigned int colid, ggmObject *ggm, arma::mat *Omegainv_model, arma::mat *cholXtX_old=nullptr, arma::SpMat<short> *modelold= nullptr) {
 
   unsigned int npar= model->n_nonzero -1;
   arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
@@ -1864,6 +1951,7 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
   if (npar > 0) { //if some off-diagonal entry is non-zero
 
     unsigned int i;
+    int colidint= (int) colid;
     double tauinv= 1.0/ ggm->prCoef_tau, logdetXtXinv, nuhalf, ss;
     arma::uvec covariate_indexes(npar);
     arma::mat XtX(npar,npar), Xty(npar, 1), XtXinv(npar,npar), cholXtXinv(npar,npar);
@@ -1878,17 +1966,82 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
       covariate_indexes[i]= it.row();
       i++;
     }
+
+    //Obtain Cholesky decomposition of XtX, inverse, Cholesky decomposition and determinant of inverse of XtX
+    bool fastupdate;
+    fastupdate= (npar > 1) && (cholXtX_old != nullptr);
+
+    if (fastupdate) {
+
+      int row_added, row_dropped, modelrow_dropped, modelrow_added;
+      double *XtX_newcol;
+
+      modelupdate_indexes(&row_dropped, &row_added, &modelrow_dropped, &modelrow_added, modelold, model);
+      if (modelrow_dropped >= colidint) row_dropped--;
+      if (modelrow_added >= colidint) row_added--;
+
+      if ((row_added == -1) && (row_dropped == -1)) fastupdate= false;
+
+      if (fastupdate) {
+
+        if (row_added != -1) { //if a row was added, copy the XtX entries
+          XtX_newcol= dvector(0, cholXtXinv.n_cols);
+          for (it= model->begin(), i=0; it != model->end(); ++it) {
+            if (it.row() == colid) continue;
+            XtX_newcol[i]= ggm->S.at(it.row(), modelrow_added);
+            i++;
+          }
+          XtX_newcol[row_added] += tauinv;
+        }
+
+        if ((row_added == -1) && (row_dropped != -1)) {  //model drops a row from modelold
+
+          choldcinv_det_droprow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, row_dropped);
+        
+        } else if ((row_added != -1) && (row_dropped == -1)) {  //model adds a row from modelold
+
+          choldcinv_det_addrow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, XtX_newcol, row_added);
+
+        } else { //model swaps rows (adds one row and removes another) relative to modelold
+
+          arma::mat choltmp(npar-1, npar-1);
+          choldcinv_det_droprow(nullptr, nullptr, nullptr, &choltmp, cholXtX_old, row_dropped);
+          choldcinv_det_addrow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, &choltmp, XtX_newcol, row_added);
+
+        }
+
+        if (row_added != -1) free_dvector(XtX_newcol, 0, cholXtXinv.n_cols);
+
+      }
+
+    }
+
+    if (!fastupdate) {
      
+      XtX = ggm->S.submat(covariate_indexes, covariate_indexes);
+      for (i=0; i<npar; i++) XtX.at(i,i) += tauinv;
+      choldcinv_det(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, &XtX);  //Inverse and determinant of XtX
+
+    }
+    
+    /* CHUNK TO DEBUG: PRINTS APPROXIMATION ERROR FOR FAST CHOLESKY UPDATE, IF EVER ABOVE 1.e-4 */
+    /*
+    arma::mat XtXinv_slow(npar,npar);
     XtX = ggm->S.submat(covariate_indexes, covariate_indexes);
     for (i=0; i<npar; i++) XtX.at(i,i) += tauinv;
+    choldcinv_det(&XtXinv_slow, &cholXtXinv, &logdetXtXinv, cholXtX, &XtX);
+    double approxerror= norm(XtXinv - XtXinv_slow, "fro"); 
+    if (approxerror > 1.e-4) {
+      Rprintf("GGMrow_marg_regression. approx error= %f\n", approxerror);
+      //XtXinv.print("XtXinv (fast update)"); 
+      //XtXinv_slow.print("XtXinv (slow update)");
+    }
+    */
+    
 
-    //Inverse and determinant of XtX
-    choldcinv_det(&XtXinv, &cholXtXinv, &logdetXtXinv, &XtX);   
-    //invdet_posdef(&XtX, &XtXinv, &detXtX);
-
-    arma::mat m= XtXinv * Xty;
-
-    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtX * m);
+    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(Xty.t() * XtXinv * Xty);
+    //arma::mat m= XtXinv * Xty;
+    //ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtX * m);
     nuhalf= .5*ggm->n + alphahalf;
 
     num= gamln(&nuhalf) + alphahalf * log(0.5 * ggm->prCoef_lambda) + nuhalf * (log(2.0) - log(ss));
@@ -1927,9 +2080,77 @@ double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm) {
 }
 
 
-//double GGMrow_margupdate(int *changevar, ggmObject *ggm, int *colid, arma::sp_mat *Omega, arma::mat *Omega_colid_inv) {
-// 
-//}
+/* Return indexes of row dropped and row added to transition from modelold to modelnew
+
+  The output is only returned if modelnew added/dropped at most 1 element from modelold, else row_added = row_dropped = -1 is returned
+
+INPUT
+  - modelold: column vector where modelold(i,0) > 0 indicates that parameter i is included in the model
+  - modelnew: column vector where model(i,0) > 0 indicates that parameter i is included in the model
+
+OUTPUT. Let model' be the model obtained by dropping from modelold that is not in modelnew (if no rows are dropped, model'= modelold)
+  - row_dropped: index of the non-zero entry in modelold that is dropped to obtain model'.
+  - row_added: index of the element in model' where a 1 needs to be inserted to obtain modelnew
+  - modelrow_dropped: row in modelold that is dropped to obtain model'
+  - modelrow_added: row in model' that is added to obtain model'
+
+EXAMPLE.  Suppose that modelold= (0,1,0,1,0) and modelnew= (0,1,0,0,1). Then model'= (0,1,0,0,0)
+          is obtained by dropping the second non-zero element in modelold, hence row_dropped = 1 (since indexes are 0-based)
+          and modelrow_dropped = 3 (since the 4th entry in modelold is zeroed to obtain model')
+
+          model is obtained by adding the second non-zero element to model', hence row_added = 1 (since indexes are 0-based)
+          and modelrow_added = 4 (since the 5th entry in model' is set to 1 to obtain model)
+
+*/
+
+void modelupdate_indexes(int *row_dropped, int *row_added, int *modelrow_dropped, int *modelrow_added, arma::SpMat<short> *modelold, arma::SpMat<short> *modelnew) {
+  int idx, nadded=0, ndropped= 0;
+  arma::SpMat<short>::iterator it;
+  arma::SpMat<short> modelp(*modelold); //model'
+
+  (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
+
+  idx= 0;
+  for (it= modelold->begin(); it != modelold->end(); ++it) {
+
+    if (modelnew->at(it.row(), 0) == 0) { //if this row is dropped in modelnew
+    //if ((*it != 0) && (modelnew->at(it.row(), 0) == 0)) { //if this row is dropped in modelnew
+      (*row_dropped) = idx;
+      (*modelrow_dropped) = it.row();
+      ndropped++;
+      modelp.at(it.row(),0)= 0;
+    }
+    idx++;
+    if (ndropped > 1) {
+      (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
+      break;
+    }
+
+  }
+
+  if (ndropped <= 1) {
+
+    idx= 0;
+    for (it= modelnew->begin(); it != modelnew->end(); ++it) {
+
+      if (modelp.at(it.row(), 0) == 0) { //if this row is added in modelnew
+      //if ((*it != 0) && (modelp.at(it.row(), 0) == 0)) { //if this row is added in modelnew
+        (*row_added) = idx;
+        (*modelrow_added) = it.row();
+        nadded++;
+      }
+      idx++;
+      if (nadded > 1) {
+        (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
+        break;
+      }
+
+    }
+
+  }
+
+}
+
 
 
 /************************************************************************************************
@@ -1941,8 +2162,8 @@ double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm) {
 /* Check if sparse matrices A and B have <= maxdif different non-zero entries
 
 INPUT
-- A: Pointer to the first sparse matrix. It can be an arma::sp_mat or arma::SpMat<short>
-- B: Pointer to the second sparse matrix. It can be an arma::sp_mat or arma::SpMat<short>
+- A: Pointer to the first sparse matrix.
+- B: Pointer to the second sparse matrix.
 - maxdif: An integer representing the maximum allowable difference in the number of non-zero elements between matrices A and B.
 
 OUTPUT: true if the number of non-zero elements in A-B is less than or equal to maxdif; otherwise, returns false.

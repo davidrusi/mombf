@@ -221,7 +221,9 @@ void choldc(arma::mat *A, arma::mat *cholA, bool *posdef);   //Cholesky decompos
 void choldc_inv_internal(arma::mat *cholA);                  //Inverse of Cholesky decomposition cholA
 void choldc_inv_internal(arma::mat *cholA, int n, arma::mat *cholAinv);           //Inverse of submatrix cholA[0:n,0:n], where cholA is a Cholesky matrix
 void choldcinv(arma::mat *cholAinv, bool *posdef, arma::mat *A); //Inverse of chol(A), given A
+void choldcinv(arma::mat *cholAinv, arma::mat *cholA, bool *posdef, arma::mat *A); //same as above, but also returns cholA
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant of A
+void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *cholA, arma::mat *A); //same as above, but also returns cholA
 
 //Updating Cholesky decompositions
 void choldc_rank1_update(arma::mat *L, arma::vec *x);   //Cholesky decomposition of A= L L^T + x x^T
@@ -231,7 +233,11 @@ void choldc_rank1_downdate(arma::mat *L, arma::vec *x); //Cholesky decomposition
 void choldc_rank1_downdate(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi);
 
 void choldc_droprow(arma::mat *cholB, int d, arma::mat *cholA); //Cholesky decomp of A=B[-d,-d] given Cholesky decomp of B
-void choldc_addrow(arma::mat *cholA, double *x, int d, arma::mat *cholB); //Cholesky decomposition of B, given Cholesky decomposition of A[-d,-d]
+void choldc_addrow(arma::mat *cholA, double *x, int d, arma::mat *cholB); //Cholesky decomposition of B, given Cholesky decomp of A= B[-d,-d]
+
+void choldcinv_det_droprow(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *cholA, arma::mat *cholB, int d); //Inverse, Cholesky decomp & det of A=B[-d,-d]
+void choldcinv_det_addrow(arma::mat *Binv, arma::mat *cholBinv, double *logdet_Binv, arma::mat *cholB, arma::mat *cholA, double *x, int d); //Inverse, Cholesky decomp & det of B, given Cholesky decomp of A= B[-d,-d] 
+
 
 //Updating matrix inverses after rank 1 updates
 void update_inverse(arma::mat *Ainv, arma::sp_mat *A_newcol, int *newcol); //Update inverse of A after changing its column colid

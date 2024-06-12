@@ -185,58 +185,58 @@ initialEstimateGGM= function(y, Omegaini) {
     
 }
 
+
+
 initGGM= function(y, Omegaini) {
-
+  
   maxiter= ifelse (ncol(y) <=100, 5, 1)  #use 1 iteration for large p, to avoid excessive init time
-    
+  
   if (Omegaini=='null') {
-        
+    
     ans= Matrix::sparseMatrix(1:ncol(y), 1:ncol(y), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
-        
+    
   } else if (Omegaini %in% c('glasso-bic','glasso-ebic')) {
-
-    method= ifelse(Omegaini == 'glasso-bic', 'BIC', 'EBIC')
-
-    sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE)
-    ans= Matrix::Matrix(huge::huge.select(sfit, criterion='ebic', verbose=FALSE)$opt.icov, sparse=TRUE)
-    #sfit= glasso::glassopath(cov(y), trace=0)  #from package glasso
-    #bic= glasso_getBIC(y=y, sfit=sfit, method=method)
-
-    #topbic= which.min(bic)
-    #found= (topbic != 1) & (topbic != length(bic))
-
-    #niter= 1
-    #while ((!found) & (niter<=maxiter)) {
-    #    
-    #  if (topbic==1) {
-    #      rholist= seq(sfit$lambda[1]/10, sfit$lambda[1], length=10) ##for package huge
-    #      #rholist= seq(sfit$rholist[1]/10, sfit$rholist[1], length=10) ##for package glasso
-    #  } else {
-    #      l= sfit$lambda[length(sfit$lambda)]
-    #      #l= sfit$rholist[length(sfit$rholist)] ##for package glasso
-    #      rholist= seq(l, 10*l, length=10)
-    #  }
-    # 
-    #  sfit= huge::huge(y, lambda=rholist, method="glasso", scr=TRUE, verbose=FALSE)
-    #  #sfit= glasso::glassopath(cov(y), rholist=rholist, trace=0)
-    #  bic= glasso_getBIC(y=y, sfit=sfit, method=method)
-    #  
-    #  topbic= which.min(bic)
-    #  found= (topbic != 1) & (topbic != length(bic))
-    #  niter= niter+1
-    # 
-    #}
-
-    ##ans= Matrix::Matrix(sfit$icov[[which.min(bic)]], sparse=TRUE)
-    ##ans= Matrix::Matrix(sfit$wi[,,which.min(bic)], sparse=TRUE) ##for package glasso
+    if (Omegaini == 'glasso-bic') {
+      gamma = 0
+    } else if (Omegaini == 'glasso-ebic') {
+      gamma = 0.5
+    }
+    
+    sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE, nlambda = 10)
+    sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+    
+    topbic= which.min(sfit2$ebic.score)
+    found= (topbic != 1) & (topbic != 10)
+    
+    niter= 1
+    while ((!found) & (niter<=maxiter)) {
+      ## huge wants a decreasing sequence
       
+      if (topbic==10) {
+        rholist= seq(sfit$lambda[10], sfit$lambda[10]/10, length=10)
+      } else {
+        rholist= seq(10*sfit$lambda[1], sfit$lambda[1], length=10)
+      }
+      
+      sfit= huge::huge(y, lambda=rholist, method="glasso", scr=TRUE, verbose=FALSE)
+      sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+      
+      topbic= which.min(sfit2$ebic.score)
+      found= (topbic != 1) & (topbic != 10)
+      niter= niter+1
+      
+    }
+    
+    ans= Matrix::Matrix(sfit$icov[[topbic]], sparse=TRUE)
+    
   } else {
     stop("Omegaini must be 'null', 'glasso-ebic' or 'glasso-bic'")
   }
-    
+  
   return(ans)
-
+  
 }
+
 
 
 #For objects from package huge

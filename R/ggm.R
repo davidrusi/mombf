@@ -22,12 +22,11 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 coef.msfit_ggm <- function(object,...) {
   m= Matrix::colMeans(object$postSample)
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
-  if (object$almost_parallel=='none') {
-  #if ((object$samplerPars['sampler'] == 'Gibbs') & (object$almost_parallel=='none')) {
-    ans= cbind(t(object$indexes), m, ci, object$margpp) #use Rao-Blackwellized edge inclusion probabilities
-  } else {
-    ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0))
-  }
+  #if (object$almost_parallel=='none') {
+  ans= cbind(t(object$indexes), m, ci, object$margpp) #use Rao-Blackwellized edge inclusion probabilities
+  #} else {
+  #ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0)) #MCMC edge inclusion proportions
+  #}
   colnames(ans)[-1:-2]= c('estimate','2.5%','97.5%','margpp')
   return(ans)
 }
@@ -94,7 +93,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   p= ncol(y);
   if (p <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
-  if (!(sampler %in% c('Gibbs','birthdeath','zigzag'))) stop("sampler must be 'Gibbs', 'birthdeath' or 'zigzag'")
+  if (!(sampler %in% c('Gibbs','birthdeath'))) stop("sampler must be 'Gibbs' or 'birthdeath'")
   if (tempering < 0) stop("tempering cannot be negative")
   y = scale(y, center=center, scale=scale)
     
@@ -116,13 +115,15 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   if (almost_parallel == 'none') {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
+    margpp= ans$margpp
     prop_accept= ans$prop_accept
   } else {
     ans= modelSelectionGGM_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans[[1]])
-    prop_accept= ans[[2]]
+    margpp= ans[[2]]
+    prop_accept= ans[[3]]
     if (save_proposal) {
-      proposal= lapply(ans[3:(3+p-1)], Matrix::t)
+      proposal= lapply(ans[4:(4+p-1)], Matrix::t)
       for (i in 1:length(proposal)) proposal[[i]]@x = as.double(proposal[[i]]@x)
       proposaldensity= Matrix::t(ans[[length(ans)]])
     }
@@ -136,7 +137,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=ans$margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
+  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
 
   new("msfit_ggm",ans)
 }

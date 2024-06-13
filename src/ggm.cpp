@@ -419,25 +419,34 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   ggm->use_tempering= false;
   ggm->parallel_regression= ggm->parallel_insample= false;
   arma::sp_mat postSample(npars, niter - burnin);
+  arma::mat margpp = arma::zeros(p,p); 
+  arma::Mat<int> margppcount;
+  margppcount.zeros(p, p);
+  arma::vec margppflat(p * (p+1)/2);
+  
   if (ggm->prob_parallel < 0.9999) {
-    GGM_parallel_MH_indep(&postSample, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
+    GGM_parallel_MH_indep(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
   } else {
-    GGM_onlyparallel_MH_indep(&postSample, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
+    GGM_onlyparallel_MH_indep(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
   }
 
+  margpp = margpp / margppcount;
+  for (int i=0; i < p; i++) margpp.at(i,i)= 1;
+  symmat2vec(&margppflat, &margpp);
+
   //Return output
-  List ret(p+3);
-  //List ret(2);
+  List ret(p+4);
   ret[0]= postSample;
-  ret[1]= prop_accept;
+  ret[1]= margppflat;
+  ret[2]= prop_accept;
 
   //Store proposals into returned list (ret)
   std::vector<arma::SpMat<short>>::iterator it;
-  for (it= proposal_models.begin(), j=2; it != proposal_models.end(); ++it, j++) { 
+  for (it= proposal_models.begin(), j=3; it != proposal_models.end(); ++it, j++) { 
     ret[j]= (*it);
   }
 
-  ret[p+2]= proposal_logprob;
+  ret[p+3]= proposal_logprob;
  
    //Free memory and return output
   delete ggm;
@@ -910,7 +919,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
   } //end i for (Gibbs iterations)
 
-  for (j = 0; j < p; j++) margppcount->at(j) += ppcount;
+  if (margpp != nullptr) for (j = 0; j < p; j++) margppcount->at(j) += ppcount;
 
   delete model;
   delete modelnew;
@@ -1215,6 +1224,8 @@ INPUT
 OUTPUT
 
   - postSample: sparse matrix where each column corresponds to a posterior sample. If the Gaussian precision matrix Omega is p x p, then postSample has p*(p+1)/2 columns storing Omega in column order. That is, the first p entries correspond to Omega[,1] (first column in Omega), the next p-1 entries to Omega[2:p,2], the next p-2 entries to Omega[3:p,3], and so on.
+  - margpp: sum of marginal posterior inclusion probabilities (Rao-Blackwellized). It should be initialized to zeroes at input
+  - margppcount: number of terms added in margpp. Posterior inclusion prob are given by margpp/margppcount. It should be initialized to zeroes at input
   - prop_accept: proportion of accepted proposals
 
 INPUT/OUTPUT
@@ -1222,7 +1233,7 @@ INPUT/OUTPUT
   - Omegaini: initial value of Omega, this is updated at each iteration and the value at the last iteration is returned
 
 */
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
@@ -1242,8 +1253,14 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
   pt2GGM_rowmarg marfun= &GGMrow_marg;
   std::vector<double*> cdf_proposal(p);
   std::vector<int> nproposal(p);
+  std::vector<arma::vec> margppcol(p);
+  std::vector<int> ppcount(p);
   std::string s;
 
+  for (i = 0; i < p; i++) {
+    margppcol[i] = arma::zeros<arma::vec>(p);
+    ppcount[i]= 0;
+  }
   invOmega_newcol = new arma::mat(p-1, p-1);
 
   if (ggm->verbose) Rprintf(" Running MH-within-Gibbs\n");
@@ -1317,6 +1334,11 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
         ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
 
+        if (margpp != nullptr) {
+          update_margpp_raoblack(&(margppcol[newcol]), min_xy(1,ppnew), &(modelold[newcol]), &modelnew); 
+          (ppcount[newcol])++;
+        }
+
         if ((ppnew >= 1) || (runifC() < ppnew)) { //if update is accepted
 
           number_accept++;
@@ -1355,6 +1377,16 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
   } //end i for
 
   (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
+
+  //Rao-Blackwellized edge probabilities
+  for (i = 0; i < p; i++) {
+    for (j = 0; j <=i; j++) { margpp->at(i,j) += margppcol[i][j]; margppcount->at(i,j) += ppcount[i]; }
+    for (j = i; j < p; j++) { margpp->at(j,i) += margppcol[i][j]; margppcount->at(j,i) += ppcount[i]; }
+//    Rprintf("Column %d, ppcount=%d\n", i, ppcount[i]); //debug
+//    (margppcol[i]).print("margppcol"); //debug
+  }
+//  margpp->print("margpp"); //debug
+//  margppcount->print("margppcount"); //debug
 
   //Free memory
   free_ivector(sequence, 0, p-1);
@@ -1407,7 +1439,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::v
 
 */
 
-void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
@@ -1419,7 +1451,13 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
   pt2GGM_rowmarg marfun= &GGMrow_marg;
   std::vector<double*> cdf_proposal(p);
   std::vector<int> nproposal(p);
+  std::vector<arma::vec> margppcol(p);
+  std::vector<int> ppcount(p);
 
+  for (i = 0; i < p; i++) {
+    margppcol[i] = arma::zeros<arma::vec>(p);
+    ppcount[i]= 0;
+  }
   invOmega_newcol = new arma::mat(p-1, p-1);
 
   if (ggm->verbose) Rprintf(" Running MH-within-Gibbs\n");
@@ -1483,6 +1521,11 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
         ppnew = exp(dpostnew - dpostold + dpropold - dpropnew);
 
+        if (margpp != nullptr) {
+          update_margpp_raoblack(&(margppcol[newcol]), min_xy(1,ppnew), &(modelold[newcol]), &modelnew); 
+          (ppcount[newcol])++;
+        }
+
         if ((ppnew >= 1) || (runifC() < ppnew)) { //if update is accepted
 
           if (i >= burnin) number_accept++;
@@ -1515,6 +1558,13 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, double *prop_accept, st
 
   (*prop_accept)= (number_accept + 0.0) / (i * updates_per_iter * updates_per_column + 0.0);
 
+  //Rao-Blackwellized edge probabilities
+  for (i = 0; i < p; i++) {
+    for (j = 0; j <=i; j++) { margpp->at(i,j) += margppcol[i][j]; margppcount->at(i,j) += ppcount[i]; }
+    for (j = i; j < p; j++) { margpp->at(j,i) += margppcol[i][j]; margppcount->at(j,i) += ppcount[i]; }
+  }
+
+  //Free memory
   for (newcol=0; newcol < p; newcol++) free_dvector(cdf_proposal[newcol], 0, nproposal[newcol]);
 
   free_ivector(sequence, 0, p-1);

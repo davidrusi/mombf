@@ -40,5 +40,5 @@ Th[abs(col(Th) - row(Th))==2]= 0.5
 Th[abs(col(Th) - row(Th))==3]= 0.64
 y= scale(rmvnorm(100, sigma=solve(Th)), center=TRUE, scale=FALSE)
 Omegaini= Th
-fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=100, burnin=0, updates_per_iter=ncol(y), updates_per_column=ncol(Th), scale=FALSE, almost_parallel='none', tempering=1, truncratio=100)
+fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=100, burnin=0, updates_per_iter=ncol(y), updates_per_column=ncol(Th), scale=FALSE, almost_parallel='regression', tempering=1, truncratio=100)
 

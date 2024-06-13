@@ -96,6 +96,8 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
 
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob, double *modelini_logprob);
 
+void update_margpp_raoblack(arma::vec *margpp, double ppnew, arma::SpMat<short> *model, arma::SpMat<short> *modelnew);
+
 void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool *birth, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, bool setmodelnew);
 
 void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, bool setmodelnew);

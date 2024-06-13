@@ -821,8 +821,8 @@ IMPORTANT: if not nullptr, at input samples and models should only contain zeroe
 
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
 
-  int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid, *ppcount;
-  double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag, *ppsum;
+  int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid, ppcount=0;
+  double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= nullptr;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
@@ -834,10 +834,6 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   } else {
     marfun= &GGMrow_marg;
   }
-
-  ppsum = dvector(0, p-1);
-  ppcount = ivector(0, p-1);
-  for (j= 0; j < p; j++) { ppsum[j]= 0; ppcount[j]; }
 
   (*number_accept)= (*number_proposed)= 0;
   if ((model_logprob != nullptr) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
@@ -874,16 +870,10 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
           ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew); //probability of accepting modelnew
 
           if (margpp != nullptr) {
-            if (index_birth != -1) { 
-              (ppsum[index_birth]) += min_xy(ppnew, 1);
-              (ppcount[index_birth])++;
-            }
-            if (index_death != -1) {
-              (ppsum[index_death]) += 1 - min_xy(ppnew, 1);
-              (ppcount[index_death])++;
-            }
+            update_margpp_raoblack(margpp, min_xy(1,ppnew), model, modelnew); 
+            ppcount++;
           }
-           
+         
           if ((ppnew > 1) || (unifdist(generator) < ppnew)) { //if new model is accepted
            
             mcurrent= mnew;
@@ -900,21 +890,6 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
       }
 
     } //end for j
-
-    //Update edge posterior inclusion probabilities
-    if (margpp != nullptr) {
-      for (j= 0; j < p; j++) {
-        if (ppcount[j] > 0) {  //if updates were attempted, use Rao-Blackwellized estimate (edge inclusion probability)
-          margpp->at(j) += ppsum[j];
-          margppcount->at(j) += ppcount[j];
-        } else {               //otherwise, use observed edge inclusion / exclusion
-          if (model->at(j,0) != 0) (margpp->at(j)) += 1;
-          (margppcount->at(j))++;
-        }
-        ppsum[j]= 0;    //reset ppsum & ppcount for next iteration
-        ppcount[j]= 0;
-      }
-    }
 
     if (samples != nullptr) {
 
@@ -935,12 +910,40 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
   } //end i for (Gibbs iterations)
 
-  free_dvector(ppsum, 0, p-1);
-  free_ivector(ppcount, 0, p-1);
+  for (j = 0; j < p; j++) margppcount->at(j) += ppcount;
+
   delete model;
   delete modelnew;
   delete ms;
   
+}
+
+
+/* Update Rao-Blackwellized estimate of edge inclusion probability 
+
+  INPUT
+  - ppnew: probability of accepting modelnew
+  - model: model at the past iteration
+  - modelnew: model being proposed for the current iteration
+
+  INTPUT/OUTPUT
+  - margpp: sum of marginal inclusion probabilities for edges 0,...,p-1. At output, the probability that each edge is present at the new iteration is added to margpp
+
+*/
+
+void update_margpp_raoblack(arma::vec *margpp, double ppnew, arma::SpMat<short> *model, arma::SpMat<short> *modelnew) {
+  int k, p= margpp->n_elem;
+
+  for (k=0; k < p; k++) {
+    if ((model->at(k,0) == 1) && (modelnew->at(k,0) == 1)) {
+      (margpp->at(k)) += 1;
+    } else if ((model->at(k,0) == 0) && (modelnew->at(k,0) == 1)) {
+      (margpp->at(k)) += min_xy(ppnew, 1);
+    } else if ((model->at(k,0) == 1) && (modelnew->at(k,0) == 0)) {
+      (margpp->at(k)) += 1 - min_xy(ppnew, 1);
+    }
+  }
+
 }
 
 /* Propose GGM birth-death model update. Return proposal density for the new state and for the current state

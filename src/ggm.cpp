@@ -941,16 +941,18 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 */
 
 void update_margpp_raoblack(arma::vec *margpp, double ppnew, arma::SpMat<short> *model, arma::SpMat<short> *modelnew) {
-  int k, p= margpp->n_elem;
 
-  for (k=0; k < p; k++) {
-    if ((model->at(k,0) == 1) && (modelnew->at(k,0) == 1)) {
-      (margpp->at(k)) += 1;
-    } else if ((model->at(k,0) == 0) && (modelnew->at(k,0) == 1)) {
-      (margpp->at(k)) += min_xy(ppnew, 1);
-    } else if ((model->at(k,0) == 1) && (modelnew->at(k,0) == 0)) {
-      (margpp->at(k)) += 1 - min_xy(ppnew, 1);
+  arma::SpMat<short> modeldif= *model - *modelnew;
+  arma::SpMat<short>::iterator it;
+  for (it = modeldif.begin(); it != modeldif.end(); ++it) {
+    if (*it < 0) {  //Case model==0, modelnew==1
+      (margpp->at(it.row())) += min_xy(ppnew, 1);
+    } else {        //Case model==1, modelnew==0
+      (margpp->at(it.row())) += 1 - min_xy(ppnew, 1);
     }
+  }
+  for (it = model->begin(); it != model->end(); ++it) {
+    if (modelnew->at(it.row(),0) == 1) (margpp->at(it.row())) += 1;  //Case model==1, modelnew==1
   }
 
 }

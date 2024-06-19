@@ -910,6 +910,7 @@ listmodels= function(vars2list, includevars=rep(FALSE,length(vars2list)), fixedv
             }
         }
     }
+    if (is.vector(ans)) ans= matrix(ans, nrow=1)
     return(ans)
 }
 

@@ -4,14 +4,39 @@
 #library(Rcpp)
 #compileAttributes("~/github/mombf")
 
+#Paul's example
 library(mombf)
 library(mvtnorm)
-library(survival)
-set.seed(1)
+p = 500
+s = 24
+n = 200
+cov = 0.5
+Sigma = matrix(rep(cov,p*p), ncol=p)
+diag(Sigma) = rep(1,p)
+set.seed(9)
+mu = rep(runif(1,1,2), p)
+X = rmvnorm(n, mu, Sigma)
+X.design = X %*% diag(1 / sqrt(diag(t(X) %*% X)/n))
+betamin = 0.5
+beta_star = c(betamin, betamin, runif(s-3,1,3), 1, rep(0,p-s))
+y = X.design %*% matrix(beta_star, ncol=1) + rnorm(n)
+#fit= bestEBIC(y, X.design, verbose=TRUE)
+sel= c(1,3,4)
+
+fit.sel= bestBIC(y, X.design[,sel], includevars=rep(TRUE,length(sel)))
+fit.sel$models
+
 
 #Cholesky update
 #B= matrix(c(2,1,.5,.25, 1,1.5,.3,.4, .5,.3,1,.75, .25,.4,.75,2),nrow=4,byrow=TRUE)
 #mombf:::testfunction(B, 3, 3)
+
+
+## GGM examples
+#library(mombf)
+#library(mvtnorm)
+#library(survival)
+#set.seed(1)
 
 ## GGM valgrind example
 #p= 5
@@ -33,12 +58,12 @@ set.seed(1)
 #fitr.ap <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=solve(cov(y)), niter=niter, burnin=burnin, scale=FALSE, almost_parallel='regression', tempering=1, truncratio=100, save_proposal=TRUE, prob_parallel=1)
 
 #Hard example p=5. Smallest eigenvalue very close to 0
-Th= diag(5)
-diag(Th)= 1.5
-Th[abs(col(Th) - row(Th))==1]= 0.95
-Th[abs(col(Th) - row(Th))==2]= 0.5
-Th[abs(col(Th) - row(Th))==3]= 0.64
-y= scale(rmvnorm(100, sigma=solve(Th)), center=TRUE, scale=FALSE)
-Omegaini= Th
-fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=100, burnin=0, updates_per_iter=ncol(y), updates_per_column=ncol(Th), scale=FALSE, almost_parallel='regression', tempering=1, truncratio=100)
+#Th= diag(5)
+#diag(Th)= 1.5
+#Th[abs(col(Th) - row(Th))==1]= 0.95
+#Th[abs(col(Th) - row(Th))==2]= 0.5
+#Th[abs(col(Th) - row(Th))==3]= 0.64
+#y= scale(rmvnorm(100, sigma=solve(Th)), center=TRUE, scale=FALSE)
+#Omegaini= Th
+#fit <- modelSelectionGGM(y, sampler='birthdeath', Omegaini=Omegaini, niter=100, burnin=0, updates_per_iter=ncol(y), updates_per_column=ncol(Th), scale=FALSE, almost_parallel='regression', tempering=1, truncratio=100)
 

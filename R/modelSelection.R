@@ -443,7 +443,8 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
       includevars= tmp
   }
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
-  if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
+
+  if (missing(maxvars)) maxvars= set_ms_maxvars(n=n, p=p, priorCoef=priorCoef, family=family, includevars=includevars)
   if (maxvars < sum(includevars)) stop("maxvars must be >= sum(includevars)")
 
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
@@ -595,6 +596,23 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,modelid=modelid,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
+}
+
+
+# set default maximum number of variables
+set_ms_maxvars = function(n, p, priorCoef, family, includevars) {
+  if ((p <= n) && (priorCoef@priorDistr != 'bic')) {
+      maxvars= p
+  } else if ((p > n) && (priorCoef@priorDistr != 'bic')) {
+      maxvars= n
+  } else if ((p <= n) && (priorCoef@priorDistr == 'bic')) {  #for BIC, set smaller maxvars to avoid zero error variance
+      maxvars= min(p, 0.5*n)
+  } else if ((p > n) && (priorCoef@priorDistr == 'bic')) {   #for BIC, set smaller maxvars to avoid zero error variance
+      maxvars= 0.5 * n
+  }
+  if (maxvars < sum(includevars)) maxvars= sum(includevars)
+  if (family == 'auto') maxvars= maxvars + 2
+  return(maxvars)
 }
 
 # format input data from either formula (y), formula and data.frame (y,data) or matrix and vector (y, x)

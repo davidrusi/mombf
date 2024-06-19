@@ -1481,7 +1481,7 @@ void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double 
 
           if (includevars[j]==0 && validmodel) { //if proposed model is valid
 
-            ppnew[1] /= ppnewsum;
+            if (ppnew[1] == INFINITY) ppnew[1]= 1; else ppnew[1] /= ppnewsum;
             if (i>=0) { if (nselnew>nsel) { margpp[j]+= ppnew[1]; } else { margpp[j]+= (1-ppnew[1]); } } //update Rao-Blackwellized inclusion probabilities
             u= runifC();
             if (u < ppnew[1]) {  selaux= sel; sel=selnew; selnew=selaux; nsel=nselnew; currentJ= newJ[0]; } //update model

@@ -444,7 +444,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   }
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
   if (missing(maxvars)) maxvars= ifelse(family=='auto', p+2, p)
-  if (maxvars <= sum(includevars)) stop("maxvars must be >= sum(includevars)")
+  if (maxvars < sum(includevars)) stop("maxvars must be >= sum(includevars)")
 
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   if (missing(priorCoef)) {

@@ -41,23 +41,28 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
   int i;
   double ans;
 
-  for (i=0; i< *nsel; i++) zerochar[sel[i]]= '1';
-  std::string s (zerochar);
-
-  if (logjointSaved.count(s) > 0) {
-    ans= logjointSaved[s];
+  if (*nsel > *((*pars).maxvars)) {
+    ans= -INFINITY;
   } else {
-    ans= marginalFunction(sel,nsel,pars);
-    ans+= priorFunction(sel,nsel,pars);
-    double d= maxIntegral - ans;
-    if (d<10 || maxVars<=16 || logjointSaved.size() <= maxsave) logjointSaved[s]= ans;
-    if (d<0) {
-      maxIntegral= ans;
-      maxModel= s;
-    }
-  }
 
-  for (i=0; i<= *nsel; i++) this->zerochar[sel[i]]= '0';
+    for (i=0; i< *nsel; i++) zerochar[sel[i]]= '1';
+    std::string s (zerochar);
+
+    if (logjointSaved.count(s) > 0) {
+      ans= logjointSaved[s];
+    } else {
+      ans= marginalFunction(sel,nsel,pars);
+      ans+= priorFunction(sel,nsel,pars);
+      double d= maxIntegral - ans;
+      if (d<10 || maxVars<=16 || logjointSaved.size() <= maxsave) logjointSaved[s]= ans;
+      if (d<0) {
+        maxIntegral= ans;
+        maxModel= s;
+      }
+    }
+
+    for (i=0; i<= *nsel; i++) this->zerochar[sel[i]]= '0';
+  }
 
   return ans;
 }

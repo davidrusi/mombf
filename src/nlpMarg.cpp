@@ -24,7 +24,7 @@
 
 // [[Rcpp::export]]
 SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
-  int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit= INTEGER(Susethinit)[0], priorcode;
+  int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit= INTEGER(Susethinit)[0], priorcode, maxvars_empty= -1;
   double *rans, *ytXuncens=NULL, emptydouble=0, *thinit;
   intptrvec constraints, invconstraints;
   crossprodmat *XtX, *XtXuncens=NULL;
@@ -55,7 +55,7 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
     for (j=0; j<= p; j++) { thinit[j]= REAL(Sthinit)[j]; }
   }
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumy), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Sadjoverdisp), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(Soptim_maxit), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumy), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Sadjoverdisp), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(Soptim_maxit), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, &maxvars_empty, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;

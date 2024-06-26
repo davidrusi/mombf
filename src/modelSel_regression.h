@@ -107,6 +107,9 @@ struct marginalPars {
   double *taualpha; //dispersion parameter in prior for asymmetry parameter in two-piece Normal or two-piece Laplace residuals
   double *fixatanhalpha; //fixed value for asymmetry parameter (usedful for quantile regression at fixed quantile levels)
   int *r;           //MOM power parameter for prior on coefficients
+  double *a;        //icarplus prior has precision matrix = a P + (1-a) tau I, where P is ICAR precision matrix, and a in (0,1)
+  double *Dmat;     //ICAR precision matrix is Pmat= t(Dmat) Dmat
+  crossprodmat *Pmat; //ICAR precision matrix is Pmat= t(Dmat) Dmat
   double *prDeltap; //For Binomial prior on model space, prDeltap is the prob of success. For complexity prior, the power parameter in the exponential
   double *parprDeltap; //For Beta-Binomial prior on model space, parprDeltap[0],parprDeltap[1] are the prior parameters
   double *prConstrp; //idem for prior on number of included groups under hierarchical constraints
@@ -201,7 +204,7 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumy,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *adjoverdisp,int *hesstype,int *optimMethod,int *optim_maxit,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r,double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *maxvars, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
+void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumy,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *adjoverdisp,int *hesstype,int *optimMethod,int *optim_maxit,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r, double *a, double *Dmat, crossprodmat *Pmat, double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *maxvars, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
 
 void delete_marginalPars(struct marginalPars *pars);
 
@@ -231,6 +234,7 @@ double gmompenalty_approx(bool momsingle, bool momgroup, double *thopt, double *
 
 
 // Priors on Model Space (always return on log scale)
+bool more_than_maxvars(int *nsel, int *maxvars);
 double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
 double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars);
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
@@ -336,6 +340,9 @@ double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
 // Normal on all coef
 double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
 double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+
+// icarplus on all coef
+double icarplusMarginal(int *sel, int *nsel, struct marginalPars *pars);
 
 // pMOM on individual coef, block Zellner on groups
 double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);

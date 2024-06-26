@@ -69,3 +69,29 @@ tensorbspline <- function(x, degree, knots, maineffects) {
     return(ans)
 }
 
+
+
+#Obtain ICAR penalty matrix D taking the difference between each element and its neighbours
+#
+# If z is p x 1, then D z is also p x 1 and its j^th entry is z[j] - mean(neighbours of j)
+#
+# INPUT
+# - neighbours: list where entry j returns the indexes of the neighbours of j
+# - scale: if TRUE, the entries in D are divided by a constant such that tr(t(D) %*% D)= p
+#
+# OUTPUT: matrix D of dimension length(neighbours) x length(neighbours)
+#         If scale=FALSE, d[j,j]= 1 and d[j,i]= -1/N[j] if i is a neighbour of j, where N[j] is the number of neighbours of j
+#         If scale= TRUE, D is multiplied by p / tr(t(D) %*% D)
+icar_dmatrix= function(neighbours, scale=TRUE) {
+    D= diag(length(neighbours))
+    N= sapply(neighbours, length)
+    for (j in 1:nrow(D)) {
+        if (N[j] > 0) {
+            D[j, neighbours[[j]]] = -1/N[j]
+        }
+    }
+    if (scale) {
+        D= D * sqrt(ncol(D) / sum(colSums(D^2)))
+    }
+    return(D)
+}

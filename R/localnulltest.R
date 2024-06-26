@@ -204,14 +204,14 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
     desnew= estimationPoints(x=x, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
     if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
     des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE, rowids.fullrank=1:nrow(x))
-    w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]
+    w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]; neighbours= des$neighbours
     if (!is.null(x.adjust)) {
         w= cbind(w, x.adjust)
         groups= c(des$vargroupsn, rep(max(des$vargroupsn)+1, ncol(x.adjust)))
     } else {
         groups= des$vargroupsn
     }
-    ms= modelSelection(y, x=w, groups=groups, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...)        
+    ms= modelSelection(y, x=w, groups=groups, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, neighbours=neighbours, verbose=verbose, ...)        
     pp= postProb(ms)
     #Obtain posterior probability for each region defined by the knots. Store in regionid, ppregion
     modelid= modelid2logical(pp$modelid, nvars=ncol(ms$xstd))
@@ -272,7 +272,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     desnew= estimationPoints(x=xc, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
     if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
     des= createDesignLocaltest(x=xc, z=z, y=y, x.adjust=x.adjust, xnew=desnew$x, znew=desnew$z, function_id=function_id, region=region, regionnew=desnew$region, regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=TRUE, Sigma=Sigma)
-    ytilde= des$ytilde; wtilde= des$wtilde; logdetSinv= des$logdetSinv
+    ytilde= des$ytilde; wtilde= des$wtilde; logdetSinv= des$logdetSinv; neighbours= des$neighbours
     wnew= des$wnew
     if (!is.null(x.adjust)) {
         wtilde= cbind(wtilde, des$wtilde.adjust)
@@ -280,7 +280,7 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     } else {
         groups= des$vargroupsn
     }
-    ms= modelSelection(y=ytilde, x=wtilde, groups=groups, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...)
+    ms= modelSelection(y=ytilde, x=wtilde, groups=groups, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, neighbours=neighbours, verbose=verbose, ...)
     pp= postProb(ms)
     #Obtain posterior probability for each region defined by the knots. Store in regionid, ppregion
     modelid= modelid2logical(pp$modelid, nvars=ncol(ms$xstd))
@@ -761,6 +761,91 @@ regionCoordinates= function(zdiscrete, regionlabels) {
 }
 
 
+#Determine neighbouring regions (needed for P-spline prior)
+
+neighbours_1d= function(ids) {
+  sapply(ids, function(i) { if (i==1) { ans= i+1 } else if (i==length(ids)) { ans= i-1 } else { ans= c(i-1,i+1) }; return(ans) })
+}
+
+#Return neighbours of main effects in multi-dimensional case (ncol(z) > 1)
+neighbours_multid_main= function(w) {
+   w0names= strsplit(colnames(w), split="\\.")
+   w0names.vname= sapply(w0names, '[[', 1)
+   w0names.ids= as.numeric(sapply(w0names, function(zz) if (length(zz)>=2) { return(zz[2]) } else { return(NA) }))
+   nn= unique(w0names.vname)
+   neighbours0= vector("list", length(nn))
+   for (i in 1:length(nn)) {
+       sel= (w0names.vname == nn[i]) #select variable
+       selwhich= which(sel)
+       neighbours0[[i]]= vector("list",sum(sel))
+       if (!any(is.na(w0names.ids[sel]))) { #if main effect has some neighbours
+           for (j in 1:length(selwhich)) {
+               if (j==1) { ans= selwhich[j]+1 } else if (j==length(selwhich)) { ans= selwhich[j]-1 } else { ans= selwhich[c(j-1,j+1)] }
+               neighbours0[[i]][[j]]= ans
+           }
+       } else {
+           for (j in 1:length(selwhich)) { neighbours0[[i]][[j]]= integer(0) }
+       }
+   }
+   neighbours0= do.call(c, neighbours0)
+   return(neighbours0)
+}
+
+#Return neighbours of tensor terms (interactions) in multi-dimensional case (ncol(z) > 1)
+neighbours_multid_tensor= function(w) {
+   #Store name of interaction term (e.g. "x1:x2") into w0names.vname, and the basis id within each term (e.g. (5,1)) into w0names.ids
+   nn= colnames(w)
+   w0names.vname= character(ncol(w))
+   w0names.ids= vector("list", ncol(w))
+   for (i in 1:ncol(w)) {
+       termsi= strsplit(nn[i], split=":")[[1]]
+       termsi= strsplit(termsi, split="\\.")
+       w0names.vname[i]= paste(sapply(termsi, "[[", 1), collapse=":")
+       w0names.ids[[i]]= as.numeric(sapply(termsi, "[[", 2))
+   }
+   w0names.ids= do.call(rbind, w0names.ids)
+   #For each term, find the neighbouring basis (differing at most 1 in all coordinates)
+   nn= unique(w0names.vname)
+   neighbours0= vector("list", length(nn))
+   for (i in 1:length(nn)) {
+       sel= (w0names.vname == nn[i]) #select variable
+       selwhich= which(sel)
+       neighbours0[[i]]= vector("list",sum(sel))
+       #ids.sel= w0names.ids[sel,]
+       if (!any(is.na(w0names.ids[sel]))) { #if main effect has some neighbours
+           for (j in 1:length(selwhich)) {
+               coord_dist= t(w0names.ids) - w0names.ids[selwhich[j],]
+               ans= which(sel & (colSums(abs(coord_dist) <= 1) == ncol(w0names.ids)) & (colSums(coord_dist) != 0))
+               neighbours0[[i]][[j]]= ans
+           }
+       } else {
+           for (j in 1:length(selwhich)) { neighbours0[[i]][[j]]= integer(0) }
+       }
+   }
+   neighbours0= do.call(c, neighbours0)
+   return(neighbours0)
+}
+
+
+neighbours_multid_cut= function(w, ncolz) {
+    #Extract numeric region identifiers for each coordinate in z
+    regionids= strsplit(sub("R","",colnames(w)), split="\\.")
+    ids= matrix(NA, nrow=length(regionids), ncol=ncolz)
+    for (i in 1:nrow(ids)) {
+        ids[i,]= as.numeric(regionids[[i]])[1:ncolz]
+    }
+    #Find neighbours
+    neighbours1= vector("list",nrow(ids))
+    for (j in 1:nrow(ids)) {
+        coord_dist= t(ids) - ids[j,]
+        ans= setdiff(which(colSums(abs(coord_dist) <= 1) == ncolz), j)
+        #ans= which((colSums(abs(coord_dist) <= 1) == ncolz) & (colSums(coord_dist) != 0))
+        neighbours1[[j]]= ans
+    }
+    return(neighbours1)
+}
+
+
 #Create design matrix with baseline effects of x and orthogonalized cut basis effects of x interacted with z
 # Input
 # - x: covariate values
@@ -804,22 +889,37 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
     }
     if (ncol(z)==1) {
        w0= bspline(zall, degree=basedegree, knots=knots[[1]])
+       neighbours0= neighbours_1d(1:ncol(w0))
     } else {
        w0= tensorbspline(zall, degree=basedegree, knots=knots, maineffects=TRUE)
+       neighbours0.main= neighbours_multid_main(w0$main)
+       neighbours0.tensor= neighbours_multid_tensor(w0$tensor)
        w0= cbind(w0$main, w0$tensor)
+       neighbours0= c(neighbours0.main, neighbours0.tensor)
     }
-    w0= w0[,apply(w0,2,'sd')>0]  #remove columns with no observations
+    #Remove columns with no observations
+    sel= apply(w0,2,'sd')>0
+    w0= w0[,sel]  
+    neighbours0= neighbours0[sel]
+    #Define cut basis
     wcut= cutbasis(zall, degree=cutdegree, region=regionall, knots=regionbounds, dropzeroes=dropzeroes, usecutbasis=usecutbasis)
-    w1= vargroups= vector("list",ncol(x))
+    if (ncol(z)==1) {
+        neighbours1.single= neighbours_1d(1:ncol(w1[[j]]))
+    } else {
+        neighbours1.single= neighbours_multid_cut(wcut$basis, ncolz=ncol(z))
+    }
+    w1= vargroups= neighbours1= vector("list",ncol(x))
     for (j in 1:ncol(x)) {
         w1[[j]]= xall[,j] * wcut$basis
         vargroups[[j]]= paste('x',j,'.R',wcut$regionid,sep='')
+        neighbours1[[j]]= neighbours1.single
     }
     w1varname= rep(paste('x',1:ncol(x),sep=''), sapply(w1, ncol))
     w1= do.call(cbind, w1)
     vargroups= do.call(c, vargroups)
     vargroupsn= c(1:ncol(w0), ncol(w0) + as.numeric(factor(vargroups)))
     vargroups= c(paste("baseline",1:ncol(w0),sep=''), vargroups)
+    neighbours1= do.call(c, neighbours1)
     # Separate w from wnew
     if (!missing(xnew)) {
         sel= 1:nrow(x)
@@ -838,7 +938,7 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
     vargroupsn= vargroupsn[c(colsel0,colsel1)]
     w1varname= w1varname[colsel1]
     w= cbind(w0, w1o)
-    #w= cbind(w0, w_decorrelated$w1o)
+    neighbours= c(neighbours0[colsel0], neighbours1[colsel1])
     if (!missing(xnew)) {
         wnew= cbind(w0new[,colsel0,drop=FALSE], w_decorrelated$w1newo[,colsel1,drop=FALSE])
     } else {
@@ -854,6 +954,7 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
         vargroups= vargroups[!ct]
         vargroupsn= vargroupsn[!ct]
         w1varname= w1varname[ !ct[-1:-ncol(w0)] ]
+        neighbours= neighbours[!ct]
     } else {
         ncolw0= ncol(w0)
         ncolw1= ncol(w_decorrelated$w1o)
@@ -874,7 +975,7 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
         logdetSinv= 0
     }
     #Return output
-    ans= list(w=w, wnew=wnew, ncolw0= ncolw0, ncolw1=ncolw1, vargroups=vargroups, vargroupsn=vargroupsn, w1varname=w1varname, ytilde=ytilde, wtilde=wtilde, logdetSinv=logdetSinv)
+    ans= list(w=w, wnew=wnew, ncolw0= ncolw0, ncolw1=ncolw1, vargroups=vargroups, vargroupsn=vargroupsn, w1varname=w1varname, neighbours=neighbours, ytilde=ytilde, wtilde=wtilde, logdetSinv=logdetSinv)
     return(ans)
 }
 

@@ -9,6 +9,7 @@
 \alias{ic}
 \alias{emomprior}
 \alias{exponentialprior}
+\alias{icarplusprior}
 \alias{imomprior}
 \alias{momprior}
 \alias{zellnerprior}
@@ -41,6 +42,7 @@ imomprior(tau, tau.adj=10^6)
 emomprior(tau, tau.adj=10^6)
 zellnerprior(taustd=1, tau, tau.adj=10^6)
 normalidprior(taustd=1, tau, tau.adj=10^6)
+icarplusprior(a=0.5, taustd=1, tau.adj=10^6)
 
 exponentialprior(lambda = 1)
 
@@ -63,6 +65,8 @@ igprior(alpha=.01, lambda=.01)
     It is calibrated so that `taustd=1` equals the unit information prior.}
   \item{tau.adj}{Prior variance in Normal prior for covariates not undergoing selection}
   \item{r}{MOM prior parameter is \code{2*r}}
+  \item{a}{The icarplus prior precision matrix is a P + (1-a) tau I, where P is
+  an ICAR precision matrix and tau I a normalidprior precision matrix}
   \item{p}{Prior inclusion probability for binomial prior on model space}
   \item{alpha.p}{Beta-binomial prior on model space has parameters alpha.p, beta.p}
   \item{beta.p}{Beta-binomial prior on model space has parameters
@@ -138,8 +142,8 @@ No methods defined with class "msPriorSpec" in the signature.
   individual variables and delta=(delta_1,...,delta_q) those for grouped
   variables (e.g. factors or smooth terms in modelSelection).
 
-  momprior, emomprior, imomprior, zellnerprior and normalid can be priors on
-  both beta or delta. For further information see the vignette.
+  momprior, emomprior, imomprior, zellnerprior, normalid and icarplus
+  can be priors on both beta or delta. For further information see the vignette.
 
   groupzellnerprior is the prior density on delta
 
@@ -178,7 +182,10 @@ or for the Complexity prior P(Z=k) proportional to \code{1/K^(c*k)}.
 Johnson VE, Rossell D. Non-Local Prior Densities for Default Bayesian Hypothesis Tests. Journal of the Royal Statistical Society B, 2010, 72, 143-170
 
 Johnson VE, Rossell D. Bayesian model selection in high-dimensional
-settings. Journal of the American Statistical Association, 107, 498:649-660.
+settings. Journal of the American Statistical Association, 107,
+498:649-660.
+
+Rossell D, Abril O, Bhattacharya A. Approximate Laplace approximations for scalable model selection (2021). Journal of the Royal Statistical Society B, 83, 4, 853-879
 }
 \author{
 David Rossell

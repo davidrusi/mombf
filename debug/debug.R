@@ -4,27 +4,15 @@
 #library(Rcpp)
 #compileAttributes("~/github/mombf")
 
-#Paul's example
+#icarplus prior
 library(mombf)
-library(mvtnorm)
-p = 500
-s = 24
-n = 200
-cov = 0.5
-Sigma = matrix(rep(cov,p*p), ncol=p)
-diag(Sigma) = rep(1,p)
-set.seed(9)
-mu = rep(runif(1,1,2), p)
-X = rmvnorm(n, mu, Sigma)
-X.design = X %*% diag(1 / sqrt(diag(t(X) %*% X)/n))
-betamin = 0.5
-beta_star = c(betamin, betamin, runif(s-3,1,3), 1, rep(0,p-s))
-y = X.design %*% matrix(beta_star, ncol=1) + rnorm(n)
-#fit= bestEBIC(y, X.design, verbose=TRUE)
-sel= c(1,3,4)
-
-fit.sel= bestBIC(y, X.design[,sel], includevars=rep(TRUE,length(sel)))
-fit.sel$models
+set.seed(1)
+p= 6; n=200
+x= matrix(rnorm(n*p), nrow=n, ncol=p)
+b= matrix(c(1,.9,.8,.7,rep(0,p-4)), ncol=1)
+y= x %*% b + rnorm(n)
+neighbours= mombf:::neighbours_1d(1:p)
+nlpMarginal(sel=c(TRUE,TRUE,TRUE,TRUE,FALSE,FALSE), y=y, x=x, priorCoef=icarplusprior(taustd=1), neighbours=neighbours)
 
 
 #Cholesky update

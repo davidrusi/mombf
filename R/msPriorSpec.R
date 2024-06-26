@@ -48,7 +48,7 @@ valid_msPriorSpec <- function(object) {
     switch(object@priorType,
            coefficients = {
                valid_coef_prior_distrs <- c(
-                 "pMOM","groupMOM","piMOM","peMOM","zellner","groupzellner","normalid","bic"
+                 "pMOM","groupMOM","piMOM","peMOM","zellner","groupzellner","normalid","bic","icarplus"
                )
                found <- object@priorDistr %in% valid_coef_prior_distrs
                if (!found) {
@@ -214,6 +214,12 @@ momprior <- function(taustd=1, tau, tau.adj=10^6, r=1) {
   }
   new("msPriorSpec", priorType="coefficients", priorDistr="pMOM", priorPars=priorPars)
 }
+
+icarplusprior <- function(a=0.5, taustd=1, tau.adj=10^6) {
+    if ((a < 0) | (a>1)) stop("a must be in [0,1]")
+    new("msPriorSpec", priorType="coefficients", priorDistr="icarplus", priorPars=c(a=a, taustd=taustd, tau.adj=tau.adj))
+}
+
 
 imomprior <- function(tau, tau.adj=10^6) {
     new("msPriorSpec", priorType="coefficients", priorDistr="piMOM", priorPars=c(tau=tau, tau.adj=tau.adj))

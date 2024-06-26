@@ -22,6 +22,7 @@
 nlpMarginal(sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x),
 family="normal", priorCoef, priorGroup,
 priorVar=igprior(alpha=0.01,lambda=0.01), priorSkew=momprior(tau=0.348),
+neighbours, 
 phi, method='auto', adj.overdisp='intercept', hess='asymp', optimMethod,
 optim_maxit, initpar='none', B=10^5, logscale=TRUE, XtX, ytX)
 
@@ -76,6 +77,10 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
   assumed to be of
   the same family as priorCoef. Ignored if \code{family} is 'normal' or
   'laplace'.}
+\item{neighbours}{Only used if priorCoef is an icarplus prior.
+  neighbours is a list with the same length as the design matrix.
+  Its entry j should be a vector indicating the neighbours of j,
+  and have 0 length if j has no neighbours.}
 \item{method}{Method to approximate the integral. See
   \code{help(modelSelection)}.}
 \item{adj.overdisp}{Only used for method=='ALA'. Over-dispersion adjustment for models with fixed

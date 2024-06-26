@@ -7,7 +7,7 @@
 nlpMarginal <- function(
   sel, y, x, data, smoothterms, nknots=9, groups=1:ncol(x), family="normal",
   priorCoef, priorGroup, priorVar=igprior(alpha=0.01,lambda=0.01),
-  priorSkew=momprior(tau=0.348), phi, method='auto', adj.overdisp='intercept', hess='asymp',
+  priorSkew=momprior(tau=0.348), neighbours, phi, method='auto', adj.overdisp='intercept', hess='asymp',
   optimMethod, optim_maxit, initpar='none', B=10^5, logscale=TRUE, XtX, ytX
 ) {
   #Check input
@@ -37,6 +37,8 @@ nlpMarginal <- function(
 
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
 
+  if (!missing(neighbours)) { Dmat= icar_dmatrix(neighbours) } else { Dmat= diag(p) }
+
   # format arguments for .Call
   thinit= getthinit(y=y, x=x, family=family, initpar=initpar, enumerate=TRUE)
   usethinit= thinit$usethinit; thinit= thinit$thinit
@@ -50,6 +52,7 @@ nlpMarginal <- function(
   ngroups= tmp$ngroups; constraints= tmp$constraints; invconstraints= tmp$invconstraints; nvaringroup=tmp$nvaringroup; groups=tmp$groups
   tmp= formatmsPriorsMarg(priorCoef=priorCoef, priorGroup=priorGroup, priorVar=priorVar, priorSkew=priorSkew, n=n)
   r= tmp$r; prior= tmp$prior; priorgr= tmp$priorgr; tau=tmp$tau; taugroup=tmp$taugroup; alpha=tmp$alpha; lambda=tmp$lambda; taualpha=tmp$taualpha; fixatanhalpha=tmp$fixatanhalpha
+  a= tmp$a
 
   if (!is_formula) {
     sel <- check_sel_groups(sel, groups)
@@ -60,8 +63,7 @@ nlpMarginal <- function(
     nsel <- length(sel)
   }
 
-  ans <- nlpMarginalCI(knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
-  #ans <- .Call("nlpMarginalCI", knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, groups, ngroups, nvaringroup, constraints, invconstraints, logscale)
+  ans <- nlpMarginalCI(knownphi, sel, nsel, familyint, prior, priorgr, n, p, y, uncens, sumy2, sumy, sumlogyfact, x, colsumsx, XtX, ytX, method, adj.overdisp, hesstype, optimMethod, optim_maxit, thinit, usethinit, B, alpha, lambda, tau, taugroup, taualpha, fixatanhalpha, r, a, groups, ngroups, nvaringroup, constraints, invconstraints, Dmat, logscale)
   return(ans)
 }
 

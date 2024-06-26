@@ -25,7 +25,8 @@ burnin=round(niter/10), family='normal', priorCoef,
 priorGroup, priorDelta=modelbbprior(1,1),
 priorConstraints,
 priorVar=igprior(.01,.01),
-priorSkew=momprior(tau=0.348), phi, deltaini=rep(FALSE,ncol(x)),
+priorSkew=momprior(tau=0.348),
+neighbours, phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', adj.overdisp='intercept',
 hess='asymp', optimMethod, optim_maxit, initpar='none', B=10^5,
 XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
@@ -115,6 +116,10 @@ to the number of variables in \code{x}. }
   For \code{family=='twopiecelaplace'} setting alpha=a is equivalent
   to performing quantile regression for the quantile (1+a)/2.
   Ignored if \code{family} is 'normal' or 'laplace'.}
+\item{neighbours}{Only used if priorCoef is an icarplus prior.
+  neighbours is a list with the same length as the design matrix.
+  Its entry j should be a vector indicating the neighbours of j,
+  and have 0 length if j has no neighbours.}
 \item{phi}{The error variance in Gaussian models, typically this is
   unknown and is left missing}
 \item{deltaini}{Logical vector of length \code{ncol(x)} indicating which

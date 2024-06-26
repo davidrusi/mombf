@@ -20,14 +20,14 @@
 #include <string>
 
 //Syntax calling from R, see nlpMarginal.R
-//nlpMarginalCI(sel,       nsel,    familyint,           prior,          priorgr,       n,       p,       y,       uncens,       sumy2,       x,       colsumsx,       XtX,       ytX,       method,       hesstype,       optimMethod, optim_maxit,       B,       alpha,       lambda,       tau,       taugroup,       taualpha,       fixatanhalpha,       r,       groups,       ngroups,       nvaringroup,       constraints,      invconstraints,        logscale)
+//nlpMarginalCI(sel,       nsel,    familyint,           prior,          priorgr,       n,       p,       y,       uncens,       sumy2,       x,       colsumsx,       XtX,       ytX,       method,       hesstype,       optimMethod, optim_maxit,       B,       alpha,       lambda,       tau,       taugroup,       taualpha,       fixatanhalpha,       r,       groups,       ngroups,       nvaringroup,       constraints,      invconstraints, Dmat, logscale)
 
 // [[Rcpp::export]]
-SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP Slogscale) {
+SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP SpriorCoef, SEXP SpriorGroup, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Suncens, SEXP Ssumy2, SEXP Ssumy, SEXP Ssumlogyfact, SEXP Sx, SEXP Scolsumsx, SEXP SXtX, SEXP SytX, SEXP Smethod, SEXP Sadjoverdisp, SEXP Shesstype, SEXP SoptimMethod, SEXP Soptim_maxit, SEXP Sthinit, SEXP Susethinit, SEXP SB, SEXP Salpha, SEXP Slambda, SEXP Stau, SEXP Staugroup, SEXP Staualpha, SEXP Sfixatanhalpha, SEXP Sr, SEXP Sa, SEXP Sgroups, SEXP Sngroups, SEXP Snvaringroup, SEXP Sconstraints, SEXP Sinvconstraints, SEXP SDmat, SEXP Slogscale) {
   int i, j, idxj, nuncens, *isgroup, *nconstraints, *ninvconstraints, ngroupsconstr=0, p= INTEGER(Sp)[0], usethinit= INTEGER(Susethinit)[0], priorcode, maxvars_empty= -1;
   double *rans, *ytXuncens=NULL, emptydouble=0, *thinit;
   intptrvec constraints, invconstraints;
-  crossprodmat *XtX, *XtXuncens=NULL;
+  crossprodmat *XtX, *XtXuncens=NULL, *Pmat;
   struct marginalPars pars;
   SEXP ans;
 
@@ -39,6 +39,8 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
   countConstraints(nconstraints, &constraints, ninvconstraints, &invconstraints, &ngroupsconstr, isgroup, INTEGER(Sngroups), INTEGER(Snvaringroup), Sconstraints, Sinvconstraints);
 
   XtX= new crossprodmat(REAL(SXtX),INTEGER(Sn)[0],p,true);
+  Pmat= new crossprodmat(REAL(SDmat), p, p, false);
+
   if (LENGTH(Suncens)>0) { //if there's censoring, also store t(x) %*% x and t(x) %*% y computed over uncensored observations
     int n=INTEGER(Sn)[0], *uncens= INTEGER(Suncens);
     double *pty= REAL(Sy), *ptx= REAL(Sx);
@@ -55,7 +57,7 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
     for (j=0; j<= p; j++) { thinit[j]= REAL(Sthinit)[j]; }
   }
 
-  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumy), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Sadjoverdisp), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(Soptim_maxit), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), &emptydouble, &emptydouble, &emptydouble, &emptydouble, &maxvars_empty, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
+  set_marginalPars(&pars, INTEGER(Sfamily), INTEGER(Sn), &nuncens, INTEGER(Sp), REAL(Sy), INTEGER(Suncens), REAL(Ssumy2), REAL(Ssumy), REAL(Ssumlogyfact), REAL(Sx), REAL(Scolsumsx), XtX, REAL(SytX), INTEGER(Smethod), INTEGER(Sadjoverdisp), INTEGER(Shesstype), INTEGER(SoptimMethod), INTEGER(Soptim_maxit), &usethinit, thinit, INTEGER(SB), REAL(Salpha),REAL(Slambda), INTEGER(Sknownphi), &emptydouble, REAL(Stau), REAL(Staugroup), REAL(Staualpha), REAL(Sfixatanhalpha), INTEGER(Sr), REAL(Sa), REAL(SDmat), Pmat, &emptydouble, &emptydouble, &emptydouble, &emptydouble, &maxvars_empty, INTEGER(Slogscale), &emptydouble, INTEGER(Sgroups), isgroup, INTEGER(Sngroups), 0, INTEGER(Snvaringroup), 0, 0, XtXuncens,ytXuncens);
 
   priorcode = mspriorCode(INTEGER(SpriorCoef), INTEGER(SpriorGroup), &pars);
   pars.priorcode= &priorcode;
@@ -64,6 +66,7 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
 
   delete_marginalPars(&pars);
   delete XtX;
+  delete Pmat;
   free_dvector(thinit, 0, p);
   UNPROTECT(1);
   return ans;

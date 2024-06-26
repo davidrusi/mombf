@@ -41,7 +41,7 @@ double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars)
   int i;
   double ans;
 
-  if (*nsel > *((*pars).maxvars)) {
+  if ((*((*pars).maxvars) >= 0) && *nsel > *((*pars).maxvars)) {
     ans= -INFINITY;
   } else {
 

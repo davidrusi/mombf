@@ -23,7 +23,8 @@
 \usage{
 cil(y, D, X, I = NULL, family = 'normal', familyD = 'normal',
   R = 1e4, Rinit = 500, th.search = 'EB', mod1 = 'lasso_bic',
-  th.prior = 'unif', priorCoef, rho.min = NULL,
+  th.prior = 'unif', priorCoef = momprior(taustd=1),
+  rho.min = NULL, rho.max = 0.95,
   th.range = NULL, max.mod = 2^20, lpen = 'lambda.1se',
   eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale =
   TRUE, includevars, verbose = TRUE)
@@ -60,9 +61,9 @@ cil(y, D, X, I = NULL, family = 'normal', familyD = 'normal',
   estimation. Currently only \code{unif} (Uniform prior) is supported,
   effectively making the EB approach the maximisation of the marginal likelihood}
 \item{priorCoef}{Prior on the response model parameters, see \code{modelSelection}}
-\item{rho.min}{value of \eqn{\rho} in (0, 1/2) employed in the prior probability
-  model of CIL. If left uninformed, i.e. supplied as the default \code{NULL},
-  it will be set to \eqn{1/p^2}, where p is the dimension of the response model.}
+\item{rho.min}{Lower bound on the covariate's prior inclusion probability. 
+  By default, it is set to \eqn{1/p}, where p is the number of covariates}
+\item{rho.max}{Upper bound on the covariate's prior inclusion probability}
 \item{th.range}{sequence of values to be considered in the grid when searching
   for points to initialise the search for the optimal theta parameters. If left
   uninformed, the function will determine a computationally suitable grid

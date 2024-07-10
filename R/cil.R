@@ -303,11 +303,11 @@ Gf.EP.cil <- function(x, betad, nt, pj1, th.prior, rho.min = 0, rho.max = 1, inc
 }
 
 ################################################################################
-check.parameter.format <- function(rho.min, th.range, max.mod, lpen, eps, bvs.fit0, th.EP, D) {
+check.parameter.format <- function(rho.min, rho.max, th.range, max.mod, lpen, eps, bvs.fit0, th.EP, D) {
 ################################################################################
   # Error messages accounted for
   err1 <- 'if informed, argument "rho.min" must be a scalar in the interval (0, 1/2).'
-  #err2 <- 'if informed, argument "rho.max" must be a scalar in the interval (1/2, 1).'
+  err2 <- 'if informed, argument "rho.max" must be in the interval (rho.min, 1).'
   err3 <- 'if informed, argument "th.range" must be numeric and have at least two distinct values.'
   #err4 <- 'if informed, argument "tau" must be a positive scalar.'
   err5 <- 'parameter "max.mod" must be a positive integer scalar.'
@@ -324,6 +324,8 @@ check.parameter.format <- function(rho.min, th.range, max.mod, lpen, eps, bvs.fi
       stop(err1)
     }
   }
+
+  if (rho.min >= rho.max) stop(err2)
 
   # Parameter: "th.range"
   if (! is.null(th.range)) {
@@ -483,13 +485,11 @@ setThetaRange <- function(ncolD) {
 
 ################################################################################
 model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal',
-  mod1, th.search = 'EB', th.prior = 'unif', priorCoef, rho.min = NULL,
+  mod1, th.search = 'EB', th.prior = 'unif', priorCoef, rho.min = NULL, rho.max,
   th.range = NULL, max.mod = 2^20, lpen = 'lambda.1se', eps = 1e-10,
   R, Rinit= 500, bvs.fit0 = NULL, th.EP = NULL, center = center, scale = scale,
   includevars = includevars, verbose = TRUE) {
 ################################################################################
-  # Make sure parameter inputs are in the correct format
-  check.parameter.format(rho.min = rho.min, th.range = th.range, max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
 
   # Renaming (DEPENDENCIES: mombf, pracma, glmnet, hdm)
   ms <- modelSelection#mombf::modelSelection
@@ -525,6 +525,13 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
     stop("X must be a matrix or a data.frame")
   }
 
+  # Default lower bound on prior inclusion probability
+  if (is.null(rho.min)) rho.min <- 1 / (ncol(Z) + 1)
+
+  # Make sure parameter inputs are in the correct format
+  check.parameter.format(rho.min = rho.min, rho.max = rho.max, th.range = th.range, max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0, th.EP = th.EP, D = D)
+
+  # Set covariates that must be included in the model
   if (missing(includevars)) includevars <- rep(FALSE, ncol(D)+ncolI+ncol(A))
   includeX <-  includevars[(ncol(D)+ncolI+1):length(includevars)]
   if (length(includevars) != ncol(D) + ncolI + ncol(A)) stop(paste("includevars has length",length(includevars),"but there are",ncol(D)+ncolI+ncol(A),"columns in (D,I,X). Note: if X is a data.frame, an intercept was automatically added"))
@@ -534,11 +541,6 @@ model.pprobs.cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'no
   addintcpt <- sum(isct)==0
   includeX[isct] <- TRUE #always add the intercept (so it doesn't affect EB/EP estimates)
    
-  # Other fixed parameters
-  if (is.null(rho.min)) rho.min <- 1 / (ncol(Z) + 1)
-  #if (is.null(rho.min)) rho.min <- 1 / (ncol(Z)^2 + 1)
-  rho.max <- 1 - rho.min
-
   # Estimate coefficients on exposure model
   if (verbose) cat("ESTIMATING ASSOCIATION BETWEEN TREATMENTS AND CONTROLS\n\n")
   betad <- exposureCoef(Di=Di, A=A, familyD=familyD, typeofvar=typeofvar, addintcpt=addintcpt, mod1=mod1, priorCoef=priorCoef, Rinit=Rinit, lpen=lpen)
@@ -749,7 +751,7 @@ check.input.format <- function(y, D, X, I, R) {
 
 ################################################################################
 cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal', R = 1e4, Rinit = 500, th.search = 'EB',
-  mod1 = 'lasso_bic', th.prior = 'unif', priorCoef, rho.min = NULL, th.range = NULL, max.mod = 2^20,
+  mod1 = 'lasso_bic', th.prior = 'unif', priorCoef = momprior(taustd=1), rho.min = NULL, rho.max = 0.95, th.range = NULL, max.mod = 2^20,
   lpen = 'lambda.1se', eps = 1e-10, bvs.fit0 = NULL, th.EP = NULL, center = TRUE, scale = TRUE, includevars, verbose=TRUE) {
 ################################################################################
   # Assert inputs are in the correct format
@@ -758,7 +760,7 @@ cil <- function(y, D, X, I = NULL, family = 'normal', familyD = 'normal', R = 1e
   # Posterior model probabilities
   pprobs <- model.pprobs.cil(y, D, X, I, family = family, familyD = familyD, R = R, Rinit = Rinit, th.search = th.search,
     mod1 = mod1, th.prior = th.prior, priorCoef = priorCoef,
-    rho.min = rho.min, th.range = th.range,
+    rho.min = rho.min, rho.max = rho.max, th.range = th.range,
     max.mod = max.mod, lpen = lpen, eps = eps, bvs.fit0 = bvs.fit0,
     th.EP = th.EP, center = center, scale = scale, includevars = includevars, verbose = verbose)
 

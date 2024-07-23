@@ -48,29 +48,28 @@ SEXP pimomMarginalKI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssum
 SEXP pimomMarginalUI(SEXP Ssel, SEXP Snsel, SEXP Sn, SEXP Sp, SEXP Sy, SEXP Ssumy2, SEXP Sx, SEXP SXtX, SEXP SytX, SEXP Stau, SEXP Smethod, SEXP SB, SEXP Slogscale, SEXP Salpha, SEXP Slambda, SEXP Sngroups, SEXP Snvaringroup);
 
 
-
 /*****************************************************************************************************************
-  typedefs
+  Define classes
 *****************************************************************************************************************/
 
-typedef double(*pt2margFun)(int *, int *, struct marginalPars *);  //pointer to function to compute marginal densities & prior prob (used for model selection)
-typedef double(*pt2modavgPrior)(int *, int *, struct modavgPars *);  //pointer to function to compute prior model prob (used in model averaging routines)
-typedef std::list<int*> intptrlist; //list where each element is a pointer to an integer
-typedef std::vector<int*> intptrvec; //vector where each element is a pointer to an integer
+class lmObject {
 
+public:
 
+  //Constructors and destructor
+  lmObject(int *prCoef, int *prGroup, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumy,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *adjoverdisp,int *hesstype,int *optimMethod,int *optim_maxit,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r, double *a, double *Dmat, crossprodmat *Pmat, double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *maxvars, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
+  lmObject(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
+  //lmObject(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
+  ~lmObject();
 
+  int mspriorCode();
+  int mspriorCode(int *prCoef, int *prGroup); //Return numerical code for prior distribution specified by (prCoef, prGroup)
 
-
-/*****************************************************************************************************************
-  Define structures
-*****************************************************************************************************************/
-
-
-// Structure containing parameters needed to calculate the integrated likelihood
-struct marginalPars {
+  //PUBLIC VARIABLES & METHODS PROVIDED BY THE CLASS
+  int *prCoef;
+  int *prGroup;
+  int priorcode;
   int *family;
-  int *priorcode;
   int *sel;
   int *nsel;
   int *n;        //number of observations
@@ -124,6 +123,7 @@ struct marginalPars {
   int *nvaringroup; //number of coefficients in group[0],...,group[ngroups-1]
   int *nconstraints; //number of constraints in group[0],...,group[ngroups-1]
   int *ninvconstraints; //number of inverse constraints (number of groups depending on group[0],...,group[ngroups-1])
+
 };
 
 
@@ -159,16 +159,29 @@ struct modavgPars {
 };
 
 
+//Auxiliary functions. 
+void spmat_to_ivector(int *model_vec, int *model_length, arma::SpMat<short> *model); //Convert single-column arma::SpMat into integer vector storing the indexes of the non-zero rows
+void ivector_to_spmat(int *model_vec, int *model_length, arma::SpMat<short> *model); //Convert integer vector storing indexes of non-zero rows into arma::SpMat with 1's in those indexes
 
+
+/*****************************************************************************************************************
+  typedefs
+*****************************************************************************************************************/
+
+typedef double(*pt2margFun)(arma::SpMat<short> *, lmObject *, arma::mat *, arma::SpMat<short> *, arma::mat *, arma::mat *); //pointer to function to compute marginal densities & prior prob (used for model selection)
+typedef double(*pt2modelpriorFun)(arma::SpMat<short> *, lmObject *);  //pointer to function to compute model prior prob (used for model selection)
+//typedef double(*pt2margFun)(int *, int *, struct marginalPars *);  //pointer to function to compute marginal densities & prior prob (used for model selection)
+typedef double(*pt2modavgPrior)(int *, int *, struct modavgPars *);  //pointer to function to compute prior model prob (used in model averaging routines)
+typedef std::list<int*> intptrlist; //list where each element is a pointer to an integer
+typedef std::vector<int*> intptrvec; //vector where each element is a pointer to an integer
 
 
 //*************************************************************************************
 //Setting prior & marginals
 //*************************************************************************************
 
-int mspriorCode(int *prCoef, int *prGroup, struct marginalPars *pars);
-pt2margFun set_marginalFunction(struct marginalPars *pars);
-pt2margFun set_priorFunction(int *prDelta, int *prConstr, int *family);
+pt2margFun set_marginalFunction(lmObject *lm);
+pt2modelpriorFun set_priorFunction(int *prDelta, int *prConstr, int *family);
 pt2modavgPrior set_priorFunction_modavg(int *priorModel);
 
 //*************************************************************************************
@@ -204,13 +217,8 @@ double simTaupmom(int *nsel, int *curModel, double *curCoef1, double *curPhi, st
 //General marginal density calculation routines
 //*************************************************************************************
 
-void set_marginalPars(struct marginalPars *pars, int *family, int *n,int *nuncens,int *p,double *y,int *uncens,double *sumy2,double *sumy,double *sumlogyfact,double *x,double *colsumsx,crossprodmat *XtX,double *ytX,int *method,int *adjoverdisp,int *hesstype,int *optimMethod,int *optim_maxit,int *usethinit,double *thinit,int *B,double *alpha,double *lambda,int *knownphi,double *phi,double *tau,double *taugroup,double *taualpha, double *fixatanhalpha, int *r, double *a, double *Dmat, crossprodmat *Pmat, double *prDeltap,double *parprDeltap, double *prConstrp,double *parprConstrp, int *maxvars, int *logscale, double *offset, int *groups, int *isgroup, int *ngroups, int *ngroupsconstr, int *nvaringroup, int *nconstraints, int *ninvconstraints, crossprodmat *XtXuncens, double *ytXuncens);
-
-void delete_marginalPars(struct marginalPars *pars);
-
-void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
-
-void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
+//void set_f2opt_pars(double *m, double **S, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *phi, double *tau, int *r, int *n, int *p, int *sel, int *nsel);
+//void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p, int *sel, int *nsel, double *y, double *sumy2, int *method, int *B, double *alpha, double *lambda, int *logscale);
 
 
 
@@ -218,16 +226,19 @@ void set_f2int_pars(crossprodmat *XtX, double *ytX, double *tau, int *n, int *p,
 // Model Selection Routines
 //*************************************************************************************
 
-void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *prDelta, int *prConstr, int *verbose, struct marginalPars *pars);
-void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
-void greedyVarSelC(int *postMode, double *postModeProb, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, struct marginalPars *pars);
+void modelSelectionEnum(int *postMode, double *postModeProb, double *postProb, int *nmodels, int *models, int *prDelta, int *prConstr, int *verbose, lmObject *lm);
+void modelSelectionGibbs(int *postSample, double *margpp, int *postMode, double *postModeProb, double *postProb, int *prDelta, int *prConstr, int *niter, int *thinning, int *burnin, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, lmObject *lm);
+void greedyVarSelC(int *postMode, double *postModeProb, int *prDelta, int *prConstr, int *niter, int *ndeltaini, int *deltaini, int *includevars, intptrvec *constraints, intptrvec *invconstraints, int *verbose, lmObject *lm);
 
-void update_postMode(int *postMode, int nselnew, int *selnew, int p, int family);
-bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndropgroups, intptrvec *constraints, int *nconstraints, intptrvec *invconstraints, int *ninvconstraints, int *groups, int *nvaringroup, int *sel, int *nsel);
-void sel2selnew(int newgroup, int *sel, int *nsel, int *selnew, int *nselnew, bool copylast, int *ngroups, int *nvaringroup, int *firstingroup);
+void update_postMode(int *postMode, arma::SpMat<short> *model, int p, int family);
+bool checkConstraints(int *addgroups, int *naddgroups, int *dropgroups, int *ndropgroups, intptrvec *constraints, int *nconstraints, intptrvec *invconstraints, int *ninvconstraints, int *groups, int *nvaringroup, arma::SpMat<short> *model);
+void sel2selnew(int newgroup, arma::SpMat<short> *sel, arma::SpMat<short> *selnew, int *nvaringroup, int *firstingroup);
 void findselgroups(double *nvarinselgroups, double *firstingroup, double *nselgroups, double *selgroups, int *sel, int *nsel, int *nvaringroup, int *ngroups);
 void nselConstraints(int *ngroups0, int *ngroups1, int *sel, int *nsel, int *group, int *nconstraints, int *nvaringroup);
 void countConstraints(int *nconstraints, intptrvec *constraints, int *ninvconstraints, intptrvec *invconstraints, int *ngroupsconstr, int *isgroup, int *ngroups, int *nvaringroup, SEXP Sconstraints, SEXP Sinvconstraints);
+
+void posteriorprec_update_lm(bool *fastupdate, arma::mat *V, arma::mat *cholV, double *logdetV, arma::mat *cholVinv, arma::mat *cholVinv_old, arma::SpMat<short> *model, arma::SpMat<short> *modelold, lmObject *lm);
+void modelupdate_indexes(int *row_dropped, int *row_added, int *modelrow_dropped, int *modelrow_added, arma::SpMat<short> *modelold, arma::SpMat<short> *modelnew);
 
 double pmompenalty_approx(double *thopt, double **Hinv, double *tau, int thlength, double *nvaringroups, double *firstingroup);
 double gmompenalty_approx(bool momsingle, bool momgroup, double *thopt, double **Hinv, double *Sinv, double phi, int thlength, int nsel, int nselgroupsint, double *nvarinselgroups, double *firstingroup, double *cholSini);
@@ -235,19 +246,26 @@ double gmompenalty_approx(bool momsingle, bool momgroup, double *thopt, double *
 
 // Priors on Model Space (always return on log scale)
 bool more_than_maxvars(int *nsel, int *maxvars);
-double unifPrior(int *sel, int *nsel, struct marginalPars *pars);
-double unifPriorTP(int *sel, int *nsel, struct marginalPars *pars);
+double unifPrior(arma::SpMat<short> *sel, lmObject *lm);
+double unifPriorTP(arma::SpMat<short> *sel, lmObject *lm);
 double unifPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
-double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, struct marginalPars *pars);
-double binomPrior(int *sel, int *nsel, struct marginalPars *pars);
-double binomPriorTP(int *sel, int *nsel, struct marginalPars *pars);
+double vectBinom(arma::SpMat<short> *sel, int len_prDeltap, int len_prConstrp, lmObject *lm);
+double vectBinom(int *sel, int *nsel, int len_prDeltap, int len_prConstrp, lmObject *lm);
+double binomPrior(arma::SpMat<short> *sel, lmObject *lm);
+double binomPrior(int *sel, int *nsel, lmObject *lm);
+double binomPriorTP(arma::SpMat<short> *sel, lmObject *lm);
+double binomPriorTP(int *sel, int *nsel, lmObject *lm);
 double binomPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
-double betabinPrior(int *sel, int *nsel, struct marginalPars *pars);
-double betabinPriorTP(int *sel, int *nsel, struct marginalPars *pars);
+double betabinPrior(arma::SpMat<short> *sel, lmObject *lm);
+double betabinPrior(int *sel, int *nsel, lmObject *lm);
+double betabinPriorTP(arma::SpMat<short> *sel, lmObject *lm);
+double betabinPriorTP(int *sel, int *nsel, lmObject *lm);
 double betabinPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 
-double complexityPrior(int *sel, int *nsel, struct marginalPars *pars);
-double complexityPriorTP(int *sel, int *nsel, struct marginalPars *pars);
+double complexityPrior(arma::SpMat<short> *sel, lmObject *lm);
+double complexityPrior(int *sel, int *nsel, lmObject *lm);
+double complexityPriorTP(arma::SpMat<short> *sel, lmObject *lm);
+double complexityPriorTP(int *sel, int *nsel, lmObject *lm);
 double complexityPrior_modavg(int *sel, int *nsel, struct modavgPars *pars);
 
 
@@ -261,7 +279,7 @@ void demomgzell(double *ans, double *th, double *tau, double *nvaringroup, doubl
 void dgzellgzell(double *ans, double *th, double *nvaringroup, double *ngroups, double *ldetSinv, double *cholSinv, double *cholSini, bool logscale);
 
 void gzell_Sinv(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, double *tau, double *taugroup, bool orthoapprox);
-void gzell_Sinv_byprior(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, int *n, double *tau, double *taugroup, int *priorcode);
+void gzell_Sinv_byprior(double *Sinv, double *cholSinv, double *ldetSinv, int *ngroups, double *nvaringroups, int *sel, double *cholSini, crossprodmat *XtX, int *n, double *tau, double *taugroup, int priorcode);
 double getelem_Sinv(int groupid, int k, int l, double *Sinv, double *cholSini, int ningroup);
 void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nvaringroups);
 
@@ -271,40 +289,40 @@ void cholSini_indexes(double *cholSini, int *cholSsize, int ngroups, double *nva
 //*************************************************************************************
 
 // pMOM + group Zellner
-void pmomgzell_log (double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void pmomgzell_gradhess (double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pmomgzell_grad (double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pmomgzell_hess (double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void pmomgzell_log (double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void pmomgzell_gradhess (double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pmomgzell_grad (double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pmomgzell_hess (double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 // peMOM + group Zellner
-void pemomgzell_log(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void pemomgzell_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pemomgzell_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pemomgzell_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void pemomgzell_log(double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void pemomgzell_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pemomgzell_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pemomgzell_hess(double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 // group Zellner + group Zellner
-void gzellgzell_log(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void gzellgzell_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void gzellgzell_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void gzellgzell_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void gzellgzell_log(double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void gzellgzell_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void gzellgzell_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void gzellgzell_hess(double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 // pMOM + group Zellner + inverse gamma
-void pmomgzellig_log (double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void pmomgzellig_gradhess (double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pmomgzellig_grad (double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pmomgzellig_hess (double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void pmomgzellig_log (double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void pmomgzellig_gradhess (double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pmomgzellig_grad (double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pmomgzellig_hess (double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 // peMOM + group Zellner + inverse gamma
-void pemomgzellig_log(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void pemomgzellig_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pemomgzellig_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void pemomgzellig_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void pemomgzellig_log(double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void pemomgzellig_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pemomgzellig_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void pemomgzellig_hess(double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 // group Zellner + group Zellner + inverse gamma
-void gzellgzellig_log(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs);
-void gzellgzellig_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void gzellgzellig_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
-void gzellgzellig_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs);
+void gzellgzellig_log(double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs);
+void gzellgzellig_gradhess(double *priorgrad, double *priorhess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void gzellgzellig_grad(double *priorgrad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
+void gzellgzellig_hess(double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs);
 
 
 
@@ -314,6 +332,7 @@ void gzellgzellig_hess(double **hess, double *th, int *sel, int *thlength, struc
 // LEAST SQUARES
 //*************************************************************************************
 
+void leastsquares(double *theta, double *phi, double *ypred, arma::mat *cholVinv, arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold);
 void leastsquares(double *theta, double *phi, double *ypred, double *y, double *x, crossprodmat *XtX, double *ytX, int *n, int *p, int *sel, int *nsel);
 
 
@@ -321,52 +340,63 @@ void leastsquares(double *theta, double *phi, double *ypred, double *y, double *
 // MARGINAL LIKELIHOOD UNDER NORMAL ERRORS
 //*************************************************************************************
 
+//Marginal likelihood for model with no covariates and unknown variance
+double lmMarginal_novars(lmObject *lm);
+
 // pMOM on all coef
-double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pmomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+double pmomMarginalKC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pmomMarginalKC(int *sel, int *nsel, lmObject *lm);
+double pmomMarginalUC(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // piMOM on all coef
-double pimomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pimomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+double pimomMarginalKC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMarginalKC(int *sel, int *nsel, lmObject *lm);
+double pimomMarginalUC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMarginalUC(int *sel, int *nsel, lmObject *lm);
 
 // peMOM on all coef
-double pemomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+double pemomMarginalKC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMarginalUC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMarginalUC(int *sel, int *nsel, lmObject *lm);
 
 // Zellner on all coef
-double zellnerMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double zellnerMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+double zellnerMarginalKC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double zellnerMarginalKC(int *sel, int *nsel, lmObject *lm);
+double zellnerMarginalUC(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // Normal on all coef
-double normalidMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
-double normalidMarginalUC(int *sel, int *nsel, struct marginalPars *pars);
+double normalidMarginalKC(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double normalidMarginalKC(int *sel, int *nsel, lmObject *lm);
+double normalidMarginalUC(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // icarplus on all coef
-double icarplusMarginal(int *sel, int *nsel, struct marginalPars *pars);
+double icarplusMarginal(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // pMOM on individual coef, block Zellner on groups
-double pmomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);
+double pmomgzellMarg(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pmomgzellMarg(int *sel, int *nsel, lmObject *lm);
 
 // pMOM on individual coef, group MOM on groups
-double pmomgmomMarg(int *sel, int *nsel, struct marginalPars *pars);
+double pmomgmomMarg(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pmomgmomMarg(int *sel, int *nsel, lmObject *lm);
 
 // peMOM on individual coef, group eMOM on groups
-double pemomgemomMarg(int *sel, int *nsel, struct marginalPars *pars);
+double pemomgemomMarg(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // peMOM on individual coef, block Zellner on groups
-double pemomgzellMarg(int *sel, int *nsel, struct marginalPars *pars);
+double pemomgzellMarg(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
 
 // Zellner on individual coef, block Zellner on groups
-double zellgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
-
-// Zellner on individual coef, normalid on groups
-double zellnormidMarg (int *sel, int *nsel, struct marginalPars *pars);
+double zellgzellMarg(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double zellgzellMarg (int *sel, int *nsel, lmObject *lm);
 
 // normalid on individual coef, group Zellner on groups
-double normidgzellMarg (int *sel, int *nsel, struct marginalPars *pars);
+double normidgzellMarg(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+void prior_precision_normidgzell(double *logdet_priorV, arma::mat *postV, std::vector<int> *covariate_indexes, lmObject *lm);
 
-// BIC criterion for Gaussian linear model
-double bic_lm (int *sel, int *nsel, struct marginalPars *pars);
+// BIC and other information criteria for Gaussian linear model
+double bic_lm(arma::SpMat<short> *model, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+
 
 
 
@@ -375,22 +405,26 @@ double bic_lm (int *sel, int *nsel, struct marginalPars *pars);
 // MARGINAL LIKELIHOOD UNDER NORMAL / TWO-PIECE NORMAL / LAPLACE / TWO-PIECE LAPLACE RESIDUALS
 //*************************************************************************************
 
-double pmomMargTP(int *sel, int *nsel, struct marginalPars *pars);
-double pimomMargTP(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMargTP(int *sel, int *nsel, struct marginalPars *pars);
+double pmomMargTP(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pmomMargTP(int *sel, int *nsel, lmObject *lm);
+double pimomMargTP(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMargTP(int *sel, int *nsel, lmObject *lm);
+double pemomMargTP(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMargTP(int *sel, int *nsel, lmObject *lm);
 
 
 //*************************************************************************************
 // TWO-PIECE LAPLACE ROUTINES
 //*************************************************************************************
 
-double pmomMargLaplU(int *sel, int *nsel, struct marginalPars *pars);
-double pimomMargLaplU(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMargLaplU(int *sel, int *nsel, struct marginalPars *pars);
-double pmomMargAlaplU(int *sel, int *nsel, struct marginalPars *pars);
-double pimomMargAlaplU(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMargAlaplU(int *sel, int *nsel, struct marginalPars *pars);
-double nlpMargAlapl(int *sel, int *nsel, struct marginalPars *pars, int *prior, int *symmetric);
+double pmomMargLaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMargLaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMargLaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pmomMargAlaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMargAlaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMargAlaplU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double nlpMargAlapl(arma::SpMat<short> *sel, lmObject *lm, int *prior, int *symmetric);
+double nlpMargAlapl(int *sel, int *nsel, lmObject *lm, int *prior, int *symmetric);
 
 void postmodeAlaplCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, crossprodmat *XtX, double *ytX, int *maxit, double *ftol, double *thtol, double *tau, double *taualpha, double *fixatanhalpha, double *alphaphi, double *lambdaphi, int *prior, int *hesstype, int *symmetric);
 void mleAlaplCDA(double *thmode, double *fmode, double *ypred, int *sel, int *nsel, int *n, int *p, double *y, double *x, crossprodmat *XtX, double *ytX, int *maxit, bool useinit, int *symmetric, double *fixatanhalpha);
@@ -410,10 +444,11 @@ void quadapproxALaplace(double *hdiag, double **H, int *nsel, int *sel, int *n, 
 // TWO-PIECE NORMAL ROUTINES
 //*************************************************************************************
 
-double pmomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
-double pimomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
-double pemomMargSkewNormU(int *sel, int *nsel, struct marginalPars *pars);
-double nlpMargSkewNorm(int *sel, int *nsel, struct marginalPars *pars, int *prior, int *symmetric);
+double pmomMargSkewNormU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pimomMargSkewNormU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double pemomMargSkewNormU(arma::SpMat<short> *sel, lmObject *lm, arma::mat *cholVinv_old, arma::SpMat<short> *modelold, arma::mat *m, arma::mat *cholVinv);
+double nlpMargSkewNorm(arma::SpMat<short> *sel, lmObject *lm, int *prior, int *symmetric);
+double nlpMargSkewNorm(int *sel, int *nsel, lmObject *lm, int *prior, int *symmetric);
 
 void postmodeSkewNorm(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, crossprodmat *XtX, double *ytX, int *maxit, double *tau, double *taualpha, double *alpha, double *lambda, bool *initmle, int *prior);
 void postmodeSkewNormCDA(double *thmode, double *fmode, double **hess, int *sel, int *nsel, int *n, int *pvar, double *y, double *x, crossprodmat *XtX, double *ytX, int *maxit, double *ftol, double *thtol, double *tau, double *taualpha, double *alphaphi, double *lambdaphi, int *prior, int *symmetric);
@@ -444,7 +479,7 @@ void fppmomNegC_non0(double **ans, double *th, double **S, double *phi, double *
 void momIntegralApproxC(double *ILaplace, double *thopt, double **Voptinv, double *fopt, int *n, int *nsel, double *m, double **S, double *detS, double *phi, double *tau, int *r, int *logscale);
 
 double rsumlogsq(double *th, int *r, int *nsel);  //compute r*sum(log(th^2))
-double pmomMarginalKC(int *sel, int *nsel, struct marginalPars *pars);
+double pmomMarginalKC(int *sel, int *nsel, lmObject *lm);
 double MC_mom(double *m,double **Sinv,int *r,int *nsel, int *B);  //MC evaluation of E(prod(th^2r)) for th ~ N(m,Sinv)
 double MC_mom_T(double *m,double **Sinv,int *nu,int *r,int *nsel, int *B); //MC evaluation of E(prod(th^2r)) for th ~ T_nu(m,Sinv)
 
@@ -469,8 +504,6 @@ void imomModeU(double *th, PolynomialRootFinder::RootStatus_T *status, double *s
 void imomUIntegralApproxC(double *ILaplace, double *thopt, int *sel, int *nsel, int *n, int *p, double *sumy2, crossprodmat *XtX, double *ytX, double *alpha, double *lambda, double *tau, int *logscale);
 
 double IS_imom(double *thopt, double **Voptinv, int *sel, int *nsel, int *n, int *p, crossprodmat *XtX, double *ytX, double *phi, double *tau, int *B);
-
-double f2int_imom(double phi);
 
 
 

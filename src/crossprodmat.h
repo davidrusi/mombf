@@ -89,6 +89,7 @@ public:
 
   double at(int i, int j);  //Access element with matrix-type index, e.g. A(0,1) is element in row 0, column 1
   double at(int k);  //Access element with vector-type index A(k)= A(i,j) where j= k/nrow; i= k % nrow
+  arma::mat * submat(std::vector<int> *row_indexes, std::vector<int> *col_indexes); //Return dense submatrix with rows / cols in row_indexes / col_indexes
 
   void choldc(int idxini, int idxfi, double *cholXtX, double *detXtX, bool *posdef); //Cholesky decomp and determinant
 

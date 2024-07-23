@@ -3366,9 +3366,7 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
   bool posdef;
   int i, npar= A->n_cols;
   choldcinv(cholAinv, &posdef, A);
-  (*Ainv)= cholAinv->t() * (*cholAinv);
-  //(*cholAinv) = arma::inv(trimatu(arma::chol(*A))); //same as line above, using armadillo built-in functions (should be slower, as it uses arma::inv)
-  //(*Ainv)= (*cholAinv) * cholAinv->t();
+  if (Ainv != nullptr) tchol_times_chol(cholAinv, Ainv); // (*Ainv)= cholAinv->t() * (*cholAinv);
   for (i=0, (*logdet_Ainv=0); i<npar; i++) (*logdet_Ainv) += log(cholAinv->at(i,i));
   (*logdet_Ainv) *= 2;
 
@@ -3380,11 +3378,48 @@ void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, ar
   int i, npar= A->n_cols;
 
   choldcinv(cholAinv, cholA, &posdef, A);
-  (*Ainv)= cholAinv->t() * (*cholAinv);
+  if (Ainv != nullptr) {
+    tchol_times_chol(cholAinv, Ainv); // (*Ainv)= cholAinv->t() * (*cholAinv);
+  }
   for (i=0, (*logdet_Ainv=0); i<npar; i++) (*logdet_Ainv) += log(cholAinv->at(i,i));
   (*logdet_Ainv) *= 2;
 
 }
+
+//Obtain ans= cholA * b, using that cholA is lower-triangular
+void chol_times_vec(arma::mat *cholA, arma::vec *b, arma::vec *ans) {
+  int i, j, n= cholA->n_rows;
+  double sum;
+  for (i=0; i<n; i++) {
+    for (j=0, sum=0; j<=i; j++) sum += cholA->at(i,j) * b->at(j);
+    ans->at(i)= sum;
+  }
+}
+
+//Obtain ans= cholA * B, using that cholA is lower-triangular
+void chol_times_mat(arma::mat *cholA, arma::mat *B, arma::mat *ans) {
+  int i, j, k, nrowA= cholA->n_rows, ncolB= B->n_cols;
+  double sum;
+  for (i=0; i<nrowA; i++) {
+    for (j=0; j<ncolB; j++) {
+      for (k=0, sum=0; k<=i; k++) sum += cholA->at(i,k) * B->at(k,j);
+      ans->at(i,j)= sum;
+    }
+  }
+}
+
+//Obtain ans= cholA^T cholA, using that cholA is lower-triangular
+void tchol_times_chol(arma::mat *cholA, arma::mat *ans) {
+  int i, j, k, n= cholA->n_rows;
+  double sum;
+  for (i=0; i<n; i++) {
+    for (j=0; j<n; j++) {
+      for (k= max_xy(i,j), sum=0; k<n; k++) sum += cholA->at(k,i) * cholA->at(k,j);
+      ans->at(i,j)= sum;
+    }
+  }
+}
+
 
 
 /* Cholesky decomposition of A= L L^T + x x^T. The output is returned in the lower-triangular part of L */

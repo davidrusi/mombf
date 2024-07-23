@@ -80,6 +80,9 @@ if (!isGeneric("postProbSubset")) {
   setGeneric("postProbSubset", function(object, varsubset, nmax, method='norm') standardGeneric("postProbSubset"))
 }
 
+if (!isGeneric("marglhood_acrossmodels")) {
+  setGeneric("marglhood_acrossmodels", function(object, logscale=TRUE) standardGeneric("marglhood_acrossmodels"))
+}
 
 if (!isGeneric("postSamples")) {
     setGeneric("postSamples", function(object) standardGeneric("postSamples"))
@@ -88,6 +91,6 @@ if (!isGeneric("postSamples")) {
 
 
 if (!isGeneric("rnlp")) {
-  setGeneric("rnlp", function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') standardGeneric("rnlp"))
+  setGeneric("rnlp", function(y, x, m, V, msfit, outcometype, family, priorCoef, priorGroup, priorVar, priorprec, isgroup, niter=10^3, burnin=round(niter/10), thinning=1, pp='norm') standardGeneric("rnlp"))
 }
 

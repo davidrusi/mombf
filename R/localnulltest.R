@@ -82,32 +82,42 @@ setMethod("postProb", signature(object='localtest'), function(object, nmax, meth
 # - regionbounds: list with region bounds defined by the local testing knots at each resolution level
 # - Sigma: input parameter
 
-localnulltest= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), localknots, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(), priorGroup=priorCoef, priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Check & format input arguments
-    check= checkargs_localnulltest(y=y,x=x,x.adjust=x.adjust,z=z)
+    check= checkargs_localnulltest(y=y,x=x,x.adjust=x.adjust,z=z,localknots=localknots)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     #Define local grid
     if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
+    if (missing(localknots)) {
+        localknots= NULL
+    } else {
+        if (!is.list(localknots)) localknots= list(localknots)
+    }
     #Perform local null tests
-    localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
+    localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, localknots=localknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
 }
 
 
 #Same as localnulltest, but for data observed on a regular grid (e.g. time series, functional data analysis) where errors may be correlated
-localnulltest_fda= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=momprior(), priorGroup=groupmomprior(), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest_fda= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), localknots, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=momprior(), priorGroup=groupmomprior(), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Check & format input requirements
-    check= checkargs_localnulltest(y=y,x=x,z=z,x.adjust=x.adjust,function_id=function_id)
+    check= checkargs_localnulltest(y=y,x=x,z=z,x.adjust=x.adjust,function_id=function_id,localknots=localknots)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     #Define local grid
     if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z) #define localgrid
+    if (missing(localknots)) {
+        localknots= NULL
+    } else {
+        if (!is.list(localknots)) localknots= list(localknots)
+    }
     #Perform local null tests
-    localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
+    localnulltest_core(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgridsize=localgridsize, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots, localknots=localknots, basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, mc.cores=mc.cores, return.mcmc=return.mcmc, verbose=verbose, ...)
 }
 
 #Check input arguments to localnulltest
-checkargs_localnulltest= function(y, x, z, x.adjust, function_id) {
+checkargs_localnulltest= function(y, x, z, x.adjust, function_id, localknots) {
     if (is.matrix(y)) y= as.vector(y)
     if (!is.matrix(x)) x= as.matrix(x)
     if (!is.matrix(z)) z= as.matrix(z)
@@ -126,43 +136,62 @@ checkargs_localnulltest= function(y, x, z, x.adjust, function_id) {
             if (!is.numeric(x.adjust)) stop("x.adjust must be numeric")
         }
     }
+    if (!missing(localknots)) {
+        if (!is.list(localknots)) {
+            b= range(localknots)
+            for (i in 1:ncol(z)) if ((min(z) < b[1]) || (max(z) > b[2])) stop(paste("Specified localknots do not span the range of z[,",i,"]",sep=""))
+        } else {
+            for (j in 1:length(localknots)) {
+                b= range(localknots[[j]])
+                for (i in 1:ncol(z)) if ((min(z) < b[1]) || (max(z) > b[2])) stop(paste("Specified localknots do not span the range of z[,",i,"]",sep=""))
+            }
+        }
+    }
     return(list(y=y, x=x, z=z, x.adjust=x.adjust))
 }
 
 #Core function to run local null tests at multiple resolutions.
 # It calls localnulltest_givenknots (for iid errors) or localnulltest_fda_givenknots (for dependent errors observed on regular grids)
-localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
+localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsize, localgrid, nbaseknots=20, nlocalknots=c(5,10,15), localknots, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(), priorGroup=priorCoef, priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE, ...) {
     #Define function to be run at each resolution level
-    if (missing(Sigma)) {
-        foo= function(i) { localnulltest_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots[i], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
-        Sigma= "identity"
+    if (is.null(localknots)) {
+        nresolutions= length(nlocalknots)
+        if (missing(Sigma)) {
+            foo= function(i) { localnulltest_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots[i], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
+            Sigma= "identity"
+        } else {
+            foo= function(i) { localnulltest_fda_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots[i], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
+        }
     } else {
-        foo= function(i) { localnulltest_fda_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgrid=localgrid, nbaseknots=nbaseknots, nlocalknots=nlocalknots[i], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
+        nresolutions= length(localknots)
+        if (missing(Sigma)) {
+            foo= function(i) { localnulltest_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, localgrid=localgrid, nbaseknots=nbaseknots, localknots=localknots[[i]], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
+            Sigma= "identity"
+        } else {
+            foo= function(i) { localnulltest_fda_givenknots(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id, Sigma=Sigma, localgrid=localgrid, nbaseknots=nbaseknots, localknots=localknots[[i]], basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, verbose=verbose, ...) }
+        }
     }
     #Run analysis for each resolution level
     if (("parallel" %in% loadedNamespaces()) & mc.cores>1)  {
-      alltests= parallel::mclapply(1:length(nlocalknots), foo, mc.cores=mc.cores)
+      alltests= parallel::mclapply(1:nresolutions, foo, mc.cores=mc.cores)
     } else {
-      alltests= lapply(1:length(nlocalknots), foo)
+      alltests= lapply(1:nresolutions, foo)
     }
-    #Posterior probability of each resolution level (value of nlocalknots)
-    logpp= vector("list", length(nlocalknots))
-    maxlogpp= double(length(nlocalknots))
+    #Posterior probability of each resolution level
+    logpp= double(length(alltests))
     for (i in 1:length(logpp)) {
-        logpp[[i]]= logjoint(alltests[[i]]$ms[[1]], return_models=FALSE) - 0.5 * alltests[[i]]$logdetSinv
-        maxlogpp[i]= max(logpp[[i]])
+        logpp[[i]]= marglhood_acrossmodels(alltests[[i]]$ms[[1]], logscale=TRUE) - 0.5 * alltests[[i]]$logdetSinv
     }
-    m= max(maxlogpp)
-    pp_localknots= sapply(logpp, function(zz) sum(exp(zz-m)))
+    pp_localknots= exp(logpp - max(logpp))
     pp_localknots= pp_localknots / sum(pp_localknots)
     #Average across resolution levels       
-    if(length(nlocalknots)==1) {
+    if(nresolutions==1) {
         ans= alltests[[1]]
     } else {
         #Posterior probabilities for the local tests
         pplocalgrid= alltests[[1]]$pplocalgrid
         pplocalgrid[,-1]= pplocalgrid[,-1] * pp_localknots[1]
-        for (i in 2:length(nlocalknots)) pplocalgrid[,-1]= pplocalgrid[,-1] + alltests[[i]]$pplocalgrid[,-1] * pp_localknots[i]
+        for (i in 2:nresolutions) pplocalgrid[,-1]= pplocalgrid[,-1] + alltests[[i]]$pplocalgrid[,-1] * pp_localknots[i]
         #BMA estimate and 95% intervals
         covareffects= alltests[[1]]$covareffects
         p= ncol(alltests[[1]]$covareffects.mcmc)
@@ -189,20 +218,23 @@ localnulltest_core= function(y, x, z, x.adjust, function_id, Sigma, localgridsiz
 
 
 
-localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
+localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, nbaseknots=20, nlocalknots=10, localknots, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(), priorGroup=priorCoef, priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
-    if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest")
+    if (missing(localknots)) {
+        if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest")
+        localknots= NULL
+    }
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     # Define local tests
     if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
     # Define knots and corresponding knot-based testing regions
-    kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots)
+    kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots, localknots=localknots)
     knots= kk$knots; regionbounds= kk$regionbounds; region=kk$region; regioncoord= kk$regioncoord; testov= kk$testov; testxregion= kk$testxregion; testIntervals= kk$testIntervals
     #Create design matrix & run Bayesian model selection
     desnew= estimationPoints(x=x, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
-    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations. Consider using less local knots\n"))
     des= createDesignLocaltest(x=rbind(x,desnew$x), z=rbind(z,desnew$z), y=y, region=c(region,desnew$region), regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=FALSE, rowids.fullrank=1:nrow(x))
     w= des$w[1:nrow(x),]; wnew= des$w[-1:-nrow(x),]; neighbours= des$neighbours
     if (!is.null(x.adjust)) {
@@ -247,9 +279,12 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
 
 
 
-localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(), verbose=FALSE, ...) {
+localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20, nlocalknots=10, localknots, basedegree=3, cutdegree=0, usecutbasis=TRUE, priorCoef=momprior(), priorGroup=groupmomprior(), priorDelta=modelbbprior(), verbose=FALSE, ...) {
     #Check & format input requirements
-    if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest_fda")
+    if (missing(localknots)) {
+        if (length(nlocalknots)>1) stop("nlocalknots must have length 1. Consider using localnulltest_fda")
+        localknots= NULL
+    }
     check= checkargs_localnulltest(y=y, x=x, z=z, x.adjust=x.adjust, function_id=function_id)
     y= check$y; x= check$x; z= check$z; x.adjust= check$x.adjust
     if (inherits(Sigma, "character")) {
@@ -265,12 +300,12 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
     if (missing(localgridsize)) { if (ncol(z)==1) localgridsize= 100 else localgridsize= 10 }
     if (missing(localgrid)) localgrid= define_localgrid(localgrid=localgrid, localgridsize=localgridsize, z=z)
     # Define knots and corresponding knot-based testing regions
-    kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots)
+    kk= define_knots_localnulltest(z=z, localgrid=localgrid, nbaseknots=nbaseknots, basedegree=basedegree, nlocalknots=nlocalknots, localknots=localknots)
     knots= kk$knots; regionbounds= kk$regionbounds; region= kk$region; regioncoord= kk$regioncoord; testov= kk$testov; testxregion= kk$testxregion; testIntervals= kk$testIntervals
     #Create design matrix & run Bayesian model selection
     xc= scale(x, center=TRUE, scale=FALSE)
     desnew= estimationPoints(x=xc, regioncoord=regioncoord, regionbounds=regionbounds, testov=testov) #Points at which local effects will be estimated
-    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations with nlocalknots=", nlocalknots,". Consider using a smaller value\n"))
+    if (any(is.na(region)) | any(is.na(desnew$region))) warning(cat("Some testing regions had too few observations. Consider using less knots\n"))
     des= createDesignLocaltest(x=xc, z=z, y=y, x.adjust=x.adjust, xnew=desnew$x, znew=desnew$z, function_id=function_id, region=region, regionnew=desnew$region, regionbounds=regionbounds, basedegree=basedegree, cutdegree=cutdegree, knots=knots, usecutbasis=usecutbasis, useSigma=TRUE, Sigma=Sigma)
     ytilde= des$ytilde; wtilde= des$wtilde; logdetSinv= des$logdetSinv; neighbours= des$neighbours
     wnew= des$wnew
@@ -321,27 +356,33 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
 # - localgrid: regions at which tests will be performed. Defaults to dividing each [min(z[,i]),  max(z[,i])] into 10 equal intervals. If provided, localgrid must be a list with one entry for each z[,i], containing a vector with the desired grid for that z[,i]
 # - nbaseknots: number of knots for the baseline basis
 # - basedegree: degree of the baseline basis
-# - nlocalknots: number of knots for the local testing basis
+# - nlocalknots: number of knots for the local testing basis. Ignored when localknots are specified
+# - localknots: knots for the local testing basis. A list with ncol(z) entries giving the knots for each dimension
 # Output
 # - knots: a list with d elements containing the knots for each dimension
-# - regionbounds: a list with d elemants containing the local testing region bounds
+# - regionbounds: if localknots is specified, regionbounds is equal to localknots after adding regions at the extremes when needed. 
+#                 If missing at input, a list with d elemants containing the local testing region bounds based on equi-spaced nlocalknots knots
 # - region: character vector indicating the region of each observation (row in z)
 # - regioncoord: region coordinates
 # - testov: overlaps between localgrid and regioncoord
 # - testxregion: list with an entry for each test, indicating the regions overlapping that test
 # - testIntervals: local test grid, formatted as intervals
-define_knots_localnulltest= function(z, localgrid, nbaseknots, basedegree, nlocalknots) {
+define_knots_localnulltest= function(z, localgrid, nbaseknots, basedegree, nlocalknots, localknots) {
     knots= vector("list", ncol(z))
     regionbounds= vector("list",ncol(z))
     for (i in 1:ncol(z)) {
+        #Knots for baseline
         zlim= range(z[,i])
         baseknotwidth= (zlim[2] - zlim[1]) / nbaseknots
         knots[[i]]= seq(zlim[1] - baseknotwidth*(0.5+basedegree), zlim[2] + baseknotwidth*(0.5+basedegree), by=baseknotwidth)
         if (zlim[2] - zlim[1] > 0.01) knots[[i]]= round(knots[[i]], 3)
-        for (i in 1:ncol(z)) {
+        #Knots for local tests
+        if (is.null(localknots)) {
             zseq= seq(zlim[1], zlim[2], length=nlocalknots)
             regionbounds[[i]]= c(zseq[1] - (zseq[2]-zseq[1]), zseq, zseq[length(zseq)] + (zseq[2]-zseq[1]))
             if (zlim[2] - zlim[1] > 0.01) regionbounds[[i]]= round(regionbounds[[i]], 3)
+        } else {
+            regionbounds[[i]]= localknots
         }
     }
     zdiscrete= zdiscretef= matrix(NA,nrow=nrow(z),ncol=ncol(z))
@@ -903,16 +944,16 @@ createDesignLocaltest= function(x, z, y, x.adjust, xnew, znew, function_id, regi
     neighbours0= neighbours0[sel]
     #Define cut basis
     wcut= cutbasis(zall, degree=cutdegree, region=regionall, knots=regionbounds, dropzeroes=dropzeroes, usecutbasis=usecutbasis)
-    if (ncol(z)==1) {
-        neighbours1.single= neighbours_1d(1:ncol(w1[[j]]))
-    } else {
-        neighbours1.single= neighbours_multid_cut(wcut$basis, ncolz=ncol(z))
-    }
+    if (ncol(z) != 1) neigh_multid= neighbours_multid_cut(wcut$basis, ncolz=ncol(z))
     w1= vargroups= neighbours1= vector("list",ncol(x))
     for (j in 1:ncol(x)) {
         w1[[j]]= xall[,j] * wcut$basis
         vargroups[[j]]= paste('x',j,'.R',wcut$regionid,sep='')
-        neighbours1[[j]]= neighbours1.single
+        if (ncol(z)==1) {
+            neighbours1[[j]]= neighbours_1d(1:ncol(w1[[j]]))
+        } else {
+            neighbours1[[j]]= neigh_multid
+        }
     }
     w1varname= rep(paste('x',1:ncol(x),sep=''), sapply(w1, ncol))
     w1= do.call(cbind, w1)

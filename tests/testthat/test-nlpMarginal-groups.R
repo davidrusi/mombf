@@ -47,7 +47,7 @@ patrick::with_parameters_test_that(
     expect_equal(ans_max, ans_max_group)
     expect_equal(ans_all, ans_all_group)
   },
-  test_name=c("mom", "imom", "emom", "zellner", "normalid"),
+  .test_name=c("mom", "imom", "emom", "zellner", "normalid"),
   pCoef=c(momprior(tau=0.35), imomprior(tau=0.35), emomprior(tau=0.35), zellnerprior(tau=0.35), normalidprior(tau=0.35))
 )
 
@@ -70,7 +70,8 @@ patrick::with_parameters_test_that(
     normalid=list(pCoef=normalidprior(tau=0.3), pGroup=normalidprior(tau=0.4), expected_max=-231.111757, expected_all=-236.971966),
     normid_gzell=list(pCoef=normalidprior(tau=1), pGroup=groupzellnerprior(tau=0.4), expected_max=-316.658333, expected_all=-320.087106),
     zell_gzell=list(pCoef=zellnerprior(tau=0.3), pGroup=groupzellnerprior(tau=0.4), expected_max=-342.339794, expected_all=-342.19151),
-    mom_gzell=list(pCoef=momprior(tau=0.3), pGroup=groupzellnerprior(tau=10), expected_max=-262.450681, expected_all=-274.104395),
+    mom_gzell=list(pCoef=momprior(tau=0.3), pGroup=groupzellnerprior(tau=10), expected_max=-260.0427, expected_all=-269.2886), #from mombf 4.0.0
+#    mom_gzell=list(pCoef=momprior(tau=0.3), pGroup=groupzellnerprior(tau=10), expected_max=-262.450681, expected_all=-274.104395), #before mombf 4.0.0
     mom_gmom=list(pCoef=momprior(tau=0.3), pGroup=groupmomprior(tau=0.4), expected_max=-238.026357, expected_all=-252.308801)
   )
 )

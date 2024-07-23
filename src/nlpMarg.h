@@ -14,6 +14,6 @@
 /*
  * Function Prototypes
  */
-double nlpMarginal(int *sel, int *nsel, struct marginalPars *pars);
+double nlpMarginal(arma::SpMat<short> *model, lmObject *lm);
 
 #endif /* NLPMARG_H */

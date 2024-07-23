@@ -128,8 +128,6 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
 
 double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm);
 
-void modelupdate_indexes(int *row_dropped, int *row_added, int *modelrow_dropped, int *modelrow_added, arma::SpMat<short> *modelold, arma::SpMat<short> *modelnew);
-
 //Matrix manipulation
 void spmatsym_save2flat(arma::sp_mat *ans, arma::sp_mat *A, int col2store); //copy symmetric sp_mat in flat format to A(,col2store)
 

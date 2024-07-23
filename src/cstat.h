@@ -225,6 +225,10 @@ void choldcinv(arma::mat *cholAinv, arma::mat *cholA, bool *posdef, arma::mat *A
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *A); //inverse, Cholesky decomp and determinant of A
 void choldcinv_det(arma::mat *Ainv, arma::mat *cholAinv, double *logdet_Ainv, arma::mat *cholA, arma::mat *A); //same as above, but also returns cholA
 
+void chol_times_vec(arma::mat *cholA, arma::vec *b, arma::vec *ans); //Obtain ans= cholA * b, using that cholA is lower-triangular
+void chol_times_mat(arma::mat *cholA, arma::mat *B, arma::mat *ans); //Obtain ans= cholA * B, using that cholA is lower-triangular
+void tchol_times_chol(arma::mat *cholA, arma::mat *ans); //Obtain ans= cholA^T cholA, using that cholA is lower-triangular
+
 //Updating Cholesky decompositions
 void choldc_rank1_update(arma::mat *L, arma::vec *x);   //Cholesky decomposition of A= L L^T + x x^T
 void choldc_rank1_update(arma::mat *cholA, int cholA_rowini, int cholA_rowfi, arma::mat *L, int L_rowini, int L_rowfi, double *x, int x_rowini, int x_rowfi);

@@ -16,29 +16,33 @@
 \usage{
 
 localnulltest(y, x, z, x.adjust, localgridsize, localgrid,
-nbaseknots=20, nlocalknots=c(5,10,15), basedegree=3, cutdegree=0,
-usecutbasis=TRUE, priorCoef=normalidprior(taustd=1),
-priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(),
+nbaseknots=20, nlocalknots=c(5,10,15), localknots,
+basedegree=3, cutdegree=0,
+usecutbasis=TRUE, priorCoef=normalidprior(),
+priorGroup=priorCoef, priorDelta=modelbbprior(),
 mc.cores=min(4,length(nlocalknots)), return.mcmc=FALSE, verbose=FALSE,
 ...)
 
 localnulltest_fda(y, x, z, x.adjust, function_id,
 Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20,
-nlocalknots=c(5,10,15), basedegree=3, cutdegree=0, usecutbasis=TRUE,
+nlocalknots=c(5,10,15), localknots,
+basedegree=3, cutdegree=0, usecutbasis=TRUE,
 priorCoef=momprior(), priorGroup=groupmomprior(),
 priorDelta=modelbbprior(), mc.cores=min(4,length(nlocalknots)),
 return.mcmc=FALSE, verbose=FALSE, ...)
 
 localnulltest_givenknots(y, x, z, x.adjust, localgridsize,
-localgrid, nbaseknots=20, nlocalknots=10, basedegree=3, cutdegree=0,
-usecutbasis=TRUE, priorCoef=normalidprior(taustd=1),
-priorGroup=normalidprior(taustd=1), priorDelta=modelbbprior(),
+localgrid, nbaseknots=20, nlocalknots=10, localknots,
+basedegree=3, cutdegree=0,
+usecutbasis=TRUE, priorCoef=normalidprior(),
+priorGroup=priorCoef, priorDelta=modelbbprior(),
 verbose=FALSE, ...)
 
 localnulltest_fda_givenknots(y, x, z, x.adjust, function_id,
 Sigma='AR/MA', localgridsize, localgrid, nbaseknots=20,
-nlocalknots=10, basedegree=3, cutdegree=0, usecutbasis=TRUE,
-priorCoef=normalidprior(taustd=1), priorGroup=normalidprior(taustd=1),
+nlocalknots=10, localknots,
+basedegree=3, cutdegree=0, usecutbasis=TRUE,
+priorCoef=momprior(), priorGroup=groupmomprior(),
 priorDelta=modelbbprior(), verbose=FALSE, ...)
 
 }
@@ -65,7 +69,12 @@ priorDelta=modelbbprior(), verbose=FALSE, ...)
   for each \code{z[,i]}, containing a vector with the desired grid for that \code{z[,i]}}
 \item{nbaseknots}{Number of knots for the spline approximation to the
   baseline effect of \code{x} on \code{y}}
-\item{nlocalknots}{Number of knots for the basis capturing the local effects}
+\item{nlocalknots}{Number of knots for the basis capturing the local effects. 
+Ignored if \code{nlocalknots} is specified}
+\item{localknots}{Knots to be used for the local tests. The same knots are used for all 
+columns in \code{z}, so make sure that all columns span the same range of values.
+For a multi-resolution analysis, \code{localknots} should be a list where each entry
+specifyes the knots for one resolution}
 \item{basedegree}{Degree of the spline approximation to the baseline}
 \item{cutdegree}{Degree of the cut spline basis used for testing}
 \item{usecutbasis}{If \code{FALSE}, then the basis is not cut and a

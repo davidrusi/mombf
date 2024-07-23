@@ -15,15 +15,23 @@ using namespace std;
 /* Integrated likelihoods for regression models                                    */
 /***********************************************************************************/
 
+struct LM_logjoint {
+  double logjoint; //saves log-joint posterior probability for a previously computed model (inclusion/exclusion of covariates in the regression model)
+  arma::mat *mean; //saves posterior mean for a previously computed model
+  arma::mat *cholVinv; //save Cholesky decomposition of the posterior precision matrix (e.g. given by X^T X + prior precision in the linear regression case)
+};
+
 class modselIntegrals {
 
 public:
 
-  modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nvars);  //initialize logjoint to fun, maxVars to nvars
+  modselIntegrals(pt2margFun marfun, pt2modelpriorFun priorfun, int nvars, lmObject *lm);  //initialize logjoint to fun, maxVars to nvars
   
   ~modselIntegrals();
 
-  double getJoint(int *sel, int *nsel, struct marginalPars *pars); //Return logjoint(). Uses logjointSaved if available, else adds result to logjointSaved
+  double getJoint(arma::SpMat<short> *model, lmObject *lm, arma::SpMat<short> *modelold); //Return logjoint(). Uses logjointSaved if available, else adds result to logjointSaved
+
+  std::string getModelid(arma::SpMat<short> *model); //Return string with model id, e.g. "100010"
 
   double maxIntegral; //Stores value of largest integral
 
@@ -31,11 +39,13 @@ public:
 
 private:
 
+  lmObject *lm; //lmObject storing data, prior parameters etc.
   int maxVars; //Maximum number of covariates
   char *zerochar;  //Store model id (vars in the model) in character format, e.g. "00000"
   pt2margFun marginalFunction;  //Function computing log(marginal likelihood)
-  pt2margFun priorFunction;     //Function computing log(model prior)
-  std::map<string, double> logjointSaved; //Saves previously computed logjoint
+  pt2modelpriorFun priorFunction;     //Function computing log(model prior)
+  std::map<string, LM_logjoint> logjointSaved; //saves log-joint, posterior mean and Cholesky decomp for each previously considered model
+  //std::map<string, double> logjointSaved; //Saves previously computed logjoint
   long unsigned int maxsave;
 
 };
@@ -93,13 +103,9 @@ private:
   unsigned int colid; //column of Omega for which log-joints are being calculated
   arma::mat *Omegainv; //inverse of Omega[-colid,-colid]
 
-  //int maxVars; //Maximum number of covariates
   char *zerochar;  //Store model id (vars in the model) in character format, e.g. "00000"
 
   std::map<string, GGM_logjoint> logjointSaved; //saves log-joint, posterior mean and Cholesky decomp for each previously considered model
-  //std::map<string, double> logjointSaved; //saves log-joint for each previously computed model
-  //std::map<string, arma::mat *> meanSaved; //saves posterior mean for each previously computed model
-  //std::map<string, arma::mat *> cholVSaved; //save Cholesky decomp of the posterior covariance for each previously computed model
 
   long unsigned int maxsave; //if size of logjointSaved, meanSaved, cholVsaved  >= maxsave, save only models with non-negligible post prob vs maxModel
 

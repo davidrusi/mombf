@@ -140,8 +140,15 @@ r=1, method='auto', B=10^5, logscale=TRUE, XtX, ytX)
 \examples{
 x <- matrix(rnorm(100*2),ncol=2)
 y <- x \%*\% matrix(c(.5,1),ncol=1) + rnorm(nrow(x))
-pmomMarginalK(sel=1, y=y, x=x, phi=1, tau=1, method='Laplace')
-pmomMarginalK(sel=1:2, y=y, x=x, phi=1, tau=1, method='Laplace')
+
+#Marginal likelihood for 2 models under pMOM prior
+nlpMarginal(c(TRUE,FALSE), y=y, x=x, priorCoef=momprior())
+nlpMarginal(c(TRUE, TRUE), y=y, x=x, priorCoef=momprior())
+
+#Same, under Normal prior with diagonal covariance
+nlpMarginal(c(TRUE,FALSE), y=y, x=x, priorCoef=normalidprior())
+nlpMarginal(c(TRUE, TRUE), y=y, x=x, priorCoef=normalidprior())
+
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

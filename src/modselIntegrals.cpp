@@ -7,14 +7,15 @@ using namespace std;
 /***********************************************************************************/
 
 
-modselIntegrals::modselIntegrals(pt2margFun marfun, pt2margFun priorfun, int nvars) {
+modselIntegrals::modselIntegrals(pt2margFun marfun, pt2modelpriorFun priorfun, int nvars, lmObject *lm) {
   int i;
 
   this->maxVars= nvars;
   this->marginalFunction= marfun;
   this->priorFunction= priorfun;
+  this->lm= lm;
 
-  this->maxIntegral= -1.0e250;
+  this->maxIntegral= -INFINITY;
 
   this->maxsave= 1000000000; //save first 10^9 models
 
@@ -27,6 +28,13 @@ modselIntegrals::~modselIntegrals() {
 
   free((char  *) this->zerochar);
 
+  std::map<string, LM_logjoint>::iterator it;
+  for (it= logjointSaved.begin(); it != logjointSaved.end(); ++it) {
+    delete (it->second).mean;
+    delete (it->second).cholVinv;
+  }
+
+
 }
 
 //Return log(marginal likelihood) + log(prior). Uses logjointSaved if available, else adds result to logjointSaved. When maxVars>16, only models with a log-difference <=10 with the current mode are stored
@@ -34,37 +42,95 @@ modselIntegrals::~modselIntegrals() {
 //
 //   - sel: integer vector [0..maxVars-1], where 0's and 1's indicate covariates out/in the model (respectively)
 //   - nsel: number of covariates in the model (i.e. sum(sel))
-//   - pars: struct of type marginalPars containing parameters needed to evaluate the marginal density of the data & prior on model space
+//   - lm: lmObject containing parameters needed to evaluate the marginal density of the data & prior on model space
 //
 // Output: evaluates log joint. It returns previously saved results in logjointSaved if available, else it performs the computation and saves the result in logjointSaved
-double modselIntegrals::getJoint(int *sel, int *nsel, struct marginalPars *pars) {
-  int i;
-  double ans;
+double modselIntegrals::getJoint(arma::SpMat<short> *model, lmObject *lm, arma::SpMat<short> *modelold= nullptr) {
+  bool delete_m_cholV= false;
+  int nsel= model->n_nonzero, npar;
+  double ans, d;
+  arma::mat *m= nullptr, *cholVinv= nullptr, *cholVinv_old= nullptr;
+  struct LM_logjoint newlogjoint;
 
-  if ((*((*pars).maxvars) >= 0) && *nsel > *((*pars).maxvars)) {
+  if ((*(lm->maxvars) >= 0) && (nsel > *lm->maxvars)) {
     ans= -INFINITY;
   } else {
 
-    for (i=0; i< *nsel; i++) zerochar[sel[i]]= '1';
-    std::string s (zerochar);
-
-    if (logjointSaved.count(s) > 0) {
-      ans= logjointSaved[s];
+    //Represent the model as a string
+    std::string s= this->getModelid(model);
+    if (*lm->family == 0) {
+      int familycode= model->at(model->n_rows - 1, 0);
+      s.back() = static_cast<char>(familycode + '0'); // note: assuming 'familycode' is a single digit number
+      npar= nsel - 1;
     } else {
-      ans= marginalFunction(sel,nsel,pars);
-      ans+= priorFunction(sel,nsel,pars);
-      double d= maxIntegral - ans;
-      if (d<10 || maxVars<=16 || logjointSaved.size() <= maxsave) logjointSaved[s]= ans;
+      npar= nsel;
+    }
+
+    if (logjointSaved.count(s) > 0) { //if model was previously saved
+
+      ans= (logjointSaved[s]).logjoint;
+
+    } else {
+
+      //Retrieve Cholesky decomposition for modelold, if available
+      if (modelold != nullptr) {
+        std::string sold= this->getModelid(modelold);
+        if (*lm->family == 0) {
+          int familycode= modelold->at(modelold->n_rows - 1, 0);
+          sold.back() = static_cast<char>(familycode + '0'); // note: assuming 'familycode' is a single digit number
+        }
+        if (logjointSaved.count(sold) > 0) {
+          cholVinv_old= (logjointSaved[sold]).cholVinv;
+        } else {
+          cholVinv_old= nullptr;
+        }
+      }
+
+      //Allocate memory for m and cholV
+      if (npar > 0) {
+        m= new arma::mat(npar, 1);
+        cholVinv= new arma::mat(npar,npar);
+      }
+
+      ans= marginalFunction(model, lm, cholVinv_old, modelold, m, cholVinv);
+      ans+= priorFunction(model, lm);
+      d= maxIntegral - ans;
+      if (d<10 || maxVars<=16 || logjointSaved.size() <= maxsave) {
+
+        newlogjoint.logjoint= ans;
+        newlogjoint.mean= m;
+        newlogjoint.cholVinv= cholVinv;
+        logjointSaved[s]= newlogjoint;
+
+      } else {  //if not stored, free the allocated memory
+        delete_m_cholV= true;
+      }
+
       if (d<0) {
         maxIntegral= ans;
         maxModel= s;
       }
+
+      //Free memory
+      if (delete_m_cholV) {
+        delete m;
+        delete cholVinv;
+      }
+
     }
 
-    for (i=0; i<= *nsel; i++) this->zerochar[sel[i]]= '0';
   }
 
   return ans;
+}
+
+
+std::string modselIntegrals::getModelid(arma::SpMat<short> *model) {
+  if (model->n_cols !=1) Rf_error("In getModelid, argument model must have 1 column");
+  for (arma::SpMat<short>::iterator it= model->begin(); it != model->end(); ++it) this->zerochar[it.row()]= '1'; //Set zerochar to current model
+  std::string s (this->zerochar);
+  for (arma::SpMat<short>::iterator it= model->begin(); it != model->end(); ++it) this->zerochar[it.row()]= '0'; //Return zerochar to its original empty model status
+  return s;
 }
 
 
@@ -111,10 +177,6 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
     delete (it->second).cholV;
     delete (it->second).cholVinv;
   }
-
-  //std::map<string, arma::mat *>::iterator it;
-  //for (it= meanSaved.begin(); it != meanSaved.end(); ++it) delete it->second;
-  //for (it= cholVSaved.begin(); it != cholVSaved.end(); ++it) delete it->second;
 
 }
 

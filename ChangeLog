@@ -1,3 +1,13 @@
+CHANGES IN VERSION 4.0.0
+- Added fast Cholesky updates for information criteria
+- Added fast Cholesky updates for modelSelection under pMOM, normalid,
+icarplus and most other priors (not peMOM, piMOM though)
+- Added class lmObject to organize linear / GLM objects
+- Modified all regression marginal likelihood routines to operate with
+Armadillo sparse matrices
+- Updated modelSelectionEnum, modelSelectionGibbs, greedyVarSel to work with
+models stored as Armadillo sparse matrices
+
 CHANGES IN VERSION 3.5.5
 - Added fast Cholesky updates for GGM
 - Added almost parallel sampler to modelSelectionGGM

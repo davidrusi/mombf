@@ -37,18 +37,18 @@ hasPostSampling <- function(object) {
   hassamples[3,] =    c('Continuous','normal',  'piMOM',  'piMOM')
   hassamples[4,] =    c('Continuous','normal','zellner','zellner')
   hassamples[5,] =    c('Continuous','normal','normalid','normalid')
-  hassamples[6,] =    c('glm','binomial','bic','bic')
-  hassamples[7,] =    c('glm','binomial logit','bic','bic')
-  hassamples[8,] =    c('glm','binomial probit','bic','bic')
-  hassamples[9,] =    c('glm','gamma inverse','bic','bic')
-  hassamples[10,]=    c('glm','inverse.gaussian 1/mu^2','bic','bic')
-  hassamples[11,]=    c('glm','poisson','bic','bic')
-  hassamples[12,]=    c('glm','poisson log','bic','bic')
-  hassamples[13,]=    c('Survival','Cox','bic','bic')
-  #hassamples[14,]=    c('Survival','normal','bic','bic') #to be added
+  hassamples[6,] =    c('Continuous','normal','icarplus','icarplus')
+  hassamples[7,] =    c('glm','binomial','bic','bic')
+  hassamples[8,] =    c('glm','binomial logit','bic','bic')
+  hassamples[9,] =    c('glm','binomial probit','bic','bic')
+  hassamples[10,] =    c('glm','gamma inverse','bic','bic')
+  hassamples[11,]=    c('glm','inverse.gaussian 1/mu^2','bic','bic')
+  hassamples[12,]=    c('glm','poisson','bic','bic')
+  hassamples[13,]=    c('glm','poisson log','bic','bic')
+  hassamples[14,]=    c('Survival','Cox','bic','bic')
   #Check if there's variable groups
   hasgroups= (length(object$groups) > length(unique(object$groups)))
-  outcometype= object$outcometype; family= object$family; priorCoef= object$prior$priorCoef@priorDistr; priorGroup= object$prior$priorGroup@priorDistr
+  outcometype= object$outcometype; family= object$family; priorCoef= object$priors$priorCoef@priorDistr; priorGroup= object$priors$priorGroup@priorDistr
   outcomefam= paste(outcometype,family,sep=',')
   if (hasgroups) {
       outcomefamprior= paste(outcomefam,priorCoef,priorGroup,sep=',')
@@ -114,7 +114,7 @@ coef.msfit <- function(object,...) {
 #Return point estimate, 95% interval and posterior model prob for nmax top models
 setMethod("coefByModel", signature(object='msfit'), function(object, maxmodels, alpha=0.05, niter=10^3, burnin=round(niter/10)) {
 
-  if (!is.null(object$postmean) & (object$prior$priorCoef@priorDistr %in% c('bic','zellner'))) {
+  if (!is.null(object$postmean) & (object$priors$priorCoef@priorDistr %in% c('bic','zellner'))) {
 
       postmean= object$postmean[1:min(maxmodels,nrow(object$postmean)),]
       postsd= sqrt(object$postvar[1:min(maxmodels,nrow(object$postvar)),])
@@ -358,6 +358,39 @@ setMethod("postProbSubset", signature(object='msfit'), function(object, varsubse
 )
 
 
+#Estimate marginal likelihood across all models, p(y)= sum_gamma p(y, gamma) where gamma denotes the considered models
+#If all models can be enumerated, the exact result is obtained by summing across models
+#If all models cannot be enumerated, the estimate is obtained via species re-sampling, as follows
+# 1. Split the MCMC into two halves. Let S be the set of visited models in the 1st half, and m1= sum_{gamma in S} p(y,gamma)
+# 2. The species re-sampling estimate is m1 * adj, where
+#    adj= [1 + P(gamma not in S | y) / P(gamma in S | y)]
+#    and P(gamma in S | y) is estimated from the 2nd half of the MCMC iterations
+setMethod("marglhood_acrossmodels", signature(object='msfit'), function(object, logscale=TRUE) {
+    m= max(object$postProb)
+    ans= m + log(sum(exp(object$postProb - m)))
+    if (!object$enumerate) {
+        B= nrow(object$postSample)
+        Bhalf= round(B/2)
+        sampled_models1= object$postSample[1:Bhalf,]
+        sampled_models2= object$postSample[-1:-Bhalf,]
+        if (is.numeric(sampled_models1)) {
+            modelids1= apply(sampled_models1, 1, function(z) paste(which(z==1),collapse=','))
+            modelids2= apply(sampled_models2, 1, function(z) paste(which(z==1),collapse=','))
+        } else if (is.logical(sampled_models1)) {
+            modelids1= apply(unique(sampled_models1), 1, function(z) paste(which(z),collapse=','))
+            modelids2= apply(sampled_models2, 1, function(z) paste(which(z),collapse=','))
+        }
+        prob.resampled1= mean(modelids2 %in% modelids1)
+        prob.resampled2= mean(modelids1 %in% modelids2)
+        adj1= (1 + (1-prob.resampled1) / prob.resampled1)
+        adj2= (1 + (1-prob.resampled2) / prob.resampled2)
+        ans= ans + mean(c(log(adj1),log(adj2)))
+    }
+    if (!logscale) ans= exp(ans)
+    return(ans)
+}
+)
+
 
 defaultmom= function(outcometype,family) {
     if (outcometype=='Continuous') {
@@ -445,10 +478,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   }
   if (length(includevars)!=ncol(x) | (!is.logical(includevars))) stop("includevars must be a logical vector of length ncol(x)")
 
-  if (missing(maxvars)) maxvars= set_ms_maxvars(n=n, p=p, priorCoef=priorCoef, family=family, includevars=includevars)
-  if (maxvars < sum(includevars)) stop("maxvars must be >= sum(includevars)")
-  maxvars= as.integer(maxvars)
-
+  #Set default priors
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   if (missing(priorCoef)) {
       defaultprior= defaultmom(outcometype=outcometype,family=family)
@@ -460,6 +490,11 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   if (missing(models)) {
     if (missing(enumerate)) enumerate= ifelse(ngroups<15,TRUE,FALSE)
   } else { enumerate= TRUE }
+
+  #Set maximum number of variables allowed in any model
+  if (missing(maxvars)) maxvars= set_ms_maxvars(n=n, p=p, priorCoef=priorCoef, family=family, includevars=includevars)
+  if (maxvars < sum(includevars)) stop("maxvars must be >= sum(includevars)")
+  maxvars= as.integer(maxvars)
 
   #Standardize (y,x) to mean 0 and variance 1 (for continuous or log-survival time outcomes only)
   if (!is.vector(y)) { y <- as.double(as.vector(y)) } else { y <- as.double(y) }
@@ -598,7 +633,14 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   priors= list(priorCoef=priorCoef, priorGroup=priorGroup, priorDelta=priorDelta, priorConstraints=priorConstraints, priorVar=priorVar, priorSkew=priorSkew)
   if (length(uncens)>0) { ystd[ordery]= ystd; uncens[ordery]= uncens; ystd= survival::Surv(time=ystd, event= uncens); xstd[ordery,]= xstd }
   names(constraints)= paste('group',0:(length(constraints)-1))
-  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,modelid=modelid,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
+
+  if (priorCoef@priorDistr == 'icarplus') {
+      priorprec= Matrix::Matrix(priorCoef@priorPars['a'] * Dmat + (1-priorCoef@priorPars['a']) * diag(ncol(xstd)), sparse=TRUE)
+  } else {
+      priorprec= NA
+  }
+    
+  ans <- list(postSample=postSample,margpp=margpp,postMode=postMode,postModeProb=postModeProb,postProb=postProb,modelid=modelid,postmean=postmean,postvar=postvar,family=family,p=ncol(xstd),enumerate=enumerate,priors=priors,priorprec=priorprec,ystd=ystd,xstd=xstd,groups=groups,constraints=constraints,stdconstants=stdconstants,outcometype=outcometype,call=call)
   if (enumerate) { ans$models= models }
   new("msfit",ans)
 }
@@ -1118,7 +1160,7 @@ formatmsPriorsMarg <- function(priorCoef, priorGroup, priorVar, priorSkew, n) {
     } else if (priorGroup@priorDistr=='normalid') {
       priorgr= as.integer(4)
       if (has_taugroupstd) taugroup <- taugroupstd
-    } else if (priorCoef@priorDistr=='icarplus') {
+    } else if (priorGroup@priorDistr=='icarplus') {
       priorgr <- as.integer(5)
       if (has_taustd) taugroup <- taugroupstd
     } else if (priorGroup@priorDistr=='groupMOM') {

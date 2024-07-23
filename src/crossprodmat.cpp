@@ -199,6 +199,21 @@ double crossprodmat::at(int k) {
 
 }
 
+//Return dense submatrix with rows / cols in row_indexes / col_indexes
+arma::mat * crossprodmat::submat(std::vector<int> *row_indexes, std::vector<int> *col_indexes) {
+  int i, j, rowi, nrows= row_indexes->size(), ncols= col_indexes->size();
+  arma::mat *ans;
+  ans= new arma::mat(nrows, ncols);
+
+  for (i=0; i<nrows; i++) {
+    rowi= row_indexes->at(i);
+    ans->at(i,i)= this->at(rowi,rowi);
+    for (j=0; j<i; j++) ans->at(i,j)= ans->at(j,i)= this->at(rowi,col_indexes->at(j));
+  }
+
+  return ans;
+}
+
 
 
 void crossprodmat::choldc(int idxini, int idxfi, double *cholXtX, double *detXtX, bool *posdef) {

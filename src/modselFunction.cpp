@@ -11,7 +11,7 @@ using namespace std;
    - th: 0-indexed vector with values at which to evaluate the log-likelihood
    - thlength: length of th
    - sel: sel[0], sel[1] etc indicate the selected variables
-   - pars: further parameters needed to evaluate the likelihood and prior, see struct marginalPars in cstat.h
+   - lm: further parameters needed to evaluate the likelihood and prior, see lmObject in cstat.h
 
    OUTPUT
 
@@ -22,12 +22,12 @@ using namespace std;
    - funargs: optional input arguments storing model-specific calculations needed to evaluate the log-likelihood or prior, such as determinants of prior covariance matrices, etc. funargs can also have output parameters to store calculations done by logl, such as the linear predictor at th, to speed up subsequent log-likelihood evaluations by fjoint_update
 
 */
-void fjoint(pt2fun logl, pt2fun logprior, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void fjoint(pt2fun logl, pt2fun logprior, double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs) {
   double priordens=0;
 
-  logl(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
+  logl(f, th, sel, thlength, lm, funargs); //evaluate -log(likelihood), initialize funargs
 
-  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+  logprior(&priordens, th, sel, thlength, lm, funargs); //evaluate -log(prior)
 
   (*f) += priordens;
 
@@ -35,14 +35,14 @@ void fjoint(pt2fun logl, pt2fun logprior, double *f, double *th, int *sel, int *
 
 
 //Update log-joint and funargs due to changing th[j] into thjnew
-void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs) {
   double priordens= 0, thtmp;
 
-  logl_update(fnew, thjnew, j, f, th, sel, thlength, pars, funargs); //-loglikelihood at thnew and update funargs["residuals"]
+  logl_update(fnew, thjnew, j, f, th, sel, thlength, lm, funargs); //-loglikelihood at thnew and update funargs["residuals"]
 
   thtmp= th[j];
   th[j]= *thjnew;
-  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
+  logprior(&priordens, th, sel, thlength, lm, funargs); //evaluate -log(prior)
   th[j]= thtmp;
 
   (*fnew) += priordens;
@@ -64,12 +64,12 @@ void fjoint_update(pt2funupdate logl_update, pt2fun logprior, double *fnew, doub
    logprior_grad: gradient of the negative log-prior
    logprior_hess: hessian of the negative log-prior
 */
-void fjoint_gradhess(pt2gradhessUniv logl_gradhess, pt2gradhessUniv logprior_gradhess, double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
+void fjoint_gradhess(pt2gradhessUniv logl_gradhess, pt2gradhessUniv logprior_gradhess, double *grad, double *hess, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs) {
    double gradprior=0, hessprior=0;
 
-   logl_gradhess(grad, hess, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
+   logl_gradhess(grad, hess, j, th, sel, thlength, lm, funargs);  //store loglikelihood gradient and hessian wrt th[j]
 
-   logprior_gradhess(&gradprior, &hessprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
+   logprior_gradhess(&gradprior, &hessprior, j, th, sel, thlength, lm, funargs); //compute logprior gradient and hessian wrt th[j]
 
    (*grad) += gradprior;
    (*hess) += hessprior;
@@ -83,12 +83,12 @@ void fjoint_gradhess(pt2gradhessUniv logl_gradhess, pt2gradhessUniv logprior_gra
    logl_grad: gradient of the negative log-likelihood
    logprior_grad: gradient of the negative log-prior
 */
-void fjoint_grad(pt2gradUniv logl_grad, pt2gradUniv logprior_grad, double *grad, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) { 
+void fjoint_grad(pt2gradUniv logl_grad, pt2gradUniv logprior_grad, double *grad, int j, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double *> *funargs) { 
    double gradprior=0;
 
-   logl_grad(grad, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
+   logl_grad(grad, j, th, sel, thlength, lm, funargs);  //store loglikelihood gradient and hessian wrt th[j]
 
-   logprior_grad(&gradprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
+   logprior_grad(&gradprior, j, th, sel, thlength, lm, funargs); //compute logprior gradient and hessian wrt th[j]
 
    (*grad) += gradprior;
 
@@ -99,102 +99,13 @@ void fjoint_grad(pt2gradUniv logl_grad, pt2gradUniv logprior_grad, double *grad,
 // INPUT
 // - logl_hess: function to compute the minus log-likelihood hessian
 // - logprior_hess: function that adds to the output of logl_hess the hessian of the minus log-prior
-void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
+void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double *th, int *sel, int *thlength, lmObject *lm, std::map<string, double*> *funargs) {
 
-   logl_hess(hess, th, sel, thlength, pars, funargs);  //store loglikelihood hessian in hess
+   logl_hess(hess, th, sel, thlength, lm, funargs);  //store loglikelihood hessian in hess
 
-   logprior_hess(hess, th, sel, thlength, pars, funargs); //add log-prior to hess
+   logprior_hess(hess, th, sel, thlength, lm, funargs); //add log-prior to hess
 
 }
-
-
-
-//*************************************************************************************
-// CLASS logJoint
-//*************************************************************************************
-
-
-//logJoint::logJoint() {
-// 
-//}
-// 
-//logJoint::~logJoint() {
-// 
-//}
-// 
-// 
-///* EVALUATE LOG-JOINT (LOG-LIKELIHOOD + LOG-PRIOR) AND INITIALIZE funargs
-// 
-//   INPUT
-// 
-//   - th: 0-indexed vector with values at which to evaluate the log-likelihood
-//   - thlength: length of th
-//   - sel: sel[0], sel[1] etc indicate the selected variables
-//   - pars: further parameters needed to evaluate the likelihood and prior, see struct marginalPars in cstat.h
-// 
-//   OUTPUT
-// 
-//   - f: value of -loglikelihood(th) - logprior(th)
-// 
-//   INPUT / OUTPUT
-// 
-//   - funargs: optional input arguments storing model-specific calculations needed to evaluate the log-likelihood or prior, such as determinants of prior covariance matrices, etc. funargs can also have output parameters to store calculations done by logl, such as the linear predictor at th, to speed up subsequent log-likelihood evaluations by fjoint_update
-// 
-//*/
-//void logJoint::fjoint(double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
-//  double priordens=0;
-// 
-//  logl(f, th, sel, thlength, pars, funargs); //evaluate -log(likelihood), initialize funargs
-// 
-//  logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
-// 
-//  (*f) += priordens;
-// 
-//}
-// 
-// 
-////Update log-joint and funargs due to changing th[j] into thjnew
-//void logJoint::fjoint_update(double *fnew, double *thjnew, int j, double *f, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
-//  double priordens= 0, thtmp;
-// 
-//  this->logl_update(fnew, thjnew, j, f, th, sel, thlength, pars, funargs); //-loglikelihood at thnew and update funargs["residuals"]
-// 
-//  thtmp= th[j];
-//  th[j]= *thjnew;
-//  this->logprior(&priordens, th, sel, thlength, pars, funargs); //evaluate -log(prior)
-//  th[j]= thtmp;
-// 
-//  (*f) += priordens;
-// 
-//}
-// 
-// 
-////Minus log-joint gradient and hessian wrt th[j]
-//void logJoint::fjoint_gradhess(double *grad, double *hess, int j, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double *> *funargs) {
-//   double gradprior, hessprior;
-// 
-//   this->logl_gradhess(grad, hess, j, th, sel, thlength, pars, funargs);  //store loglikelihood gradient and hessian wrt th[j]
-// 
-//   this->logprior_gradhess(&gradprior, &hessprior, j, th, sel, thlength, pars, funargs); //compute logprior gradient and hessian wrt th[j]
-// 
-//   (*grad) += gradprior;
-//   (*hess) += hessprior;
-// 
-//}
-// 
-// 
-////Hessian matrix of the minus log-joint (- loglikelihood - logprior)
-//// INPUT
-//// - logl_hess: function to compute the minus log-likelihood hessian
-//// - logprior_hess: function that adds to the output of logl_hess the hessian of the minus log-prior
-//void logJoint::fjoint_hess(double **hess, double *th, int *sel, int *thlength, struct marginalPars *pars, std::map<string, double*> *funargs) {
-// 
-//   this->logl_hess(hess, th, sel, thlength, pars, funargs);  //store loglikelihood hessian in hess
-// 
-//   this->logprior_hess(hess, th, sel, thlength, pars, funargs); //add log-prior to hess
-// 
-//}
-
 
 
 
@@ -204,11 +115,11 @@ void fjoint_hess(pt2hess logl_hess, pt2hess logprior_hess, double **hess, double
 //*************************************************************************************
 
 
-modselFunction::modselFunction(int *sel, int thlength, struct marginalPars *pars, pt2fun fun=NULL) {
+modselFunction::modselFunction(int *sel, int thlength, lmObject *lm, pt2fun fun=NULL) {
 
   this->thlength= thlength;
   this->sel= sel;
-  this->pars= pars;
+  this->lm= lm;
   this->maxiter= 50;
   this->ftol= 0.001;
   this->thtol= 0.0001;
@@ -235,7 +146,7 @@ modselFunction::~modselFunction() {
 //Evaluate fun at th and return the value of funargs
 void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *funargs= NULL) {
 
-  fun(f, th, this->sel, &(this->thlength), this->pars, funargs);
+  fun(f, th, this->sel, &(this->thlength), this->lm, funargs);
 
 }
 
@@ -251,7 +162,7 @@ void modselFunction::evalfun(double *f, double *th, std::map<string, double *> *
 //  - funargs: on input these are arguments needed to evaluate fun at th, at output arguments needed to evaluate fun at thnew
 void modselFunction::evalfunupdate(double *fnew, double *thjnew, int j, double *f, double *th, std::map<string, double *> *funargs) {
 
-  funupdate(fnew, thjnew, j, f, th, this->sel, &(this->thlength), this->pars, funargs);
+  funupdate(fnew, thjnew, j, f, th, this->sel, &(this->thlength), this->lm, funargs);
 
 }
 
@@ -286,7 +197,7 @@ void modselFunction::cda(double *thopt, double *fopt, bool *converged, double *t
      
     while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
       for (j=0, therr=0; j< (this->thlength); j++) {
-        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
+        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->lm, NULL);
         therr= max_xy(therr, fabs(thnew - thopt[j]));
         thopt[j]= thnew;
       }
@@ -323,7 +234,7 @@ void modselFunction::cda(double *thopt, bool *converged, double *thini) {
     for (j=0; j< (this->thlength); j++) thopt[j]= thini[j];
     while ((iter< this->maxiter) & (therr > this->thtol)) {
       for (j=0, therr=0; j< (this->thlength); j++) {
-        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
+        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->lm, NULL);
         therr= max_xy(therr, fabs(thnew - thopt[j]));
         thopt[j]= thnew;
       }
@@ -355,7 +266,7 @@ void modselFunction::cda(double *thopt, double *fopt, bool *converged, double *t
      
     while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
       for (j=0, therr=0; j< (this->thlength); j++) {
-        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
+        (*(this->updateUniv))(&thnew, j, thopt, this->sel, &(this->thlength), this->lm, funargs);
         therr= max_xy(therr, fabs(thnew - thopt[j]));
         evalfunupdate(&fnew,&thnew,j,fopt,thopt,funargs); //Eval fun at thjnew, update funargs
         thopt[j]= thnew;
@@ -395,7 +306,7 @@ void modselFunction::blockcda(double *thopt, double *fopt, bool *converged, doub
      
     while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
      
-      for (j=0; j< this->thlength; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, &(this->thlength), this->pars, NULL); }
+      for (j=0; j< this->thlength; j++) { (*(this->updateUniv))(thnew+j, j, thopt, this->sel, &(this->thlength), this->lm, NULL); }
      
       this->evalfun(&fnew,thnew);
       ferr= (*fopt) - fnew;
@@ -449,7 +360,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, bool *converged, dou
      
       for (j=0, ferr=therr=0; j< this->thlength; j++) {
      
-        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
+        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->lm, funargs);
         if (H>0) { delta= g/H; } else { delta= g/max_xy(-H,.001); }  //if H<0 then target is -def, fix to ensure step is in the direction of -gradient
      
         nsteps= 1; found= false;
@@ -513,7 +424,7 @@ void modselFunction::cdaNewton(double *thopt, double *fopt, bool *converged, dou
      
       for (j=0, therr=ferr=0; j< this->thlength; j++) {
      
-        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, NULL);
+        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->lm, NULL);
         delta= g/H;
      
         nsteps= 1; found= false;
@@ -578,7 +489,7 @@ void modselFunction::blockcdaNewton(double *thopt, double *fopt, bool *converged
      
       therr= ferr= 0;
       for (j=0; j< this->thlength; j++) {
-        gradhessUniv(g+j, H+j, j, thopt, sel, &(this->thlength), this->pars, funargs);
+        gradhessUniv(g+j, H+j, j, thopt, sel, &(this->thlength), this->lm, funargs);
         delta[j]= g[j]/H[j];
       }
      
@@ -645,7 +556,7 @@ void modselFunction::Newton(double *thopt, double *fopt, bool *converged, double
      
     while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
      
-      this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
+      this->hess(H, thopt, this->sel, &(this->thlength), this->lm, funargs);
       inv_posdef(H, this->thlength, Hinv, &posdef);
       if (!posdef) { //if not positive definite, make +def by adding smallest eigenvalue to diagonal
         int i;
@@ -658,7 +569,7 @@ void modselFunction::Newton(double *thopt, double *fopt, bool *converged, double
         free_dvector(vals,1,this->thlength);
       }
       
-      for (j=0; j< this->thlength; j++) { this->gradUniv(g+1+j, j, thopt, this->sel, &(this->thlength), this->pars, funargs); }
+      for (j=0; j< this->thlength; j++) { this->gradUniv(g+1+j, j, thopt, this->sel, &(this->thlength), this->lm, funargs); }
       Ax(Hinv,g,delta,1,this->thlength,1,this->thlength);
      
       nsteps= 1; found= false;
@@ -732,7 +643,7 @@ void modselFunction::Newtonuniv(double *thj, int j, double *fopt, bool *converge
      
     while ((iter< this->maxiter) & (ferr > this->ftol) & (therr > this->thtol)) {
      
-        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->pars, funargs);
+        gradhessUniv(&g, &H, j, thopt, this->sel, &(this->thlength), this->lm, funargs);
         if (H>0) { delta= g/H; } else { delta= g/max_xy(-H,.001); }  //if H<0 then target is -def, fix to ensure step is in the direction of -gradient
      
         nsteps= 1; found= false;
@@ -799,7 +710,7 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, double **H, do
 
   if (this->thlength >0) {
 
-    if (returnH) this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
+    if (returnH) this->hess(H, thopt, this->sel, &(this->thlength), this->lm, funargs);
      
     if (cholH == NULL) {
       mycholH= dmatrix(1,this->thlength,1,this->thlength);
@@ -834,7 +745,7 @@ double modselFunction::laplaceapprox(double *thopt, double *fopt, std::map<strin
   if ((this->hess)==NULL) Rf_error("To run laplaceapprox you need to specify hess");
   H= dmatrix(1,this->thlength,1,this->thlength);
 
-  this->hess(H, thopt, this->sel, &(this->thlength), this->pars, funargs);
+  this->hess(H, thopt, this->sel, &(this->thlength), this->lm, funargs);
 
   ans= this->laplaceapprox(thopt, fopt, H);
 
@@ -905,14 +816,14 @@ double modselFunction::ALA(double *th0, double *f0, double *g0, double **H0, dou
   if (this->thlength >0) {
     if (returng0) {
       if ((this->gradUniv) != NULL) {
-        for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+        for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->lm, funargs); }
       } else { 
         double h;
-        for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+        for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->lm, funargs); }
       }
     }
      
-    if (returnH0) this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
+    if (returnH0) this->hess(H0, th0, this->sel, &(this->thlength), this->lm, funargs);
      
     if (cholH0 == NULL) {
       mycholH0= dmatrix(1,this->thlength,1,this->thlength);
@@ -962,13 +873,13 @@ double modselFunction::ALA(double *th0, double *f0, double adjfactor=1, std::map
   g0= dvector(1,this->thlength); H0= dmatrix(1,this->thlength,1,this->thlength);
 
   if ((this->gradUniv) != NULL) {
-    for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+    for (j=0; j< this->thlength; j++) { this->gradUniv(g0+1+j, j, th0, this->sel, &(this->thlength), this->lm, funargs); }
   } else {
     double h;
-    for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->pars, funargs); }
+    for (j=0; j< this->thlength; j++) { this->gradhessUniv(g0+1+j, &h, j, th0, this->sel, &(this->thlength), this->lm, funargs); }
   }
 
-  this->hess(H0, th0, this->sel, &(this->thlength), this->pars, funargs);
+  this->hess(H0, th0, this->sel, &(this->thlength), this->lm, funargs);
 
   ans= this->ALA(th0, f0, g0, H0, NULL, NULL, false, false, adjfactor);
 

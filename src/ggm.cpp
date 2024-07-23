@@ -2024,7 +2024,7 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
   unsigned int npar= model->n_nonzero -1;
   arma::SpMat<short> model_offdiag(ggm->ncol -1, 1);
   double alphahalf= 0.5; //prior on diagonal entries is Gamma(alpha=1, lambda/2)
-  double num, den, sumy2= ggm->S.at(colid, colid);
+  double num, den, sumy2= ggm->S.at(colid, colid), ytXVXty;
 
   if (npar > 0) { //if some off-diagonal entry is non-zero
 
@@ -2032,7 +2032,8 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
     int colidint= (int) colid;
     double tauinv= 1.0/ ggm->prCoef_tau, logdetXtXinv, nuhalf, ss;
     arma::uvec covariate_indexes(npar);
-    arma::mat XtX(npar,npar), Xty(npar, 1), XtXinv(npar,npar), cholXtXinv(npar,npar);
+    arma::vec Xty(npar);
+    arma::mat XtX(npar,npar), cholXtXinv(npar,npar);
     arma::SpMat<short>::iterator it;
 
     //Create XtX and Xty sufficient statistic matrices for model specified by model_offdiag
@@ -2040,7 +2041,7 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
     for (it= model->begin(), i=0; it != model->end(); ++it) {
       if (it.row() == colid) continue;
       model_offdiag.at(i, 0)= model->at(it.row(), 0);
-      Xty.at(i,0)= ggm->S.at(it.row(), colid);
+      Xty.at(i)= ggm->S.at(it.row(), colid);
       covariate_indexes[i]= it.row();
       i++;
     }
@@ -2074,17 +2075,17 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
 
         if ((row_added == -1) && (row_dropped != -1)) {  //model drops a row from modelold
 
-          choldcinv_det_droprow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, row_dropped);
+          choldcinv_det_droprow(nullptr, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, row_dropped);
         
         } else if ((row_added != -1) && (row_dropped == -1)) {  //model adds a row from modelold
 
-          choldcinv_det_addrow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, XtX_newcol, row_added);
+          choldcinv_det_addrow(nullptr, &cholXtXinv, &logdetXtXinv, cholXtX, cholXtX_old, XtX_newcol, row_added);
 
         } else { //model swaps rows (adds one row and removes another) relative to modelold
 
           arma::mat choltmp(npar-1, npar-1);
           choldcinv_det_droprow(nullptr, nullptr, nullptr, &choltmp, cholXtX_old, row_dropped);
-          choldcinv_det_addrow(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, &choltmp, XtX_newcol, row_added);
+          choldcinv_det_addrow(nullptr, &cholXtXinv, &logdetXtXinv, cholXtX, &choltmp, XtX_newcol, row_added);
 
         }
 
@@ -2098,28 +2099,17 @@ void GGMrow_marg_regression(double *logjoint, arma::mat *m, arma::mat *cholUinv,
      
       XtX = ggm->S.submat(covariate_indexes, covariate_indexes);
       for (i=0; i<npar; i++) XtX.at(i,i) += tauinv;
-      choldcinv_det(&XtXinv, &cholXtXinv, &logdetXtXinv, cholXtX, &XtX);  //Inverse and determinant of XtX
+      choldcinv_det(nullptr, &cholXtXinv, &logdetXtXinv, cholXtX, &XtX);  //Cholesky decomposition and determinant of XtX^{-1} 
 
     }
-    
-    /* CHUNK TO DEBUG: PRINTS APPROXIMATION ERROR FOR FAST CHOLESKY UPDATE, IF EVER ABOVE 1.e-4 */
-    /*
-    arma::mat XtXinv_slow(npar,npar);
-    XtX = ggm->S.submat(covariate_indexes, covariate_indexes);
-    for (i=0; i<npar; i++) XtX.at(i,i) += tauinv;
-    choldcinv_det(&XtXinv_slow, &cholXtXinv, &logdetXtXinv, cholXtX, &XtX);
-    double approxerror= norm(XtXinv - XtXinv_slow, "fro"); 
-    if (approxerror > 1.e-4) {
-      Rprintf("GGMrow_marg_regression. approx error= %f\n", approxerror);
-      //XtXinv.print("XtXinv (fast update)"); 
-      //XtXinv_slow.print("XtXinv (slow update)");
-    }
-    */
-    
 
-    ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(Xty.t() * XtXinv * Xty);
-    //arma::mat m= XtXinv * Xty;
-    //ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(m.t() * XtX * m);
+    //Compute marginal likelihood    
+    arma::vec r(npar);
+    chol_times_vec(&cholXtXinv, &Xty, &r); //r= cholXtXinv Xty, so that r^T r= Xty^T XtXinv Xty
+    for (i=0, ytXVXty=0; i < npar; i++) ytXVXty += r.at(i) * r.at(i);
+
+    ss= ggm->prCoef_lambda + sumy2 - ytXVXty;
+    //ss= ggm->prCoef_lambda + sumy2 - arma::as_scalar(Xty.t() * XtXinv * Xty);
     nuhalf= .5*ggm->n + alphahalf;
 
     num= gamln(&nuhalf) + alphahalf * log(0.5 * ggm->prCoef_lambda) + nuhalf * (log(2.0) - log(ss));
@@ -2155,78 +2145,6 @@ double logprior_GGM(arma::SpMat<short> *model, ggmObject *ggm) {
   } else Rf_error("This model prior is not implemented\n");
   
   return ans;
-}
-
-
-/* Return indexes of row dropped and row added to transition from modelold to modelnew
-
-  The output is only returned if modelnew added/dropped at most 1 element from modelold, else row_added = row_dropped = -1 is returned
-
-INPUT
-  - modelold: column vector where modelold(i,0) > 0 indicates that parameter i is included in the model
-  - modelnew: column vector where model(i,0) > 0 indicates that parameter i is included in the model
-
-OUTPUT. Let model' be the model obtained by dropping from modelold that is not in modelnew (if no rows are dropped, model'= modelold)
-  - row_dropped: index of the non-zero entry in modelold that is dropped to obtain model'.
-  - row_added: index of the element in model' where a 1 needs to be inserted to obtain modelnew
-  - modelrow_dropped: row in modelold that is dropped to obtain model'
-  - modelrow_added: row in model' that is added to obtain model'
-
-EXAMPLE.  Suppose that modelold= (0,1,0,1,0) and modelnew= (0,1,0,0,1). Then model'= (0,1,0,0,0)
-          is obtained by dropping the second non-zero element in modelold, hence row_dropped = 1 (since indexes are 0-based)
-          and modelrow_dropped = 3 (since the 4th entry in modelold is zeroed to obtain model')
-
-          model is obtained by adding the second non-zero element to model', hence row_added = 1 (since indexes are 0-based)
-          and modelrow_added = 4 (since the 5th entry in model' is set to 1 to obtain model)
-
-*/
-
-void modelupdate_indexes(int *row_dropped, int *row_added, int *modelrow_dropped, int *modelrow_added, arma::SpMat<short> *modelold, arma::SpMat<short> *modelnew) {
-  int idx, nadded=0, ndropped= 0;
-  arma::SpMat<short>::iterator it;
-  arma::SpMat<short> modelp(*modelold); //model'
-
-  (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
-
-  idx= 0;
-  for (it= modelold->begin(); it != modelold->end(); ++it) {
-
-    if (modelnew->at(it.row(), 0) == 0) { //if this row is dropped in modelnew
-    //if ((*it != 0) && (modelnew->at(it.row(), 0) == 0)) { //if this row is dropped in modelnew
-      (*row_dropped) = idx;
-      (*modelrow_dropped) = it.row();
-      ndropped++;
-      modelp.at(it.row(),0)= 0;
-    }
-    idx++;
-    if (ndropped > 1) {
-      (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
-      break;
-    }
-
-  }
-
-  if (ndropped <= 1) {
-
-    idx= 0;
-    for (it= modelnew->begin(); it != modelnew->end(); ++it) {
-
-      if (modelp.at(it.row(), 0) == 0) { //if this row is added in modelnew
-      //if ((*it != 0) && (modelp.at(it.row(), 0) == 0)) { //if this row is added in modelnew
-        (*row_added) = idx;
-        (*modelrow_added) = it.row();
-        nadded++;
-      }
-      idx++;
-      if (nadded > 1) {
-        (*row_added)= (*row_dropped)= (*modelrow_dropped)= (*modelrow_added)= -1;
-        break;
-      }
-
-    }
-
-  }
-
 }
 
 

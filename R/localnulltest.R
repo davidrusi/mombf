@@ -752,11 +752,8 @@ estimationPoints= function(x, z, regioncoord, regionbounds, testov) {
     colnames(z)= paste('z',1:ncol(z),sep='')
     #Figure out region for each row in z
     if (ncol(z)==1) {
-        regionid= intervals::interval_overlap(z[,1], intervals::Intervals(regioncoord[[1]]))
+        regionid= intervals::interval_overlap(z[,1], intervals::Intervals(regioncoord[[1]],closed=c(TRUE,FALSE)))
         regionid= sapply(regionid, '[[', 1) #if there are multiple hits, then return the 1st one
-        #regionnames= rownames(regioncoord[[1]])[regionid]
-        #zregion= matrix(as.numeric(sub("R","",regionnames)), ncol=1)
-        #zregion= apply(zregion,1,paste,collapse='.')
     } else {
         zoverlap= vector("list", ncol(z))
         for (i in 1:ncol(z)) zoverlap[[i]]= intervals::interval_overlap(z[,i], intervals::Intervals(regioncoord[[i]]))

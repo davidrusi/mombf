@@ -269,8 +269,10 @@ localnulltest_givenknots= function(y, x, z, x.adjust, localgridsize, localgrid, 
         colnames(regionid)[sel]= nn
     }
     #Estimated effect at the center of each local test region
+    if (verbose) cat("Estimating local effects... ")
     if (!is.null(x.adjust)) { m.adjust= colMeans(x.adjust) } else { m.adjust= NULL }
     est= estimateLocaleffect(ms, wnew, desnew, x.adjust=m.adjust)
+    if (verbose) cat("Done\n")
     #Return output
     pplocalgrid= data.frame(localtest=1:nrow(testIntervals), testIntervals, pplocaltest)
     ans= list(pplocalgrid=pplocalgrid, covareffects=est$covareffects, covareffects.mcmc=est$covareffects.mcmc, ms=list(ms), pp_localknots=1, logdetSinv=0, nlocalknots=nlocalknots, regionbounds=list(regionbounds), basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, knots=knots, Sigma='identity')
@@ -341,8 +343,10 @@ localnulltest_fda_givenknots= function(y, x, z, x.adjust, function_id, Sigma='AR
         colnames(regionid)[sel]= nn
     }
     #Estimated effect at the center of each local test region
+    if (verbose) cat("Estimating local effects... ")
     if (!is.null(x.adjust)) { m.adjust= colMeans(x.adjust) } else { m.adjust= NULL }
     est= estimateLocaleffect(ms, wnew, desnew, x.adjust=m.adjust)
+    if (verbose) cat("Done\n")
     #Return output
     pplocalgrid= data.frame(localtest=1:nrow(testIntervals), testIntervals, pplocaltest)
     ans= list(pplocalgrid=pplocalgrid, covareffects=est$covareffects, covareffects.mcmc=est$covareffects.mcmc, ms=list(ms), pp_localknots=1, logdetSinv=logdetSinv, nlocalknots=nlocalknots, regionbounds=list(regionbounds), basedegree=basedegree, cutdegree=cutdegree, usecutbasis=usecutbasis, knots=knots)
@@ -679,7 +683,7 @@ define_localgrid= function(localgrid, localgridsize, z) {
     if (!missing(localgrid)) {
         if (!list(localgrid)) stop(paste("localgrid should be a list of length",ndim,"defining a grid for each coordinate in z (e.g. just 1 if z is univariate"))
     } else {
-        if (localgridsize <= 1) stop("You defined too few localgridsize")
+        if (localgridsize <= 1) stop("You defined a too small localgridsize")
         splitrange= function(zz) {
             zlim= range(zz)
             ans= seq(zlim[1], zlim[2], length=localgridsize)
@@ -704,10 +708,11 @@ define_localgrid= function(localgrid, localgridsize, z) {
 # - covareffects: data.frame indicating the effect of each covariate at each region (posterior mean and 95% intervals)
 # - covareffects.mcmc: mcmc draws for the effects summarized in covareffects
 estimateLocaleffect= function(ms, wnew, desnew, x.adjust) {
-    th= rnlp(msfit=ms, niter=10^4)
+    th= rnlp(msfit=ms, niter=max(nrow(ms$postSample), 1000))
     newdata= wnew[desnew$covareffect$value==1,] - wnew[desnew$covareffect$value==0]
     if (!is.null(x.adjust)) {
-        newdata= cbind(newdata, matrix(rep(x.adjust, nrow(newdata)), nrow=nrow(newdata), byrow=TRUE))
+        newdata= cbind(newdata, matrix(0, nrow=nrow(newdata), ncol=length(x.adjust)))
+        #newdata= cbind(newdata, matrix(rep(x.adjust, nrow(newdata)), nrow=nrow(newdata), byrow=TRUE))
     }
     sel= (desnew$covareffect$value==1)
     covareffects= data.frame(covariate=desnew$covareffect$covariate[sel], desnew$z[sel,,drop=FALSE])

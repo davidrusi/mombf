@@ -70,7 +70,7 @@ priorDelta=modelbbprior(), verbose=FALSE, ...)
 \item{nbaseknots}{Number of knots for the spline approximation to the
   baseline effect of \code{x} on \code{y}}
 \item{nlocalknots}{Number of knots for the basis capturing the local effects. 
-Ignored if \code{nlocalknots} is specified}
+Ignored if \code{localknots} is specified}
 \item{localknots}{Knots to be used for the local tests. The same knots are used for all 
 columns in \code{z}, so make sure that all columns span the same range of values.
 For a multi-resolution analysis, \code{localknots} should be a list where each entry

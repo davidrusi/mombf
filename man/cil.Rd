@@ -107,15 +107,25 @@ not performed for these variables}
   factors of the treatments of interest, only act as controls and, therefore,
   are not used as inferential subjects.
 
-  Confounder importance learning is a flexible treatment effect estimation
-  framework that essentially determines how the role of the influence of
-  \code{X} on \code{D} should affect their relationship with the response,
-  through establishing prior inclusion probabilities on the response model
-  for \code{y} according to said role. This is regulated through a hyper-
-  parameter theta that is set according to the method supplied to
-  \code{th.search}. While the \code{EB} option obtains a more precise estimate
-  a priori, the \code{EP} alternative achieves a reasonable approximation at a
-  fraction of the computational cost.
+  Confounder importance learning learns from data the amount of
+  confounding in the data, based on a so-called confounding
+  coefficient, and uses this to set covariate prior inclusion
+  probabilities.
+  Roughly, the coefficient measures to what extend covariates that are
+  truly related to the outcome are also truly related (high confounding)
+  or not related (no confounding) to the treatment(s).
+
+  In high confounding, covariates in \code{X} that appear to be related
+  to \code{D} are assigned high inclusion probability in the regression
+  for \code{y}. In low confounding, they're assigned low prior inclusion
+  probability. See function \code{plotprior} to visualize these prior
+  probabilities. 
+  Prior probabilities are regulated through a hyper-parameter theta that
+  is set according to the method supplied to \code{th.search}.
+  While the \code{EB} option obtains a more precise estimate,
+  particularly when there are many covariates in \code{X}, the
+  \code{EP} is much faster computationally and typically gives very
+  similar results.
 
   See references for further details on implementation and computation.
 }
@@ -157,6 +167,9 @@ not performed for these variables}
   \code{\link{postProb}} to obtain posterior model probabilities.
   
   \code{coef} for inference on the treatment parameters.
+
+  \code{plotprior} to plot the estimated prior probabilities, as a
+  function of 
   %\code{postProb} to obtain posterior model probabilities.
   %\code{coef.cilfit} for Bayesian model averaging estimates for the
   %treatment parameters.

@@ -837,7 +837,7 @@ setMethod("plotprior", signature(object='cilfit'), function(object, xlab, ylab, 
   bmean <- colMeans(object$treat.coefs)
   b <- t(matrix(bmean, nrow=ntreat, ncol=200))
   for (i in 1:ntreat) {
-    devAskNewPage(ask = TRUE)
+    if (ntreat > 1) devAskNewPage(ask = TRUE)
     pp.unifprior <- object$init.msfit$margpp[-treat.varindex]
     pp.unifprior <- pp.unifprior[!object$includeX]
     treat.coef <- object$treat.coef[!object$includeX,i]
@@ -859,8 +859,9 @@ setMethod("plotprior", signature(object='cilfit'), function(object, xlab, ylab, 
 # show()
 setMethod("show", signature(object='cilfit'), function(object) {
   cat('cilfit object with outcome of type',object$msfit$outcometype,',',object$msfit$p,'covariates and',object$msfit$family,'error distribution\n')
-  cat(" Use coef() to obtain BMA estimates for treatment variables\n")
-  cat(" Method available for 'msfit' objects can be applied to element 'msfit', e.g. coef(object$msfit) returns BMA estimates for all variables\n")
+  cat(" - Use coef() to obtain BMA estimates for treatment variables\n")
+  cat(" - Use plotprior() to plot the prior inclusion probabilities\n")
+  cat(" Methods available for 'msfit' objects can be applied to element 'msfit', e.g. coef(object$msfit) returns BMA estimates for all variables\n")
   cat(" Elements $margpp and $margprior contain marginal variable posterior and prior inclusion probabilities\n")
 }
 )

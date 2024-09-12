@@ -198,21 +198,27 @@ initGGM= function(y, Omegaini) {
     
   } else if (Omegaini %in% c('glasso-bic','glasso-ebic')) {
     if (Omegaini == 'glasso-bic') {
-      gamma = 0
+      method <- "BIC"
+      #gamma = 0
     } else if (Omegaini == 'glasso-ebic') {
-      gamma = 0.5
+      #gamma = 0.5
+      method <- "EBIC"
     }
     
     sfit= huge::huge(y, method="glasso", scr=TRUE, verbose=FALSE, nlambda = 10)
-    sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+    #sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+    ebic= glasso_getBIC(y=y, sfit=sfit, method=method)
     
-    topbic= which.min(sfit2$ebic.score)
+    #topbic= which.min(sfit2$ebic.score)
+    topbic= which.min(ebic)
     found= (topbic != 1) & (topbic != 10)
     
     niter= 1
     while ((!found) & (niter<=maxiter)) {
       ## huge wants a decreasing sequence
-      
+      if((niter == 1) & (topbic == 1)){## No need for lambda bigger
+        break
+      }
       if (topbic==10) {
         rholist= seq(sfit$lambda[10], sfit$lambda[10]/10, length=10)
       } else {
@@ -220,9 +226,11 @@ initGGM= function(y, Omegaini) {
       }
       
       sfit= huge::huge(y, lambda=rholist, method="glasso", scr=TRUE, verbose=FALSE)
-      sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+      #sfit2= huge::huge.select(sfit, criterion="ebic", ebic.gamma = gamma, verbose=FALSE)
+      ebic= glasso_getBIC(y=y, sfit=sfit, method=method)
       
-      topbic= which.min(sfit2$ebic.score)
+      #topbic= which.min(sfit2$ebic.score)
+      topbic= which.min(ebic)
       found= (topbic != 1) & (topbic != 10)
       niter= niter+1
       
@@ -240,8 +248,7 @@ initGGM= function(y, Omegaini) {
 
 
 
-#For objects from package huge
-glasso_getBIC= function(y, sfit, method='EBIC') {
+glasso_getBIC = function(y, sfit, method='EBIC') {
   #Extraction of BIC/EBIC, copied from huge.select in package huge
   n= nrow(y); d= ncol(y)
   if (method == 'BIC') {
@@ -249,36 +256,47 @@ glasso_getBIC= function(y, sfit, method='EBIC') {
   } else if (method == 'EBIC') {
     gamma = 0.5
   }
-  ans = -n * sfit$loglik + log(n) * sfit$df + 4 * gamma * log(d) * sfit$df
-  #Manual implementation (deprecated)    
-  #logl= npar= double(length(sfit$icov))
-  #for (i in 1:length(logl)) {
-  #  logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$icov[[i]], log=TRUE))
-  #  npar[i]= sum(sfit$icov[[i]] != 0)
-  #}
-  #if (method == 'BIC') {
-  #  ans= -2*logl + npar * log(nrow(y))
-  #} else if (method == 'EBIC') {
-  #  ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
-  #}
+  #ans = -n * sfit$loglik + log(n) * sfit$df + 4 * gamma * log(d) * sfit$df
+  #Manual implementation
+  logl= npar= double(length(sfit$icov))
+  for (i in 1:length(logl)) {
+    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$icov[[i]], log=TRUE))
+    npar[i]= (sum(sfit$icov[[i]] != 0) - d)/2
+  }
+  if (method == 'BIC') {
+    ans= -2*logl + npar * log(n)
+  } else if (method == 'EBIC') {
+    ans= -2*logl + npar * (log(n) + 4 * gamma * log(d))
+  }
   return(ans)
 }
 
 
-#For objects from package glasso (deprecated)
-#glasso_getBIC= function(y, sfit, method='EBIC') {
-#  logl= npar= double(length(sfit$rholist))
-#  for (i in 1:length(sfit$rholist)) {
-#    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$wi[,,i], log=TRUE))
-#    npar[i]= sum(sfit$wi[,,i] != 0)
+#For objects from package huge (deprecated)
+#glasso_getBIC = function(y, sfit, method='EBIC') {
+#  #Extraction of BIC/EBIC, copied from huge.select in package huge
+#  n= nrow(y); d= ncol(y)
+#  if (method == 'BIC') {
+#    gamma = 0
+#  } else if (method == 'EBIC') {
+#    gamma = 0.5
+#  }
+#  #ans = -n * sfit$loglik + log(n) * sfit$df + 4 * gamma * log(d) * sfit$df
+#  #Manual implementation (deprecated)    
+#  logl= npar= double(length(sfit$icov))
+#  for (i in 1:length(logl)) {
+#    logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$icov[[i]], log=TRUE))
+#    npar[i]= (sum(sfit$icov[[i]] != 0) - d)/2
 #  }
 #  if (method == 'BIC') {
-#    ans= -2*logl + npar * log(nrow(y))
+#    ans= -2*logl + npar * log(n)
 #  } else if (method == 'EBIC') {
-#    ans= -2*logl + npar * (log(nrow(y)) + log(ncol(y)^2))
+#    ans= -2*logl + npar * (log(n) + 4 * gamma * log(d))
 #  }
 #  return(ans)
 #}
+
+
 
 
 #Model log-joint (log marginal likelihood + log model prior) for the non-zero entries in colsel of Omega

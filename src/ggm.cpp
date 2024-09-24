@@ -972,8 +972,8 @@ void update_margpp_raoblack(arma::vec *margpp, double ppnew, arma::SpMat<short> 
   - idx_update: index of parameter being born/dead. That is, modelnew[idx_update,0] is different from model[idx_update,0], all other rows are equal. 
                 If proposed move was impossible (e.g. a birth was attempted but all parameters were already alive) then idx_update == -1 is returned
   - birth: true if a birth move was proposed (i.e. modelnew[idx_update,0]==1), false otherwise
-  - dpropnew: log of the proposal probability of modelnew
-  - dpropcurrent: log of the proposal probability of model
+  - dpropnew: log of the proposal probability of modelnew. If the proposed move was not possible, dpropnew= -INFINITY is returned
+  - dpropcurrent: log of the proposal probability of model. If the propsed move was not possible, dpropcurrent is not updated
 
 */
 void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool *birth, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, bool setmodelnew) {
@@ -1001,7 +1001,8 @@ void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool
 
   } else {
 
-    (*dpropnew)= (*dpropcurrent) -INFINITY;
+    (*dpropnew)= -INFINITY;
+    //(*dpropnew)= (*dpropcurrent) -INFINITY;
 
   }
 
@@ -1024,8 +1025,8 @@ void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool
   - index_birth: index of parameter being born. If no entries were born, then index_birth= -1
   - index_death: index of parameter being killed. If no entries were killed, then index_death= -1
   - movetype: 1 if a birth move was chosen, 2 if a death move was chosen, 3 if a swap move was chosen
-  - dpropnew: log of the proposal probability of modelnew
-  - dpropcurrent: log of the proposal probability of model
+  - dpropnew: log of the proposal probability of modelnew. If the proposed move was not possible, dpropnew= -INFINITY is returned
+  - dpropcurrent: log of the proposal probability of model. If the propsed move was not possible, dpropcurrent is not updated
 
 */
 void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, bool setmodelnew) {
@@ -1060,7 +1061,8 @@ void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth,
 
   } else {
 
-    (*dpropnew)= (*dpropcurrent) -INFINITY;
+    (*dpropnew)= -INFINITY;
+    //(*dpropnew)= (*dpropcurrent) -INFINITY;
 
   }
 
@@ -1239,7 +1241,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Ma
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
-  double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
+  double dpostnew, dpostold, dpropnew, dpropold=0, ppnew, sample_diag;
   double prob_parallel= ggm->prob_parallel;
   bool parallel_draw;
   char *zerochar;
@@ -1445,7 +1447,7 @@ void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
-  double dpostnew, dpostold, dpropnew, dpropold, ppnew, sample_diag;
+  double dpostnew, dpostold, dpropnew, dpropold=0, ppnew, sample_diag;
   arma::mat *sample_offdiag= nullptr, *invOmega_newcol;
   std::vector<double> diagcur(p), bnew(p);
   std::vector<arma::SpMat<short>> modelold(p);

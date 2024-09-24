@@ -70,6 +70,9 @@ SEXP nlpMarginalCI(SEXP Sknownphi, SEXP Ssel, SEXP Snsel, SEXP Sfamily, SEXP Spr
   //delete_marginalPars(&pars);
   delete XtX;
   delete Pmat;
+  free_ivector(isgroup, 0, p);
+  free_ivector(nconstraints, 0,INTEGER(Sngroups)[0]); free_ivector(ninvconstraints, 0,INTEGER(Sngroups)[0]);
+
   free_dvector(thinit, 0, p);
   UNPROTECT(1);
   return ans;

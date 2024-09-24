@@ -1,24 +1,89 @@
-==544251== Memcheck, a memory error detector
-==544251== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==544251== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
-==544251== Command: /usr/lib/R/bin/exec/R --vanilla
-==544251== Parent PID: 544250
-==544251== 
-==544251== 
-==544251== HEAP SUMMARY:
-==544251==     in use at exit: 201,977,751 bytes in 41,094 blocks
-==544251==   total heap usage: 78,379 allocs, 37,285 frees, 295,150,940 bytes allocated
-==544251== 
-==544251== LEAK SUMMARY:
-==544251==    definitely lost: 0 bytes in 0 blocks
-==544251==    indirectly lost: 0 bytes in 0 blocks
-==544251==      possibly lost: 0 bytes in 0 blocks
-==544251==    still reachable: 201,977,751 bytes in 41,094 blocks
-==544251==                       of which reachable via heuristic:
-==544251==                         newarray           : 4,264 bytes in 1 blocks
-==544251==         suppressed: 0 bytes in 0 blocks
-==544251== Reachable blocks (those to which a pointer was found) are not shown.
-==544251== To see them, rerun with: --leak-check=full --show-leak-kinds=all
-==544251== 
-==544251== For lists of detected and suppressed errors, rerun with: -s
-==544251== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==23161== Memcheck, a memory error detector
+==23161== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==23161== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==23161== Command: /usr/lib/R/bin/exec/R --vanilla
+==23161== Parent PID: 23160
+==23161== 
+==23161== 
+==23161== HEAP SUMMARY:
+==23161==     in use at exit: 204,314,143 bytes in 47,707 blocks
+==23161==   total heap usage: 766,142 allocs, 718,435 frees, 380,642,720 bytes allocated
+==23161== 
+==23161== 64 bytes in 1 blocks are definitely lost in loss record 58 of 2,859
+==23161==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23161==    by 0x400F21D: malloc (rtld-malloc.h:56)
+==23161==    by 0x400F21D: resize_scopes (dl-open.c:295)
+==23161==    by 0x400F21D: dl_open_worker_begin (dl-open.c:707)
+==23161==    by 0x4E38A97: _dl_catch_exception (dl-error-skeleton.c:208)
+==23161==    by 0x400DF99: dl_open_worker (dl-open.c:782)
+==23161==    by 0x4E38A97: _dl_catch_exception (dl-error-skeleton.c:208)
+==23161==    by 0x400E34D: _dl_open (dl-open.c:883)
+==23161==    by 0x4D5463B: dlopen_doit (dlopen.c:56)
+==23161==    by 0x4E38A97: _dl_catch_exception (dl-error-skeleton.c:208)
+==23161==    by 0x4E38B62: _dl_catch_error (dl-error-skeleton.c:227)
+==23161==    by 0x4D5412D: _dlerror_run (dlerror.c:138)
+==23161==    by 0x4D546C7: dlopen_implementation (dlopen.c:71)
+==23161==    by 0x4D546C7: dlopen@@GLIBC_2.34 (dlopen.c:81)
+==23161==    by 0x48C5F64: ??? (in /usr/lib/R/lib/libR.so)
+==23161== 
+==23161== 2,880 (720 direct, 2,160 indirect) bytes in 30 blocks are definitely lost in loss record 460 of 2,859
+==23161==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23161==    by 0xA46B21F9: conditional_aligned_malloc<false> (Memory.h:249)
+==23161==    by 0xA46B21F9: operator new (PlainObjectBase.h:135)
+==23161==    by 0xA46B21F9: hugeglasso(Eigen::Map<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 0, Eigen::Stride<0, 0> >, Rcpp::Vector<14, Rcpp::PreserveStorage>, bool, bool, bool) (hugeglasso.cpp:77)
+==23161==    by 0xA46A09E6: _huge_hugeglasso (RcppExports.cpp:93)
+==23161==    by 0x495829D: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x495888C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x499B9EB: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF19C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF50A: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B16DE: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B24C6: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF63B: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B4751: ??? (in /usr/lib/R/lib/libR.so)
+==23161== 
+==23161== 2,880 (720 direct, 2,160 indirect) bytes in 30 blocks are definitely lost in loss record 461 of 2,859
+==23161==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23161==    by 0xA46B2290: conditional_aligned_malloc<false> (Memory.h:249)
+==23161==    by 0xA46B2290: operator new (PlainObjectBase.h:135)
+==23161==    by 0xA46B2290: hugeglasso(Eigen::Map<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 0, Eigen::Stride<0, 0> >, Rcpp::Vector<14, Rcpp::PreserveStorage>, bool, bool, bool) (hugeglasso.cpp:78)
+==23161==    by 0xA46A09E6: _huge_hugeglasso (RcppExports.cpp:93)
+==23161==    by 0x495829D: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x495888C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x499B9EB: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF19C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF50A: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B16DE: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B24C6: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF63B: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B4751: ??? (in /usr/lib/R/lib/libR.so)
+==23161== 
+==23161== 2,880 (720 direct, 2,160 indirect) bytes in 30 blocks are definitely lost in loss record 462 of 2,859
+==23161==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23161==    by 0xA46B2327: conditional_aligned_malloc<false> (Memory.h:249)
+==23161==    by 0xA46B2327: operator new (PlainObjectBase.h:135)
+==23161==    by 0xA46B2327: hugeglasso(Eigen::Map<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 0, Eigen::Stride<0, 0> >, Rcpp::Vector<14, Rcpp::PreserveStorage>, bool, bool, bool) (hugeglasso.cpp:79)
+==23161==    by 0xA46A09E6: _huge_hugeglasso (RcppExports.cpp:93)
+==23161==    by 0x495829D: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x495888C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x499B9EB: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF19C: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF50A: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B16DE: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B24C6: ??? (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49AF63B: Rf_eval (in /usr/lib/R/lib/libR.so)
+==23161==    by 0x49B4751: ??? (in /usr/lib/R/lib/libR.so)
+==23161== 
+==23161== LEAK SUMMARY:
+==23161==    definitely lost: 2,224 bytes in 91 blocks
+==23161==    indirectly lost: 6,480 bytes in 90 blocks
+==23161==      possibly lost: 0 bytes in 0 blocks
+==23161==    still reachable: 204,305,439 bytes in 47,526 blocks
+==23161==                       of which reachable via heuristic:
+==23161==                         newarray           : 4,264 bytes in 1 blocks
+==23161==         suppressed: 0 bytes in 0 blocks
+==23161== Reachable blocks (those to which a pointer was found) are not shown.
+==23161== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==23161== 
+==23161== For lists of detected and suppressed errors, rerun with: -s
+==23161== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)

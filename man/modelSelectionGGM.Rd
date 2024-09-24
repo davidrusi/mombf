@@ -207,7 +207,10 @@ z= matrix(rnorm(1000*3), ncol=3)
 y= z %*% chol(sigma)
 
 #Obtain posterior samples
-fit= modelSelectionGGM(y, scale=FALSE)
+#y has few columns, initialize the MCMC at the sample precision matrix
+#Else, leave the argument Omegaini in modelSelectionGGM empty
+Omegaini= solve(cov(y))
+fit= modelSelectionGGM(y, scale=FALSE, Omegaini=Omegaini)
 
 #Parameter estimates, intervals, prob of non-zero
 coef(fit)

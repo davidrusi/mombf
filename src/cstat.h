@@ -157,6 +157,13 @@ double ilogit(double x);
 double dsign(double x);  //returns 1.0 if x>=0, -1.0 if x<0
 double isign(int x); //returns 1.0 if x>0, 0 if x==0, -1.0 if x<0
 
+
+/**************************************************************/
+/* Matrix manipulation                                        */
+/**************************************************************/
+
+void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model); //copy A[model,model] into Aout
+
 /**************************************************************/
 /* Basic algebra                                              */
 /**************************************************************/
@@ -302,6 +309,7 @@ int rbinomial(int , double );
 double dbinomial(int x, int n, double p, int logscale);
 double dnegbinomial(int x, double r, double p, int logscale);
 void rmultinomial(int ndraws, int ncells, const double *pr, int *x);
+int rmultinomial(const std::vector<double> *pr);
 double bbPrior(int k, int p, double alpha, double beta, int logscale);
 double complexPrior(int k, int p, double priorc, int logscale);
 

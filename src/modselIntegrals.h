@@ -6,9 +6,66 @@
 #include <map>
 #include <string>
 #include "modelSel_regression.h"
-#include "ggm.h"
 #include "cstat.h"
 using namespace std;
+
+
+
+//*************************************************************************************
+// CLASS ggmObject
+//*************************************************************************************
+
+class ggmObject {
+
+public:
+
+  //Constructor and destructor
+
+  ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS);
+  ggmObject(ggmObject *ggm);
+  ~ggmObject();
+
+  //PUBLIC METHODS PROVIDED BY THE CLASS
+
+  int n;    //sample size nrow(y)
+  int ncol; //number of variables ncol(y)
+
+  int burnin;  //number of MCMC burnin iterations
+  double pbirth;  //probability of birth move, only used when sampler is "birthdeath" or "LIT"
+  double pdeath;  //probability of death move, only used when sampler is "birthdeath"
+  double log_pbirth, log_pdeath; 
+  double lbound_death; //In the LIT sampler, a lower bound on the log-proposal probability of a death move
+  double ubound_death; //In the LIT sampler, an upper bound on the log-proposal probability of a death move
+  double lbound_birth; //In the LIT sampler, a lower bound on the log-proposal probability of a birth move
+  double ubound_birth; //In the LIT sampler, an upper bound on the log-proposal probability of a birth move
+
+  int updates_per_iter; //an iteration consists of choosing updates_per_iter columns at random, and proposing updates_per_column updates for each column
+  int updates_per_column; //see updates_per_iter
+  int niter; //number of MCMC iterations
+  double tempering; //tempering parameter in parallel proposal
+  double truncratio; //truncation ratio in parallel proposal. If prob(model) < prob(top model) / truncratio, then prob(model) = prob(top model) / truncratio
+
+  arma::mat S; //t(y) * y
+
+  double prCoef_lambda; //Prior on diagonal entries Omega_{jj} ~ Exp(lambda)
+  double prCoef_tau; //Prior on off-diagonal Omega_{jk} | Omega_{jk} != 0 ~ N(0, tau)
+  //List prCoef;  //prior on parameters
+
+  std::string priorlabel; //Label for model space prior. Currently only "binomial" is possible, P(Omega_{jk} != 0) = priorPars_p
+  double priorPars_p;
+  //List prModel; //prior on model
+
+  std::string sampler; //MCMC sampler type, e.g. Gibbs, birth-death
+  //List samplerPars; //posterior sampler parameters
+
+  double prob_parallel; //proposal probability of almost-parallel update
+  bool parallel_regression; //use almost-parallel regression based proposal?
+  bool parallel_insample;  //use almost-parallel in-sample based proposal?
+  bool use_tempering;
+  bool verbose;
+
+};
+
 
 
 /***********************************************************************************/

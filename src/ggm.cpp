@@ -1,4 +1,3 @@
-#include "modselIntegrals.h"
 #include "ggm.h"
 #include <cmath>
 
@@ -49,102 +48,6 @@ IntegerVector findAdjacentStates(sp_mat adjacency, int col) {
 }
 
 */
-
-//*************************************************************************************
-// CLASS ggmObject
-//*************************************************************************************
-
-//Constructor
-ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS=true) {
-
-  //Data summaries
-  this->n= y->n_rows;
-  this->ncol= y->n_cols;
-
-  if (computeS) {
-    this->S= (*y).t() * (*y);
-  } else {
-    Rf_error("Error in ggmObject. Currently computeS must be set to true");
-  }
-
-  //Parameters of prior distribution  
-  this->prCoef_lambda= as<double>(prCoef["lambda"]);
-  this->prCoef_tau = as<double>(prCoef["tau"]);
-
-  this->priorlabel= as<string> (prModel["priorlabel"]);
-  this->priorPars_p= as<double>(prModel["priorPars.p"]);
-
-  //MCMC sampler parameters
-  CharacterVector samplerR= samplerPars["sampler"];
-  std::string samplerC = Rcpp::as<std::string>(samplerR);
-  this->sampler= samplerC;
-
-  this->burnin= as<int>(samplerPars["burnin"]);
-  this->niter= as<int>(samplerPars["niter"]);
-  this->updates_per_column= as<int>(samplerPars["updates_per_column"]);
-  this->updates_per_iter= as<int>(samplerPars["updates_per_iter"]);
-  this->tempering= as<double>(samplerPars["tempering"]);
-  this->truncratio= as<double>(samplerPars["truncratio"]);
-  this->pbirth= as<double>(samplerPars["pbirth"]);
-  this->pdeath= as<double>(samplerPars["pdeath"]);
-  this->use_tempering= use_tempering;
-
-  this->prob_parallel= as<double>(samplerPars["prob_parallel"]);
-  CharacterVector almost_parallelR= samplerPars["almost_parallel"];
-  std::string almost_parallelC = Rcpp::as<std::string>(almost_parallelR);
-  std::string regression("regression"), insample("in-sample");
-  this->parallel_regression= (almost_parallelC == regression);
-  this->parallel_insample= (almost_parallelC == insample);
-
-  //Set print progress iteration to true/false
-  arma::vec v = as<arma::vec>(samplerPars["verbose"]);
-  if (v[0] == 1) this->verbose= true; else this->verbose= false;
-
-}
-
-
-//Constructor
-ggmObject::ggmObject(ggmObject *ggm) {
-
-  //Data summaries
-  this->n= ggm->n;
-  this->ncol= ggm->ncol;
-  this->S= ggm->S;
-
-  //Parameters of prior distribution  
-  this->prCoef_lambda= ggm->prCoef_lambda;
-  this->prCoef_tau = ggm->prCoef_tau;
-
-  this->priorlabel= ggm->priorlabel;
-  this->priorPars_p= ggm->priorPars_p;
-
-  //MCMC sampler parameters
-  this->sampler= ggm->sampler;
-
-  this->burnin= ggm->burnin;
-  this->niter= ggm->niter;
-  this->updates_per_column= ggm->updates_per_column;
-  this->updates_per_iter= ggm->updates_per_iter;
-  this->tempering= ggm->tempering;
-  this->truncratio= ggm->truncratio;
-  this->pbirth= ggm->pbirth;
-  this->pdeath= ggm->pdeath;
-  this->use_tempering= ggm->use_tempering;
-
-  this->prob_parallel= ggm->prob_parallel;
-  this->parallel_regression= ggm->parallel_regression;
-  this->parallel_insample= ggm->parallel_insample;
-
-  //Set print progress iteration to true/false
-  this->verbose= ggm->verbose;
-
-}
-
-//Destructor
-ggmObject::~ggmObject() {
-
-}
-
 
 
 // Example of returning an sp_mat object
@@ -201,9 +104,10 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
 
   int p= ggm->ncol, npars= p*(p+1)/2;
 
-  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), LIT("LIT"), zigzag("zigzag");
   bool use_gibbs= (ggm->sampler == Gibbs);
   bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_LIT= (ggm->sampler == LIT);
   bool use_zigzag= (ggm->sampler == zigzag);
 
   //GGM_CDA(&Omegaini, ggm); //update Omegaini to local posterior mode
@@ -217,9 +121,9 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
   arma::vec margppflat(p * (p+1)/2);
 
   //Obtain posterior samples
-  if (use_gibbs || use_birthdeath) {
+  if (use_gibbs || use_birthdeath || use_LIT) {
 
-    GGM_Gibbs(&postSample, &margpp, &margppcount, &prop_accept, ggm, &Omegaini);
+    GGM_MHwithinGibbs(&postSample, &margpp, &margppcount, &prop_accept, ggm, &Omegaini);
 
     margpp = margpp / margppcount;
     for (int i=0; i < p; i++) margpp.at(i,i)= 1;
@@ -246,7 +150,10 @@ List modelSelectionGGMC(arma::mat y, List prCoef, List prModel, List samplerPars
 
 
 
-/*Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n
+/* Metropolis-Hastings within Gibbs for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n
+
+   The algorithm samples each column of Omega conditional on the rest (Gibbs). 
+   To sample within each column of Omega, either Gibbs, birth-death-swap, or the LIT proposal of Zhang et al can be used 
 
 INPUT
   - ggm: object of class ggmObject storing y, the prior distribution and Gibbs sampling parameters (burnin, number of iterations...)
@@ -266,22 +173,22 @@ INPUT/OUTPUT
 
 */
 
-void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_MHwithinGibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, jold, k, *sequence, iter= 0, niter10, number_accept, number_proposed, total_accept=0, total_proposed=0;
   int burnin= ggm->burnin, niter= ggm->niter, updates_per_iter= ggm->updates_per_iter, p= ggm->ncol;
   double *modelini_logprob= nullptr;
   arma::sp_mat::iterator it;
 
-  //std::string sampler = Rcpp::as<std::string>(ggm->sampler());
-  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), LIT("LIT");
   bool use_gibbs= (ggm->sampler == Gibbs);
   bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_LIT= (ggm->sampler == LIT);
   arma::SpMat<short> *models= nullptr;
   arma::mat *model_logprob= nullptr, *invOmega_j;
   invOmega_j = new arma::mat(p-1, p-1);
 
-  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_Gibbs requires the sampler to be Gibbs or birthdeath");
+  if (!use_gibbs && !use_birthdeath && !use_LIT) Rf_error("GGM_MHwithinGibbs requires the sampler to be 'Gibbs', 'birthdeath' or 'LIT'");
 
   if (niter >10) { niter10= niter / 10; } else { niter10= 1; }
 
@@ -315,7 +222,7 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
       if (use_gibbs) {
         GGM_Gibbs_singlecol(&samples_row, models, &margpp_row, &margppcount_row, 0, 0, (unsigned int) j, ggm, &Omegacol,  invOmega_j, model_logprob, modelini_logprob); //update row given by j
       } else {
-        GGM_birthdeath_singlecol(&samples_row, models, &margpp_row, &margppcount_row, &number_accept, &number_proposed, 0, 0, (unsigned int) j, ggm, &Omegacol,  invOmega_j, model_logprob, modelini_logprob); //update row given by j
+        GGM_birthdeath_singlecol(&samples_row, models, &margpp_row, &margppcount_row, &number_accept, &number_proposed, 0, 0, (unsigned int) j, ggm, &use_LIT, &Omegacol,  invOmega_j, model_logprob, modelini_logprob); //update row given by j
         total_accept += number_accept;
         total_proposed += number_proposed;
       }
@@ -366,7 +273,7 @@ void GGM_Gibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppc
 
 // [[Rcpp::export]]
 List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
-/* Interface for GGM_Gibbs_parallel to be called from R 
+/* Interface for GGM_MHwithinGibbs_parallel and GGM_MHwithinGibbs_onlyparallel to be called from R 
 
    Output: list with p+2 elements. 
      - Elements j=0,...,p-1 (proposal_samples) are arma::sp_mat storing proposed samples for Omega[,j] given Omegaini[-j,-j]
@@ -425,9 +332,9 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   arma::vec margppflat(p * (p+1)/2);
   
   if (ggm->prob_parallel < 0.9999) {
-    GGM_parallel_MH_indep(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
+    GGM_MHwithinGibbs_parallel(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
   } else {
-    GGM_onlyparallel_MH_indep(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
+    GGM_MHwithinGibbs_onlyparallel(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
   }
 
   margpp = margpp / margppcount;
@@ -478,9 +385,11 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
 
   int j, p= ggm->ncol, p10, niter_prop, burnin_prop;
   double truncratio= ggm->truncratio;
-  std::string Gibbs("Gibbs"), birthdeath("birthdeath");
+
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), LIT("LIT");
   bool use_gibbs= (ggm->sampler == Gibbs);
   bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_LIT= (ggm->sampler == LIT);
 
   niter_GGM_proposal(&niter_prop, &burnin_prop, &(ggm->niter), &(ggm->burnin), &p); //if not using a full scan, less iterations are needed
 
@@ -506,7 +415,7 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
     if (use_gibbs) {
       GGM_Gibbs_singlecol(samples_row, &models_row, margpp_row, margppcount_row, -burnin_prop, niter_prop-burnin_prop-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, &modelj_logprop, logprop_modelini+j);
     } else {
-      GGM_birthdeath_singlecol(samples_row, &models_row, margpp_row, margppcount_row, &number_accept, &number_proposed, -burnin_prop, niter_prop-burnin_prop-1, (unsigned int) j, ggm, &Omegacol,  &invOmega_j, &modelj_logprop, logprop_modelini+j);
+      GGM_birthdeath_singlecol(samples_row, &models_row, margpp_row, margppcount_row, &number_accept, &number_proposed, -burnin_prop, niter_prop-burnin_prop-1, (unsigned int) j, ggm, &use_LIT, &Omegacol,  &invOmega_j, &modelj_logprop, logprop_modelini+j);
     }
 
     //Obtain unique visited models and their probabilities, truncated so probability of top model / any other model <= truncratio
@@ -828,7 +737,7 @@ IMPORTANT: if not nullptr, at input samples and models should only contain zeroe
 
 */
 
-void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
+void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, bool *use_LIT, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
 
   int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid, ppcount=0;
   double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
@@ -866,10 +775,18 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
   for (i= iterini; i <= iterfi; i++) {
 
-      for (j=1; j<=updates_per_column; j++) {  //Make updates_per_column birth/death updates
+    for (j=1; j<=updates_per_column; j++) {  //Make updates_per_column updates
 
-      //GGM_birthdeath_proposal(modelnew, &idx_update, &birth, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, false);
-      GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, false);
+      if (use_LIT) { //Locally-informed proposal
+
+        GGM_LIT_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, ggm, ms, true);
+
+      } else {  //Non-informed birth-death-swap proposal
+
+        GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, true);
+
+      } 
+      
       (*number_proposed)++;
 
       if ((index_birth != -1) || (index_death != -1)) {     //if a move that's not impossible was proposed
@@ -1069,6 +986,201 @@ void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth,
 }
 
 
+/*  Propose GGM model update using the LIT algorithm of Zhou, Yang, Vats, Roberts & Rosenthal. 
+    Also, return the proposal density for the new model and for the current model (reverse move)
+
+  INPUT
+
+  - model: current model, a p x 1 matrix indicating the non-zero parameters
+  - colid: column of the GGM precision matrix Omega currently being updated
+  - ggm: ggmObject with info about the graphical model
+  - ms: modselIntegrals_GGM object providing methods to compute & store marginal likelihoods for each possible model
+  - setmodelnew: if false, modelnew is assumed to be equal to model at input, so that only the entries being born/dead are updated. Else, all entries in modelnew are set
+
+  OUTPUT
+
+  - modelnew: model proposed by the birth-death move
+  - index_birth: index of parameter being born. If no entries were born, then index_birth= -1
+  - index_death: index of parameter being killed. If no entries were killed, then index_death= -1
+  - movetype: 1 if a birth move was chosen, 2 if a death move was chosen. Swap moves are not implemented
+  - dpropnew: log of the proposal probability of modelnew. If the proposed move was not possible, dpropnew= -INFINITY is returned
+  - dpropcurrent: log of the proposal probability of model. If the propsed move was not possible, dpropcurrent is not updated
+*/
+void GGM_LIT_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, ggmObject *ggm, modselIntegrals_GGM *ms, bool setmodelnew) {
+
+  const int dnonzero= model->n_nonzero - 1, d= model->n_rows - 1, dzero= d - dnonzero;
+  double u;
+
+  if (setmodelnew) (*modelnew)= *model;
+
+  //Make birth/death proposal
+  //arma::SpMat<short> model_colid= (*model);
+  //model_colid.shed_row(*colid);
+
+  (*index_birth)= (*index_death)= -1; //return value if proposed update cannot be done
+  u = runifC();
+  if (u < ggm->pbirth) { //birth move
+
+    (*movetype)= 1;
+    if (dzero > 0) {  //if dzero==0, all entries are already alive
+
+      std::vector<int> indexes_birth(dzero);
+      std::vector<double> proposal_birth(dzero);
+      dprop_LIT_birth_GGM(&proposal_birth, &indexes_birth, model, ggm, ms); //obtain proposal kernel for birth moves
+
+      //Propose new model
+      int idx_birth= rmultinomial(&proposal_birth);
+      (*dpropnew) = log(proposal_birth.at(idx_birth));
+      (*dpropnew) += ggm->log_pbirth; 
+      (*index_birth)= indexes_birth.at(idx_birth);
+      modelnew->at(*index_birth, 0)= 1;
+
+      //Proposal density for reverse move
+      int dnonzero_new= dnonzero + 1;
+      std::vector<int> indexes_death(dnonzero_new);
+      std::vector<double> proposal_death(dnonzero_new);
+
+      dprop_LIT_death_GGM(&proposal_death, &indexes_death, colid, modelnew, ggm, ms); //obtain proposal density for reverse death moves
+
+      int idx_death= 0;
+      while (indexes_death[idx_death] != (*index_birth)) { idx_death++; }
+      (*dpropcurrent) = log(proposal_death.at(idx_death));
+      (*dpropcurrent) += ggm->log_pdeath;
+
+    } else {
+
+      (*dpropnew)= -INFINITY;
+
+    }
+
+  } else { //death move
+
+    (*movetype)= 2;
+    if (dnonzero>0) {  //if all entries are already zero, none can be killed
+
+      std::vector<int> indexes_death(dnonzero);
+      std::vector<double> proposal_death(dnonzero);
+      dprop_LIT_death_GGM(&proposal_death, &indexes_death, colid, modelnew, ggm, ms); //obtain proposal kernel for death moves
+
+      //Propose new model
+      int idx_death= rmultinomial(&proposal_death);
+      (*dpropnew) = log(proposal_death.at(idx_death));
+      (*dpropnew) += ggm->log_pdeath;
+      (*index_death)= indexes_death.at(idx_death);
+      modelnew->at(*index_death,0)= 0;
+
+      //Proposal density for reverse move
+      int dzero_new= dzero + 1;
+      std::vector<int> indexes_birth(dzero_new);
+      std::vector<double> proposal_birth(dzero_new);
+
+      dprop_LIT_birth_GGM(&proposal_birth, &indexes_birth, modelnew, ggm, ms); //obtain proposal density for reverse birth move
+
+      int idx_birth= 0;
+      while (indexes_birth[idx_birth] != (*index_death)) { idx_birth++; }
+      (*dpropcurrent) = log(proposal_birth.at(idx_birth));
+      (*dpropcurrent) += ggm->log_pbirth;
+
+    } else {
+
+      (*dpropnew)= -INFINITY;
+
+    }
+
+  }
+
+}
+
+
+/* Obtain proposal probabilities for birth proposal in LIT algorithm of Zhou, Yang, Vats, Roberts & Rosenthal
+
+  INPUT
+  - ggm: ggmObject with info about the graphical model
+  - ms: modselIntegrals_GGM object providing methods to compute & store marginal likelihoods for each possible model
+
+  OUTPUT
+  - proposal_kernel: proposal pmf for each possible birth move
+  - indexes_birth: indexes of the edge being born in each possible birth move (ranging from 0 to p-1, p being the total number of variables)
+
+*/
+void dprop_LIT_birth_GGM(std::vector<double> *proposal_kernel, std::vector<int> *indexes_birth, arma::SpMat<short> *model, ggmObject *ggm, modselIntegrals_GGM *ms) {
+
+  arma::SpMat<short> modelnew= (*model);
+
+  int j, modelid= 0, dzero= proposal_kernel->size();
+  double dpostcur, dpostnew, proposal_sum= 0, proposal_max= -INFINITY;
+
+  ms->getJoint(&dpostcur, nullptr, nullptr, model, nullptr, false); //log-posterior for current model
+
+  for (j=0; modelid < dzero; j++) {
+
+    if (model->at(j,0) == 0) {
+
+      modelnew.at(j,0)= 1;
+      ms->getJoint(&dpostnew, nullptr, nullptr, &modelnew, model, false); //log-posterior for proposed model
+      modelnew.at(j,0)= 0;
+      proposal_kernel->at(modelid)= max_xy(min_xy(dpostnew - dpostcur, ggm->ubound_birth), ggm->lbound_birth);
+      proposal_max= max_xy(proposal_max, proposal_kernel->at(modelid));
+      indexes_birth->at(modelid)= j;
+      modelid++;
+
+    }
+
+  }
+
+  //Normalize probabilities
+  for (j=0; j < dzero; j++) proposal_sum += exp(proposal_kernel->at(j) - proposal_max);
+  for (j=0; j < dzero; j++) proposal_kernel->at(j) = exp(proposal_kernel->at(j) - proposal_max) / proposal_sum;
+
+}
+
+
+/* Obtain proposal probabilities for death proposal in LIT algorithm of Zhou, Yang, Vats, Roberts & Rosenthal
+
+  INPUT
+  - ggm: ggmObject with info about the graphical model
+  - ms: modselIntegrals_GGM object providing methods to compute & store marginal likelihoods for each possible model
+  - colid: index of the column in the GGM being updated (starts at 0)
+
+  OUTPUT
+  - proposal_kernel: proposal pmf for each possible death move
+  - indexes_death: indexes of the edge being born in each possible death move (ranging from 0 to p-1, p being the total number of variables)
+
+*/
+void dprop_LIT_death_GGM(std::vector<double> *proposal_kernel, std::vector<int> *indexes_death, int *colid, arma::SpMat<short> *model, ggmObject *ggm, modselIntegrals_GGM *ms) {
+
+  arma::SpMat<short> modelnew= (*model);
+  arma::SpMat<short>::iterator it;
+
+  int j, modelid= 0;
+  double dpostcur, dpostnew, proposal_sum= 0, proposal_max= -INFINITY;
+
+  ms->getJoint(&dpostcur, nullptr, nullptr, model, nullptr, false); //log-posterior for current model
+
+  for (it= model->begin(); it != model->end(); ++it) {
+
+    j= it.row();
+    if (j == *colid) continue; //diagonal term is always in
+
+    modelnew.at(j,0)= 0;
+    ms->getJoint(&dpostnew, nullptr, nullptr, &modelnew, model, false); //log-posterior for proposed model
+    modelnew.at(j,0)= 1;
+
+    proposal_kernel->at(modelid)= max_xy(min_xy(dpostnew - dpostcur, ggm->ubound_death), ggm->lbound_death);
+    proposal_max= max_xy(proposal_max, proposal_kernel->at(modelid));
+    indexes_death->at(modelid)= j;
+    modelid++;
+
+  }
+
+  //Normalize probabilities
+  int nalive= proposal_kernel->size();
+  for (j=0; j < nalive; j++) proposal_sum += exp(proposal_kernel->at(j) - proposal_max);
+  for (j=0; j < nalive; j++) proposal_kernel->at(j) = exp(proposal_kernel->at(j) - proposal_max) / proposal_sum;
+
+}
+
+
 /* Determine number of iterations to use in GGM parallel proposals 
 
   The number of expected draws from each parallel proposal is m= niter / p, and its SD is s= sqrt(niter (1/p) (1 - 1/p))
@@ -1216,7 +1328,7 @@ std::string getModelid(arma::SpMat<short> *model, char *zerochar) {
 }
 
 
-/* Obtain posterior samples for Omega via Metropolis-Hastings, using the parallel proposals
+/* Obtain posterior samples for Omega via Metropolis-within-Gibbs
 
 INPUT
 
@@ -1237,7 +1349,7 @@ INPUT/OUTPUT
   - Omegaini: initial value of Omega, this is updated at each iteration and the value at the last iteration is returned
 
 */
-void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
@@ -1328,7 +1440,6 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Ma
 
         } else { //use birth-death proposal
 
-          //GGM_birthdeath_proposal(&modelnew, &idx_update, &birth, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), true);
           GGM_birthdeathswap_proposal(&modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), &(ggm->pdeath), true);
 
         }
@@ -1386,11 +1497,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Ma
   for (i = 0; i < p; i++) {
     for (j = 0; j <=i; j++) { margpp->at(i,j) += margppcol[i][j]; margppcount->at(i,j) += ppcount[i]; }
     for (j = i; j < p; j++) { margpp->at(j,i) += margppcol[i][j]; margppcount->at(j,i) += ppcount[i]; }
-//    Rprintf("Column %d, ppcount=%d\n", i, ppcount[i]); //debug
-//    (margppcol[i]).print("margppcol"); //debug
   }
-//  margpp->print("margpp"); //debug
-//  margppcount->print("margppcount"); //debug
 
   //Free memory
   free_ivector(sequence, 0, p-1);
@@ -1401,49 +1508,7 @@ void GGM_parallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Ma
 }
 
 
-/* CODE FOR MIXTURE PROPOSAL, EVALUATING DENSITY OF WHOLE MIXTURE
-
-      if (runifC() < prob_parallel) { //use parallel proposal
-
-        proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
-        dpropnew_parallel= (proposal_logprob->at(newcol))[proposal_idx]; //log-proposal under parallel proposal
-        modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
-        if (!onlyparallel) {
-          //log-proposal under birth-death mode
-          is_birthdeath= checkNonZeroDiff(&modelnew, &(modelold[newcol]), 1) && (modelnew.n_nonzero != (modelold[newcol]).n_nonzero);
-          if (is_birthdeath) {
-            dpropnew_birthdeath= dbirthdeath(&modelnew, &(modelold[newcol]), ggm->pbirth, true); 
-            dpropold_birthdeath= dbirthdeath(&(modelold[newcol]), &modelnew, ggm->pbirth, true);
-          } else {
-            dpropnew_birthdeath= dpropold_birthdeath= -INFINITY;
-          }
-        }
-        //        dpropold= dpropold_parallel;
-        //        dpropnew= dpropnew_parallel;
-
-      } else { //use birth-death proposal
-
-        GGM_birthdeath_proposal(&modelnew, &idx_update, &birth, &dpropnew_birthdeath, &dpropold_birthdeath, &(modelold[newcol]), &newcol, &(ggm->pbirth), true);
-
-        //Evaluate parallel proposal density for modelnew
-        s= getModelid(&modelnew, zerochar);
-        itmap= (map_logprob->at(newcol)).find(s);
-        if (itmap != (map_logprob->at(newcol)).end()) { dpropnew_parallel= itmap->second; } else { dpropnew_parallel= -INFINITY; }
-
-      }
-
-      dpropold_parallel= dpropini_parallel[newcol]; //log-proposal under parallel proposal
-
-      //Evaluate proposal mixture density
-      max_dprop= max_xy(dpropold_parallel, dpropold_birthdeath);
-      dpropold= max_dprop + log(prob_parallel * exp(dpropold_parallel - max_dprop) + prob_birthdeath * exp(dpropold_birthdeath - max_dprop));
-
-      max_dprop= max_xy(dpropnew_parallel, dpropnew_birthdeath);
-      dpropnew= max_dprop + log(prob_parallel * exp(dpropnew_parallel - max_dprop) + prob_birthdeath * exp(dpropnew_birthdeath - max_dprop));
-
-*/
-
-void GGM_onlyparallel_MH_indep(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_MHwithinGibbs_onlyparallel(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
@@ -2225,18 +2290,6 @@ void spmat_droprowcol(arma::sp_mat *A_minusj, arma::sp_mat *A, int j) {
     if (itcol == j) continue; else if (itcol > j) itcol--;
     if (itrow == j) continue; else if (itrow > j) itrow--;
     (*A_minusj)(itrow, itcol)= (*A_minusj)(itcol,itrow)= A->at(it.row(),it.col());
-  }
-}
-
-//Copy A[model,model] into Aout
-void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
-  int i, j;
-  arma::SpMat<short>::iterator it, it2;
-
-  for (it= model->begin(), i=0; it != model->end(); ++it, i++) {
-    for (it2= model->begin(), j=0; it2 != model->end(); ++it2, j++) {
-        Aout->at(i,j)= A->at(it.row(), it2.row());
-    }
   }
 }
 

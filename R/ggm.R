@@ -6,7 +6,7 @@
 
 plot.msfit_ggm= function(x, y, ...) {
   postSample= x$postSample[,x$indexes[1,] != x$indexes[2,],drop=FALSE]
-  margppcum= apply(postSample !=0, 2, cumsum) / (1:nrow(postSample))
+  margppcum= apply(postSample !=0, 2, cumsum) / seq_len(nrow(postSample))
   plot(margppcum[,1], type='l', ylim=c(0,1), xlab='Iteration', ylab='Marginal posterior inclusion probabilities')
   if (ncol(margppcum)>1) for (i in 2:min(5000,ncol(margppcum))) lines(margppcum[,i])
 }
@@ -87,13 +87,13 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
   if (p <=1) stop("y must have at least 2 columns")
   if (!is.numeric(y)) stop("y must be numeric")
-  if (!(sampler %in% c('Gibbs','birthdeath'))) stop("sampler must be 'Gibbs' or 'birthdeath'")
+  if (!(sampler %in% c('Gibbs','birthdeath','LIT'))) stop("sampler must be 'Gibbs', 'birthdeath', or 'LIT'")
   if (tempering < 0) stop("tempering cannot be negative")
   y = scale(y, center=center, scale=scale)
     
@@ -103,7 +103,8 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   prModel= as.list(c(priorlabel=priorModel@priorDistr, priorPars= priorModel@priorPars))
     
   #Format posterior sampler parameters
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, updates_per_iter=updates_per_iter, updates_per_column = updates_per_column, pbirth=pbirth, pdeath=pdeath, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, verbose=verbose)
+  if (missing(bounds_LIT)) bounds_LIT= log(c("lbound_death"=1/p, "ubound_death"= 1, "lbound_birth"=1/p, "ubound_birth"=p))
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, updates_per_iter=updates_per_iter, updates_per_column = updates_per_column, pbirth=pbirth, pdeath=pdeath, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, bounds_LIT=bounds_LIT, verbose=verbose)
     
   #Initial value for sampler
   if (verbose) cat(" Obtaining initial parameter estimate...")
@@ -124,7 +125,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     prop_accept= ans[[3]]
     if (save_proposal) {
       proposal= lapply(ans[4:(4+p-1)], Matrix::t)
-      for (i in 1:length(proposal)) proposal[[i]]@x = as.double(proposal[[i]]@x)
+      for (i in seq_len(length(proposal))) proposal[[i]]@x = as.double(proposal[[i]]@x)
       proposaldensity= Matrix::t(ans[[length(ans)]])
     }
   }
@@ -145,17 +146,26 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, updates_per_column, pbirth, pdeath, prob_parallel, tempering, truncratio, almost_parallel, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, updates_per_column, pbirth, pdeath, prob_parallel, tempering, truncratio, almost_parallel, bounds_LIT, verbose) {
   if (missing(updates_per_column)) {
       updates_per_column= as.integer(min(p, max(log(p), 10)))
   } else {
       updates_per_column= as.integer(updates_per_column)
   }
   if (!(almost_parallel %in% c('none','regression','in-sample'))) stop("almost_parallel must be 'none', 'regression' or 'in-sample'")
-  if ((updates_per_iter < 1) | (updates_per_iter > p)) stop("updates_per_iter must be between 1 and ncol(y)")
+  if ((updates_per_iter < 1) || (updates_per_iter > p)) stop("updates_per_iter must be between 1 and ncol(y)")
   if ((pbirth + pdeath) > 1) stop("pbirth + pdeath must be <=1")
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(updates_per_iter), as.integer(updates_per_column), as.double(pbirth), as.double(pdeath), as.double(prob_parallel), as.double(tempering), as.double(truncratio), almost_parallel, as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','updates_per_iter','updates_per_column','pbirth','pdeath','prob_parallel','tempering','truncratio','almost_parallel','verbose')
+  if (sampler == "LIT") {
+    psum= (pbirth + pdeath)
+    pbirth = pbirth / psum
+    pdeath = pdeath / psum
+  }
+
+  if (!is.vector(bounds_LIT)) stop("bounds_LIT must be a vector")
+  if (!all(c("lbound_death", "ubound_death", "lbound_birth", "ubound_birth") %in% names(bounds_LIT))) stop("bounds_LIT must be a named vector containing 'lbound_death', 'ubound_death', 'lbound_birth', 'ubound_birth'")
+  
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(updates_per_iter), as.integer(updates_per_column), as.double(pbirth), as.double(pdeath), as.double(prob_parallel), as.double(tempering), as.double(truncratio), almost_parallel, as.double(bounds_LIT["lbound_death"]), as.double(bounds_LIT["ubound_death"]), as.double(bounds_LIT["lbound_birth"]), as.double(bounds_LIT["ubound_birth"]), as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','updates_per_iter','updates_per_column','pbirth','pdeath','prob_parallel','tempering','truncratio','almost_parallel','lbound_death','ubound_death','lbound_birth','ubound_birth','verbose')
   return(samplerPars)
 }
 
@@ -194,7 +204,7 @@ initGGM= function(y, Omegaini) {
   
   if (Omegaini=='null') {
     
-    ans= Matrix::sparseMatrix(1:ncol(y), 1:ncol(y), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
+    ans= Matrix::sparseMatrix(seq_len(ncol(y)), seq_len(ncol(y)), x=rep(1,ncol(y)), dims=c(ncol(y),ncol(y)))
     
   } else if (Omegaini %in% c('glasso-bic','glasso-ebic')) {
     if (Omegaini == 'glasso-bic') {
@@ -214,9 +224,9 @@ initGGM= function(y, Omegaini) {
     found= (topbic != 1) & (topbic != 10)
     
     niter= 1
-    while ((!found) & (niter<=maxiter)) {
+    while ((!found) && (niter<=maxiter)) {
       ## huge wants a decreasing sequence
-      if((niter == 1) & (topbic == 1)){## No need for lambda bigger
+      if((niter == 1) && (topbic == 1)){## No need for lambda bigger
         break
       }
       if (topbic==10) {
@@ -259,7 +269,7 @@ glasso_getBIC = function(y, sfit, method='EBIC') {
   #ans = -n * sfit$loglik + log(n) * sfit$df + 4 * gamma * log(d) * sfit$df
   #Manual implementation
   logl= npar= double(length(sfit$icov))
-  for (i in 1:length(logl)) {
+  for (i in seq_len(length(logl))) {
     logl[i]= sum(dmvnorm_prec(y, sigmainv=sfit$icov[[i]], log=TRUE))
     npar[i]= (sum(sfit$icov[[i]] != 0) - d)/2
   }

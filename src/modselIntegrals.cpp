@@ -2,6 +2,117 @@
 using namespace std;
 
 
+//*************************************************************************************
+// CLASS ggmObject
+//*************************************************************************************
+
+//Constructor
+ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, bool use_tempering, bool computeS=true) {
+
+  //Data summaries
+  this->n= y->n_rows;
+  this->ncol= y->n_cols;
+
+  if (computeS) {
+    this->S= (*y).t() * (*y);
+  } else {
+    Rf_error("Error in ggmObject. Currently computeS must be set to true");
+  }
+
+  //Parameters of prior distribution  
+  this->prCoef_lambda= as<double>(prCoef["lambda"]);
+  this->prCoef_tau = as<double>(prCoef["tau"]);
+
+  this->priorlabel= as<string> (prModel["priorlabel"]);
+  this->priorPars_p= as<double>(prModel["priorPars.p"]);
+
+  //MCMC sampler parameters
+  CharacterVector samplerR= samplerPars["sampler"];
+  std::string samplerC = Rcpp::as<std::string>(samplerR);
+  this->sampler= samplerC;
+
+  this->burnin= as<int>(samplerPars["burnin"]);
+  this->niter= as<int>(samplerPars["niter"]);
+  this->updates_per_column= as<int>(samplerPars["updates_per_column"]);
+  this->updates_per_iter= as<int>(samplerPars["updates_per_iter"]);
+  this->tempering= as<double>(samplerPars["tempering"]);
+  this->truncratio= as<double>(samplerPars["truncratio"]);
+  this->pbirth= as<double>(samplerPars["pbirth"]);
+  this->pdeath= as<double>(samplerPars["pdeath"]);
+  this->log_pbirth= log(this->pbirth);
+  this->log_pdeath= log(this->pdeath);
+  this->use_tempering= use_tempering;
+
+  this->lbound_death= as<double>(samplerPars["lbound_death"]);
+  this->ubound_death= as<double>(samplerPars["ubound_death"]);
+  this->lbound_birth= as<double>(samplerPars["lbound_birth"]);
+  this->ubound_birth= as<double>(samplerPars["ubound_birth"]);
+
+  this->prob_parallel= as<double>(samplerPars["prob_parallel"]);
+  CharacterVector almost_parallelR= samplerPars["almost_parallel"];
+  std::string almost_parallelC = Rcpp::as<std::string>(almost_parallelR);
+  std::string regression("regression"), insample("in-sample");
+  this->parallel_regression= (almost_parallelC == regression);
+  this->parallel_insample= (almost_parallelC == insample);
+
+  //Set print progress iteration to true/false
+  arma::vec v = as<arma::vec>(samplerPars["verbose"]);
+  if (v[0] == 1) this->verbose= true; else this->verbose= false;
+
+}
+
+
+//Constructor
+ggmObject::ggmObject(ggmObject *ggm) {
+
+  //Data summaries
+  this->n= ggm->n;
+  this->ncol= ggm->ncol;
+  this->S= ggm->S;
+
+  //Parameters of prior distribution  
+  this->prCoef_lambda= ggm->prCoef_lambda;
+  this->prCoef_tau = ggm->prCoef_tau;
+
+  this->priorlabel= ggm->priorlabel;
+  this->priorPars_p= ggm->priorPars_p;
+
+  //MCMC sampler parameters
+  this->sampler= ggm->sampler;
+
+  this->burnin= ggm->burnin;
+  this->niter= ggm->niter;
+  this->updates_per_column= ggm->updates_per_column;
+  this->updates_per_iter= ggm->updates_per_iter;
+  this->tempering= ggm->tempering;
+  this->truncratio= ggm->truncratio;
+  this->pbirth= ggm->pbirth;
+  this->pdeath= ggm->pdeath;
+  this->log_pbirth= ggm->log_pbirth;
+  this->log_pdeath= ggm->log_pdeath;
+  this->use_tempering= ggm->use_tempering;
+
+  this->lbound_death= ggm->lbound_death;
+  this->ubound_death= ggm->ubound_death;
+  this->lbound_birth= ggm->lbound_birth;
+  this->ubound_birth= ggm->ubound_birth;
+
+  this->prob_parallel= ggm->prob_parallel;
+  this->parallel_regression= ggm->parallel_regression;
+  this->parallel_insample= ggm->parallel_insample;
+
+  //Set print progress iteration to true/false
+  this->verbose= ggm->verbose;
+
+}
+
+//Destructor
+ggmObject::~ggmObject() {
+
+}
+
+
+
 /***********************************************************************************/
 /* Integrated likelihoods for regression models                                    */
 /***********************************************************************************/

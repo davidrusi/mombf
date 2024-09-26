@@ -25,7 +25,7 @@ tempering= 0.5, truncratio= 100,
 save_proposal= FALSE, niter=10^3, burnin= round(niter/10), 
 updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10,
 sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth),
-Omegaini='glasso-ebic', verbose=TRUE)
+bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE)
 
 }
 \arguments{
@@ -98,6 +98,12 @@ Omegaini='glasso-ebic', verbose=TRUE)
 
   \item{pdeath}{Probability of a death move. Ignored unless
     \code{sampler=="birthdeath"}}  
+
+  \item{bounds_LIT}{log-proposal density bound for the locally-informed LIT 
+  algorithm of Zhou et al. These bound the proposal density for a death move
+  and for a birth move. By  default, \code{bounds_LIT} is
+  \code{log(c("lbound_death"=1/p, "ubound_death"= 1, "lbound_birth"=1/p, "ubound_birth"=p))}
+  }
  
   \item{Omegaini}{Initial value of the precision matrix Omega. "null"
   sets all off-diagonal entries to 0. "glasso-bic" and "glasso-ebic" use

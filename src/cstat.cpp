@@ -2105,6 +2105,22 @@ double isign(int x)
     return (x > 0) ? 1.0 : -1.0;
 }
 
+/**************************************************************/
+/* MATRIX MANIPULATION                                        */
+/**************************************************************/
+
+//Copy A[model,model] into Aout
+void copy_submatrix(arma::mat *Aout, arma::mat *A, arma::SpMat<short> *model) {
+  int i, j;
+  arma::SpMat<short>::iterator it, it2;
+
+  for (it= model->begin(), i=0; it != model->end(); ++it, i++) {
+    for (it2= model->begin(), j=0; it2 != model->end(); ++it2, j++) {
+        Aout->at(i,j)= A->at(it.row(), it2.row());
+    }
+  }
+}
+
 
 /************************************************************************
                             VECTOR ALGEBRA
@@ -5486,6 +5502,17 @@ void rmultinomial(int ndraws, int ncells, const double *pr, int *x) {
     free_dvector(cum_p, 0, ncells);
 }
 
+
+//Single draw from a multinomial with probabilities pr (note: unlike the previous rmultinomial form, pr must add to 1)
+int rmultinomial(const std::vector<double> *pr) {
+  int i=0;
+  double u= runifC(), pcum=pr->at(0);
+  while (u > pcum) {
+    i++;
+    pcum += pr->at(i);
+  }
+  return i;
+}
 
 /*
  * Beta-binomial(alpha,beta) prior probability for a model including

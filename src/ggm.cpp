@@ -289,9 +289,10 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   int j, niter= ggm->niter, p= ggm->ncol, burnin= ggm->burnin, npars= p*(p+1)/2;
   double *dpropini, prop_accept;
 
-  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), zigzag("zigzag");
+  std::string Gibbs("Gibbs"), birthdeath("birthdeath"), LIT("LIT"), zigzag("zigzag");
   bool use_gibbs= (ggm->sampler == Gibbs);
   bool use_birthdeath= (ggm->sampler == birthdeath);
+  bool use_LIT= (ggm->sampler == LIT);
   bool use_zigzag= (ggm->sampler == zigzag);
 
   //Allocate memory
@@ -309,7 +310,7 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   std::vector<std::map<string, double>> map_logprob(p);
 
   //Propose models, store their proposal probability into proposal_logprob
-  if (use_gibbs || use_birthdeath) {
+  if (use_gibbs || use_birthdeath || use_LIT) {
 
     int updates_per_column= ggm->updates_per_column;
     ggm->updates_per_column= 1;
@@ -393,7 +394,7 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
 
   niter_GGM_proposal(&niter_prop, &burnin_prop, &(ggm->niter), &(ggm->burnin), &p); //if not using a full scan, less iterations are needed
 
-  if (!use_gibbs && !use_birthdeath) Rf_error("GGM_parallel_proposal requires the sampler to be Gibbs or birthdeath");
+  if (!use_gibbs && !use_birthdeath && !use_LIT) Rf_error("GGM_parallel_proposal requires the sampler to be Gibbs, birthdeath or LIT");
 
   if (p >10) { p10= p / 10; } else { p10= 1; }
 
@@ -634,9 +635,9 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
   if ((model_logprob != nullptr) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
   //Set random number generators
-  std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
-//  std::default_random_engine generator((omp_get_thread_num() + 1));  //multi-thread version. Set seed according to thread number
-//  std::default_random_engine generator; //single thread version. Do not set seed
+  unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count(); //single-thread version
+  //unsigned seed = colid + 1; //multi-thread version. Set seed according to colid
+  std::default_random_engine generator(seed);
   std::uniform_real_distribution<double> unifdist(0.0,1.0);
 
   //Initialize model and modelnew
@@ -757,8 +758,9 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   if ((model_logprob != nullptr) && (model_logprob->n_rows > 1)) col2save= colid; else col2save= 0;
 
   //Set random number generators
-  std::default_random_engine generator((colid + 1));  //multi-thread version. Set seed according to colid
-//  std::default_random_engine generator; //single thread version. Do not set seed
+  unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count(); //single-thread version
+  //unsigned seed = colid + 1; //multi-thread version. Set seed according to colid
+  std::default_random_engine generator(seed);
   std::uniform_real_distribution<double> unifdist(0.0,1.0);
 
   //Initialize model and modelnew
@@ -1583,7 +1585,6 @@ void GGM_MHwithinGibbs_onlyparallel(arma::sp_mat *postSample, arma::mat *margpp,
         modelnew= ((*proposal_models)[newcol]).col(proposal_idx); //proposed value
 
         if (k==0) ms->getJoint(&dpostold, sample_offdiag, &sample_diag, &(modelold[newcol]), nullptr, false); //log-posterior for current model
-        //Rprintf("i=%d, newcol=%d k=%d\n", i, newcol, k); //debug
         ms->getJoint(&dpostnew, sample_offdiag, &sample_diag, &modelnew, &(modelold[newcol]), false); //log-posterior for proposed model
 
         dpropold= dpropini[newcol]; //log-proposal for current model

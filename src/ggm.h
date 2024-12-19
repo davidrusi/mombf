@@ -48,7 +48,7 @@ void update_margpp_raoblack(arma::vec *margpp, double ppnew, arma::SpMat<short> 
 
 void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool *birth, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, bool setmodelnew);
 
-void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, bool setmodelnew);
+void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, double *pswap, bool setmodelnew);
 
 void GGM_LIT_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, ggmObject *ggm, modselIntegrals_GGM *ms, bool setmodelnew);
 void dprop_LIT_birth_GGM(std::vector<double> *proposal_kernel, std::vector<int> *indexes_birth, arma::SpMat<short> *model, ggmObject *ggm, modselIntegrals_GGM *ms);

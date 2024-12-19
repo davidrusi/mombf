@@ -293,7 +293,7 @@ void rbirthdeath(int *index, bool *birth, arma::SpMat<short> *model, double pbir
 double dbirthdeath(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, bool logscale); //pmf of birth-death proposal
 
 void rbirthdeathswap(int *index_birth, int *index_death, int *movetype, arma::SpMat<short> *model, double pbirth, double pdeath); //birth-death-swap proposal
-double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, bool logscale); //pmf of birth-death-swap proposal
+double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, double pswap, bool logscale); //pmf of birth-death-swap proposal
 
 
 /**************************************************************/

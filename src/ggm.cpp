@@ -741,7 +741,7 @@ IMPORTANT: if not nullptr, at input samples and models should only contain zeroe
 void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma::vec *margpp, arma::Col<int> *margppcount, int *number_accept, int *number_proposed, int iterini, int iterfi, unsigned int colid, ggmObject *ggm, bool *use_LIT, arma::sp_mat *Omegacol, arma::mat *invOmega_rest, arma::mat *model_logprob = nullptr, double *modelini_logprob = nullptr) {
 
   int i, j, p= ggm->ncol, updates_per_column= ggm->updates_per_column, index_birth, index_death, movetype, col2save, colid_int= (int) colid, ppcount=0;
-  double pbirth= ggm->pbirth, pdeath= ggm->pdeath, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
+  double pbirth= ggm->pbirth, pdeath= ggm->pdeath, pswap= ggm->pswap, mcurrent, mnew, dpropcurrent, dpropnew, ppnew, sample_diag;
   arma::mat *sample_offdiag= nullptr;
   arma::sp_mat::const_iterator it;
   arma::SpMat<short> *model, *modelnew, *model_tmp_ptr;
@@ -779,26 +779,26 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
 
     for (j=1; j<=updates_per_column; j++) {  //Make updates_per_column updates
 
-      if (use_LIT) { //Locally-informed proposal
+      if (*use_LIT) { //Locally-informed proposal
 
         GGM_LIT_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, ggm, ms, true);
 
       } else {  //Non-informed birth-death-swap proposal
 
-        GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, true);
+        GGM_birthdeathswap_proposal(modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropcurrent, model, &colid_int, &pbirth, &pdeath, &pswap, true);
 
       } 
       
       (*number_proposed)++;
 
-      if ((index_birth != -1) || (index_death != -1)) {     //if a move that's not impossible was proposed
+      if ((index_birth != -1) || (index_death != -1)) {     //if proposed modelnew != model
 
           ms->getJoint(&mnew, sample_offdiag, &sample_diag, modelnew, model, false);  //obtain marginal likelihood for modelnew
 
           ppnew = exp(mnew - mcurrent + dpropcurrent - dpropnew); //probability of accepting modelnew
 
           if (margpp != nullptr) {
-            update_margpp_raoblack(margpp, min_xy(1,ppnew), model, modelnew); 
+            update_margpp_raoblack(margpp, min_xy(1,ppnew), model, modelnew);
             ppcount++;
           }
          
@@ -814,6 +814,15 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
            
           if (index_birth != -1) modelnew->at(index_birth,0)= model->at(index_birth,0);
           if (index_death != -1) modelnew->at(index_death,0)= model->at(index_death,0);
+
+      } else {   //if proposed modelnew == model
+
+          ppnew= 1;
+          if (margpp != nullptr) {
+            update_margpp_raoblack(margpp, min_xy(1,ppnew), model, modelnew);
+            ppcount++;
+          }
+
 
       }
 
@@ -948,7 +957,7 @@ void GGM_birthdeath_proposal(arma::SpMat<short> *modelnew, int *idx_update, bool
   - dpropcurrent: log of the proposal probability of model. If the propsed move was not possible, dpropcurrent is not updated
 
 */
-void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, bool setmodelnew) {
+void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth, int *index_death, int *movetype, double *dpropnew, double *dpropcurrent, arma::SpMat<short> *model, int *colid, double *pbirth, double *pdeath, double *pswap, bool setmodelnew) {
 
   if (setmodelnew) (*modelnew)= *model;
 
@@ -975,8 +984,8 @@ void GGM_birthdeathswap_proposal(arma::SpMat<short> *modelnew, int *index_birth,
       modelnew->at(*index_death,0)= 0;
     }
 
-    (*dpropnew)= dbirthdeathswap(&modelnew_colid, &model_colid, *pbirth, *pdeath, true);
-    (*dpropcurrent)= dbirthdeathswap(&model_colid, &modelnew_colid, *pbirth, *pdeath, true);
+    (*dpropnew)= dbirthdeathswap(&modelnew_colid, &model_colid, *pbirth, *pdeath, *pswap, true);
+    (*dpropcurrent)= dbirthdeathswap(&model_colid, &modelnew_colid, *pbirth, *pdeath, *pswap, true);
 
   } else {
 
@@ -1442,7 +1451,7 @@ void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arm
 
         } else { //use birth-death proposal
 
-          GGM_birthdeathswap_proposal(&modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), &(ggm->pdeath), true);
+          GGM_birthdeathswap_proposal(&modelnew, &index_birth, &index_death, &movetype, &dpropnew, &dpropold, &(modelold[newcol]), &newcol, &(ggm->pbirth), &(ggm->pdeath), &(ggm->pswap), true);
 
         }
 

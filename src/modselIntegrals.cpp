@@ -39,8 +39,10 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->truncratio= as<double>(samplerPars["truncratio"]);
   this->pbirth= as<double>(samplerPars["pbirth"]);
   this->pdeath= as<double>(samplerPars["pdeath"]);
+  this->pswap= 1 - this->pbirth - this->pdeath;
   this->log_pbirth= log(this->pbirth);
   this->log_pdeath= log(this->pdeath);
+  this->log_pswap= log(this->pswap);
   this->use_tempering= use_tempering;
 
   this->lbound_death= as<double>(samplerPars["lbound_death"]);
@@ -88,8 +90,10 @@ ggmObject::ggmObject(ggmObject *ggm) {
   this->truncratio= ggm->truncratio;
   this->pbirth= ggm->pbirth;
   this->pdeath= ggm->pdeath;
+  this->pswap= ggm->pswap;
   this->log_pbirth= ggm->log_pbirth;
   this->log_pdeath= ggm->log_pdeath;
+  this->log_pswap= ggm->log_pswap;
   this->use_tempering= ggm->use_tempering;
 
   this->lbound_death= ggm->lbound_death;

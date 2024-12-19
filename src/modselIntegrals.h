@@ -33,7 +33,8 @@ public:
   int burnin;  //number of MCMC burnin iterations
   double pbirth;  //probability of birth move, only used when sampler is "birthdeath" or "LIT"
   double pdeath;  //probability of death move, only used when sampler is "birthdeath"
-  double log_pbirth, log_pdeath; 
+  double pswap;   //probability of a swap move= 1 - prob birth - prob death
+  double log_pbirth, log_pdeath, log_pswap; 
   double lbound_death; //In the LIT sampler, a lower bound on the log-proposal probability of a death move
   double ubound_death; //In the LIT sampler, an upper bound on the log-proposal probability of a death move
   double lbound_birth; //In the LIT sampler, a lower bound on the log-proposal probability of a birth move

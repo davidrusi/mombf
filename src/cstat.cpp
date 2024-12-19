@@ -4826,11 +4826,11 @@ void rbirthdeathswap(int *index_birth, int *index_death, int *movetype, arma::Sp
 }
 
 
-//Probability mass function of a birth-death proposal
-double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, bool logscale=true) {
+//Probability mass function of a birth-death-swap proposal
+double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, double pbirth, double pdeath, double pswap, bool logscale=true) {
 
   int d= model->n_nonzero, dnew= modelnew->n_nonzero, nrows= model->n_rows;
-  double pswap= 1-pbirth-pdeath, ans;
+  double ans;
 
   if (dnew == d+1) { //birth was proposed
 
@@ -4842,15 +4842,15 @@ double dbirthdeathswap(arma::SpMat<short> *modelnew, arma::SpMat<short> *model, 
 
   } else if ((dnew == d) && (d == nrows)) { //either birth or swap were proposed, but all entries were non-zero
 
-    ans= pbirth * pswap; 
+    ans= pbirth + pswap;
 
   } else if ((dnew == d) && (d == 0)) { //either death or swap were proposed, but all entries were zero
 
-    ans= pdeath * pswap;
+    ans= pdeath + pswap;
 
   } else if (dnew == d) { //if swap move was proposed
 
-    ans= (pbirth / (double) (model->n_rows - d)) * (pdeath / (double) d);
+    ans= pswap / (d * (model->n_rows - d));
 
   } else {
 

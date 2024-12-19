@@ -43,8 +43,8 @@ public:
   int updates_per_iter; //an iteration consists of choosing updates_per_iter columns at random, and proposing updates_per_column updates for each column
   int updates_per_column; //see updates_per_iter
   int niter; //number of MCMC iterations
-  double tempering; //tempering parameter in parallel proposal
-  double truncratio; //truncation ratio in parallel proposal. If prob(model) < prob(top model) / truncratio, then prob(model) = prob(top model) / truncratio
+  double tempering; //tempering parameter in global proposal
+  double truncratio; //truncation ratio in global proposal. If prob(model) < prob(top model) / truncratio, then prob(model) = prob(top model) / truncratio
 
   arma::mat S; //t(y) * y
 
@@ -59,9 +59,9 @@ public:
   std::string sampler; //MCMC sampler type, e.g. Gibbs, birth-death
   //List samplerPars; //posterior sampler parameters
 
-  double prob_parallel; //proposal probability of almost-parallel update
-  bool parallel_regression; //use almost-parallel regression based proposal?
-  bool parallel_insample;  //use almost-parallel in-sample based proposal?
+  double prob_global; //proposal probability of almost-global update
+  bool global_regression; //use almost-global regression based proposal?
+  bool global_insample;  //use almost-global in-sample based proposal?
   bool use_tempering;
   bool verbose;
 

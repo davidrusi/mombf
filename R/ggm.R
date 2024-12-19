@@ -22,11 +22,7 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 coef.msfit_ggm <- function(object,...) {
   m= Matrix::colMeans(object$postSample)
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
-  #if (object$almost_parallel=='none') {
   ans= cbind(t(object$indexes), m, ci, object$margpp) #use Rao-Blackwellized edge inclusion probabilities
-  #} else {
-  #ans= cbind(t(object$indexes), m, ci, Matrix::colMeans(object$postSample != 0)) #MCMC edge inclusion proportions
-  #}
   colnames(ans)[-1:-2]= c('estimate','2.5%','97.5%','margpp')
   return(ans)
 }
@@ -87,7 +83,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, almost_parallel= "regression", prob_parallel=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, global_proposal= "regression", prob_global=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);
@@ -104,7 +100,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     
   #Format posterior sampler parameters
   if (missing(bounds_LIT)) bounds_LIT= log(c("lbound_death"=1/p, "ubound_death"= 1, "lbound_birth"=1/p, "ubound_birth"=p))
-  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, updates_per_iter=updates_per_iter, updates_per_column = updates_per_column, pbirth=pbirth, pdeath=pdeath, prob_parallel=prob_parallel, tempering=tempering, truncratio=truncratio, almost_parallel=almost_parallel, bounds_LIT=bounds_LIT, verbose=verbose)
+  samplerPars= format_GGM_samplerPars(sampler, p=p, niter=niter, burnin=burnin, updates_per_iter=updates_per_iter, updates_per_column = updates_per_column, pbirth=pbirth, pdeath=pdeath, prob_global=prob_global, tempering=tempering, truncratio=truncratio, global_proposal=global_proposal, bounds_LIT=bounds_LIT, verbose=verbose)
     
   #Initial value for sampler
   if (verbose) cat(" Obtaining initial parameter estimate...")
@@ -113,13 +109,13 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
     
   #Call C++ function
   proposal= proposaldensity= NULL
-  if (almost_parallel == 'none') {
+  if (global_proposal == 'none') {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
     margpp= ans$margpp
     prop_accept= ans$prop_accept
   } else {
-    ans= modelSelectionGGM_parallelC(y, prCoef, prModel, samplerPars, Omegaini)
+    ans= modelSelectionGGM_globalC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans[[1]])
     margpp= ans[[2]]
     prop_accept= ans[[3]]
@@ -138,7 +134,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, almost_parallel=almost_parallel)
+  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, global_proposal=global_proposal)
 
   new("msfit_ggm",ans)
 }
@@ -146,13 +142,13 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
 
 
 #Format posterior sampling parameters to pass onto C++
-format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, updates_per_column, pbirth, pdeath, prob_parallel, tempering, truncratio, almost_parallel, bounds_LIT, verbose) {
+format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, updates_per_column, pbirth, pdeath, prob_global, tempering, truncratio, global_proposal, bounds_LIT, verbose) {
   if (missing(updates_per_column)) {
       updates_per_column= as.integer(min(p, max(log(p), 10)))
   } else {
       updates_per_column= as.integer(updates_per_column)
   }
-  if (!(almost_parallel %in% c('none','regression','in-sample'))) stop("almost_parallel must be 'none', 'regression' or 'in-sample'")
+  if (!(global_proposal %in% c('none','regression','in-sample'))) stop("global_proposal must be 'none', 'regression' or 'in-sample'")
   if ((updates_per_iter < 1) || (updates_per_iter > p)) stop("updates_per_iter must be between 1 and ncol(y)")
   if ((pbirth + pdeath) > 1) stop("pbirth + pdeath must be <=1")
   if (sampler == "LIT") {
@@ -164,8 +160,8 @@ format_GGM_samplerPars= function(sampler, p, niter, burnin, updates_per_iter, up
   if (!is.vector(bounds_LIT)) stop("bounds_LIT must be a vector")
   if (!all(c("lbound_death", "ubound_death", "lbound_birth", "ubound_birth") %in% names(bounds_LIT))) stop("bounds_LIT must be a named vector containing 'lbound_death', 'ubound_death', 'lbound_birth', 'ubound_birth'")
   
-  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(updates_per_iter), as.integer(updates_per_column), as.double(pbirth), as.double(pdeath), as.double(prob_parallel), as.double(tempering), as.double(truncratio), almost_parallel, as.double(bounds_LIT["lbound_death"]), as.double(bounds_LIT["ubound_death"]), as.double(bounds_LIT["lbound_birth"]), as.double(bounds_LIT["ubound_birth"]), as.integer(ifelse(verbose,1,0)))
-  names(samplerPars)= c('sampler','niter','burnin','updates_per_iter','updates_per_column','pbirth','pdeath','prob_parallel','tempering','truncratio','almost_parallel','lbound_death','ubound_death','lbound_birth','ubound_birth','verbose')
+  samplerPars= list(sampler, as.integer(niter), as.integer(burnin), as.integer(updates_per_iter), as.integer(updates_per_column), as.double(pbirth), as.double(pdeath), as.double(prob_global), as.double(tempering), as.double(truncratio), global_proposal, as.double(bounds_LIT["lbound_death"]), as.double(bounds_LIT["ubound_death"]), as.double(bounds_LIT["lbound_birth"]), as.double(bounds_LIT["ubound_birth"]), as.integer(ifelse(verbose,1,0)))
+  names(samplerPars)= c('sampler','niter','burnin','updates_per_iter','updates_per_column','pbirth','pdeath','prob_global','tempering','truncratio','global_proposal','lbound_death','ubound_death','lbound_birth','ubound_birth','verbose')
   return(samplerPars)
 }
 

@@ -25,8 +25,8 @@ modelSelectionGGMC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
     .Call(`_mombf_modelSelectionGGMC`, y, prCoef, prModel, samplerPars, Omegaini)
 }
 
-modelSelectionGGM_parallelC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
-    .Call(`_mombf_modelSelectionGGM_parallelC`, y, prCoef, prModel, samplerPars, Omegaini)
+modelSelectionGGM_globalC <- function(y, prCoef, prModel, samplerPars, Omegaini) {
+    .Call(`_mombf_modelSelectionGGM_globalC`, y, prCoef, prModel, samplerPars, Omegaini)
 }
 
 normalmixGibbsCI <- function(Sx, Sn, Sp, Sncomp, Sz, Smu0, Sg, Snu0, SS0, Sq, SB, Sburnin, Sverbose) {

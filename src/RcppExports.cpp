@@ -117,9 +117,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// modelSelectionGGM_parallelC
-List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
-RcppExport SEXP _mombf_modelSelectionGGM_parallelC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
+// modelSelectionGGM_globalC
+List modelSelectionGGM_globalC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini);
+RcppExport SEXP _mombf_modelSelectionGGM_globalC(SEXP ySEXP, SEXP prCoefSEXP, SEXP prModelSEXP, SEXP samplerParsSEXP, SEXP OmegainiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,7 +128,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type prModel(prModelSEXP);
     Rcpp::traits::input_parameter< List >::type samplerPars(samplerParsSEXP);
     Rcpp::traits::input_parameter< arma::sp_mat >::type Omegaini(OmegainiSEXP);
-    rcpp_result_gen = Rcpp::wrap(modelSelectionGGM_parallelC(y, prCoef, prModel, samplerPars, Omegaini));
+    rcpp_result_gen = Rcpp::wrap(modelSelectionGGM_globalC(y, prCoef, prModel, samplerPars, Omegaini));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -544,7 +544,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mombf_rnlpPostCI_lm", (DL_FUNC) &_mombf_rnlpPostCI_lm, 11},
     {"_mombf_rnlpCI", (DL_FUNC) &_mombf_rnlpCI, 9},
     {"_mombf_modelSelectionGGMC", (DL_FUNC) &_mombf_modelSelectionGGMC, 5},
-    {"_mombf_modelSelectionGGM_parallelC", (DL_FUNC) &_mombf_modelSelectionGGM_parallelC, 5},
+    {"_mombf_modelSelectionGGM_globalC", (DL_FUNC) &_mombf_modelSelectionGGM_globalC, 5},
     {"_mombf_normalmixGibbsCI", (DL_FUNC) &_mombf_normalmixGibbsCI, 13},
     {"_mombf_testfunctionCI", (DL_FUNC) &_mombf_testfunctionCI, 3},
     {"_mombf_eprod_I", (DL_FUNC) &_mombf_eprod_I, 5},

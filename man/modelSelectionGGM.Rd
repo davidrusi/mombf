@@ -20,7 +20,7 @@
 modelSelectionGGM(y, priorCoef=normalidprior(tau=1), 
 priorModel=modelbinomprior(1/ncol(y)), 
 priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, 
-almost_parallel= 'regression', prob_parallel=0.5,
+global_proposal= 'regression', prob_global=0.5,
 tempering= 0.5, truncratio= 100,
 save_proposal= FALSE, niter=10^3, burnin= round(niter/10), 
 updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10,
@@ -46,7 +46,7 @@ bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE)
   \item{scale}{If \code{TRUE}, the columns of \code{y} will be scaled to
     unit sample variance}
 
-  \item{almost_parallel}{Either \code{'none'}, \code{'regression'} or 
+  \item{global_proposal}{Either \code{'none'}, \code{'regression'} or 
   \code{'in-sample'}. 
   If \code{'none'}, serial MCMC is used as specified by \code{sampler}. 
   If \code{'regression'}, 
@@ -55,31 +55,32 @@ bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE)
   If \code{'in-sample'}, each column's proposal use posterior model
   probabilities given a precision matrix estimate for the other columns}
 
-  \item{prob_parallel}{Probability of proposing a sample from the 
-  almost-parallel proposal, see details. This argument is ignored if
-  \code{almost_parallel == "none"}.
+  \item{prob_global}{Probability of proposing a sample from a
+  global proposal, see details. This argument is ignored if
+  \code{global_proposal == "none"}.
   }
 
-  \item{tempering}{If \code{almost_parallel != 'none'}, the posterior model
+  \item{tempering}{If \code{global_proposal != 'none'}, the posterior model
   probabilities of the proposal distribution are raised to the power
   indicated by \code{tempering} (set to 1 for no tempering)}
 
-  \item{truncratio}{In parallel proposal, any model's proposal probability 
+  \item{truncratio}{In the global proposal, any model's proposal probability 
   is >= prob(top model) / truncratio. This ensures bounded weight ratios
   in the MH step, to improve poor mixing when the current state has low
   proposal probability, often at the cost of decreasing the acceptance rate.
   If \code{truncratio <= 0}, no truncation is done}
 
-  \item{save_proposal}{If \code{TRUE}, the parallel proposals are saved
+  \item{save_proposal}{If \code{TRUE}, the global proposals are saved
   in \code{proposal} (a list with p entries, one per column) and the
   corresponding proposal densities in \code{proposaldensity}. Neither
   are typically needed, as they were already used to produce the
   posterior samples in \code{postSample}}
   
-  \item{sampler}{Posterior sampler used when \code{parallel=="none"},
-  and also to run the parallel proposals when \code{parallel!="none"}. 
-  Options are "Gibbs" for Gibbs sampling and "birthdeath" for
-  birth-death-swap}
+  \item{sampler}{Posterior sampler used when \code{global=="none"},
+  and also to run the parallel proposals when \code{global!="none"}. 
+  Options are \code{"Gibbs"} for Gibbs sampling,\code{"birthdeath"} for
+  birth-death-swap, and \code{"LIT"} for the locally-informed truncated 
+  algorithm of Zhou et al (2022)}
   
   \item{niter}{Number of posterior samples to be obtained. Each iteration
   consists of selecting a column of the precision matrix at random and 
@@ -138,26 +139,27 @@ bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE)
   entries of Omega[,k] are updated from their exact posterior given
   the current set of edges.
 
-  If \code{almost_parallel=="none"}, a serial MCMC algorithm is run where an 
-  iteration consists of iterating over \code{updates_per_iter} columns chosen 
-  at random and, for each column, do \code{updates_per_column} proposals
-  according to a Gibbs or birth-death-swap update.
+  An MCMC iteration consists of iterating over \code{updates_per_iter} columns 
+  chosen at random and, for each column, do \code{updates_per_column} 
+  proposals.
 
-  If \code{almost_parallel!="none"}, first a global proposal is obtained by
-  running an MCMC within each column. For each column, the 
-  proposal probabilities are tempered by raising them to the power
+  If \code{global_proposal == "none"}, a local MCMC proposal is used to 
+  update what entries in Omega[,k] are zero. 
+  Local means that the proposed model is a neighbour of the current model,
+  e.g. only one edge is added / killed.
+  Available local kernels are Gibbs, birth-death-swap and LIT (Zhou et al 2022).
+
+  If \code{global_proposal == "regression"}, a global proposal is used.
+  A new model (set of non-zero entries in Omega[,k]) is proposed based 
+  on the posterior distribution of a linear regression of y[,k] on the other
+  covariates. 
+  \code{prob_global} indicates the probability of using the global proposal,
+  otherwise a local proposal is used.
+  Proposal probabilities are tempered by raising them to the power
   \code{tempering}. Further, any model with probability 
   below prob(top model) / truncratio is assigned proposal probability
-  prob(top model) / truncratio, which ensures that ratios of global proposal
-  probabilities are bounded between [1/truncratio, truncratio].
-
-  Second, a Metropolis-Hastings algorithm
-  is run, where the global proposal is used with probability 
-  \code{prob_parallel}
-  and otherwise the local proposal indicated by \code{sampler} is used.
-  The meaning of \code{updates_per_iter} and \code{updates_per_column} is
-  the same as when \code{almost_parallel == "none"}.
-  
+  prob(top model) / truncratio.
+ 
 }
 \value{
   Posterior inference on the inverse covariance of \code{y}.
@@ -202,6 +204,10 @@ bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE)
   \code{icov} for the estimated precision (inverse covariance) matrix.
   \code{coef.msfit_ggm} for Bayesian model averaging estimates and
   intervals. 
+}
+\references{
+  Zhou, Quan, et al. Dimension-free mixing for high-dimensional Bayesian 
+  variable selection. JRSS-B 2022, 84, 1751-1784
 }
 \examples{
 

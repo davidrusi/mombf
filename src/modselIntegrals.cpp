@@ -50,12 +50,12 @@ ggmObject::ggmObject(arma::mat *y, List prCoef, List prModel, List samplerPars, 
   this->lbound_birth= as<double>(samplerPars["lbound_birth"]);
   this->ubound_birth= as<double>(samplerPars["ubound_birth"]);
 
-  this->prob_parallel= as<double>(samplerPars["prob_parallel"]);
-  CharacterVector almost_parallelR= samplerPars["almost_parallel"];
-  std::string almost_parallelC = Rcpp::as<std::string>(almost_parallelR);
+  this->prob_global= as<double>(samplerPars["prob_global"]);
+  CharacterVector global_proposalR= samplerPars["global_proposal"];
+  std::string global_proposalC = Rcpp::as<std::string>(global_proposalR);
   std::string regression("regression"), insample("in-sample");
-  this->parallel_regression= (almost_parallelC == regression);
-  this->parallel_insample= (almost_parallelC == insample);
+  this->global_regression= (global_proposalC == regression);
+  this->global_insample= (global_proposalC == insample);
 
   //Set print progress iteration to true/false
   arma::vec v = as<arma::vec>(samplerPars["verbose"]);
@@ -101,9 +101,9 @@ ggmObject::ggmObject(ggmObject *ggm) {
   this->lbound_birth= ggm->lbound_birth;
   this->ubound_birth= ggm->ubound_birth;
 
-  this->prob_parallel= ggm->prob_parallel;
-  this->parallel_regression= ggm->parallel_regression;
-  this->parallel_insample= ggm->parallel_insample;
+  this->prob_global= ggm->prob_global;
+  this->global_regression= ggm->global_regression;
+  this->global_insample= ggm->global_insample;
 
   //Set print progress iteration to true/false
   this->verbose= ggm->verbose;

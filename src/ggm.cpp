@@ -272,8 +272,8 @@ void GGM_MHwithinGibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> 
 
 
 // [[Rcpp::export]]
-List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
-/* Interface for GGM_MHwithinGibbs_parallel and GGM_MHwithinGibbs_onlyparallel to be called from R 
+List modelSelectionGGM_globalC(arma::mat y, List prCoef, List prModel, List samplerPars, arma::sp_mat Omegaini) {
+/* Interface for GGM_MHwithinGibbs_global and GGM_MHwithinGibbs_onlyglobal to be called from R 
 
    Output: list with p+2 elements. 
      - Elements j=0,...,p-1 (proposal_samples) are arma::sp_mat storing proposed samples for Omega[,j] given Omegaini[-j,-j]
@@ -299,10 +299,10 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
   dpropini= dvector(0, p-1);
 
   //Update Omegaini to local posterior mode
-  //bool parallel_regression= ggm->parallel_regression;
-  //ggm->parallel_regression= false;
+  //bool global_regression= ggm->global_regression;
+  //ggm->global_regression= false;
   //GGM_CDA(&Omegaini, ggm);
-  //ggm->parallel_regression= parallel_regression;
+  //ggm->global_regression= global_regression;
 
   //Vectors where to store proposal's models & their probabilities
   std::vector<arma::SpMat<short>> proposal_models(p);
@@ -314,7 +314,7 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
 
     int updates_per_column= ggm->updates_per_column;
     ggm->updates_per_column= 1;
-    GGM_parallel_proposal(&proposal_models, &proposal_logprob, &map_logprob, dpropini, ggm, &Omegaini);
+    GGM_global_proposal(&proposal_models, &proposal_logprob, &map_logprob, dpropini, ggm, &Omegaini);
     ggm->updates_per_column= updates_per_column;
 
   } else if (use_zigzag) {
@@ -325,17 +325,17 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
 
   //MCMC using independent proposal MH to combine the chains
   ggm->use_tempering= false;
-  ggm->parallel_regression= ggm->parallel_insample= false;
+  ggm->global_regression= ggm->global_insample= false;
   arma::sp_mat postSample(npars, niter - burnin);
   arma::mat margpp = arma::zeros(p,p); 
   arma::Mat<int> margppcount;
   margppcount.zeros(p, p);
   arma::vec margppflat(p * (p+1)/2);
   
-  if (ggm->prob_parallel < 0.9999) {
-    GGM_MHwithinGibbs_parallel(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
+  if (ggm->prob_global < 0.9999) {
+    GGM_MHwithinGibbs_global(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, &map_logprob, ggm, &Omegaini);
   } else {
-    GGM_MHwithinGibbs_onlyparallel(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
+    GGM_MHwithinGibbs_onlyglobal(&postSample, &margpp, &margppcount, &prop_accept, &proposal_models, &proposal_logprob, dpropini, ggm, &Omegaini);
   }
 
   margpp = margpp / margppcount;
@@ -367,7 +367,7 @@ List modelSelectionGGM_parallelC(arma::mat y, List prCoef, List prModel, List sa
 
 
 
-/*Parallel Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. 
+/*global Gibbs and birth-death sampling for the precision matrix of a Gaussian graphical models, i.e. Omega where y_i ~ N(0,Omega^{-1}) for i=1,...,n. 
 
 Each column is sampled independently from its conditional posterior, given the current value of Omega, i.e. the algorithm targets a pseudo-posterior rather than the actual posterior
 
@@ -382,7 +382,7 @@ OUTPUT
 
 */
 
-void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_global_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int j, p= ggm->ncol, p10, niter_prop, burnin_prop;
   double truncratio= ggm->truncratio;
@@ -394,18 +394,18 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
 
   niter_GGM_proposal(&niter_prop, &burnin_prop, &(ggm->niter), &(ggm->burnin), &p); //if not using a full scan, less iterations are needed
 
-  if (!use_gibbs && !use_birthdeath && !use_LIT) Rf_error("GGM_parallel_proposal requires the sampler to be Gibbs, birthdeath or LIT");
+  if (!use_gibbs && !use_birthdeath && !use_LIT) Rf_error("GGM_global_proposal requires the sampler to be Gibbs, birthdeath or LIT");
 
   if (p >10) { p10= p / 10; } else { p10= 1; }
 
-  if (ggm->verbose) Rprintf(" Running parallel proposals\n");
+  if (ggm->verbose) Rprintf(" Running global proposals\n");
 
-  //#pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
+  //#pragma omp global for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
   for (j=0; j < p; j++) { //for each column
 
     arma::SpMat<short> models_row(p, niter_prop - burnin_prop);
     arma::mat invOmega_j;
-    if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
+    if (!ggm->global_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
     arma::sp_mat *samples_row= nullptr;
     arma::vec *margpp_row= nullptr;
@@ -431,14 +431,14 @@ void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<
 
   //Alternative version where memory is not shared across threads (but requires making local copies of ggm, models and model_logprop)
   /*
-  #pragma omp parallel for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
+  #pragma omp global for default(none) shared(p, p10, use_gibbs, burnin, niter, ggm, Omegaini, models, model_logprop)
   for (j=0; j < p; j++) { //for each column
 
     ggmObject *ggm_local;
     ggm_local= new ggmObject(ggm);
     arma::SpMat<short> models_row(p, niter_prop - burnin_prop);
     arma::mat invOmega_j;
-    if (!ggm->parallel_regression) invOmega_j= get_invOmega_j(Omegaini, j);
+    if (!ggm->global_regression) invOmega_j= get_invOmega_j(Omegaini, j);
     arma::sp_mat Omegacol= Omegaini->col(j);
     arma::sp_mat *samples_row= nullptr;
     arma::vec *margpp_row= nullptr;
@@ -626,7 +626,7 @@ void GGM_Gibbs_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models, arma
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun;
 
-  if (ggm->parallel_regression) {
+  if (ggm->global_regression) {
     marfun= &GGMrow_marg_regression;
   } else {
     marfun= &GGMrow_marg;
@@ -748,7 +748,7 @@ void GGM_birthdeath_singlecol(arma::sp_mat *samples, arma::SpMat<short> *models,
   modselIntegrals_GGM *ms;
   pt2GGM_rowmarg marfun;
 
-  if (ggm->parallel_regression) {
+  if (ggm->global_regression) {
     marfun= &GGMrow_marg_regression;
   } else {
     marfun= &GGMrow_marg;
@@ -1192,9 +1192,9 @@ void dprop_LIT_death_GGM(std::vector<double> *proposal_kernel, std::vector<int> 
 }
 
 
-/* Determine number of iterations to use in GGM parallel proposals 
+/* Determine number of iterations to use in GGM global proposals 
 
-  The number of expected draws from each parallel proposal is m= niter / p, and its SD is s= sqrt(niter (1/p) (1 - 1/p))
+  The number of expected draws from each global proposal is m= niter / p, and its SD is s= sqrt(niter (1/p) (1 - 1/p))
   This function returns m + 5 s, in order to propose 10 times the expected number of samples.
   However, in cases where 10 * niter / p is too small (<1000) we return 1000, and if it's too large (>niter) we return niter.
   Also, if niter was small to start with (niter <= 1000), it is returned unaltered.
@@ -1360,13 +1360,13 @@ INPUT/OUTPUT
   - Omegaini: initial value of Omega, this is updated at each iteration and the value at the last iteration is returned
 
 */
-void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_MHwithinGibbs_global(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, index_birth, index_death, movetype, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;
   double dpostnew, dpostold, dpropnew, dpropold=0, ppnew, sample_diag;
-  double prob_parallel= ggm->prob_parallel;
-  bool parallel_draw;
+  double prob_global= ggm->prob_global;
+  bool global_draw;
   char *zerochar;
   zerochar = (char *) calloc(p+1, sizeof(char));
   for (i=0; i<p; i++) zerochar[i]= '0';
@@ -1402,7 +1402,7 @@ void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arm
     for (arma::sp_mat::iterator it= mycolumn.begin(); it != mycolumn.end(); ++it) { mymodel.at(it.row(), 0)= 1; }
     modelold[newcol]= mymodel;
 
-    //Pre-compute parallel proposal's cdf, so we can use rdisc_pcum later
+    //Pre-compute global proposal's cdf, so we can use rdisc_pcum later
     nproposal[newcol]= (proposal_models->at(newcol)).n_cols;
     cdf_proposal[newcol]= dvector(0, nproposal[newcol]);
     double pcum=0, maxlogprob= (*proposal_logprob)[newcol][0];
@@ -1440,9 +1440,9 @@ void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arm
 
       for (k=0; k < updates_per_column; k++) {  //perform multiple updates per column
 
-        parallel_draw= (runifC() < prob_parallel); //choose proposal type
+        global_draw= (runifC() < prob_global); //choose proposal type
     
-        if (parallel_draw && (dpropini[newcol] != -INFINITY)) { //use parallel proposal
+        if (global_draw && (dpropini[newcol] != -INFINITY)) { //use global proposal
 
           dpropold= dpropini[newcol]; //log-proposal for current model
           proposal_idx= rdisc_pcum(cdf_proposal[newcol], nproposal[newcol]);  //index of proposal
@@ -1470,7 +1470,7 @@ void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arm
           number_accept++;
           modelold[newcol]= modelnew;
           dpostold= dpostnew;
-          //Store log parallel proposal density of updated model
+          //Store log global proposal density of updated model
           s= getModelid(&modelnew, zerochar);
           itmap= (map_logprob->at(newcol)).find(s);
           if (itmap != (map_logprob->at(newcol)).end()) {
@@ -1519,7 +1519,7 @@ void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample, arma::mat *margpp, arm
 }
 
 
-void GGM_MHwithinGibbs_onlyparallel(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
+void GGM_MHwithinGibbs_onlyglobal(arma::sp_mat *postSample, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini) {
 
   int i, j, k, i10, iter, newcol, oldcol, *sequence, number_accept= 0, proposal_idx;
   int burnin= ggm->burnin, niter= burnin + postSample->n_cols, p= ggm->ncol, updates_per_column= ggm->updates_per_column, updates_per_iter= ggm->updates_per_iter;

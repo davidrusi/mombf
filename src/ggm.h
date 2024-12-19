@@ -32,11 +32,11 @@ List modelSelectionGGMC(NumericMatrix y, List prCoef, List prModel, List sampler
 
 void GGM_MHwithinGibbs(arma::sp_mat *samples, arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_parallel_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_global_proposal(std::vector<arma::SpMat<short>> *models, std::vector<std::vector<double>> *model_logprop, std::vector<std::map<string, double>> *map_logprob, double *logprop_modelini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_MHwithinGibbs_parallel(arma::sp_mat *postSample,  arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_MHwithinGibbs_global(arma::sp_mat *postSample,  arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, std::vector<std::map<string, double>> *map_logprob, ggmObject *ggm, arma::sp_mat *Omegaini);
 
-void GGM_MHwithinGibbs_onlyparallel(arma::sp_mat *postSample,  arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
+void GGM_MHwithinGibbs_onlyglobal(arma::sp_mat *postSample,  arma::mat *margpp, arma::Mat<int> *margppcount, double *prop_accept, std::vector<arma::SpMat<short>> *proposal_models, std::vector<std::vector<double>> *proposal_logprob, double *dpropini, ggmObject *ggm, arma::sp_mat *Omegaini);
 
 void GGM_CDA(arma::sp_mat *Omega, ggmObject *ggm);
 

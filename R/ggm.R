@@ -83,7 +83,7 @@ return(ans)
 
 ### Model selection routines
 
-modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, global_proposal= "regression", prob_global=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='birthdeath', pbirth=0.75, pdeath=0.5*(1-pbirth), bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE) {
+modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelbinomprior(1/ncol(y)), priorDiag=exponentialprior(lambda=1), center=TRUE, scale=TRUE, global_proposal= "regression", prob_global=0.5, tempering=0.5, truncratio= 100, save_proposal=FALSE, niter=10^3, burnin= round(niter/10), updates_per_iter= ceiling(sqrt(ncol(y))), updates_per_column= 10, sampler='Gibbs', pbirth=0.75, pdeath=0.5*(1-pbirth), bounds_LIT, Omegaini='glasso-ebic', verbose=TRUE) {
   #Check input args
   if (!is.matrix(y)) y = as.matrix(y)
   p= ncol(y);

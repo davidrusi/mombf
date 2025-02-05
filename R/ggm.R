@@ -20,7 +20,8 @@ setMethod("show", signature(object='msfit_ggm'), function(object) {
 )
 
 coef.msfit_ggm <- function(object,...) {
-  m= Matrix::colMeans(object$postSample)
+  m= as.vector(object$postmean) #use Rao-Blackwellized estimator
+  #m= Matrix::colMeans(object$postSample) #use MCMC estimator
   ci= sparseMatrixStats::colQuantiles(object$postSample, prob=c(0.025,0.975))
   ans= cbind(t(object$indexes), m, ci, object$margpp) #use Rao-Blackwellized edge inclusion probabilities
   colnames(ans)[-1:-2]= c('estimate','2.5%','97.5%','margpp')
@@ -29,10 +30,11 @@ coef.msfit_ggm <- function(object,...) {
 
 icov <- function(fit, threshold) {
   if (!inherits(fit, 'msfit_ggm')) stop("Argument fit must be of class msfit_ggm")
-  m= Matrix::colMeans(fit$postSample)
+  m= as.vector(fit$postmean) #use Rao-Blackwellized estimator
+  #m= Matrix::colMeans(fit$postSample) #use MCMC estimator
   if (!missing(threshold)) {
-      margpp= Matrix::colMeans(fit$postSample != 0)
-      sel= (margpp >= threshold)
+      sel= (fit$margpp >= threshold) #use Rao-Blackwellized edge inclusion probabilities
+      #sel= (Matrix::colMeans(fit$postSample != 0) >= threshold) #use MCMC edge inclusion probabilities
       ans= Matrix::sparseMatrix(i= fit$indexes[1,sel], j= fit$indexes[2,sel], x=m[sel], dims=c(fit$p,fit$p), symmetric=TRUE)
   } else {
       ans= matrix(nrow=fit$p,ncol=fit$p)
@@ -112,15 +114,17 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   if (global_proposal == 'none') {
     ans= modelSelectionGGMC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans$postSample)
+    postmean = ans$postmean
     margpp= ans$margpp
     prop_accept= ans$prop_accept
   } else {
     ans= modelSelectionGGM_globalC(y, prCoef, prModel, samplerPars, Omegaini)
     postSample= Matrix::t(ans[[1]])
-    margpp= ans[[2]]
-    prop_accept= ans[[3]]
+    postmean= ans[[2]]
+    margpp= ans[[3]]
+    prop_accept= ans[[4]]
     if (save_proposal) {
-      proposal= lapply(ans[4:(4+p-1)], Matrix::t)
+      proposal= lapply(ans[5:(5+p-1)], Matrix::t)
       for (i in seq_len(length(proposal))) proposal[[i]]@x = as.double(proposal[[i]]@x)
       proposaldensity= Matrix::t(ans[[length(ans)]])
     }
@@ -134,7 +138,7 @@ modelSelectionGGM= function(y, priorCoef=normalidprior(tau=1), priorModel=modelb
   indexes= rbind(row(A)[upper.tri(row(A),diag=TRUE)], col(A)[upper.tri(row(A),diag=TRUE)])
   rownames(indexes)= c('row','column')
 
-  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, margpp=margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, global_proposal=global_proposal)
+  ans= list(postSample=postSample, prop_accept=prop_accept, proposal=proposal, proposaldensity=proposaldensity, postmean=postmean, margpp=margpp, priors=priors, p=p, indexes=indexes, samplerPars=samplerPars, global_proposal=global_proposal)
 
   new("msfit_ggm",ans)
 }

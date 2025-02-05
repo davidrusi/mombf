@@ -1,4 +1,5 @@
 CHANGES IN VERSION 4.0.0
+- Added Rao-Blackwellized estimators for GGM
 - Added fast Cholesky updates for information criteria
 - Added fast Cholesky updates for modelSelection under pMOM, normalid,
 icarplus and most other priors (not peMOM, piMOM though)

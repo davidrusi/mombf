@@ -142,7 +142,7 @@ public:
   
   ~modselIntegrals_GGM();
 
-  void getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample); //Return logjoint() and posterior sample for off-diag & diagonal elements 
+  void getJoint(double *logjoint, arma::mat *mean_offdiag, double *mean_diag, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample); //Return logjoint() and posterior sample for off-diag & diagonal elements 
 
   void getMode(double *logjoint, arma::mat *mode_offdiag, double *mode_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold); //Return logjoint() and posterior mode for off-diag & diagonal elements
 

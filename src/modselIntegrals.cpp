@@ -302,7 +302,7 @@ modselIntegrals_GGM::~modselIntegrals_GGM() {
 If postSample=true, sample_offdiag returns a posterior sample for the off-diagonal parametes and sample_diag for the diagonal parameters
 
 */
-void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample) {
+void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *mean_offdiag, double *mean_diag, arma::mat *sample_offdiag, double *sample_diag, arma::SpMat<short> *model, arma::SpMat<short> *modelold, bool postSample) {
 
   bool delete_m_cholV= false;  
   int npar= model->n_nonzero -1;
@@ -367,15 +367,18 @@ void modselIntegrals_GGM::getJoint(double *logjoint, arma::mat *sample_offdiag, 
     //Copy entries of Omegainv selected by model to Omegainv_model
     this->get_Omegainv_model(&Omegainv_model, model);
 
+    if (mean_offdiag != nullptr) (*mean_offdiag)= (*m);
+
     //Sample off-diagonal elements
     rmvnormC(sample_offdiag, m, cholV);
-    (*sample_offdiag) *= -1.0;
      
     //Sample diagonal element
     double a= 0.5 * (double) ggm->n + 1.0;
     double b= 0.5 * (ggm->S).at(this->colid, this->colid) + 0.5 * ggm->prCoef_lambda; //Prior is Omega_{jj} ~ Exp(lambda)
-     
-    (*sample_diag)= rgammaC(a, b) + arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
+    
+    double ss= arma::as_scalar(sample_offdiag->t() * Omegainv_model  * (*sample_offdiag));
+    (*sample_diag)= rgammaC(a, b) + ss;
+    if (mean_diag != nullptr) (*mean_diag)= (a/b) + ss;
 
   }
 

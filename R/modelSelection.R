@@ -254,7 +254,7 @@ getmodelid= function(object) {
 
 
 
-setMethod("logjoint", signature(object='msfit'), function(object, return_models=TRUE) {
+setMethod("logjoint", signature(object='msfit'), function(object, return_models=TRUE, models_as_char=FALSE) {
   if (object$enumerate) {
       if (return_models) {
         ans= data.frame(object$models, object$postProb)
@@ -262,7 +262,12 @@ setMethod("logjoint", signature(object='msfit'), function(object, return_models=
         ans= object$postProb
       }
   } else {
-    ans= unique(data.frame(object$postSample==1, logpp=object$postProb))
+      if (!models_as_char) {
+          ans= unique(data.frame(object$postSample==1, logpp=object$postProb))
+      } else {
+          modelid= apply(object$postSample==1, 1, function(z) paste(which(z),collapse=','))
+          ans= unique(data.frame(modelid, logpp= object$postProb))
+      }
     if (!return_models) ans= ans[,ncol(ans)]
   }
 return(ans)
@@ -392,17 +397,17 @@ setMethod("marglhood_acrossmodels", signature(object='msfit'), function(object, 
 )
 
 
-defaultmom= function(outcometype,family) {
+defaultmom= function(outcometype, family, verbose=TRUE) {
     if (outcometype=='Continuous') {
-        cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348), priorVar=igprior(.01,.01)\n")
+        if (verbose) cat("Using default prior for continuous outcomes priorCoef=momprior(tau=0.348), priorVar=igprior(.01,.01)\n")
         priorCoef= momprior(tau=0.348)
         priorVar= igprior(alpha=.01,lambda=.01)
     } else if (outcometype=='Survival') {
-        cat("Using default prior for Normal AFT survival outcomes priorCoef=momprior(tau=0.192), priorVar=igprior(3,3)\n")
+        if (verbose) cat("Using default prior for Normal AFT survival outcomes priorCoef=momprior(tau=0.192), priorVar=igprior(3,3)\n")
         priorCoef= momprior(tau=0.192)
         priorVar= igprior(alpha=3,lambda=3)
     } else if (outcometype=='glm') {
-        cat("Using default prior for GLMs priorCoef=momprior(tau=1/3), priorVar=igprior(.01,.01)\n")
+        if (verbose) cat("Using default prior for GLMs priorCoef=momprior(tau=1/3), priorVar=igprior(.01,.01)\n")
         priorCoef= momprior(tau=1/3)
         priorVar= igprior(alpha=.01,lambda=.01)
     } else {
@@ -481,7 +486,7 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   #Set default priors
   #If there are variable groups, count variables in each group, indicate 1st variable in each group, convert group and constraint labels to integers 0,1,...
   if (missing(priorCoef)) {
-      defaultprior= defaultmom(outcometype=outcometype,family=family)
+      defaultprior= defaultmom(outcometype=outcometype,family=family,verbose=verbose)
       priorCoef= defaultprior$priorCoef; priorVar= defaultprior$priorVar
   }
   if (missing(priorGroup)) { if (length(groups)==length(unique(groups))) { priorGroup= priorCoef } else { priorGroup= groupzellnerprior(tau=n) } }

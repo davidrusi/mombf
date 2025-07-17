@@ -69,7 +69,7 @@ if (!isGeneric("plotprior")) {
 }
 
 if (!isGeneric("logjoint")) {
-  setGeneric("logjoint", function(object, return_models=TRUE) standardGeneric("logjoint"))
+  setGeneric("logjoint", function(object, return_models=TRUE, models_as_char=FALSE) standardGeneric("logjoint"))
 }
 
 if (!isGeneric("postProb")) {

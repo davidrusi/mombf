@@ -1,7 +1,7 @@
 Package: mombf
 Type: Package
 Version: 4.0.0
-Date: 2025-02-05
+Date: 2025-07-18
 Title: Model Selection with Bayesian Methods and Information Criteria 
 Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck, Oriol Abril, Miquel Torrens
 Maintainer: David Rossell <rosselldavid@gmail.com>
@@ -15,4 +15,4 @@ License: GPL (>= 2) | file LICENSE
 URL: https://github.com/davidrusi/mombf
 BugReports: https://github.com/davidrusi/mombf/issues
 LazyLoad: yes
-Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cil.R cox.R derivatives_nlps.R distribs.R dmom.R gam.R ggm.R greedyGLM.R infocriteria.R initParameters.R localnulltest.R msPriorSpec.R modelsearch.R modelSelection.R modelSelectionGLM.R mombf.R normaliwish.R normmix.R nlpMarginal.R postMode.R rmom.R RcppExports.R testfunction.R
+Collate: AllClasses.R AllGenerics.R alapl.R bms_ortho.R cil.R cox.R derivatives_nlps.R distribs.R dmom.R eBayes.R gam.R ggm.R greedyGLM.R infocriteria.R initParameters.R localnulltest.R msPriorSpec.R modelsearch.R modelSelection.R modelSelectionGLM.R mombf.R normaliwish.R normmix.R nlpMarginal.R postMode.R rmom.R RcppExports.R testfunction.R

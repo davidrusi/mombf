@@ -1,17 +1,27 @@
 \name{modelSelection}
 \alias{modelSelection}
+\alias{modelSelection_eBayes}
 \alias{modelsearchBlockDiag}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{ Bayesian variable selection for linear models via non-local priors. }
+\title{ Bayesian variable selection for generalized linear and
+  generalized additive models.
+}
 \description{
   Bayesian model selection for linear, asymmetric linear,
-  median and quantile regression under
+  median and quantile regression, for GLMs and GAMs under
   non-local or Zellner priors. p>>n can be handled.
 
   modelSelection enumerates all models when feasible
   and uses a Gibbs scheme otherwise.
   See \code{coef} and \code{coefByModel} for estimates and posterior
   intervals of regression coefficients, and \code{rnlp} for posterior samples.
+
+  modelSelection performs standard Bayesian model selection.
+  
+  modelSelection_eBayes uses empirical Bayes to set prior inclusion
+  probabilities pi. pi can be regressed on meta-covariates Z via
+  log(pi/(1-pi))= Z w. If Z contains only an intercept, a global prior
+  inclusion probability is learn from data.
 
   modelsearchBlockDiag seeks the highest posterior
   probability model using an iterative block search.
@@ -30,6 +40,9 @@ neighbours, phi, deltaini=rep(FALSE,ncol(x)),
 initSearch='greedy', method='auto', adj.overdisp='intercept',
 hess='asymp', optimMethod, optim_maxit, initpar='none', B=10^5,
 XtXprecomp= ifelse(ncol(x)<10^4,TRUE,FALSE), verbose=TRUE)
+
+modelSelection_eBayes(Z, wini, niter.mcmc= 5000, niter.mstep= 1000,
+niter.eBayes= 20, priorvar.w, verbose=TRUE, ...)
 
 modelsearchBlockDiag(y, x, priorCoef=momprior(tau=0.348),
 priorDelta=modelbbprior(1,1), priorVar=igprior(0.01,0.01),
@@ -181,6 +194,26 @@ to the number of variables in \code{x}. }
   spending unnecessary time exploring overly large models}
 \item{maxenum}{If the posterior mode found has less than \code{maxenum}
   variables then do a full enumeration of all its submodels}
+
+
+\item{Z}{p x q matrix containing the q meta-covariates for the p
+  covariates. An intercept is automatically added (including when
+  \code{Z} is missing)}
+\item{wini}{Optional. Initial value for the q-dimensional
+  hyper-parameter w}
+\item{niter.mcmc}{Number of iterations in the final MCMC,
+  run once after hyper-parameter estimates have been obtained}
+\item{niter.mstep}{Number of MCMC iterations in each M-step
+  required to update hyper-parameter estimates}
+\item{niter.eBayes}{Max number of iterations in the empirical
+  Bayes optimization algorithm. The algorithm also stop when
+  the objective function didn't improve in >=2 iterations}
+\item{priorvar.w}{Hyper-parameters w follow a prior
+  w ~ N(0, priorvar.w (Z^T Z/p)^{-1}) where priorvar.w is the prior
+  variance. By default is set such that all prior inclusion
+  probabilities lie in (0.001,0.999) with 0.95 prior probability}
+\item{...}{Further parameters passed onto \code{modelSelection}}
+
 }
 \details{
   Let delta be the vector indicating inclusion/exclusion of each

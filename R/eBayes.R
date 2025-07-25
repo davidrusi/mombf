@@ -56,7 +56,10 @@ plot_taylor_approximation <- function(
 modelSelection_eBayes= function(Z, wini, niter.mcmc= 5000, niter.mstep= 1000, niter.eBayes= 20, priorvar.w, verbose=TRUE, ...) {
     # Add intercept and orthogonalize Z wrt intercept
     Z= model.matrix(~ ., data= as.data.frame(Z))
-    Z= Z[, -which(apply(Z, 2, 'sd')==0)[-1], drop=FALSE] #if there's >1 intercept, keep only the first
+    zerosd= which(apply(Z, 2, 'sd')==0)
+    if (length(zerosd) > 1) {
+        Z= Z[, -zerosd[-1], drop=FALSE] #if there's >1 intercept, keep only the first
+    }
     sel= (colnames(Z) != "(Intercept)")
     if (sum(sel) > 0) Z[,sel]= round(residuals(lm(Z[,sel] ~ 1)), 3)
     # Default hyper-parameters prior variance

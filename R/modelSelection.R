@@ -709,6 +709,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
         uncens= integer(0)
       }
       formula= splineDegree= NA; is_formula=FALSE; typeofvar= rep('numeric',ncol(x))
+      if (!is.matrix(x)) x <- as.matrix(x)
   }
   if (nrow(x)!=length(y)) stop('nrow(x) must be equal to length(y)')
   if (any(is.na(y))) stop('y contains NAs, this is currently not supported, please remove the NAs')

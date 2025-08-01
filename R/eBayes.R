@@ -105,7 +105,7 @@ modelSelection_eBayes= function(Z, wini, niter.mcmc= 5000, niter.mstep= 1000, ni
             fbest= fval[i]= eBayes_logit_objective(w, msfit=ms, Z=Z, priorvar.w=priorvar.w, Vinv=Vinv)
             #fbest= fval[i]= eBayes_em_logit_objective(w, msfit=ms, Z=Z, priorvar.w=priorvar.w, Vinv=Vinv)
             wbest= w
-            if (verbose) cat("Done\n\n","Iteration", "Objective function", "Estimate", "\n", i, w, fval[i], "\n")
+            if (verbose) cat("Done\n\n","Iteration", "Objective function", "Hyper-parameter", "\n", i, fval[i], w, "\n")
         }
         if (fval[i+1] >= fval[i]) { noimprove= 0 } else { noimprove= noimprove + 1 }
         if (fval[i+1] > fbest) { fbest= fval[i+1]; wbest= wnew }

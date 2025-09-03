@@ -511,7 +511,13 @@ modelSelection <- function(y, x, data, smoothterms, nknots=9, groups=1:ncol(x), 
   if (!center) { my=0; mx= rep(0,p) } else { my= mean(y) }
   if (!scale) { sy=1; sx= rep(1,p) } else { sy= sd(y) }
   mx[typeofvar=='factor']=0; sx[typeofvar=='factor']= 1
-  if (!(outcometype %in% c('Continuous','Survival'))) { my=0; sy= 1 }
+  if (!(outcometype %in% c('Continuous','Survival'))) {
+      my=0; sy= 1
+  } else {
+      if ((ncol(x)==1) & center) {
+          if (ct) warning("You specified center=TRUE for an intercept-only model. This is rarely correct, to test whether the intercept is 0 you should not center the outcome. Consider setting center=FALSE.")
+      }
+  }
   ystd= (y-my)/sy; xstd= x; xstd[,!ct]= t((t(x[,!ct]) - mx[!ct])/sx[!ct])
   if (missing(phi)) { knownphi <- as.integer(0); phi <- double(0) } else { knownphi <- as.integer(1); phi <- as.double(phi) }
   stdconstants= rbind(c(my,sy),cbind(mx,sx)); colnames(stdconstants)= c('shift','scale')
@@ -749,9 +755,7 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     mf$na.action = quote(na.pass)
     mf$drop.unused.levels <- TRUE
     mf[[1L]] <- quote(stats::model.frame)
-    #gam.slist <- gam.smoothers()$slist
     mt <- if (missing(data)) terms(formula) else terms(formula, data = data)
-    #mt <- if (missing(data)) terms(formula, gam.slist) else terms(formula, gam.slist, data = data)
     mf$formula <- mt
     mf <- eval(mf, parent.frame())
     if (missing(na.action)) {
@@ -762,14 +766,17 @@ createDesign <- function(formula, data, smoothterms, subset, na.action, splineDe
     mt = attributes(mf)[["terms"]]  #mt is an object of class "terms" storing info about the model, see help(terms.object) for a description
     y <- model.response(mf, "any")
     x <- if (!is.empty.model(mt)) model.matrix(mt, mf) else matrix(, NROW(y), 0)
-    #x <- if (!is.empty.model(mt)) model.matrix(mt, mf, contrasts) else matrix(, NROW(y), 0)
     groups <- attr(x,"assign") #group that each variable belongs to, e.g. for factors
     tab= table(groups);
     typeofvar= ifelse(groups %in% as.numeric(names(tab)[tab>1]),'factor','numeric')
     intercept= ifelse(min(groups)==0,1,0)
-    groups2vars= attr(mt,"factors")[-1,] #for each variable group, hierarchical dependence on other groups
-    nn= colnames(groups2vars)[!(colnames(groups2vars) %in% rownames(groups2vars))]
-    if (length(nn)>0) { #there's interaction terms
+    if (length(attr(mt,"factors")) > 0) {
+        groups2vars= attr(mt,"factors")[-1,] #for each variable group, hierarchical dependence on other groups
+        nn= colnames(groups2vars)[!(colnames(groups2vars) %in% rownames(groups2vars))]
+    } else {  #the model only contains an intercept
+        nn= character(0)
+    }
+    if (length(nn)>0) { #there are interaction terms
         tmp= matrix(0,nrow=length(nn),ncol=ncol(groups2vars))
         rownames(tmp)= nn
         colnames(tmp)= colnames(groups2vars)

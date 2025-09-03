@@ -145,7 +145,7 @@ eBayes_priorelicit= function(Z, targetprob=0.95, min_priorprob=0.001, prior="zel
         v= mahalanobis(Z, center=rep(0,ncol(Z)), cov=V, inverted=TRUE)
         vmax= max(v)
     } else if (prior == "normalshrinkage") {
-        vmax= max(rowSums(z^2))
+        vmax= max(rowSums(Z^2))
     }
     priorvar.w= priorvar.w / vmax
     #unique(apply(Z, 1, function(z) 1 - 2 * pnorm(logit(0.05) / sqrt(priorvar.w * mahalanobis(z, center=rep(0,ncol(Z)), cov=V, inverted=TRUE))))) #check: should all be >= targetprob

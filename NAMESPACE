@@ -7,7 +7,7 @@ importFrom(mclust, mclustBIC)
 importFrom("utils", "combn")
 importFrom(Rcpp, evalCpp)
  
-importFrom("graphics", "lines")
+importFrom("graphics", "abline", "lines", "legend")
 importFrom("grDevices", "devAskNewPage")
 
 useDynLib(mombf, .registration=TRUE)

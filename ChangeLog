@@ -1,4 +1,5 @@
 CHANGES IN VERSION 4.0.0
+- Fixed bug in modelSelection caused by an intercept-only formula ~1
 - Added modelSelection_eBayes
 - Added Rao-Blackwellized estimators for GGM
 - Added fast Cholesky updates for information criteria

@@ -1,9 +1,9 @@
 Package: mombf
 Type: Package
 Version: 4.0.0
-Date: 2025-08-01
-Title: Model Selection with Bayesian Methods and Information Criteria 
-Author: David Rossell, John D. Cook, Donatello Telesca, P. Roebuck, Oriol Abril, Miquel Torrens
+Date: 2025-08-16
+Title: Model Selection with Bayesian Methods and Information Criteria
+Authors@R: c(person(given = "David", family = "Rossell", role = c("aut", "cre"), email = "rosselldavid@gmail.com"), person(given = c("John", "D."), family = "Cook", role = "aut"), person(given = "Donatello", family = "Telesca", role = "aut"), person(given = "P.", family = "Roebuck", role = "aut"), person(given = "Oriol", family = "Abril", role = "aut"), person(given = "Miquel", family = "Torrens", role = "aut"))
 Maintainer: David Rossell <rosselldavid@gmail.com>
 Depends: R (>= 2.14.0), methods
 Suggests: parallel, testthat, patrick

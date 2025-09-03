@@ -209,7 +209,7 @@ to the number of variables in \code{x}. }
   Bayes optimization algorithm. The algorithm also stop when
   the objective function didn't improve in >=2 iterations}
 \item{priorvar.w}{Hyper-parameters w follow a prior
-  w ~ N(0, priorvar.w (Z^T Z/p)^{-1}) where priorvar.w is the prior
+  w ~ N(0, priorvar.w (Z^T Z/p)^(-1)) where priorvar.w is the prior
   variance. By default is set such that all prior inclusion
   probabilities lie in (0.001,0.999) with 0.95 prior probability}
 \item{...}{Further parameters passed onto \code{modelSelection}}

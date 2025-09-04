@@ -1,4 +1,7 @@
 CHANGES IN VERSION 4.0.0
+- modelSelection now requires the argument data when the first argument y is a
+formula. This fixes issues with wrongly grouping covariates for formulas like
+y ~ x where x is a matrix or data.frame
 - Fixed bug in modelSelection caused by an intercept-only formula ~1
 - Added modelSelection_eBayes
 - Added Rao-Blackwellized estimators for GGM

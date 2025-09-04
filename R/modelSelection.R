@@ -681,6 +681,7 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
   call <- match.call()
   groups <- NULL; constraints <- NULL; ordery <- NULL
   if ('formula' %in% class(y)) {
+      if (missing(data)) stop("When y is a formula, you must supply the argument 'data'")
       formula= y; is_formula=TRUE; splineDegree= 3
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
       x= des$x; groups= des$groups; constraints= des$constraints; typeofvar= des$typeofvar

@@ -61,15 +61,19 @@ unstdcoef <- function(bstd, p, msfit, coefnames) {
   my= msfit$stdconstants[1,'shift']; mx= msfit$stdconstants[-1,'shift']
   sy= msfit$stdconstants[1,'scale']; sx= msfit$stdconstants[-1,'scale']
   ct= (sx==0)
-  b= bstd[,1:p]
-  b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
+  b= bstd[,1:p,drop=FALSE]
+  if (any(!ct)) b[,!ct]= t(t(b[,!ct])*sy/sx[!ct])  #re-scale regression coefficients
   if (any(ct)) {
-      #b[,ct]= my + sy*b[,ct] #adjust intercept, if already present
-      b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #adjust intercept, if already present
+      #adjust intercept, if already present
+      if (any(!ct)) {
+          b[,ct]= my + sy*b[,ct] - colSums(t(b[,!ct,drop=FALSE])*mx[!ct])
+      } else {
+          b[,ct]= my + sy*b[,ct]
+      }
       bstd[,1:p]= b
   } else {
-      #intercept= my #add intercept, if not already present
-      intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) #add intercept, if not already present
+      #add intercept, if not already present
+      intercept= my - colSums(t(b[,!ct,drop=FALSE])*mx[!ct]) 
       bstd= cbind(intercept,b,bstd[,-1:-p]); colnames(bstd)= c('intercept',coefnames)
   }
   if ('phi' %in% coefnames) bstd[,'phi']= sy^2*bstd[,'phi'] #re-scale residual variance

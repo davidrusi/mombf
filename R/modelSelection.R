@@ -675,12 +675,12 @@ set_ms_maxvars = function(n, p, priorCoef, family, includevars) {
 
 # format input data from either formula (y), formula and data.frame (y,data) or matrix and vector (y, x)
 # it accepts smoothterms, groups and survival data
-formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
+formatInputdata <- function(y, x, data, smoothterms, nknots, family) {
   valid_families <- c('normal','twopiecenormal','laplace','twopiecelaplace','auto','binomial','binomial logit','poisson','poisson log')
   if (!(family %in% valid_families)) stop(paste("Invalid family. Valid values are", valid_families))
   call <- match.call()
   groups <- NULL; constraints <- NULL; ordery <- NULL
-  if ('formula' %in% class(y)) {
+  if (inherits(y, "formula")) {
       if (missing(data)) stop("When y is a formula, you must supply the argument 'data'")
       formula= y; is_formula=TRUE; splineDegree= 3
       des= createDesign(y, data=data, smoothterms=smoothterms, splineDegree=splineDegree, nknots=nknots)
@@ -742,8 +742,36 @@ formatInputdata <- function(y,x,data,smoothterms,nknots,family) {
 
 
 
+#Check that all variables appearing in myformula are in data
+check_formula_variables <- function(myformula, data) {
+  formula_vars <- all.vars(myformula)
+  data_vars <- names(data)
+  has_dot <- "." %in% formula_vars   # Check if formula contains a dot
+  if (has_dot) {
+    # Remove dot from variables to check
+    formula_vars <- setdiff(formula_vars, ".")
+    # For dot formulas, only check that explicitly mentioned variables exist
+    missing_vars <- setdiff(formula_vars, data_vars)
+    if (length(missing_vars) > 0) {
+      stop("Some variable in the regression formula are not in the argument 'data'")
+    }
+    # Dot means "all other variables", so we're done
+    return(TRUE)
+  } else {
+    # Regular formula - check all variables
+    missing_vars <- setdiff(formula_vars, data_vars)
+    if (length(missing_vars) > 0) {
+      stop("Some variable in the regression formula are not in the argument 'data'")
+    }
+    return(TRUE)
+  }
+}
+
+
+
 #Create a design matrix for the given formula. Return also covariate groups (e.g. from factors), covariate type (factor/numeric) and hierarchical constraints (e.g. from interaction terms), these are the parameters "groups" and "constraints" in modelSelection
 createDesign <- function(formula, data, smoothterms, subset, na.action, splineDegree=3, nknots=14) {
+    check_formula_variables(formula, data) #check that all variable names specified in formula are in data
     call <- match.call()
     if (missing(data)) data <- environment(formula)
     mf <- match.call(expand.dots = FALSE)
